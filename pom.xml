@@ -57,13 +57,10 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.everload</groupId>
-			<artifactId>yt-dlp</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/yt-dlp.jar</systemPath>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.2.0</version>
 		</dependency>
-
 
 
 
