@@ -9,11 +9,11 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
-                .info(new Info().title("XianBlogSpot API")
-                        .description("Documentación de la API de XianBlogSpot")
+                .info(new Info().title("EverLoad API")
+                        .description("Documentación de la API de EverLoad")
                         .version("v1.0"))
                 .externalDocs(new ExternalDocumentation()
                         .description("Proyecto GitHub")
-                        .url("https://github.com/xianDT01/XianBlogSpot"));
+                        .url("https://github.com/xianDT01/Everload"));
     }
 }
