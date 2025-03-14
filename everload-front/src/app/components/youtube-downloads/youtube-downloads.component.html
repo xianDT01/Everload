@@ -1,9 +1,20 @@
 <div class="downloads-container">
-    <h2>Descargar de YouTube</h2>
-    <input type="text" placeholder="Pega el enlace de YouTube aquí" [(ngModel)]="videoUrl">
-    <div class="buttons">
-      <button (click)="downloadVideo()">Descargar Video</button>
-      <button (click)="downloadMusic()">Descargar Música</button>
-    </div>
+  <h2>Descargar de YouTube</h2>
+
+  <input type="text" placeholder="Pega el enlace de YouTube aquí" [(ngModel)]="videoUrl">
+
+  <label for="resolution">Selecciona la resolución:</label>
+  <select id="resolution" [(ngModel)]="resolution">
+    <option value="144">144p</option>
+    <option value="240">240p</option>
+    <option value="360">360p</option>
+    <option value="480">480p</option>
+    <option value="720">720p</option>
+    <option value="1080">1080p</option>
+  </select>
+
+  <div class="buttons">
+    <button (click)="downloadVideo()">Descargar Video</button>
+    <button (click)="downloadMusic()">Descargar Música</button>
   </div>
-  
+</div>
