@@ -1,33 +1,32 @@
 .downloads-container {
-    text-align: center;
-    margin-top: 50px;
-  }
-  
-  input {
-    width: 80%;
-    padding: 10px;
-    font-size: 16px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  
-  .buttons {
-    margin-top: 20px;
-  }
-  
-  button {
-    margin: 5px;
-    padding: 10px 20px;
-    font-size: 16px;
-    border: none;
-    color: white;
-    background-color: #28a745;
-    cursor: pointer;
-    border-radius: 5px;
-  }
-  
-  button:hover {
-    background-color: #218838;
-  }
-  
+  text-align: center;
+  margin-top: 50px;
+}
+
+input, select {
+  width: 80%;
+  padding: 10px;
+  font-size: 16px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.buttons {
+  margin-top: 20px;
+}
+
+button {
+  margin: 5px;
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  color: white;
+  background-color: #28a745;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: #218838;
+}
