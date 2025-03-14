@@ -1,0 +1,23 @@
+.home-container {
+    text-align: center;
+    margin-top: 50px;
+  }
+  
+  .options {
+    margin-top: 20px;
+  }
+  
+  .button {
+    display: inline-block;
+    padding: 15px 25px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 18px;
+  }
+  
+  .button:hover {
+    background-color: #0056b3;
+  }
+  
