@@ -2,36 +2,35 @@ package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.service.DownloadService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
-
-@Tag(name = "Controlador de Descargas", description = "API para descargar vídeos e música de YouTube")
+@CrossOrigin(origins = "http://localhost:4200")  // Permite peticiones desde Angular
 @RestController
+@RequestMapping("/api")
 public class DownloadController {
 
-    @Autowired
-    private DownloadService downloadService;
+    private final DownloadService downloadService;
 
-    @Operation(summary = "Descargar un vídeo", description = "Descarga un vídeo na resolución especificada usando yt-dlp.")
-    @GetMapping("/downloadVideo")
-    public String downloadVideo(
-            @Parameter(description = "ID do vídeo de YouTube") @RequestParam String videoId,
-            @Parameter(description = "Resolución desexada do vídeo, por exemplo: 720, 1080") @RequestParam String resolution) {
-        downloadService.downloadVideo(videoId, resolution);
-        return "Descargando vídeo: " + videoId + " con resolución: " + resolution;
+    public DownloadController(DownloadService downloadService) {
+        this.downloadService = downloadService;
     }
 
-    @Operation(summary = "Descargar música", description = "Extrae e descarga o audio dun vídeo de YouTube no formato especificado.")
+    @Operation(summary = "Descargar un vídeo")
+    @GetMapping("/downloadVideo")
+    public ResponseEntity<FileSystemResource> downloadVideo(
+            @RequestParam String videoId,
+            @RequestParam String resolution) {
+        return downloadService.downloadVideo(videoId, resolution);
+    }
+
+    @Operation(summary = "Descargar música")
     @GetMapping("/downloadMusic")
-    public String downloadMusic(
-            @Parameter(description = "ID do vídeo de YouTube") @RequestParam String videoId,
-            @Parameter(description = "Formato de audio desexado, por exemplo: mp3, wav") @RequestParam String format) {
-        downloadService.downloadMusic(videoId, format);
-        return "Descargando música: " + videoId + " no formato: " + format;
+    public ResponseEntity<FileSystemResource> downloadMusic(
+            @RequestParam String videoId,
+            @RequestParam String format) {
+        return downloadService.downloadMusic(videoId, format);
     }
 }
