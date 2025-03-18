@@ -95,6 +95,4 @@ public class DownloadService {
                 .headers(headers)
                 .body(resource);
     }
-
-
 }

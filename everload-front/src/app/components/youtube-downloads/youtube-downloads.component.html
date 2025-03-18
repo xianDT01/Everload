@@ -14,8 +14,13 @@
   </select>
 
   <div class="buttons">
-    <button (click)="downloadVideo()">Descargar Video</button>
-    <button (click)="downloadMusic()">Descargar Música</button>
+    <button (click)="downloadVideo()" [disabled]="isLoading">Descargar Video</button>
+    <button (click)="downloadMusic()" [disabled]="isLoading">Descargar Música</button>
+  </div>
+
+  <!-- 🔵 Barra de progreso visual -->
+  <div *ngIf="isLoading" class="loading">
+    <p>⏳ Descargando, por favor espera...</p>
+    <div class="progress-bar"></div>
   </div>
 </div>
-```

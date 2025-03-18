@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Component, NgZone } from '@angular/core';
+import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 
 @Component({
   selector: 'app-youtube-downloads',
@@ -9,41 +9,45 @@ import { HttpClient } from '@angular/common/http';
 export class YoutubeDownloadsComponent {
   videoUrl: string = '';
   resolution: string = '720';
+  isLoading: boolean = false;  
   backendUrl: string = 'http://localhost:8080/api';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private ngZone: NgZone) {}
 
   downloadVideo() {
     if (!this.videoUrl.trim()) {
       alert('Por favor, ingresa un enlace de YouTube.');
       return;
     }
-  
+
     const videoId = this.extractVideoId(this.videoUrl);
     if (!videoId) {
       alert('Enlace de YouTube inválido.');
       return;
     }
-  
+
+    this.ngZone.run(() => this.isLoading = true);  // 🟡 Forzar detección de cambios
+
     this.http.get(`${this.backendUrl}/downloadVideo`, {
       params: { videoId, resolution: this.resolution },
-      responseType: 'blob'
+      responseType: 'blob',
+      observe: 'events', // 🟢 Permite monitorear el progreso
+      reportProgress: true
     }).subscribe({
-      next: (blob) => {
-        if (blob.size === 0) {
-          console.error('Error: archivo vacío.');
-          alert('Error: el archivo descargado está vacío.');
-          return;
+      next: (event: HttpEvent<any>) => {
+        if (event.type === HttpEventType.Response) {
+          this.ngZone.run(() => {
+            this.isLoading = false;
+            this.triggerDownload(event.body, `${videoId}.webm`);
+          });
         }
-        this.triggerDownload(blob, `${videoId}.webm`);
       },
       error: (error) => {
-        console.error('Error en la descarga:', error);
+        this.ngZone.run(() => this.isLoading = false);
         alert('Error al descargar el video.');
       }
     });
   }
-  
 
   downloadMusic() {
     if (!this.videoUrl.trim()) {
@@ -57,13 +61,26 @@ export class YoutubeDownloadsComponent {
       return;
     }
 
+    this.ngZone.run(() => this.isLoading = true);
+
     this.http.get(`${this.backendUrl}/downloadMusic`, {
       params: { videoId, format: 'mp3' },
-      responseType: 'blob'  // Importante para recibir archivos
-    }).subscribe(blob => {
-      this.triggerDownload(blob, `${videoId}.mp3`);
-    }, error => {
-      alert('Error al descargar la música.');
+      responseType: 'blob',
+      observe: 'events',
+      reportProgress: true
+    }).subscribe({
+      next: (event: HttpEvent<any>) => {
+        if (event.type === HttpEventType.Response) {
+          this.ngZone.run(() => {
+            this.isLoading = false;
+            this.triggerDownload(event.body, `${videoId}.mp3`);
+          });
+        }
+      },
+      error: (error) => {
+        this.ngZone.run(() => this.isLoading = false);
+        alert('Error al descargar la música.');
+      }
     });
   }
 
