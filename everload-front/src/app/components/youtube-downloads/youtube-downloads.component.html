@@ -1,3 +1,4 @@
+
 <div class="youtube-container">
   <header class="youtube-header">
     <div class="logo">
@@ -34,4 +35,17 @@
       <div class="progress-bar"></div>
     </div>
   </div>
+  <div class="search-box">
+    <input [(ngModel)]="searchQuery" placeholder="Buscar vídeos en YouTube">
+    <button (click)="searchVideos()">🔎 Buscar</button>
+  </div>
+  
+  <div class="results">
+    <div *ngFor="let video of searchResults" class="video-result">
+      <img [src]="video.snippet.thumbnails.medium.url">
+      <h3>{{video.snippet.title}}</h3>
+      <button (click)="videoUrl = 'https://youtube.com/watch?v=' + video.id.videoId">Usar este vídeo</button>
+    </div>
+  </div>
+  
 </div>
