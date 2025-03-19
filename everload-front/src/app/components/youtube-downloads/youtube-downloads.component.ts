@@ -9,10 +9,10 @@ import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 export class YoutubeDownloadsComponent {
   videoUrl: string = '';
   resolution: string = '720';
-  isLoading: boolean = false;  
+  isLoading: boolean = false;
   backendUrl: string = 'http://localhost:8080/api';
 
-  constructor(private http: HttpClient, private ngZone: NgZone) {}
+  constructor(private http: HttpClient, private ngZone: NgZone) { }
 
   downloadVideo() {
     if (!this.videoUrl.trim()) {
@@ -26,12 +26,12 @@ export class YoutubeDownloadsComponent {
       return;
     }
 
-    this.ngZone.run(() => this.isLoading = true);  // 🟡 Forzar detección de cambios
+    this.ngZone.run(() => this.isLoading = true);
 
     this.http.get(`${this.backendUrl}/downloadVideo`, {
       params: { videoId, resolution: this.resolution },
       responseType: 'blob',
-      observe: 'events', // 🟢 Permite monitorear el progreso
+      observe: 'events',
       reportProgress: true
     }).subscribe({
       next: (event: HttpEvent<any>) => {
@@ -99,4 +99,22 @@ export class YoutubeDownloadsComponent {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   }
+
+  searchResults: any[] = [];
+  searchQuery: string = '';
+
+  searchVideos() {
+    if (!this.searchQuery.trim()) {
+      alert('Introduce algo para buscar');
+      return;
+    }
+
+    this.http.get<any>(`${this.backendUrl}/youtube/search`, {
+      params: { query: this.searchQuery }
+    }).subscribe({
+      next: response => this.searchResults = response.items,
+      error: () => alert('Error al buscar en YouTube.')
+    });
+  }
+
 }
