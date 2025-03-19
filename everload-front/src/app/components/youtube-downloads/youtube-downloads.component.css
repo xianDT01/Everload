@@ -1,81 +1,144 @@
-.downloads-container {
-  text-align: center;
-  margin-top: 50px;
-  background: #f9f9f9;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
+/* Estilo general con fondo gris oscuro similar a YouTube */
+.youtube-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: Arial, sans-serif;
+  background-color: #2c2c2c;
+  min-height: 100vh;
+  padding: 20px;
+  color: white;
 }
 
-h2 {
-  color: #333;
-  font-size: 24px;
+/* Encabezado similar a YouTube */
+.youtube-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 800px;
+  padding: 10px 20px;
+  background: #3a3a3a;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
   margin-bottom: 20px;
 }
 
-input, select {
-  width: calc(100% - 20px);
-  padding: 12px;
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo img {
+  height: 40px;
+  margin-right: 10px;
+}
+
+.app-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: #ff0000;
+}
+
+/* Botón de inicio */
+.home-button {
+  padding: 8px 15px;
+  font-size: 14px;
+  background-color: #ff0000;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.home-button:hover {
+  background-color: #cc0000;
+}
+
+/* Caja de descargas */
+.downloads-box {
+  text-align: center;
+  background: #424242;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+}
+
+.input-group {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
   font-size: 16px;
-  margin: 10px 0;
   border: 1px solid #ccc;
   border-radius: 5px;
   outline: none;
-  transition: all 0.3s ease;
-}
-
-input:focus, select:focus {
-  border-color: #28a745;
-  box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+  background-color: #333;
+  color: white;
 }
 
 label {
   display: block;
+  margin: 10px 0;
   font-size: 16px;
-  margin-top: 10px;
-  color: #555;
+  color: white;
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #333;
+  color: white;
 }
 
 .buttons {
-  margin-top: 20px;
   display: flex;
   justify-content: center;
   gap: 15px;
+  margin-top: 20px;
 }
 
 button {
-  padding: 12px 20px;
+  padding: 10px 15px;
   font-size: 16px;
   border: none;
   color: white;
-  background-color: #28a745;
+  background-color: #ff0000;
   cursor: pointer;
   border-radius: 5px;
-  transition: all 0.3s ease;
   font-weight: bold;
 }
 
 button:hover {
-  background-color: #218838;
+  background-color: #cc0000;
   transform: scale(1.05);
 }
 
 button:active {
   transform: scale(1);
 }
+
 .loading {
   margin-top: 10px;
   text-align: center;
   font-weight: bold;
+  color: white;
 }
 
 .progress-bar {
   width: 100%;
   height: 6px;
-  background: linear-gradient(to right, #3498db, #2980b9);
+  background: linear-gradient(to right, #ff0000, #cc0000);
   animation: progressAnimation 1s infinite ease-in-out;
 }
 

@@ -1,26 +1,37 @@
-<div class="downloads-container">
-  <h2>Descargar de YouTube</h2>
+<div class="youtube-container">
+  <header class="youtube-header">
+    <div class="logo">
+      <img src="../../../assets/youtube-icon-logo-719479.png" alt="YouTube Logo">
+      <span class="app-name">EverLoad</span>
+    </div>
+    <button class="home-button" routerLink="/">🏠 Inicio</button>
+  </header>
 
-  <input type="text" placeholder="Pega el enlace de YouTube aquí" [(ngModel)]="videoUrl">
+  <div class="downloads-box">
+    <h2>Descargar de YouTube</h2>
 
-  <label for="resolution">Selecciona la resolución:</label>
-  <select id="resolution" [(ngModel)]="resolution">
-    <option value="144">144p</option>
-    <option value="240">240p</option>
-    <option value="360">360p</option>
-    <option value="480">480p</option>
-    <option value="720">720p</option>
-    <option value="1080">1080p</option>
-  </select>
+    <div class="input-group">
+      <input type="text" placeholder="Pega el enlace de YouTube aquí" [(ngModel)]="videoUrl">
+    </div>
 
-  <div class="buttons">
-    <button (click)="downloadVideo()" [disabled]="isLoading">Descargar Video</button>
-    <button (click)="downloadMusic()" [disabled]="isLoading">Descargar Música</button>
-  </div>
+    <label for="resolution">Selecciona la resolución:</label>
+    <select id="resolution" [(ngModel)]="resolution">
+      <option value="144">144p</option>
+      <option value="240">240p</option>
+      <option value="360">360p</option>
+      <option value="480">480p</option>
+      <option value="720">720p</option>
+      <option value="1080">1080p</option>
+    </select>
 
-  <!-- 🔵 Barra de progreso visual -->
-  <div *ngIf="isLoading" class="loading">
-    <p>⏳ Descargando, por favor espera...</p>
-    <div class="progress-bar"></div>
+    <div class="buttons">
+      <button (click)="downloadVideo()" [disabled]="isLoading">📹 Descargar Video</button>
+      <button (click)="downloadMusic()" [disabled]="isLoading">🎵 Descargar Música</button>
+    </div>
+
+    <div *ngIf="isLoading" class="loading">
+      <p>⏳ Descargando, por favor espera...</p>
+      <div class="progress-bar"></div>
+    </div>
   </div>
 </div>
