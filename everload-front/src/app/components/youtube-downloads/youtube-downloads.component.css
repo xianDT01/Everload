@@ -147,3 +147,56 @@ button:active {
   50% { width: 50%; }
   100% { width: 100%; }
 }
+
+.search-box {
+  display: flex;
+  gap: 5px;
+  margin-top: 20px;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 900px;
+}
+
+.video-result {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background-color: #3a3a3a;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.video-result:hover {
+  transform: scale(1.02);
+  background-color: #444444;
+}
+.video-result img {
+  width: 140px;
+  border-radius: 8px;
+}
+
+.video-result img {
+  width: 120px;
+  border-radius: 8px;
+}
+
+.video-result button {
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.video-info h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #f0f0f0;
+}
+.video-info p {
+  margin-top: 5px;
+  font-size: 14px;
+  color: #b0b0b0;
+}
