@@ -1,5 +1,6 @@
 import { Component, NgZone } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-youtube-downloads',
@@ -11,18 +12,32 @@ export class YoutubeDownloadsComponent {
   resolution: string = '720';
   isLoading: boolean = false;
   backendUrl: string = 'http://localhost:8080/api';
+  searchResults: any[] = [];
+  searchQuery: string = '';
 
-  constructor(private http: HttpClient, private ngZone: NgZone) { }
+  constructor(private http: HttpClient, private ngZone: NgZone, private translate: TranslateService) {
+    // Establecer idioma por defecto
+    translate.setDefaultLang('gl');
+    const savedLang = localStorage.getItem('language');
+    if (savedLang) {
+      translate.use(savedLang);
+    }
+  }
+
+  changeLanguage(lang: string) {
+    this.translate.use(lang);
+    localStorage.setItem('language', lang);
+  }
 
   downloadVideo() {
     if (!this.videoUrl.trim()) {
-      alert('Por favor, ingresa un enlace de YouTube.');
+      alert(this.translate.instant('PLEASE_ENTER_YOUTUBE_LINK'));
       return;
     }
 
     const videoId = this.extractVideoId(this.videoUrl);
     if (!videoId) {
-      alert('Enlace de YouTube inválido.');
+      alert(this.translate.instant('INVALID_YOUTUBE_LINK'));
       return;
     }
 
@@ -42,22 +57,22 @@ export class YoutubeDownloadsComponent {
           });
         }
       },
-      error: (error) => {
+      error: () => {
         this.ngZone.run(() => this.isLoading = false);
-        alert('Error al descargar el video.');
+        alert(this.translate.instant('ERROR_DOWNLOADING_VIDEO'));
       }
     });
   }
 
   downloadMusic() {
     if (!this.videoUrl.trim()) {
-      alert('Por favor, ingresa un enlace de YouTube.');
+      alert(this.translate.instant('PLEASE_ENTER_YOUTUBE_LINK'));
       return;
     }
 
     const videoId = this.extractVideoId(this.videoUrl);
     if (!videoId) {
-      alert('Enlace de YouTube inválido.');
+      alert(this.translate.instant('INVALID_YOUTUBE_LINK'));
       return;
     }
 
@@ -77,9 +92,9 @@ export class YoutubeDownloadsComponent {
           });
         }
       },
-      error: (error) => {
+      error: () => {
         this.ngZone.run(() => this.isLoading = false);
-        alert('Error al descargar la música.');
+        alert(this.translate.instant('ERROR_DOWNLOADING_MUSIC'));
       }
     });
   }
@@ -100,12 +115,9 @@ export class YoutubeDownloadsComponent {
     window.URL.revokeObjectURL(url);
   }
 
-  searchResults: any[] = [];
-  searchQuery: string = '';
-
   searchVideos() {
     if (!this.searchQuery.trim()) {
-      alert('Introduce algo para buscar');
+      alert(this.translate.instant('PLEASE_ENTER_SEARCH_QUERY'));
       return;
     }
 
@@ -113,8 +125,7 @@ export class YoutubeDownloadsComponent {
       params: { query: this.searchQuery }
     }).subscribe({
       next: response => this.searchResults = response.items,
-      error: () => alert('Error al buscar en YouTube.')
+      error: () => alert(this.translate.instant('ERROR_SEARCHING_YOUTUBE'))
     });
   }
-
 }

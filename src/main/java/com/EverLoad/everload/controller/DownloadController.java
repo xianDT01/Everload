@@ -42,7 +42,7 @@ public class DownloadController {
     public class YouTubeController {
 
         private final RestTemplate restTemplate;
-        private final String API_KEY = "";
+        private final String API_KEY = "AIzaSyCVzVmbSB5YVeYzOfiUtw3Hx_J58nGytxI";
 
         public YouTubeController(RestTemplate restTemplate) {
             this.restTemplate = restTemplate;
