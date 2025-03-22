@@ -10,7 +10,10 @@ import org.springframework.web.client.RestTemplate;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(
+        origins = "http://localhost:4200",
+        exposedHeaders = "Content-Disposition"
+)
 public class DownloadController {
 
     private final DownloadService downloadService;
