@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Scanner;
 
 @Service
@@ -16,22 +17,25 @@ public class DownloadService {
     private static final String DOWNLOADS_DIR = "./downloads/";
 
     public ResponseEntity<FileSystemResource> downloadVideo(String videoId, String resolution) {
-        String basePath = DOWNLOADS_DIR + videoId + "_" + resolution;
-        String command = "yt-dlp -f bestvideo[height=" + resolution + "]+bestaudio/best -o " + basePath + " https://www.youtube.com/watch?v=" + videoId;
-        return executeCommand(command, basePath);
+        String command = "yt-dlp -f bestvideo[height=" + resolution + "]+bestaudio/best " +
+                "-o " + DOWNLOADS_DIR + "%(title)s.%(ext)s " +
+                "https://www.youtube.com/watch?v=" + videoId;
+        return executeCommand(command);
     }
+
 
     public ResponseEntity<FileSystemResource> downloadMusic(String videoId, String format) {
-        String basePath = DOWNLOADS_DIR + videoId;
-        String command = "yt-dlp -x --audio-format " + format + " -o " + basePath + ".%(ext)s https://www.youtube.com/watch?v=" + videoId;
-        return executeCommand(command, basePath);
+        String command = "yt-dlp -x --audio-format " + format + " " +
+                "-o " + DOWNLOADS_DIR + "%(title)s.%(ext)s " +
+                "https://www.youtube.com/watch?v=" + videoId;
+        return executeCommand(command);
     }
 
-    private ResponseEntity<FileSystemResource> executeCommand(String command, String basePath) {
+
+    private ResponseEntity<FileSystemResource> executeCommand(String command) {
         try {
             System.out.println("🔵 Ejecutando comando: " + command);
             Process process = Runtime.getRuntime().exec(command);
-
 
             Scanner scanner = new Scanner(process.getErrorStream());
             while (scanner.hasNextLine()) {
@@ -41,31 +45,28 @@ public class DownloadService {
 
             process.waitFor();
 
-
-            System.out.println("📂 Archivos en " + DOWNLOADS_DIR + ":");
             File downloadDir = new File(DOWNLOADS_DIR);
-            for (File file : downloadDir.listFiles()) {
-                System.out.println("📄 " + file.getName());
-            }
+            File[] matchingFiles = downloadDir.listFiles(File::isFile);
 
-
-            File[] matchingFiles = downloadDir.listFiles((dir, name) ->
-                    name.startsWith(new File(basePath).getName()));
-
-            if (matchingFiles != null && matchingFiles.length > 0) {
-                File file = matchingFiles[0];
-                System.out.println("✅ Archivo encontrado: " + file.getAbsolutePath());
-                return sendFile(file);
-            } else {
-                System.out.println("❌ ERROR: No se encontró el archivo descargado.");
+            if (matchingFiles == null || matchingFiles.length == 0) {
+                System.out.println("❌ No se encontraron archivos en la carpeta.");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
             }
+
+            // Ordenar archivos por fecha de modificación (más reciente primero)
+            Arrays.sort(matchingFiles, (a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+            File file = matchingFiles[0];
+
+            System.out.println("✅ Archivo encontrado: " + file.getAbsolutePath());
+            return sendFile(file);
+
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             System.out.println("❌ Error al ejecutar yt-dlp.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
 
 
     private ResponseEntity<FileSystemResource> sendFile(File file) {

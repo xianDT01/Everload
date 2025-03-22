@@ -53,7 +53,11 @@ export class YoutubeDownloadsComponent {
         if (event.type === HttpEventType.Response) {
           this.ngZone.run(() => {
             this.isLoading = false;
-            this.triggerDownload(event.body, `${videoId}.webm`);
+            const contentDisposition = event.headers?.get('content-disposition');
+            const match = contentDisposition?.match(/filename="(.+)"/);
+            const filename = match ? match[1] : `${videoId}.webm`; // fallback si no viene el header
+            this.triggerDownload(event.body, filename);
+
           });
         }
       },
@@ -88,7 +92,14 @@ export class YoutubeDownloadsComponent {
         if (event.type === HttpEventType.Response) {
           this.ngZone.run(() => {
             this.isLoading = false;
-            this.triggerDownload(event.body, `${videoId}.mp3`);
+        
+            // Acceder al header con un cast
+            const response = event as any;
+            const contentDisposition = response.headers?.get('content-disposition');
+            const match = contentDisposition?.match(/filename="(.+)"/);
+            const filename = match ? match[1] : `${videoId}.webm`;
+        
+            this.triggerDownload(event.body, filename);
           });
         }
       },
