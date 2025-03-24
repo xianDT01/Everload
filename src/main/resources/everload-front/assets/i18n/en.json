@@ -1,0 +1,21 @@
+{
+  "APP_NAME": "EverLoad",
+  "SUBTITLE": "Download videos and music easily",
+  "DOWNLOAD_YOUTUBE": "📥 Download from YouTube",
+  "CREATED_BY": "Created by",
+  "GITHUB": "GitHub",
+
+
+    "HOME": "🏠 Home",
+    "DOWNLOAD_FROM_YOUTUBE": "Download from YouTube",
+    "PASTE_YOUTUBE_LINK": "Paste YouTube link here",
+    "SELECT_RESOLUTION": "Select resolution",
+    "DOWNLOAD_VIDEO": "📹 Download Video",
+    "DOWNLOAD_MUSIC": "🎵 Download Music",
+    "LOADING": "⏳ Downloading, please wait...",
+    "SEARCH_PLACEHOLDER": "Search videos on YouTube",
+    "SEARCH_BUTTON": "🔎 Search",
+    "USE_VIDEO": "📌 Use this video",
+    "RESULTS": "Results"
+  }
+  
