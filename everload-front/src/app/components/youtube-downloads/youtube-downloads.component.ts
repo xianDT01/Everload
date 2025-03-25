@@ -11,8 +11,8 @@ export class YoutubeDownloadsComponent {
   videoUrl: string = '';
   resolution: string = '720';
   isLoading: boolean = false;
- // backendUrl: string = 'http://localhost:8080/api';
-  backendUrl: string = '/api';
+  backendUrl: string = 'http://localhost:8080/api';
+ // backendUrl: string = '/api';
 
   searchResults: any[] = [];
   searchQuery: string = '';
@@ -128,17 +128,25 @@ export class YoutubeDownloadsComponent {
     window.URL.revokeObjectURL(url);
   }
 
+  noResults: boolean = false;
+
   searchVideos() {
     if (!this.searchQuery.trim()) {
       alert(this.translate.instant('PLEASE_ENTER_SEARCH_QUERY'));
       return;
     }
-
+  
     this.http.get<any>(`${this.backendUrl}/youtube/search`, {
       params: { query: this.searchQuery }
     }).subscribe({
-      next: response => this.searchResults = response.items,
-      error: () => alert(this.translate.instant('ERROR_SEARCHING_YOUTUBE'))
+      next: response => {
+        this.searchResults = response.items;
+        this.noResults = this.searchResults.length === 0;
+      },
+      error: () => {
+        alert(this.translate.instant('ERROR_SEARCHING_YOUTUBE'));
+        this.noResults = false;
+      }
     });
   }
 }

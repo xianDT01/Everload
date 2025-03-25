@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.UUID;
 
 /**
  * DownloadService con limpieza de caracteres no ASCII al enviar el archivo
@@ -113,7 +114,12 @@ public class DownloadService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
-
+    private String createTempDownloadDir() {
+        String tempDirName = DOWNLOADS_DIR + "tmp-" + UUID.randomUUID();
+        File tempDir = new File(tempDirName);
+        if (!tempDir.exists()) tempDir.mkdirs();
+        return tempDirName + "/";
+    }
     /**
      * Envía el archivo al cliente, usando un nombre "ASCII-safe" para Content-Disposition.
      */

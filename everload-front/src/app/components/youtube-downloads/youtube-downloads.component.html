@@ -49,9 +49,14 @@
     <input [(ngModel)]="searchQuery" placeholder="{{ 'SEARCH_PLACEHOLDER' | translate }}">
     <button (click)="searchVideos()">{{ 'SEARCH_BUTTON' | translate }}</button>
   </div>
-  
 
   <div class="results">
+    <!-- Mensaje si no hay resultados -->
+    <div *ngIf="noResults" class="no-results">
+      <p>{{ 'NO_RESULTS_FOUND' | translate }}</p>
+    </div>
+
+    <!-- Resultados de búsqueda -->
     <div *ngFor="let video of searchResults" class="video-result">
       <img [src]="video.snippet.thumbnails.medium.url">
       <h3>{{ video.snippet.title }}</h3>
