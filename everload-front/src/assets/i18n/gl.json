@@ -5,6 +5,7 @@
   "DOWNLOAD_YOUTUBE": "📥 Descargar dende YouTube",
   "CREATED_BY": "Creado por",
   "GITHUB": "GitHub",
+  "DOWNLOAD_Twitter": "Descargar dende Twitter",
 
     "HOME": "🏠 Inicio",
     "DOWNLOAD_FROM_YOUTUBE": "Descargar desde YouTube",
@@ -18,7 +19,17 @@
     "USE_VIDEO": "📌 Usar este vídeo",
     "RESULTS": "Resultados",
     "USE_THIS_VIDEO": "Usar este vídeo",
-    "NO_RESULTS_FOUND": "Non se atoparon resultados"
+    "NO_RESULTS_FOUND": "Non se atoparon resultados",
+
+
+    "DOWNLOAD_TWITTER": "Descargar vídeo de Twitter",
+    "PASTE_TWEET_URL": "Pega aquí a URL do tweet",
+    "INVALID_TWITTER_URL": "URL inválida. Asegúrate de pegar un tweet válido.",
+    "SUBTITLE_TWITTER": "Descarga vídeos públicos de Twitter/X.",
+    "HOME": "Inicio",
+    "LOADING": "Descargando espera ...",
+    "DOWNLOAD_FAILED": "Produciuse un erro durante a descarga"
+
 
   }
   

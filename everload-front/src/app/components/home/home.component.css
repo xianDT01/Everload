@@ -3,7 +3,7 @@
 html, body {
   margin: 0;
   padding: 0;
-  background-color: #2c2c2c; /* Tu color oscuro */
+  background-color: #2c2c2c; /* Color oscuro */
   height: 100%;
 }
 
@@ -15,7 +15,7 @@ html, body {
   justify-content: center;
   background-color: #2c2c2c; 
   color: white;
-  margin: 0; /* por si acaso */
+  margin: 0;
 }
 
 /* Contenedor del logo */
@@ -113,6 +113,22 @@ html, body {
 
 .language-selector button:hover {
   opacity: 0.8;
+}
+.youtube-button {
+  background-color: #ff0000;
+}
+
+.youtube-button:hover {
+  background-color: #cc0000;
+}
+
+.twitter-button {
+  background-color: #1da1f2;
+  margin-top: 15px;
+}
+
+.twitter-button:hover {
+  background-color: #0d8ddb;
 }
 
 /* Media Queries para diseño responsive */

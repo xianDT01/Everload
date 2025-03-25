@@ -37,4 +37,13 @@ public class DownloadController {
             @RequestParam String format) {
         return downloadService.downloadMusic(videoId, format);
     }
+
+    @Operation(summary = "Descargar video de Twitter/X")
+    @GetMapping("/downloadTwitter")
+    public ResponseEntity<FileSystemResource> downloadTwitterVideo(
+            @RequestParam String url) {
+        return downloadService.downloadTwitterVideo(url);
+    }
+
+
 }
