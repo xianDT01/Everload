@@ -1,4 +1,4 @@
-/* Estilo general con fondo gris oscuro similar a YouTube */
+/* Estilos originales */
 .youtube-container {
   display: flex;
   flex-direction: column;
@@ -11,7 +11,6 @@
   color: white;
 }
 
-/* Encabezado con selector de idiomas integrado */
 .youtube-header {
   display: flex;
   align-items: center;
@@ -47,7 +46,6 @@
   color: #ff0000;
 }
 
-/* Selector de idiomas */
 .language-selector {
   display: flex;
   gap: 10px;
@@ -67,7 +65,6 @@
   opacity: 0.8;
 }
 
-/* Botón de inicio */
 .home-button {
   padding: 8px 15px;
   font-size: 14px;
@@ -83,7 +80,6 @@
   background-color: #cc0000;
 }
 
-/* Caja de descargas */
 .downloads-box {
   text-align: center;
   background: #424242;
@@ -227,4 +223,99 @@ button:active {
   margin-top: 5px;
   font-size: 14px;
   color: #b0b0b0;
+}
+.no-results {
+  text-align: center;
+  padding: 30px 20px;
+  margin-top: 20px;
+  border: 2px dashed #ff0000;
+  border-radius: 10px;
+  color: #ffb3b3;
+  background-color: #3a3a3a;
+  font-size: 18px;
+  font-weight: bold;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Media Queries para diseño responsive */
+@media (max-width: 768px) {
+  .youtube-container {
+    padding: 10px;
+  }
+
+  .youtube-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px;
+  }
+
+  .left-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .home-button {
+    align-self: flex-end;
+    margin-top: 10px;
+  }
+
+  .downloads-box {
+    padding: 15px;
+    max-width: 90%;
+  }
+
+  .search-box {
+    flex-direction: column;
+  }
+
+  .results {
+    gap: 10px;
+  }
+
+  .video-result {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .video-result img {
+    width: 100%;
+    height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .youtube-header {
+    padding: 10px;
+  }
+
+  .logo img {
+    height: 30px;
+  }
+
+  .app-name {
+    font-size: 18px;
+  }
+
+  .downloads-box {
+    padding: 10px;
+  }
+
+  input, select {
+    font-size: 14px;
+    padding: 8px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .search-box {
+    padding: 0 5px;
+  }
 }

@@ -16,6 +16,7 @@
     "SEARCH_PLACEHOLDER": "Search videos on YouTube",
     "SEARCH_BUTTON": "🔎 Search",
     "USE_VIDEO": "📌 Use this video",
-    "RESULTS": "Results"
+    "RESULTS": "Results",
+    "NO_RESULTS_FOUND": "No results found"
   }
   
