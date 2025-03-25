@@ -9,6 +9,7 @@ import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { AppComponent } from './app.component';
 import { HomeComponent } from './components/home/home.component';
 import { YoutubeDownloadsComponent } from './components/youtube-downloads/youtube-downloads.component';
+import { TwitterDownloadsComponent } from './components/twitter-downloads/twitter-downloads.component';
 
 // Función para cargar archivos de traducción
 export function HttpLoaderFactory(http: HttpClient) {
@@ -19,7 +20,8 @@ export function HttpLoaderFactory(http: HttpClient) {
   declarations: [
     AppComponent,
     HomeComponent,
-    YoutubeDownloadsComponent
+    YoutubeDownloadsComponent,
+    TwitterDownloadsComponent
   ],
   imports: [
     BrowserModule,

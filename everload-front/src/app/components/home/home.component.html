@@ -3,10 +3,18 @@
     <img src="../../../assets/youtube-icon-logo-719479.png" alt="YouTube Logo" class="youtube-logo">
     <h1 class="app-name">{{ 'APP_NAME' | translate }}</h1>
   </div>
+
   <p class="subtitle">{{ 'SUBTITLE' | translate }}</p>
+
   <div class="options">
-    <a routerLink="/youtube-downloads" class="button">{{ 'DOWNLOAD_YOUTUBE' | translate }}</a>
+    <a routerLink="/youtube-downloads" class="button youtube-button">
+      {{ 'DOWNLOAD_YOUTUBE' | translate }}
+    </a>
+    <a routerLink="/twitter-downloads" class="button twitter-button">
+     {{'DOWNLOAD_Twitter'|translate}}
+    </a>    
   </div>
+
   <div class="creator-info">
     {{ 'CREATED_BY' | translate }} <strong>Xián Duán Taboada</strong> - 
     <a href="https://github.com/xianDT01" target="_blank">GitHub</a>
@@ -19,6 +27,5 @@
       <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" 
            alt="Bandera de Galicia" width="20"> Galego
     </button>
-    
   </div>
 </div>

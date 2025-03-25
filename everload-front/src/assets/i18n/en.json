@@ -4,6 +4,7 @@
   "DOWNLOAD_YOUTUBE": "📥 Download from YouTube",
   "CREATED_BY": "Created by",
   "GITHUB": "GitHub",
+  "DOWNLOAD_Twitter": "Download from Twitter",
 
 
     "HOME": "🏠 Home",
@@ -17,6 +18,17 @@
     "SEARCH_BUTTON": "🔎 Search",
     "USE_VIDEO": "📌 Use this video",
     "RESULTS": "Results",
-    "NO_RESULTS_FOUND": "No results found"
+    "NO_RESULTS_FOUND": "No results found",
+
+    "DOWNLOAD_TWITTER": "Download Video ",
+    "PASTE_TWEET_URL": "Paste the tweet URL here",
+    "INVALID_TWITTER_URL": "Invalid URL. Make sure you pasted a valid tweet.",
+    "SUBTITLE_TWITTER": "Download public videos from Twitter/X.",
+    "HOME": "Home",
+    "LOADING": "Descargando espera ...",
+    "DOWNLOAD_FAILED": "An error occurred while downloading"
+
+
+    
   }
   
