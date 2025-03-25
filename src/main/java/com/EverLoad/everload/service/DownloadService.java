@@ -149,4 +149,17 @@ public class DownloadService {
         input = input.replace("\"", "'");
         return input.replaceAll("[^\\x20-\\x7E]", "_");
     }
+    public ResponseEntity<FileSystemResource> downloadTwitterVideo(String tweetUrl) {
+        try {
+            String tempDir = createTempDownloadDir();
+            String command = String.format(
+                    "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
+                    tempDir, tweetUrl
+            );
+            return executeCommand(command);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
