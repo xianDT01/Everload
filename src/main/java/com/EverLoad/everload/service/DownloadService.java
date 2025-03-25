@@ -19,12 +19,12 @@ public class DownloadService {
 
     public ResponseEntity<FileSystemResource> downloadVideo(String videoId, String resolution) {
         try {
-            String tempDir = createTempDownloadDir(); // 📁 carpeta única
+            String tempDir = createTempDownloadDir();
             String command = String.format(
-                    "yt-dlp --print after_move:filepath "
-                            + "-f bestvideo[height=%s]+bestaudio/best "
-                            + "-o \"%s%%(title)s.%%(ext)s\" "
-                            + "https://www.youtube.com/watch?v=%s",
+                    "yt-dlp --print after_move:filepath " +
+                            "-f bestvideo[height=%s]+bestaudio/best " +
+                            "-o %s%%(title)s.%%(ext)s " +
+                            "https://www.youtube.com/watch?v=%s",
                     resolution, tempDir, videoId
             );
             return executeCommand(command);
@@ -34,14 +34,15 @@ public class DownloadService {
         }
     }
 
+
     public ResponseEntity<FileSystemResource> downloadMusic(String videoId, String format) {
         try {
-            String tempDir = createTempDownloadDir(); // 📁 carpeta única
+            String tempDir = createTempDownloadDir();
             String command = String.format(
-                    "yt-dlp --print after_move:filepath "
-                            + "-x --audio-format %s "
-                            + "-o \"%s%%(title)s.%%(ext)s\" "
-                            + "https://www.youtube.com/watch?v=%s",
+                    "yt-dlp --print after_move:filepath " +
+                            "-x --audio-format %s " +
+                            "-o %s%%(title)s.%%(ext)s " +
+                            "https://www.youtube.com/watch?v=%s",
                     format, tempDir, videoId
             );
             return executeCommand(command);
@@ -50,6 +51,8 @@ public class DownloadService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+
 
     private ResponseEntity<FileSystemResource> executeCommand(String command) {
         try {
