@@ -5,7 +5,7 @@ EverLoad es una aplicación en Spring Boot y Angular 15 que permite descargar m�
 ## 🚀 Características de la Primera Versión (v1.0.0)
 
 - 📺 Descarga videos en distintas resoluciones.
-- 🎵 Descarga música en distintos formatos.
+- 🎵 Descarga música en formato mp3.
 - 🔥 Backend en Spring Boot con APIs REST.
 - 🎨 Frontend en Angular 15.
 - 📜 Documentación con Swagger.
