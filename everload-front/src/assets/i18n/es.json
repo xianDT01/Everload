@@ -1,13 +1,14 @@
 {
+  
   "APP_NAME": "EverLoad",
   "SUBTITLE": "Descarga videos y música fácilmente",
-  "DOWNLOAD_YOUTUBE": "📥 Descargar de YouTube",
+  "DOWNLOAD_YOUTUBE": "Descargar vídeo de YouTube",
   "CREATED_BY": "Creado por",
   "GITHUB": "GitHub",
   "DOWNLOAD_Twitter": "Descargar de YouTube",
 
     "HOME": "🏠 Inicio",
-    "DOWNLOAD_FROM_YOUTUBE": "Descargar de YouTube",
+    "DOWNLOAD_FROM_YOUTUBE": "Descargar vídeo de YouTube",
     "PASTE_YOUTUBE_LINK": "Pega el enlace de YouTube aquí",
     "SELECT_RESOLUTION": "Selecciona la resolución",
     "DOWNLOAD_VIDEO": "📹 Descargar Video",
@@ -28,7 +29,22 @@
       "SUBTITLE_TWITTER": "Descarga vídeos públicos de Twitter/X.",
       "HOME": "Inicio",
       "LOADING": "Downloading whait ...",
-      "DOWNLOAD_FAILED": "Ocurrió un error durante la descarga"
+      "DOWNLOAD_FAILED": "Ocurrió un error durante la descarga",
+
+
+
+    "DOWNLOAD_FACEBOOK": "Descargar vídeo de Facebook",
+    "PASTE_FACEBOOK_URL": "Pega aquí la URL del video de Facebook",
+    "INVALID_FACEBOOK_URL": "URL inválida. Asegúrate de que sea un enlace válido de Facebook.",
+    "SUBTITLE_FACEBOOK": "Descarga vídeos públicos de Facebook fácilmente.",
+
+    "DOWNLOAD_INSTAGRAM": "Descargar vídeo de Instagram",
+"PASTE_INSTAGRAM_URL": "Pega aquí la URL del vídeo de Instagram",
+"INVALID_INSTAGRAM_URL": "URL inválida. Asegúrate de que sea un enlace válido de Instagram.",
+"SUBTITLE_INSTAGRAM": "Descarga vídeos públicos de Instagram fácilmente.",
+"INSTAGRAM_LIMITATION": "Solo se pueden descargar Reels y publicaciones públicas. No se admiten stories ni vídeos de cuentas privadas."
+
+
 
 
     
