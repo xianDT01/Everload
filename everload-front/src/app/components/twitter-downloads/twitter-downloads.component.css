@@ -1,132 +1,101 @@
-/* Reutilizamos clases globales pero adaptamos algunas */
-
-.home-container {
-  min-height: 100vh;
+.login-split-container {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  height: 100vh;
+  width: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.left-panel {
+  background-color: #1da1f2;
+  flex: 1;
+  display: flex;
   justify-content: center;
-  background-color: #2c2c2c;
-  color: white;
-  text-align: center;
-  padding: 20px;
-}
-
-.Twitter-logo {
-  width: 600px;
-  height: auto;
-  margin-bottom: 10px;
-}
-
-.platform-logo {
-  width: 150px;
-  height: auto;
-  border-radius: 16px;
-  margin-bottom: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.logo-container {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
 }
 
+.left-logo {
+  width: 60%;
+  height: auto;
+}
 
+.right-panel {
+  background-color: #ffffff;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+}
 
-.app-name {
-  font-size: 48px;
+.login-card {
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-title {
+  font-size: 24px;
   font-weight: bold;
-  font-family: 'Poppins', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
-
-.twitter-title {
   color: #1da1f2;
+  margin-bottom: 30px;
 }
 
-.subtitle {
-  font-size: 20px;
-  color: #cccccc;
-  margin: 20px 0;
-}
-
-input[type="text"] {
-  width: 80%;
-  max-width: 500px;
-  padding: 15px;
-  border-radius: 8px;
-  border: none;
-  font-size: 18px;
+.login-input {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 30px;
   margin-bottom: 20px;
+  outline: none;
+  transition: border-color 0.3s ease;
 }
 
-.button {
-  display: inline-block;
-  padding: 15px 30px;
-  font-size: 20px;
+.login-input:focus {
+  border-color: #1da1f2;
+}
+
+.login-button {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
   font-weight: bold;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-  border: none;
-  cursor: pointer;
-}
-
-.twitter-button {
   background-color: #1da1f2;
   color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-.twitter-button:hover {
+.login-button:hover {
   background-color: #0d8ddb;
 }
 
-.home-button {
-  background-color: #666;
-  color: white;
-  margin-top: 20px;
-}
-
-.home-button:hover {
-  background-color: #444;
-}
-
-.error-msg {
-  color: #ff4c4c;
-  margin-top: 10px;
+.forgot-link {
+  display: block;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #1da1f2;
+  text-decoration: none;
 }
 
 .language-selector {
   display: flex;
-  gap: 15px;
-  margin-top: 30px;
   justify-content: center;
-  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 25px;
 }
 
 .language-selector button {
   background: transparent;
   border: none;
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  transition: opacity 0.3s ease;
 }
 
-.language-selector button:hover {
-  opacity: 0.8;
+.error-msg {
+  margin-top: 10px;
+  color: red;
+  font-size: 14px;
 }
-button[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
