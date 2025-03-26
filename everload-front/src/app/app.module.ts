@@ -10,6 +10,8 @@ import { AppComponent } from './app.component';
 import { HomeComponent } from './components/home/home.component';
 import { YoutubeDownloadsComponent } from './components/youtube-downloads/youtube-downloads.component';
 import { TwitterDownloadsComponent } from './components/twitter-downloads/twitter-downloads.component';
+import { FacebookDownloadsComponent } from './components/facebook-downloads/facebook-downloads.component';
+import { InstagramDownloadsComponent } from './components/instagram-downloads/instagram-downloads.component';
 
 // Función para cargar archivos de traducción
 export function HttpLoaderFactory(http: HttpClient) {
@@ -21,7 +23,9 @@ export function HttpLoaderFactory(http: HttpClient) {
     AppComponent,
     HomeComponent,
     YoutubeDownloadsComponent,
-    TwitterDownloadsComponent
+    TwitterDownloadsComponent,
+    FacebookDownloadsComponent,
+    InstagramDownloadsComponent
   ],
   imports: [
     BrowserModule,
