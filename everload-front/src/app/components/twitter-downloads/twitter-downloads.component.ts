@@ -34,7 +34,8 @@ export class TwitterDownloadsComponent {
     this.loading = true;
 
     const encodedUrl = encodeURIComponent(this.tweetUrl);
-    const endpoint = `http://localhost:8080/api/downloadTwitter?url=${encodedUrl}`;
+  //  const endpoint = `http://localhost:8080/api/downloadTwitter?url=${encodedUrl}`;
+    const endpoint = `/api/downloadTwitter?url=${encodedUrl}`;
 
     this.http.get(endpoint, {
       responseType: 'blob',
