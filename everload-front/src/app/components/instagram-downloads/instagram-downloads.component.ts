@@ -35,7 +35,8 @@ backendUrl: string = '/api';
     this.loading = true;
 
     const encodedUrl = encodeURIComponent(this.videoUrl);
-    const endpoint = `http://localhost:8080/api/downloadInstagram?url=${encodedUrl}`;
+   // const endpoint = `http://localhost:8080/api/downloadInstagram?url=${encodedUrl}`;
+   const endpoint = `/api/downloadInstagram?url=${encodedUrl}`;
 
     this.http.get(endpoint, {
       responseType: 'blob',
