@@ -1,30 +1,35 @@
-<div class="home-container">
-  <div class="logo-container">
-    <img src="../../../assets/Twitter-X.webp" alt="Twitter Logo" class="Twitter-logo">
-    <h1 class="app-name twitter-title">Twitter/X Downloader</h1>
+<div class="login-split-container">
+  <div class="left-panel">
+    <img src="../../../assets/twitter logo blck.png" alt="Twitter Logo" class="left-logo" />
   </div>
 
-  <p class="subtitle">{{ 'SUBTITLE_TWITTER' | translate }}</p>
+  <div class="right-panel">
+    <div class="login-card">
+      <h2 class="login-title">Twitter/X Downloader</h2>
 
-  <input type="text" [(ngModel)]="tweetUrl" placeholder="{{ 'PASTE_TWEET_URL' | translate }}" />
+      <input
+        type="text"
+        [(ngModel)]="tweetUrl"
+        placeholder="{{ 'PASTE_TWEET_URL' | translate }}"
+        class="login-input"
+      />
 
-  <button class="button twitter-button" (click)="download()" [disabled]="loading">
-    <span *ngIf="!loading">{{ 'DOWNLOAD_TWITTER' | translate }}</span>
-    <span *ngIf="loading">{{ 'LOADING' | translate }}...</span>
-  </button>
+      <button class="login-button" (click)="download()" [disabled]="loading">
+        <span *ngIf="!loading">{{ 'DOWNLOAD_TWITTER' | translate }}</span>
+        <span *ngIf="loading">{{ 'LOADING' | translate }}...</span>
+      </button>
 
-  <div *ngIf="error" class="error-msg">{{ error }}</div>
+      <a routerLink="/" class="forgot-link">{{ 'HOME' | translate }}</a>
 
-  <div class="options">
-    <a routerLink="/" class="button home-button">{{ 'HOME' | translate }}</a>
-  </div>
+      <div class="language-selector">
+        <button (click)="changeLanguage('es')">🇪🇸</button>
+        <button (click)="changeLanguage('en')">🇬🇧</button>
+        <button (click)="changeLanguage('gl')">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galicia" width="20" />
+        </button>
+      </div>
 
-  <div class="language-selector">
-    <button (click)="changeLanguage('es')">🇪🇸 Español</button>
-    <button (click)="changeLanguage('en')">🇬🇧 English</button>
-    <button (click)="changeLanguage('gl')">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galicia" width="20">
-      Galego
-    </button>
+      <div *ngIf="error" class="error-msg">{{ error }}</div>
+    </div>
   </div>
 </div>
