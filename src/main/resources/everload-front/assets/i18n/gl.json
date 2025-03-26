@@ -1,10 +1,11 @@
 {
 
   "APP_NAME": "EverLoad",
-  "SUBTITLE": "Descarga vídeos e audios de YouTube doadamente",
-  "DOWNLOAD_YOUTUBE": "📥 Descargar dende YouTube",
+  "SUBTITLE": "Descarga vídeos e audios doadamente",
+  "DOWNLOAD_YOUTUBE": "Descargar dende YouTube",
   "CREATED_BY": "Creado por",
   "GITHUB": "GitHub",
+  "DOWNLOAD_Twitter": "Descargar dende Twitter",
 
     "HOME": "🏠 Inicio",
     "DOWNLOAD_FROM_YOUTUBE": "Descargar desde YouTube",
@@ -18,7 +19,32 @@
     "USE_VIDEO": "📌 Usar este vídeo",
     "RESULTS": "Resultados",
     "USE_THIS_VIDEO": "Usar este vídeo",
-    "NO_RESULTS_FOUND": "Non se atoparon resultados"
+    "NO_RESULTS_FOUND": "Non se atoparon resultados",
+
+
+    "DOWNLOAD_TWITTER": "Descargar dende Twitter",
+    "PASTE_TWEET_URL": "Pega aquí a URL do tweet",
+    "INVALID_TWITTER_URL": "URL inválida. Asegúrate de pegar un tweet válido.",
+    "SUBTITLE_TWITTER": "Descarga vídeos públicos de Twitter/X.",
+    "HOME": "Inicio",
+    "LOADING": "Descargando espera ...",
+    "DOWNLOAD_FAILED": "Produciuse un erro durante a descarga",
+
+
+  "DOWNLOAD_FACEBOOK": "Descargar dende Facebook",
+  "PASTE_FACEBOOK_URL": "Pega aquí a URL do vídeo de Facebook",
+  "INVALID_FACEBOOK_URL": "URL inválida. Asegúrate de que sexa un enlace válido de Facebook.",
+  "SUBTITLE_FACEBOOK": "Descarga vídeos públicos de Facebook.",
+
+
+"DOWNLOAD_INSTAGRAM": "Descargar dende Instagram",
+"PASTE_INSTAGRAM_URL": "Pega aquí a URL do vídeo de Instagram",
+"INVALID_INSTAGRAM_URL": "URL non válida. Asegúrate de que sexa un enlace correcto de Instagram.",
+"SUBTITLE_INSTAGRAM": "Descarga vídeos públicos de Instagram facilmente.",
+"INSTAGRAM_LIMITATION": "Só se poden descargar Reels e publicacións públicas. Non se admiten historias nin contido de contas privadas."
+
+
+
 
   }
   

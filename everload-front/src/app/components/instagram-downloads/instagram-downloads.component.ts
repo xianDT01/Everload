@@ -7,11 +7,12 @@ import { TranslateService } from '@ngx-translate/core';
   templateUrl: './instagram-downloads.component.html',
   styleUrls: ['./instagram-downloads.component.css']
 })
+
 export class InstagramDownloadsComponent {
   videoUrl: string = '';
   error: string | null = null;
   loading: boolean = false;
-
+backendUrl: string = '/api';
   constructor(private http: HttpClient, private translate: TranslateService) {
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
