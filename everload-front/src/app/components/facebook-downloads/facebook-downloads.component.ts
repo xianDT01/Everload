@@ -34,7 +34,9 @@ export class FacebookDownloadsComponent {
     this.loading = true;
 
     console.log('🔗 Enviando URL:', this.videoUrl);
-    const endpoint = `http://localhost:8080/api/downloadFacebook?url=${this.videoUrl}`;
+  //  const endpoint = `http://localhost:8080/api/downloadFacebook?url=${this.videoUrl}`;
+      const endpoint = `/api/downloadFacebook?url=${this.videoUrl}`;
+
 
 
     this.http.get(endpoint, {
