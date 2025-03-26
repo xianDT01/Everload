@@ -3,19 +3,20 @@
 html, body {
   margin: 0;
   padding: 0;
-  background-color: #2c2c2c; /* Color oscuro */
+  background-color: #2c2c2c;
   height: 100%;
 }
 
 .home-container {
-  min-height: 100vh; /* o height: 100vh; */
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #2c2c2c; 
+  background-color: #2c2c2c;
   color: white;
-  margin: 0;
+  text-align: center;
+  padding: 20px;
 }
 
 /* Contenedor del logo */
@@ -26,7 +27,6 @@ html, body {
   gap: 10px;
 }
 
-/* Logo de YouTube */
 .youtube-logo {
   width: 120px;
   height: auto;
@@ -49,26 +49,71 @@ html, body {
   font-family: 'Poppins', sans-serif;
 }
 
+/* Botones de descarga */
 .options {
   margin-top: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
 }
 
 .button {
-  display: inline-block;
-  padding: 15px 30px;
-  background-color: #ff0000;
-  color: white;
-  text-decoration: none;
-  border-radius: 8px;
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  font-size: 18px;
   font-weight: bold;
+  border-radius: 8px;
+  text-decoration: none;
   transition: all 0.3s ease;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  border: none;
+  color: white;
+  cursor: pointer;
 }
 
 .button:hover {
-  background-color: #cc0000;
   transform: scale(1.05);
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+}
+
+/* Colores por plataforma */
+.youtube-button {
+  background-color: #ff0000;
+}
+
+.youtube-button:hover {
+  background-color: #cc0000;
+}
+
+.twitter-button {
+  background-color: #1da1f2;
+}
+
+.twitter-button:hover {
+  background-color: #0d8ddb;
+}
+
+.facebook-button {
+  background-color: #1877f2;
+}
+
+.facebook-button:hover {
+  background-color: #145dbf;
+}
+
+.instagram-button {
+  background-color: #e1306c;
+}
+
+.instagram-button:hover {
+  background-color: #c72c60;
 }
 
 /* Información del creador */
@@ -114,24 +159,8 @@ html, body {
 .language-selector button:hover {
   opacity: 0.8;
 }
-.youtube-button {
-  background-color: #ff0000;
-}
 
-.youtube-button:hover {
-  background-color: #cc0000;
-}
-
-.twitter-button {
-  background-color: #1da1f2;
-  margin-top: 15px;
-}
-
-.twitter-button:hover {
-  background-color: #0d8ddb;
-}
-
-/* Media Queries para diseño responsive */
+/* Responsive Design */
 @media (max-width: 768px) {
   .home-container {
     margin-top: 30px;
@@ -145,20 +174,25 @@ html, body {
   .app-name {
     font-size: 36px;
   }
-  
+
   .subtitle {
     font-size: 16px;
   }
-  
+
   .button {
-    font-size: 18px;
-    padding: 12px 24px;
+    font-size: 16px;
+    padding: 10px 20px;
   }
-  
+
+  .icon {
+    width: 20px;
+    height: 20px;
+  }
+
   .creator-info {
     font-size: 14px;
   }
-  
+
   .language-selector button {
     font-size: 16px;
     padding: 4px 8px;
@@ -173,25 +207,30 @@ html, body {
   .app-name {
     font-size: 28px;
   }
-  
+
   .subtitle {
     font-size: 14px;
   }
-  
+
   .button {
-    font-size: 16px;
-    padding: 10px 20px;
+    font-size: 14px;
+    padding: 8px 16px;
   }
-  
+
+  .icon {
+    width: 18px;
+    height: 18px;
+  }
+
   .creator-info {
     font-size: 12px;
   }
-  
+
   .language-selector {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .language-selector button {
     font-size: 14px;
     padding: 4px 8px;

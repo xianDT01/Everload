@@ -8,12 +8,22 @@
 
   <div class="options">
     <a routerLink="/youtube-downloads" class="button youtube-button">
-      {{ 'DOWNLOAD_YOUTUBE' | translate }}
+      <img src="../../../assets/youtube-icon-logo-719479.png" alt="YouTube" class="icon"> {{ 'DOWNLOAD_YOUTUBE' | translate }}
     </a>
+  
     <a routerLink="/twitter-downloads" class="button twitter-button">
-     {{'DOWNLOAD_Twitter'|translate}}
-    </a>    
+      <img src="../../../assets/twitter-icon.png" alt="Twitter" class="icon"> {{ 'DOWNLOAD_TWITTER' | translate }}
+    </a>
+  
+    <a routerLink="/facebook-downloads" class="button facebook-button">
+      <img src="../../../assets/fb sin fondo.png" alt="Facebook" class="icon"> {{ 'DOWNLOAD_FACEBOOK' | translate }}
+    </a>
+  
+    <a routerLink="/instagram-downloads" class="button instagram-button">
+      <img src="../../../assets/instagram-icon.png" alt="Instagram" class="icon"> {{ 'DOWNLOAD_INSTAGRAM' | translate }}
+    </a>
   </div>
+  
 
   <div class="creator-info">
     {{ 'CREATED_BY' | translate }} <strong>Xián Duán Taboada</strong> - 

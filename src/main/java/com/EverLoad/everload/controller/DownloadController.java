@@ -45,5 +45,19 @@ public class DownloadController {
         return downloadService.downloadTwitterVideo(url);
     }
 
+    @Operation(summary = "Descargar video de Facebook")
+    @GetMapping("/downloadFacebook")
+    public ResponseEntity<FileSystemResource> downloadFacebookVideo(
+            @RequestParam String url) {
+        return downloadService.downloadFacebookVideo(url);
+    }
+
+    @Operation(summary = "Descargar video de Instagram")
+    @GetMapping("/downloadInstagram")
+    public ResponseEntity<FileSystemResource> downloadInstagramVideo(
+            @RequestParam String url) {
+        return downloadService.downloadInstagramVideo(url);
+    }
+
 
 }

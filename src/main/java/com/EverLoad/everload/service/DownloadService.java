@@ -162,4 +162,34 @@ public class DownloadService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    public ResponseEntity<FileSystemResource> downloadFacebookVideo(String videoUrl) {
+        try {
+            String tempDir = createTempDownloadDir();
+            String command = String.format(
+                    "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
+                    tempDir, videoUrl
+            );
+            return executeCommand(command);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    public ResponseEntity<FileSystemResource> downloadInstagramVideo(String videoUrl) {
+        try {
+            String tempDir = createTempDownloadDir();
+            String command = String.format(
+                    "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
+                    tempDir, videoUrl
+            );
+            return executeCommand(command);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+
 }
