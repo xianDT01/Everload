@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Everload Custom (seguridad y config) ###
+# Keystore autofirmado (no subir nunca)
+*.p12
+
