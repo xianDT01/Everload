@@ -114,3 +114,74 @@
   font-size: 20px;
   cursor: pointer;
 }
+@media (max-width: 1024px) {
+  .left-logo {
+    width: 300px;
+  }
+
+  .login-title {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-split-container {
+    flex-direction: column;
+  }
+
+  .left-panel,
+  .right-panel {
+    flex: none;
+    width: 100%;
+    height: auto;
+    padding: 20px;
+  }
+
+  .left-panel {
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  .left-logo {
+    width: 250px;
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .left-logo {
+    width: 200px;
+  }
+
+  .login-title {
+    font-size: 20px;
+  }
+
+  .subtitle,
+  .forgot-link,
+  .login-input,
+  .login-button {
+    font-size: 14px;
+  }
+
+  .language-selector {
+    gap: 10px;
+  }
+
+  .language-selector button {
+    font-size: 18px;
+  }
+}
+@media (max-width: 480px) {
+  .left-panel {
+    display: none;
+  }
+}
