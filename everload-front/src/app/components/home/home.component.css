@@ -51,16 +51,18 @@ html, body {
 
 /* Botones de descarga */
 .options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 15px;
   margin-top: 30px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  justify-content: center;
+  max-width: 600px;
+  width: 100%;
+  
 }
-
 .button {
   display: flex;
   align-items: center;
+  justify-content: center; /* centra el contenido */
   gap: 10px;
   padding: 12px 24px;
   font-size: 18px;
@@ -72,10 +74,16 @@ html, body {
   border: none;
   color: white;
   cursor: pointer;
+  min-width: 280px;
+  max-width: 90vw;
+  width: 100%;
+  box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .button:hover {
-  transform: scale(1.05);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  
 }
 
 .icon {
@@ -160,19 +168,10 @@ html, body {
   opacity: 0.8;
 }
 
-/* Responsive Design */
+/* -------------------- RESPONSIVE -------------------- */
 @media (max-width: 768px) {
-  .home-container {
-    margin-top: 30px;
-    padding: 0 20px;
-  }
-
-  .youtube-logo {
-    width: 100px;
-  }
-
   .app-name {
-    font-size: 36px;
+    font-size: 32px;
   }
 
   .subtitle {
@@ -185,27 +184,27 @@ html, body {
   }
 
   .icon {
-    width: 20px;
-    height: 20px;
+    width: 32px;
+    height: 32px;
   }
 
   .creator-info {
     font-size: 14px;
+    text-align: center;
   }
 
   .language-selector button {
     font-size: 16px;
-    padding: 4px 8px;
   }
 }
 
 @media (max-width: 480px) {
   .youtube-logo {
-    width: 80px;
+    width: 90%;
   }
 
   .app-name {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .subtitle {
@@ -213,26 +212,18 @@ html, body {
   }
 
   .button {
-    font-size: 14px;
-    padding: 8px 16px;
-  }
-
-  .icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .creator-info {
-    font-size: 12px;
-  }
-
-  .language-selector {
     flex-direction: column;
-    gap: 10px;
+    text-align: center;
+    gap: 5px;
   }
 
-  .language-selector button {
-    font-size: 14px;
-    padding: 4px 8px;
+  .options {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+@media (max-width: 600px) {
+  .options {
+    grid-template-columns: 1fr;
   }
 }
