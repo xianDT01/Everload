@@ -27,10 +27,16 @@ html, body {
   gap: 10px;
 }
 
-.youtube-logo {
+.everload-logo {
   width: 500px;
   height: auto;
 }
+/* Logo everload que hace zoom al poner el re */
+.everload-logo:hover {
+  transform: scale(1.05);
+  transition: transform 0.3s ease-in-out;
+}
+
 
 /* Nombre de la app */
 .app-name {
@@ -199,7 +205,7 @@ html, body {
 }
 
 @media (max-width: 480px) {
-  .youtube-logo {
+  .everload-logo {
     width: 90%;
   }
 
