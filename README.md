@@ -113,3 +113,10 @@ ng serve
   Só contido público.
 
 ---
+## Licencia
+
+Este proyecto está bajo la Licencia MIT. Puedes usarlo, modificarlo y distribuirlo libremente, siempre que me menciones como autor original:  
+**Xián Duán Taboada – xiandt01@gmail.com**  
+Ver archivo [LICENSE](./LICENSE) para más detalles.
+
+---
