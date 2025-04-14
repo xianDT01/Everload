@@ -9,8 +9,8 @@
         <button (click)="changeLanguage('es')">🇪🇸 Español</button>
         <button (click)="changeLanguage('en')">🇬🇧 English</button>
         <button (click)="changeLanguage('gl')">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" 
-               alt="Bandera de Galicia" width="20"> Galego
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Bandera de Galicia"
+            width="20"> Galego
         </button>
       </div>
     </div>
@@ -27,12 +27,7 @@
     <!-- ✅ Previsualización del vídeo -->
     <div class="video-preview" *ngIf="getEmbedUrl(videoUrl)">
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
-      <iframe
-        [src]="getEmbedUrl(videoUrl) | safeUrl"
-        width="560"
-        height="315"
-        frameborder="0"
-        allowfullscreen>
+      <iframe [src]="getEmbedUrl(videoUrl) | safeUrl" width="560" height="315" frameborder="0" allowfullscreen>
       </iframe>
     </div>
 
@@ -69,12 +64,15 @@
     </div>
 
     <!-- Resultados de búsqueda -->
-    <div *ngFor="let video of searchResults" class="video-result">
-      <img [src]="video.snippet.thumbnails.medium.url">
-      <h3>{{ video.snippet.title }}</h3>
-      <button (click)="videoUrl = 'https://youtube.com/watch?v=' + video.id.videoId">
-        {{ 'USE_THIS_VIDEO' | translate }}
-      </button>
+    <div class="video-grid">
+      <div *ngFor="let video of searchResults" class="video-card">
+        <img [src]="video.snippet.thumbnails.high.url" alt="Miniatura del video" class="thumbnail">
+        <div class="video-info">
+          <h3 class="title">{{ video.snippet.title }}</h3>
+          <p class="channel">{{ video.snippet.channelTitle }}</p>
+          <button (click)="videoUrl = 'https://youtube.com/watch?v=' + video.id.videoId">
+            {{ 'USE_THIS_VIDEO' | translate }}
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>

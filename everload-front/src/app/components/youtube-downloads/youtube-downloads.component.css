@@ -166,9 +166,17 @@ button:active {
 }
 
 @keyframes progressAnimation {
-  0% { width: 0%; }
-  50% { width: 50%; }
-  100% { width: 100%; }
+  0% {
+    width: 0%;
+  }
+
+  50% {
+    width: 50%;
+  }
+
+  100% {
+    width: 100%;
+  }
 }
 
 .search-box {
@@ -185,6 +193,116 @@ button:active {
   gap: 15px;
   max-width: 900px;
   width: 100%;
+}
+
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  /* Fuerza 5 columnas */
+  gap: 20px;
+  width: 100%;
+  max-width: 1400px;
+  /* Ajusta según el ancho de tu layout */
+  margin-top: 30px;
+}
+
+
+.video-card {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.video-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+}
+
+.thumbnail {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.video-card img.thumbnail {
+  width: 180px;
+  height: auto;
+  object-fit: cover;
+}
+
+.video-info {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.video-info .title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.video-info .channel {
+  font-size: 14px;
+  color: #ccc;
+}
+
+.video-info button {
+  align-self: flex-start;
+  background-color: #ff0000;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.video-info button:hover {
+  background-color: #cc0000;
+}
+
+.video-details {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.video-details .title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  margin: 0 0 10px;
+}
+
+.video-details .channel {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 10px;
+}
+
+.video-details button {
+  align-self: start;
+  padding: 8px 12px;
+  background-color: #ff0000;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.video-details button:hover {
+  background-color: #cc0000;
 }
 
 .video-result {
@@ -224,6 +342,7 @@ button:active {
   font-size: 14px;
   color: #b0b0b0;
 }
+
 .video-preview {
   margin-top: 15px;
   margin-bottom: 20px;
@@ -256,8 +375,15 @@ button:active {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Media Queries para diseño responsive */
@@ -323,7 +449,8 @@ button:active {
     padding: 10px;
   }
 
-  input, select {
+  input,
+  select {
     font-size: 14px;
     padding: 8px;
   }
