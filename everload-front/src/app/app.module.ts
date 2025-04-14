@@ -12,7 +12,7 @@ import { YoutubeDownloadsComponent } from './components/youtube-downloads/youtub
 import { TwitterDownloadsComponent } from './components/twitter-downloads/twitter-downloads.component';
 import { FacebookDownloadsComponent } from './components/facebook-downloads/facebook-downloads.component';
 import { InstagramDownloadsComponent } from './components/instagram-downloads/instagram-downloads.component';
-
+import { SafeUrlPipe } from './components/youtube-downloads/safe-url.pipe';
 // Función para cargar archivos de traducción
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -25,7 +25,9 @@ export function HttpLoaderFactory(http: HttpClient) {
     YoutubeDownloadsComponent,
     TwitterDownloadsComponent,
     FacebookDownloadsComponent,
-    InstagramDownloadsComponent
+    InstagramDownloadsComponent,
+    InstagramDownloadsComponent,
+    SafeUrlPipe
   ],
   imports: [
     BrowserModule,
