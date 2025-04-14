@@ -24,6 +24,18 @@
       <input type="text" placeholder="{{ 'PASTE_YOUTUBE_LINK' | translate }}" [(ngModel)]="videoUrl">
     </div>
 
+    <!-- ✅ Previsualización del vídeo -->
+    <div class="video-preview" *ngIf="getEmbedUrl(videoUrl)">
+      <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
+      <iframe
+        [src]="getEmbedUrl(videoUrl) | safeUrl"
+        width="560"
+        height="315"
+        frameborder="0"
+        allowfullscreen>
+      </iframe>
+    </div>
+
     <label for="resolution">{{ 'SELECT_RESOLUTION' | translate }}</label>
     <select id="resolution" [(ngModel)]="resolution">
       <option value="144">144p</option>
