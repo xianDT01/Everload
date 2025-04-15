@@ -9,8 +9,7 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class DownloadService {
@@ -39,18 +38,50 @@ public class DownloadService {
         try {
             String tempDir = createTempDownloadDir();
             String command = String.format(
-                    "yt-dlp --print after_move:filepath " +
+                    "yt-dlp --ignore-errors --print after_move:filepath " +
                             "-x --audio-format %s " +
                             "-o %s%%(title)s.%%(ext)s " +
                             "https://www.youtube.com/watch?v=%s",
                     format, tempDir, videoId
             );
+
             return executeCommand(command);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    public ResponseEntity<?> getPlaylistVideos(String playlistUrl) {
+        try {
+            String command = String.format("yt-dlp --flat-playlist --print %%(title)s|%%(id)s %s", playlistUrl);
+            Process process = Runtime.getRuntime().exec(command);
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            List<Map<String, String>> videos = new ArrayList<>();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("\\|");
+                if (parts.length == 2) {
+                    Map<String, String> video = new HashMap<>();
+                    video.put("title", parts[0]);
+                    video.put("id", parts[1]);
+                    videos.add(video);
+                }
+            }
+
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error ejecutando yt-dlp");
+            }
+
+            return ResponseEntity.ok(videos);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno");
+        }
+    }
+
 
 
 
@@ -67,8 +98,11 @@ public class DownloadService {
                 String line;
                 try {
                     while ((line = errorReader.readLine()) != null) {
-                        System.out.println("⚠️ YT-DLP ERROR: " + line);
+                        if (!line.contains("nsig extraction failed")) {
+                            System.out.println("⚠️ YT-DLP ERROR: " + line);
+                        }
                     }
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -147,8 +181,11 @@ public class DownloadService {
 
     private String makeAsciiSafe(String input) {
         input = input.replace("\"", "'");
-        return input.replaceAll("[^\\x20-\\x7E]", "_");
+        return input.replaceAll("[^\\p{Print}]", "_")
+                .replaceAll("[\\\\/:*?\"<>|｜]", "_");
     }
+
+
     public ResponseEntity<FileSystemResource> downloadTwitterVideo(String tweetUrl) {
         try {
             String tempDir = createTempDownloadDir();

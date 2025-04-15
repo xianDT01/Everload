@@ -21,9 +21,13 @@
     "USE_THIS_VIDEO": "Usar este vídeo",
     "NO_RESULTS_FOUND": "No se encontraron resultados",
     "VIDEO_PREVIEW": "Previsualización del vídeo",
+    "SELECT_VIDEOS_TO_DOWNLOAD": "Selecciona los vídeos para descargar",
+    "PLAYLIST_VIDEOS": "Vídeos de la lista de reproducción",
+    "SELECT_ALL": "Seleccionar todos",
+    "DESELECT_ALL": "Deseleccionar todos",
+    "DOWNLOAD_SELECTED_AS_MP3": "Descargar seleccionados como MP3",
 
-
-
+    
     
       "DOWNLOAD_TWITTER": "Descargar vídeo de Twitter",
       "PASTE_TWEET_URL": "Pega aquí la URL del tweet",
