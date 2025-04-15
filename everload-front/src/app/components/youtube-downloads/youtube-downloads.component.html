@@ -21,7 +21,8 @@
     <h2>{{ 'DOWNLOAD_YOUTUBE' | translate }}</h2>
 
     <div class="input-group">
-      <input type="text" placeholder="{{ 'PASTE_YOUTUBE_LINK' | translate }}" [(ngModel)]="videoUrl">
+      <input type="text" placeholder="{{ 'PASTE_YOUTUBE_LINK' | translate }}" [(ngModel)]="videoUrl"
+        (ngModelChange)="onVideoUrlChange()">
     </div>
 
     <!-- ✅ Previsualización del vídeo -->
@@ -29,6 +30,38 @@
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
       <iframe [src]="getEmbedUrl(videoUrl) | safeUrl" width="560" height="315" frameborder="0" allowfullscreen>
       </iframe>
+    </div>
+
+    <!-- ✅ Bloque para listas de reproducción -->
+
+    <div *ngIf="playlistVideos.length > 0" class="playlist-section">
+      <h3 style="color: white;">{{ 'PLAYLIST_VIDEOS' | translate }}</h3>
+      <p style="color: white;">{{ 'SELECT_VIDEOS_TO_DOWNLOAD' | translate }}</p>
+
+      <button (click)="toggleSelectAll()" style="margin-bottom: 10px;">
+        {{ allSelected ? '❌ ' + ('DESELECT_ALL' | translate) : '✅ ' + ('SELECT_ALL' | translate) }}
+      </button>
+      
+      <!-- Contenedor con scroll -->
+      <div class="playlist-scroll-container">
+        <div class="playlist-grid">
+          <div *ngFor="let video of playlistVideos" class="playlist-card">
+            <img [src]="getThumbnailUrl(video.id)" class="playlist-thumb" alt="Miniatura del vídeo" />
+            <div class="playlist-info">
+              <label>
+                <input type="checkbox" [checked]="selectedVideos.has(video.id)" (change)="toggleVideo(video.id)" />
+
+
+                {{ video.title }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button (click)="downloadSelectedVideos()" [disabled]="selectedVideos.size === 0">
+        🎵 {{ 'DOWNLOAD_SELECTED_AS_MP3' | translate }}
+      </button>
     </div>
 
     <label for="resolution">{{ 'SELECT_RESOLUTION' | translate }}</label>
@@ -76,3 +109,5 @@
         </div>
       </div>
     </div>
+  </div>
+</div>

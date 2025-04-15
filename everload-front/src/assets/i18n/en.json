@@ -20,6 +20,14 @@
     "RESULTS": "Results",
     "NO_RESULTS_FOUND": "No results found",
     "VIDEO_PREVIEW": "Video Preview",
+    "SELECT_VIDEOS_TO_DOWNLOAD": "Select videos to download",
+    "PLAYLIST_VIDEOS": "Playlist Videos",
+    "SELECT_ALL": "Select all",
+    "DESELECT_ALL": "Deselect all",
+    "DOWNLOAD_SELECTED_AS_MP3": "Download selected as MP3",
+
+
+
 
 
     "DOWNLOAD_TWITTER": "Download form Twitter",
