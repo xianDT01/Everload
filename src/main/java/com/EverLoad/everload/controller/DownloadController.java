@@ -58,6 +58,12 @@ public class DownloadController {
             @RequestParam String url) {
         return downloadService.downloadInstagramVideo(url);
     }
+    @Operation(summary = "Obtener vídeos de una playlist de YouTube")
+    @GetMapping("/playlistVideos")
+    public ResponseEntity<?> getPlaylistVideos(@RequestParam String playlistUrl) {
+        return downloadService.getPlaylistVideos(playlistUrl);
+    }
+
 
 
 }
