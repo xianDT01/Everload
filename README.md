@@ -14,7 +14,7 @@
 
 ## 🚀 Características / Features / Características
 
-- 📺 **YouTube**: descarga/download/descarga de vídeos e audios (MP3).
+- 📺 **YouTube**: descarga/download/descarga de vídeos e audios (MP3), ** incluyendo listas de reproducción completas / including full playlists / incluíndo listas de reprodución completas**.
 - 🐦 **Twitter/X**: vídeos públicos / public videos / vídeos públicos.
 - 📘 **Facebook**: vídeos públicos / public videos / vídeos públicos.
 - 📸 **Instagram**: Reels e posts públicos / public Reels and posts / Reels e publicacións públicas.
