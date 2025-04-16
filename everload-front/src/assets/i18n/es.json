@@ -1,5 +1,5 @@
 {
-  
+  "_comment1": "Textos generales de la app",
   "APP_NAME": "EverLoad",
   "SUBTITLE": "Descarga videos y música fácilmente",
   "DOWNLOAD_YOUTUBE": "Descargar vídeo de YouTube",
@@ -7,53 +7,59 @@
   "GITHUB": "GitHub",
   "DOWNLOAD_Twitter": "Descargar de YouTube",
 
-    "HOME": "🏠 Inicio",
-    "DOWNLOAD_FROM_YOUTUBE": "Descargar vídeo de YouTube",
-    "PASTE_YOUTUBE_LINK": "Pega el enlace de YouTube aquí",
-    "SELECT_RESOLUTION": "Selecciona la resolución",
-    "DOWNLOAD_VIDEO": "📹 Descargar Video",
-    "DOWNLOAD_MUSIC": "🎵 Descargar Música",
-    "LOADING": "⏳ Descargando, por favor espera...",
-    "SEARCH_PLACEHOLDER": "Buscar vídeos en YouTube",
-    "SEARCH_BUTTON": "🔎 Buscar",
-    "USE_VIDEO": "📌 Usar este vídeo",
-    "RESULTS": "Resultados",
-    "USE_THIS_VIDEO": "Usar este vídeo",
-    "NO_RESULTS_FOUND": "No se encontraron resultados",
-    "VIDEO_PREVIEW": "Previsualización del vídeo",
-    "SELECT_VIDEOS_TO_DOWNLOAD": "Selecciona los vídeos para descargar",
-    "PLAYLIST_VIDEOS": "Vídeos de la lista de reproducción",
-    "SELECT_ALL": "Seleccionar todos",
-    "DESELECT_ALL": "Deseleccionar todos",
-    "DOWNLOAD_SELECTED_AS_MP3": "Descargar seleccionados como MP3",
+  "_comment2": "Sección de YouTube",
+  "HOME": "🏠 Inicio",
+  "DOWNLOAD_FROM_YOUTUBE": "Descargar vídeo de YouTube",
+  "PASTE_YOUTUBE_LINK": "Pega el enlace de YouTube aquí",
+  "SELECT_RESOLUTION": "Selecciona la resolución",
+  "DOWNLOAD_VIDEO": "📹 Descargar Video",
+  "DOWNLOAD_MUSIC": "🎵 Descargar Música",
+  "LOADING": "⏳ Descargando, por favor espera...",
+  "SEARCH_PLACEHOLDER": "Buscar vídeos en YouTube",
+  "SEARCH_BUTTON": "🔎 Buscar",
+  "USE_VIDEO": "📌 Usar este vídeo",
+  "RESULTS": "Resultados",
+  "USE_THIS_VIDEO": "Usar este vídeo",
+  "NO_RESULTS_FOUND": "No se encontraron resultados",
+  "VIDEO_PREVIEW": "Previsualización del vídeo",
+  "SELECT_VIDEOS_TO_DOWNLOAD": "Selecciona los vídeos para descargar",
+  "PLAYLIST_VIDEOS": "Vídeos de la lista de reproducción",
+  "SELECT_ALL": "Seleccionar todos",
+  "DESELECT_ALL": "Deseleccionar todos",
+  "DOWNLOAD_SELECTED_AS_MP3": "Descargar seleccionados como MP3",
 
     
-    
-      "DOWNLOAD_TWITTER": "Descargar vídeo de Twitter",
-      "PASTE_TWEET_URL": "Pega aquí la URL del tweet",
-      "INVALID_TWITTER_URL": "URL inválida. Asegúrate de pegar un tweet válido.",
-      "SUBTITLE_TWITTER": "Descarga vídeos públicos de Twitter/X.",
-      "HOME": "Inicio",
-      "LOADING": "Downloading whait ...",
-      "DOWNLOAD_FAILED": "Ocurrió un error durante la descarga",
 
-
-
-    "DOWNLOAD_FACEBOOK": "Descargar vídeo de Facebook",
-    "PASTE_FACEBOOK_URL": "Pega aquí la URL del video de Facebook",
-    "INVALID_FACEBOOK_URL": "URL inválida. Asegúrate de que sea un enlace válido de Facebook.",
-    "SUBTITLE_FACEBOOK": "Descarga vídeos públicos de Facebook fácilmente.",
-
-    "DOWNLOAD_INSTAGRAM": "Descargar vídeo de Instagram",
-"PASTE_INSTAGRAM_URL": "Pega aquí la URL del vídeo de Instagram",
-"INVALID_INSTAGRAM_URL": "URL inválida. Asegúrate de que sea un enlace válido de Instagram.",
-"SUBTITLE_INSTAGRAM": "Descarga vídeos públicos de Instagram fácilmente.",
-"INSTAGRAM_LIMITATION": "Solo se pueden descargar Reels y publicaciones públicas. No se admiten stories ni vídeos de cuentas privadas."
+  
+  "_comment3": "Sección de Twitter/X",  
+  "DOWNLOAD_TWITTER": "Descargar vídeo de Twitter",
+  "PASTE_TWEET_URL": "Pega aquí la URL del tweet",
+  "INVALID_TWITTER_URL": "URL inválida. Asegúrate de pegar un tweet válido.",
+  "SUBTITLE_TWITTER": "Descarga vídeos públicos de Twitter/X.",
+  "HOME": "Inicio",
+  "LOADING": "Downloading whait ...",
+  "DOWNLOAD_FAILED": "Ocurrió un error durante la descarga",
 
 
 
 
-    
+  "_comment4": "Sección de Facebook",
+  "DOWNLOAD_FACEBOOK": "Descargar vídeo de Facebook",
+  "PASTE_FACEBOOK_URL": "Pega aquí la URL del video de Facebook",
+  "INVALID_FACEBOOK_URL": "URL inválida. Asegúrate de que sea un enlace válido de Facebook.",
+  "SUBTITLE_FACEBOOK": "Descarga vídeos públicos de Facebook fácilmente.",
+
+
+
+
+  "_comment5": "Sección de Instagram",
+  "DOWNLOAD_INSTAGRAM": "Descargar vídeo de Instagram",
+  "PASTE_INSTAGRAM_URL": "Pega aquí la URL del vídeo de Instagram",
+  "INVALID_INSTAGRAM_URL": "URL inválida. Asegúrate de que sea un enlace válido de Instagram.",
+  "SUBTITLE_INSTAGRAM": "Descarga vídeos públicos de Instagram fácilmente.",
+  "INSTAGRAM_LIMITATION": "Solo se pueden descargar Reels y publicaciones públicas. No se admiten stories ni vídeos de cuentas privadas."
+
+
     
     
   }
