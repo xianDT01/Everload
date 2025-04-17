@@ -1,6 +1,7 @@
 import { Component, NgZone } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-youtube-downloads',
@@ -11,14 +12,19 @@ export class YoutubeDownloadsComponent {
   videoUrl: string = '';
   resolution: string = '720';
   isLoading: boolean = false;
-//  backendUrl: string = 'http://localhost:8080/api';
+// backendUrl: string = 'http://localhost:8080/api';
  backendUrl: string = '/api';
 
   searchResults: any[] = [];
   searchQuery: string = '';
 
-  constructor(private http: HttpClient, private ngZone: NgZone, private translate: TranslateService) {
-    // Establecer idioma por defecto
+  constructor(
+    private http: HttpClient,
+    private ngZone: NgZone,
+    private translate: TranslateService,
+    private sanitizer: DomSanitizer
+  ) {
+    // idioma por defecto
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
@@ -26,7 +32,7 @@ export class YoutubeDownloadsComponent {
     }
   }
 
-  changeLanguage(lang: string) {
+    changeLanguage(lang: string) {
     this.translate.use(lang);
     localStorage.setItem('language', lang);
   }
@@ -154,10 +160,13 @@ export class YoutubeDownloadsComponent {
   }
   
   // Función para extraer el ID del video de la URL para la reproducción de YouTube
-  getEmbedUrl(videoUrl: string): string {
+  getEmbedUrl(videoUrl: string): SafeResourceUrl | null {
     const videoId = this.extractVideoId(videoUrl);
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+    return videoId
+      ? this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${videoId}`)
+      : null;
   }
+  
   // Función para extraer el ID del video de la URL para la descarga
   playlistVideos: any[] = [];
   selectedVideos: Set<string> = new Set();
