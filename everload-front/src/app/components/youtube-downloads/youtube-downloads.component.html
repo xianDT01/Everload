@@ -26,9 +26,9 @@
     </div>
 
     <!-- ✅ Previsualización del vídeo -->
-    <div class="video-preview" *ngIf="getVideoId(videoUrl) as id">
+    <div class="video-preview" *ngIf="getVideoId(videoUrl)">
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
-      <iframe [src]="'https://www.youtube.com/embed/' + id | safeUrl"
+      <iframe [src]="getEmbedUrl(videoUrl)"
               width="560" height="315"
               frameborder="0"
               allowfullscreen>
@@ -38,7 +38,6 @@
         🔗 {{ 'OPEN_IN_YOUTUBE' | translate }}
       </a>
     </div>
-    
 
     <!-- ✅ Bloque para listas de reproducción -->
 
