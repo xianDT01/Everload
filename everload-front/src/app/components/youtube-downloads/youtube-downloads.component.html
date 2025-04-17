@@ -26,11 +26,19 @@
     </div>
 
     <!-- ✅ Previsualización del vídeo -->
-    <div class="video-preview" *ngIf="getEmbedUrl(videoUrl)">
+    <div class="video-preview" *ngIf="getVideoId(videoUrl) as id">
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
-      <iframe [src]="getEmbedUrl(videoUrl) | safeUrl" width="560" height="315" frameborder="0" allowfullscreen>
+      <iframe [src]="'https://www.youtube.com/embed/' + id | safeUrl"
+              width="560" height="315"
+              frameborder="0"
+              allowfullscreen>
       </iframe>
+      <p style="font-size: 12px; color: #ccc;">* Si el vídeo no carga, puede que tenga restricciones de edad o de reproducción.</p>
+      <a [href]="videoUrl" target="_blank" style="color: #ff0000; text-decoration: underline; font-size: 14px;">
+        🔗 {{ 'OPEN_IN_YOUTUBE' | translate }}
+      </a>
     </div>
+    
 
     <!-- ✅ Bloque para listas de reproducción -->
 
