@@ -11,8 +11,8 @@ export class YoutubeDownloadsComponent {
   videoUrl: string = '';
   resolution: string = '720';
   isLoading: boolean = false;
-//  backendUrl: string = 'http://localhost:8080/api';
-  backendUrl: string = '/api';
+  backendUrl: string = 'http://localhost:8080/api';
+// backendUrl: string = '/api';
 
   searchResults: any[] = [];
   searchQuery: string = '';
@@ -256,6 +256,9 @@ export class YoutubeDownloadsComponent {
     }
     this.allSelected = !this.allSelected;
   }
-
+  getVideoId(url: string): string | null {
+    const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:&|$)/);
+    return match ? match[1] : null;
+  }
 
 }
