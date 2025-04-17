@@ -1,42 +1,61 @@
 {
-
-  "APP_NAME": "EverLoad",
-  "SUBTITLE": "Descarga vídeos e audios doadamente",
-  "DOWNLOAD_YOUTUBE": "Descargar dende YouTube",
-  "CREATED_BY": "Creado por",
-  "GITHUB": "GitHub",
-  "DOWNLOAD_Twitter": "Descargar dende Twitter",
-
-    "HOME": "🏠 Inicio",
-    "DOWNLOAD_FROM_YOUTUBE": "Descargar desde YouTube",
-    "PASTE_YOUTUBE_LINK": "Pega a ligazón de YouTube aquí",
-    "SELECT_RESOLUTION": "Selecciona a resolución",
-    "DOWNLOAD_VIDEO": "📹 Descargar Vídeo",
-    "DOWNLOAD_MUSIC": "🎵 Descargar Música",
-    "LOADING": "⏳ Descargando, por favor espera...",
-    "SEARCH_PLACEHOLDER": "Buscar vídeos en YouTube",
-    "SEARCH_BUTTON": "🔎 Buscar",
-    "USE_VIDEO": "📌 Usar este vídeo",
-    "RESULTS": "Resultados",
-    "USE_THIS_VIDEO": "Usar este vídeo",
-    "NO_RESULTS_FOUND": "Non se atoparon resultados",
+"_comment1": "Textos generales de la app",
+"APP_NAME": "EverLoad",
+"SUBTITLE": "Descarga vídeos e audios doadamente",
+"DOWNLOAD_YOUTUBE": "Descargar dende YouTube",
+"CREATED_BY": "Creado por",
+"GITHUB": "GitHub",
+"DOWNLOAD_Twitter": "Descargar dende Twitter",
 
 
-    "DOWNLOAD_TWITTER": "Descargar dende Twitter",
-    "PASTE_TWEET_URL": "Pega aquí a URL do tweet",
-    "INVALID_TWITTER_URL": "URL inválida. Asegúrate de pegar un tweet válido.",
-    "SUBTITLE_TWITTER": "Descarga vídeos públicos de Twitter/X.",
-    "HOME": "Inicio",
-    "LOADING": "Descargando espera ...",
-    "DOWNLOAD_FAILED": "Produciuse un erro durante a descarga",
 
 
-  "DOWNLOAD_FACEBOOK": "Descargar dende Facebook",
-  "PASTE_FACEBOOK_URL": "Pega aquí a URL do vídeo de Facebook",
-  "INVALID_FACEBOOK_URL": "URL inválida. Asegúrate de que sexa un enlace válido de Facebook.",
-  "SUBTITLE_FACEBOOK": "Descarga vídeos públicos de Facebook.",
+"_comment2": "Sección de YouTube",
+"HOME": "🏠 Inicio",
+"DOWNLOAD_FROM_YOUTUBE": "Descargar desde YouTube",
+"PASTE_YOUTUBE_LINK": "Pega a ligazón de YouTube aquí",
+"SELECT_RESOLUTION": "Selecciona a resolución",
+"DOWNLOAD_VIDEO": "📹 Descargar Vídeo",
+"DOWNLOAD_MUSIC": "🎵 Descargar Música",
+"LOADING": "⏳ Descargando, por favor espera...",
+"SEARCH_PLACEHOLDER": "Buscar vídeos en YouTube",
+"SEARCH_BUTTON": "🔎 Buscar",
+"USE_VIDEO": "📌 Usar este vídeo",
+"RESULTS": "Resultados",
+"USE_THIS_VIDEO": "Usar este vídeo",
+"NO_RESULTS_FOUND": "Non se atoparon resultados",
+"VIDEO_PREVIEW": "Previsualización do vídeo",
+"SELECT_VIDEOS_TO_DOWNLOAD": "Selecciona os vídeos para descargar",
+"PLAYLIST_VIDEOS" : "Vídeos da lista de reprodución",
+"SELECT_ALL": "Seleccionar todos",
+"DESELECT_ALL": "Anular selección",
+"DOWNLOAD_SELECTED_AS_MP3": "Descargar seleccionados como MP3",
+    
 
 
+
+"_comment3": "Sección de Twitter/X",
+"DOWNLOAD_TWITTER": "Descargar dende Twitter",
+"PASTE_TWEET_URL": "Pega aquí a URL do tweet",
+"INVALID_TWITTER_URL": "URL inválida. Asegúrate de pegar un tweet válido.",
+"SUBTITLE_TWITTER": "Descarga vídeos públicos de Twitter/X.",
+"HOME": "Inicio",
+"LOADING": "Descargando espera ...",
+"DOWNLOAD_FAILED": "Produciuse un erro durante a descarga",
+
+
+
+
+"_comment4": "Sección de Facebook",
+"DOWNLOAD_FACEBOOK": "Descargar dende Facebook",
+"PASTE_FACEBOOK_URL": "Pega aquí a URL do vídeo de Facebook",
+"INVALID_FACEBOOK_URL": "URL inválida. Asegúrate de que sexa un enlace válido de Facebook.",
+"SUBTITLE_FACEBOOK": "Descarga vídeos públicos de Facebook.",
+
+
+
+
+"_comment5": "Sección de Instagram",
 "DOWNLOAD_INSTAGRAM": "Descargar dende Instagram",
 "PASTE_INSTAGRAM_URL": "Pega aquí a URL do vídeo de Instagram",
 "INVALID_INSTAGRAM_URL": "URL non válida. Asegúrate de que sexa un enlace correcto de Instagram.",
