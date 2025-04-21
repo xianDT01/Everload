@@ -64,6 +64,4 @@ public class DownloadController {
         return downloadService.getPlaylistVideos(playlistUrl);
     }
 
-
-
 }
