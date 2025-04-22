@@ -28,4 +28,13 @@
 					.andExpect(status().isOk());
 
 		}
+
+
+		@Test
+		void shouldReturnErrorWhenDownloadingFakeVideo() throws Exception {
+			mockMvc.perform(get("/api/downloadVideo")
+							.param("videoId", "invalidVideoId123")
+							.param("resolution", "720"))
+					.andExpect(status().is5xxServerError());
+		}
 	}
