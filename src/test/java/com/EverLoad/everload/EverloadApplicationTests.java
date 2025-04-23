@@ -37,4 +37,11 @@
 							.param("resolution", "720"))
 					.andExpect(status().is5xxServerError());
 		}
+
+		@Test
+		void searchYouTubeReturnsOk() throws Exception {
+			mockMvc.perform(get("/api/youtube/search")
+							.param("query", "lofi"))
+					.andExpect(status().isOk());
+		}
 	}
