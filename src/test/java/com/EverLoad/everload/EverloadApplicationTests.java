@@ -44,4 +44,11 @@
 							.param("query", "lofi"))
 					.andExpect(status().isOk());
 		}
+
+		@Test
+		void searchYouTubeWithoutQueryShouldFail() throws Exception {
+			mockMvc.perform(get("/api/youtube/search"))
+					.andExpect(status().isBadRequest());
+		}
+
 	}
