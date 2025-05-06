@@ -60,5 +60,11 @@
 					.andExpect(status().isOk())
 					.andExpect(content().string(org.hamcrest.Matchers.containsString("items")));
 		}
+		@Test
+		void downloadVideoWithoutVideoIdShouldFail() throws Exception {
+			mockMvc.perform(get("/api/downloadVideo")
+							.param("resolution", "720"))
+					.andExpect(status().isBadRequest()); // o .is4xxClientError() si lo prefieres
+		}
 
 	}
