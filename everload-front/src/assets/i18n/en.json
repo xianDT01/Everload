@@ -28,7 +28,7 @@
 "SELECT_ALL": "Select all",
 "DESELECT_ALL": "Deselect all",
 "DOWNLOAD_SELECTED_AS_MP3": "Download selected as MP3",
-
+"VIDEO_NOT_LOADING_WARNING": "If the video doesn't load, it may have age or playback restrictions.",
 
 
 
