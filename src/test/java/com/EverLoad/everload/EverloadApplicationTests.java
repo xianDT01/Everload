@@ -64,7 +64,13 @@
 		void downloadVideoWithoutVideoIdShouldFail() throws Exception {
 			mockMvc.perform(get("/api/downloadVideo")
 							.param("resolution", "720"))
-					.andExpect(status().isBadRequest()); // o .is4xxClientError() si lo prefieres
+					.andExpect(status().isBadRequest());
+		}
+		@Test
+		void downloadFacebookReturnsOk() throws Exception {
+			mockMvc.perform(get("/api/downloadFacebook")
+							.param("url", "https://www.facebook.com/watch/?v=123456789"))
+					.andExpect(status().isOk());
 		}
 
 	}
