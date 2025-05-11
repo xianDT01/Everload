@@ -2,7 +2,7 @@
 FROM node:20 AS frontend-build
 WORKDIR /app
 COPY everload-front/ ./everload-front/
-RUN cd everload-front && npm install && npm run build
+RUN cd everload-front && npm install && npm run build -- --configuration production --base-href=/
 
 # Etapa 2: Build del backend con el frontend embebido
 FROM maven:3.9.5-eclipse-temurin-21 AS backend-build
