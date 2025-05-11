@@ -12,8 +12,8 @@ export class YoutubeDownloadsComponent {
   videoUrl: string = '';
   resolution: string = '720';
   isLoading: boolean = false;
-  backendUrl: string = 'http://localhost:8080/api';
-// backendUrl: string = '/api';
+//  backendUrl: string = 'http://localhost:8080/api';
+ backendUrl: string = '/api';
 
   searchResults: any[] = [];
   searchQuery: string = '';
@@ -63,7 +63,7 @@ export class YoutubeDownloadsComponent {
             this.isLoading = false;
             const contentDisposition = event.headers?.get('content-disposition');
             const match = contentDisposition?.match(/filename="(.+)"/);
-            const filename = match ? match[1] : `${videoId}.webm`; // fallback si no viene el header
+            const filename = match ? match[1] : `${videoId}.webm`; 
             this.triggerDownload(event.body, filename);
 
           });

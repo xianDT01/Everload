@@ -17,7 +17,7 @@
 "SELECT_RESOLUTION": "Selecciona a resolución",
 "DOWNLOAD_VIDEO": "📹 Descargar Vídeo",
 "DOWNLOAD_MUSIC": "🎵 Descargar Música",
-"LOADING": "⏳ Descargando, por favor espera...",
+"LOADING": "⏳ Descargando, por favor agarde...",
 "SEARCH_PLACEHOLDER": "Buscar vídeos en YouTube",
 "SEARCH_BUTTON": "🔎 Buscar",
 "USE_VIDEO": "📌 Usar este vídeo",
@@ -30,7 +30,8 @@
 "SELECT_ALL": "Seleccionar todos",
 "DESELECT_ALL": "Anular selección",
 "DOWNLOAD_SELECTED_AS_MP3": "Descargar seleccionados como MP3",
-    
+"VIDEO_NOT_LOADING_WARNING": "Se o vídeo non carga, pode que teña restricións de idade ou de reprodución.",
+
 
 
 
