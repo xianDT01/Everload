@@ -7,7 +7,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-
+@Tag(name = "Descargas", description = "Descargas desde varias plataformas")
 @RestController
 @RequestMapping("/api")
 @CrossOrigin(
