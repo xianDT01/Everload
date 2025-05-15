@@ -1,9 +1,11 @@
 package com.EverLoad.everload.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+@Tag(name = "YouTube", description = "Búsquedas en YouTube")
 @RestController
 @RequestMapping("/api/youtube")
 @CrossOrigin(origins = "http://localhost:4200")
