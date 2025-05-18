@@ -11,6 +11,19 @@
 **EverLoad** é unha aplicación feita con **Spring Boot** e **Angular 15** que permite descargar vídeos e audios das plataformas máis populares de forma rápida, segura e desde a túa rede privada.
 
 ---
+## 🖼️ Vista previa de la aplicación
+
+<p align="center">
+  <img src="docs/assets/HomeEverload.png" alt="Pantalla principal" width="600"/>
+</p>
+
+<p align="center">
+  <img src="docs/assets/Download%20from%20YouTube.png" alt="YouTube" width="200"/>
+  <img src="docs/assets/Download%20from%20Facebook.png" alt="Facebook" width="200"/>
+  <img src="docs/assets/Download%20from%20Instagram.png" alt="Instagram" width="200"/>
+  <img src="docs/assets/Download%20from%20X.png" alt="Twitter/X" width="200"/>
+</p>
+
 
 ## 🚀 Características / Features / Características
 
