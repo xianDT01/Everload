@@ -15,4 +15,13 @@ public class DownloadServiceTest {
 
         assertEquals(500, response.getStatusCodeValue());
     }
+    @Test
+    void testDownloadInstagramVideo_returnsError_withInvalidUrl() {
+        DownloadService downloadService = new DownloadService();
+        // Una URL inválida para probocar un error
+        String invalidUrl = "https://www.instagram.com/p/invalid123";
+        ResponseEntity<?> response = downloadService.downloadInstagramVideo(invalidUrl);
+        // Se probocará un error 500 porque la descarga fallará
+        assertEquals(500, response.getStatusCodeValue());
+    }
 }
