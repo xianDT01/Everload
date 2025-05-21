@@ -24,4 +24,12 @@ public class DownloadServiceTest {
         // Se probocará un error 500 porque la descarga fallará
         assertEquals(500, response.getStatusCodeValue());
     }
+    @Test
+    void testDownloadTwitterVideo_returnsError_withInvalidUrl() {
+        DownloadService downloadService = new DownloadService();
+        String invalidUrl = "https://twitter.com/someuser/status/fakeid123";
+        ResponseEntity<?> response = downloadService.downloadTwitterVideo(invalidUrl);
+        assertEquals(500, response.getStatusCodeValue());
+    }
+
 }
