@@ -66,6 +66,12 @@
 							.param("resolution", "720"))
 					.andExpect(status().isBadRequest());
 		}
+		@Test
+		void downloadVideodFail() throws Exception {
+			mockMvc.perform(get("/api/downloadVideo")
+							.param("resolution", "1080"))
+					.andExpect(status().isBadRequest());
+		}
 
 
 	}
