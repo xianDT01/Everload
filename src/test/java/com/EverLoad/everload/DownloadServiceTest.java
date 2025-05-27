@@ -25,11 +25,19 @@ public class DownloadServiceTest {
         assertEquals(500, response.getStatusCodeValue());
     }
     @Test
-    void testDownloadTwitterVideo_returnsError_withInvalidUrl() {
+    void ta_withInvalidUrl() {
         DownloadService downloadService = new DownloadService();
         String invalidUrl = "https://twitter.com/someuser/status/fakeid123";
         ResponseEntity<?> response = downloadService.downloadTwitterVideo(invalidUrl);
         assertEquals(500, response.getStatusCodeValue());
     }
+    @Test
+    void testDownloadMusic_returnsError_withInvalidVideoId() {
+        DownloadService downloadService = new DownloadService();
+        ResponseEntity<?> response = downloadService.downloadMusic("fake_id", "mp3");
+
+        assertEquals(500, response.getStatusCodeValue());
+    }
+
 
 }
