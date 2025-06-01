@@ -40,6 +40,21 @@ public class DownloadControllerTest {
                         .param("resolution", "720"))
                 .andExpect(status().isOk());
 
-        tempFile.delete(); // Limpieza
+        tempFile.delete();
+    }
+
+    @Test
+    void testDownloadMusic_OK() throws Exception {
+        File tempFile = File.createTempFile("audio", ".mp3");
+        FileSystemResource resource = new FileSystemResource(tempFile);
+        Mockito.when(downloadService.downloadMusic(anyString(), anyString()))
+                .thenReturn(ResponseEntity.ok(resource));
+
+        mockMvc.perform(get("/api/downloadMusic")
+                        .param("videoId", "abc123")
+                        .param("format", "mp3"))
+                .andExpect(status().isOk());
+
+        tempFile.delete();
     }
 }
