@@ -29,6 +29,10 @@
 "DESELECT_ALL": "Deselect all",
 "DOWNLOAD_SELECTED_AS_MP3": "Download selected as MP3",
 "VIDEO_NOT_LOADING_WARNING": "If the video doesn't load, it may have age or playback restrictions.",
+"INVALID_YOUTUBE_LINK": "The YouTube link is not valid.",
+"ERROR_DOWNLOADING_VIDEO": "An error occurred while downloading the video.",
+"ERROR_UNKNOWN": "Something went wrong. Please try again later.",
+
 
 
 
