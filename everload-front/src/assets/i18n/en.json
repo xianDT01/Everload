@@ -32,6 +32,7 @@
 "INVALID_YOUTUBE_LINK": "The YouTube link is not valid.",
 "ERROR_DOWNLOADING_VIDEO": "An error occurred while downloading the video.",
 "ERROR_UNKNOWN": "Something went wrong. Please try again later.",
+"ERROR_DOWNLOADING_MUSIC": "An error occurred while downloading the music",
 
 
 
