@@ -156,32 +156,14 @@
   }
 }
 
-@media (max-width: 480px) {
-  .left-logo {
-    width: 200px;
+@media (max-width: 768px) {
+  .login-split-container {
+    flex-direction: column;
   }
 
-  .login-title {
-    font-size: 20px;
-  }
-
-  .subtitle,
-  .forgot-link,
-  .login-input,
-  .login-button {
-    font-size: 14px;
-  }
-
-  .language-selector {
-    gap: 10px;
-  }
-
-  .language-selector button {
-    font-size: 18px;
-  }
-}
-@media (max-width: 480px) {
-  .left-panel {
-    display: none;
+  .left-panel, .right-panel {
+    flex: none;
+    width: 100%;
+    height: 50vh;
   }
 }
