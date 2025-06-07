@@ -33,7 +33,7 @@
 "ERROR_DOWNLOADING_VIDEO": "An error occurred while downloading the video.",
 "ERROR_UNKNOWN": "Something went wrong. Please try again later.",
 "ERROR_DOWNLOADING_MUSIC": "An error occurred while downloading the music",
-
+"ERROR_LOADING_PLAYLIST": "An error occurred while loading the playlist",
 
 
 

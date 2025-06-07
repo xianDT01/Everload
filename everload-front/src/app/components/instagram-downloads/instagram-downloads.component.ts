@@ -51,7 +51,6 @@ backendUrl: string = '/api';
             fileName = match[1];
           }
         }
-
         const blob = new Blob([response.body!], { type: 'application/octet-stream' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
