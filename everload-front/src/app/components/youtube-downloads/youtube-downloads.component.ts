@@ -31,12 +31,12 @@ export class YoutubeDownloadsComponent {
       translate.use(savedLang);
     }
   }
-
+ // Cambia el idioma de la aplicación
     changeLanguage(lang: string) {
     this.translate.use(lang);
     localStorage.setItem('language', lang);
   }
-
+ // Función para descargar el video de YouTube
   downloadVideo() {
     if (!this.videoUrl.trim()) {
       alert(this.translate.instant('PLEASE_ENTER_YOUTUBE_LINK'));
@@ -75,7 +75,7 @@ export class YoutubeDownloadsComponent {
       }
     });
   }
-
+  // Función para descargar el canciones de YouTube
   downloadMusic() {
     if (!this.videoUrl.trim()) {
       alert(this.translate.instant('PLEASE_ENTER_YOUTUBE_LINK'));
@@ -117,12 +117,12 @@ export class YoutubeDownloadsComponent {
       }
     });
   }
-
+ // Función para extraer el ID del video de la URL
   private extractVideoId(url: string): string | null {
     const match = url.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})|(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]{11})/);
     return match ? (match[1] || match[2]) : null;
   }
-
+  // Función para iniciar la descarga del archivo
   private triggerDownload(blob: Blob, filename: string) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -135,9 +135,8 @@ export class YoutubeDownloadsComponent {
     window.URL.revokeObjectURL(url);
   }
 
-
+ // Función para buscar videos en YouTube
   noResults: boolean = false;
-
   searchVideos() {
     if (!this.searchQuery.trim()) {
       this.searchResults = [];
@@ -188,6 +187,7 @@ export class YoutubeDownloadsComponent {
       }
     });
   }
+  // Función para alternar la selección de un video
   toggleVideo(videoId: string) {
     if (this.selectedVideos.has(videoId)) {
       this.selectedVideos.delete(videoId);
@@ -235,17 +235,17 @@ export class YoutubeDownloadsComponent {
     }
   }
 
-
+// Función para crear una promesa de retraso
   delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-
+  // Función para obtener la URL de la miniatura del video
   getThumbnailUrl(videoId: string): string {
     return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
   }
 
-
+  // Función para manejar el cambio de URL del video
   onVideoUrlChange() {
     const playlistRegex = /[?&]list=([a-zA-Z0-9_-]+)/;
     if (playlistRegex.test(this.videoUrl)) {
@@ -265,6 +265,7 @@ export class YoutubeDownloadsComponent {
     }
     this.allSelected = !this.allSelected;
   }
+  // Función para extraer el ID del video de la URL (versión alternativa)
   getVideoId(url: string): string | null {
     const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:&|$)/);
     return match ? match[1] : null;
