@@ -57,4 +57,17 @@ public class DownloadControllerTest {
 
         tempFile.delete();
     }
+    @Test
+    void testDownloadInstagramVideo_OK() throws Exception {
+        File tempFile = File.createTempFile("insta", ".mp4");
+        FileSystemResource resource = new FileSystemResource(tempFile);
+        Mockito.when(downloadService.downloadInstagramVideo(anyString()))
+                .thenReturn(ResponseEntity.ok(resource));
+
+        mockMvc.perform(get("/api/downloadInstagram")
+                        .param("url", "https://www.instagram.com/p/xyz123"))
+                .andExpect(status().isOk());
+
+        tempFile.delete();
+    }
 }
