@@ -30,8 +30,6 @@
 					.andExpect(status().isOk());
 
 		}
-
-
 		@Test
 		void shouldReturnErrorWhenDownloadingFakeVideo() throws Exception {
 			mockMvc.perform(get("/api/downloadVideo")
@@ -39,20 +37,17 @@
 							.param("resolution", "720"))
 					.andExpect(status().is5xxServerError());
 		}
-
 		@Test
 		void searchYouTubeReturnsOk() throws Exception {
 			mockMvc.perform(get("/api/youtube/search")
 							.param("query", "lofi"))
 					.andExpect(status().isOk());
 		}
-
 		@Test
 		void searchYouTubeWithoutQueryShouldFail() throws Exception {
 			mockMvc.perform(get("/api/youtube/search"))
 					.andExpect(status().isBadRequest());
 		}
-
 		@Test
 		void youtubeSearchShouldReturnNonEmptyBody() throws Exception {
 			ResultActions result = mockMvc.perform(get("/api/youtube/search")
