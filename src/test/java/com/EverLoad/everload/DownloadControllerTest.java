@@ -70,4 +70,18 @@ public class DownloadControllerTest {
 
         tempFile.delete();
     }
+    @Test
+    void testDownloadTwitterVideo_OK() throws Exception {
+        File tempFile = File.createTempFile("twitter", ".mp4");
+        FileSystemResource resource = new FileSystemResource(tempFile);
+
+        Mockito.when(downloadService.downloadTwitterVideo(anyString()))
+                .thenReturn(ResponseEntity.ok(resource));
+
+        mockMvc.perform(get("/api/downloadTwitter")
+                        .param("url", "https://twitter.com/example/status/1234567890"))
+                .andExpect(status().isOk());
+
+        tempFile.delete();
+    }
 }
