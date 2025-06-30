@@ -100,8 +100,7 @@ export class YoutubeDownloadsComponent {
         if (event.type === HttpEventType.Response) {
           this.ngZone.run(() => {
             this.isLoading = false;
-
-            // Acceder al header con un cast
+            // Acceder al header con un cast 
             const response = event as any;
             const contentDisposition = response.headers?.get('content-disposition');
             const match = contentDisposition?.match(/filename="(.+)"/);

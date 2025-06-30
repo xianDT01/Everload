@@ -38,6 +38,15 @@ public class DownloadServiceTest {
 
         assertEquals(500, response.getStatusCodeValue());
     }
+    @Test
+    void testGetPlaylistVideos_returnsError_withInvalidUrl() {
+        DownloadService downloadService = new DownloadService();
+        String invalidPlaylistUrl = "https://www.youtube.com/playlist?list=INVALID123";
+        ResponseEntity<?> response = downloadService.getPlaylistVideos(invalidPlaylistUrl);
+
+        assertEquals(500, response.getStatusCodeValue());
+    }
+
 
 
 }
