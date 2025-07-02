@@ -46,6 +46,15 @@ public class DownloadServiceTest {
 
         assertEquals(500, response.getStatusCodeValue());
     }
+    @Test
+         void testDownloadFacebookVideo_returnsError_withInvalidUrl() {
+        DownloadService downloadService = new DownloadService();
+        String invalidUrl = "https://www.facebook.com/watch?v=fakevideo123";
+        ResponseEntity<?> response = downloadService.downloadFacebookVideo(invalidUrl);
+
+        assertEquals(500, response.getStatusCodeValue());
+    }
+
 
 
 
