@@ -55,7 +55,4 @@ public class DownloadServiceTest {
         assertEquals(500, response.getStatusCodeValue());
     }
 
-
-
-
 }
