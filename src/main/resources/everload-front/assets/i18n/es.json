@@ -28,6 +28,11 @@
   "DESELECT_ALL": "Deseleccionar todos",
   "DOWNLOAD_SELECTED_AS_MP3": "Descargar seleccionados como MP3",
   "VIDEO_NOT_LOADING_WARNING": "Si el vídeo no carga, puede que tenga restricciones de edad o de reproducción.",
+  "INVALID_YOUTUBE_LINK": "El enlace de YouTube no es válido.",
+  "ERROR_DOWNLOADING_VIDEO": "Ocurrió un error al descargar el vídeo.",
+  "ERROR_UNKNOWN": "Algo salió mal. Intenta de nuevo más tarde.",
+  "ERROR_DOWNLOADING_MUSIC": "Ocurrió un error al descargar la música.",
+  "ERROR_LOADING_PLAYLIST": "Ocurrió un error al cargar la lista de reproducción.",
 
     
 
