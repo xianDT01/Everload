@@ -54,5 +54,13 @@ public class DownloadServiceTest {
 
         assertEquals(500, response.getStatusCodeValue());
     }
+    @Test
+    void testDownloadTwitterVideo_returnsError_withNullUrl() {
+        DownloadService downloadService = new DownloadService();
+        ResponseEntity<?> response = downloadService.downloadTwitterVideo(null);
+
+        assertEquals(500, response.getStatusCodeValue());
+    }
+
 
 }
