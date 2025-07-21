@@ -1,0 +1,35 @@
+<div class="spotify-downloads">
+  <h2>Descargar playlist de Spotify</h2>
+
+  <!-- Input de la URL -->
+  <input
+    type="text"
+    [(ngModel)]="playlistUrl"
+    placeholder="Pega aquí la URL de la playlist"
+    class="input-url"
+  />
+
+  <!-- Botón para buscar canciones -->
+  <button (click)="descargarListaCanciones()" [disabled]="cargando">
+    {{ cargando ? 'Buscando canciones...' : 'Buscar canciones' }}
+  </button>
+
+  <!-- Resultado -->
+  <div *ngIf="resultado?.length > 0" class="resultado">
+    <!-- Nuevo botón: Descargar todas -->
+    <button (click)="descargarTodas()">⬇️ Descargar toda la playlist</button>
+
+    <h3>🎵 Canciones encontradas:</h3>
+    <ul>
+      <li *ngFor="let song of resultado">
+        <span>{{ song.title }}</span>
+        <button (click)="descargarCancion(song.youtubeUrl)">Descargar</button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Si no se encontró nada -->
+  <div *ngIf="!cargando && resultado && resultado.length === 0">
+    <p>❌ No se encontraron canciones o hubo un error.</p>
+  </div>
+</div>

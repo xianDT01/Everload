@@ -5,12 +5,14 @@ import { YoutubeDownloadsComponent } from './components/youtube-downloads/youtub
 import { TwitterDownloadsComponent } from './components/twitter-downloads/twitter-downloads.component'; 
 import { FacebookDownloadsComponent } from './components/facebook-downloads/facebook-downloads.component';
 import { InstagramDownloadsComponent } from './components/instagram-downloads/instagram-downloads.component';
+import { SpotifyDownloadsComponent } from './components/spotify-downloads/spotify-downloads.component';
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'youtube-downloads', component: YoutubeDownloadsComponent },
   { path: 'twitter-downloads', component: TwitterDownloadsComponent },
   {path: 'facebook-downloads', component: FacebookDownloadsComponent},
-  {path : 'instagram-downloads', component: InstagramDownloadsComponent} 
+  {path : 'instagram-downloads', component: InstagramDownloadsComponent},
+  {path: 'spotify-downloads', component: SpotifyDownloadsComponent}
 ];
 
 @NgModule({

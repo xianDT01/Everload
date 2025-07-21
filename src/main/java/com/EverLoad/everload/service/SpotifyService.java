@@ -111,9 +111,15 @@ public class SpotifyService {
 
     public String extractPlaylistId(String url) {
         try {
-            return url.split("playlist/")[1].split("\\?")[0];
+            if (url.contains("playlist/")) {
+                String[] parts = url.split("playlist/");
+                String idWithParams = parts[1];
+                return idWithParams.split("[?&]")[0]; // mejor que solo "\\?"
+            }
         } catch (Exception e) {
-            throw new IllegalArgumentException("URL de playlist inválida");
+            e.printStackTrace();
         }
+        throw new IllegalArgumentException("URL de playlist inválida");
     }
+
 }
