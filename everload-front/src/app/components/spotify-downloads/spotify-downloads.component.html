@@ -1,35 +1,42 @@
-<div class="spotify-downloads">
-  <h2>Descargar playlist de Spotify</h2>
-
-  <!-- Input de la URL -->
-  <input
-    type="text"
-    [(ngModel)]="playlistUrl"
-    placeholder="Pega aquí la URL de la playlist"
-    class="input-url"
-  />
-
-  <!-- Botón para buscar canciones -->
-  <button (click)="descargarListaCanciones()" [disabled]="cargando">
-    {{ cargando ? 'Buscando canciones...' : 'Buscar canciones' }}
-  </button>
-
-  <!-- Resultado -->
-  <div *ngIf="resultado?.length > 0" class="resultado">
-    <!-- Nuevo botón: Descargar todas -->
-    <button (click)="descargarTodas()">⬇️ Descargar toda la playlist</button>
-
-    <h3>🎵 Canciones encontradas:</h3>
-    <ul>
-      <li *ngFor="let song of resultado">
-        <span>{{ song.title }}</span>
-        <button (click)="descargarCancion(song.youtubeUrl)">Descargar</button>
-      </li>
-    </ul>
+<div class="spotify-split-container">
+  <div class="left-panel spotify-panel">
+    <img src="/assets/spotify.png" alt="Spotify Logo" class="left-logo" />
   </div>
 
-  <!-- Si no se encontró nada -->
-  <div *ngIf="!cargando && resultado && resultado.length === 0">
-    <p>❌ No se encontraron canciones o hubo un error.</p>
+  <div class="right-panel">
+    <div class="spotify-card">
+      <h2 class="spotify-title">Spotify Playlist Downloader</h2>
+
+      <p class="subtitle">Pega la URL de tu playlist y descarga las canciones una a una</p>
+
+      <input
+        type="text"
+        [(ngModel)]="playlistUrl"
+        placeholder="Pega aquí la URL de la playlist"
+        class="spotify-input"
+      />
+
+      <button class="spotify-button" (click)="descargarListaCanciones()" [disabled]="cargando">
+        {{ cargando ? 'Buscando canciones...' : 'Buscar canciones' }}
+      </button>
+
+      <button class="spotify-button secondary" *ngIf="resultado?.length" (click)="descargarTodas()">
+        ⬇️ Descargar toda la playlist
+      </button>
+
+      <div *ngIf="resultado?.length">
+        <h4>🎵 Canciones encontradas:</h4>
+        <ul class="track-list">
+          <li *ngFor="let song of resultado">
+            {{ song.title }}
+            <button class="mini-button" (click)="descargarCancion(song.youtubeUrl)">Descargar</button>
+          </li>
+        </ul>
+      </div>
+
+      <p *ngIf="!cargando && resultado && resultado.length === 0" class="error-text">
+        ❌ No se encontraron canciones o hubo un error.
+      </p>
+    </div>
   </div>
 </div>
