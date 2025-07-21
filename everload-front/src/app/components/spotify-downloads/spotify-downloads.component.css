@@ -1,0 +1,105 @@
+.spotify-split-container {
+  display: flex;
+  height: 100vh;
+  background-color: #121212;
+  color: white;
+  font-family: sans-serif;
+}
+
+.left-panel {
+  flex: 1;
+  background-color: #1db954;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left-logo {
+  width: 60%;
+  max-width: 250px;
+  filter: drop-shadow(0 0 10px black);
+}
+
+.right-panel {
+  flex: 1;
+  background-color: #121212;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spotify-card {
+  background: #181818;
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 0 10px #000;
+  width: 80%;
+  max-width: 500px;
+  text-align: center;
+}
+
+.spotify-title {
+  color: #1db954;
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #ccc;
+  margin-bottom: 1.5rem;
+}
+
+.spotify-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.spotify-button {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background-color: #1db954;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.spotify-button.secondary {
+  background-color: #282828;
+  border: 1px solid #1db954;
+}
+
+.track-list {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+  margin-top: 1rem;
+}
+
+.track-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #333;
+}
+
+.mini-button {
+  background-color: #1db954;
+  border: none;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.error-text {
+  color: #ff4c4c;
+  margin-top: 1rem;
+}
