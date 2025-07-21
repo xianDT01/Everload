@@ -61,7 +61,12 @@
 "PASTE_INSTAGRAM_URL": "Paste the Instagram video URL here",
 "INVALID_INSTAGRAM_URL": "Invalid URL. Make sure it's a valid Instagram video link.",
 "SUBTITLE_INSTAGRAM": "Easily download public videos from Instagram.",
-"INSTAGRAM_LIMITATION": "Only public Reels and posts can be downloaded. Stories and private account content are not supported."
+"INSTAGRAM_LIMITATION": "Only public Reels and posts can be downloaded. Stories and private account content are not supported.",
+
+
+
+"_comment6": "Sección de Spotify",
+"DOWNLOAD_SPOTIFY": "Download from Spotify"
 
 
 

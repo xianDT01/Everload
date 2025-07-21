@@ -130,6 +130,15 @@ html, body {
   background-color: #c72c60;
 }
 
+.spotify-button {
+  background-color: #1DB954;
+}
+
+.spotify-button:hover {
+  background-color: #1aa34a;
+}
+
+
 /* Información del creador */
 .creator-info {
   margin-top: 40px;

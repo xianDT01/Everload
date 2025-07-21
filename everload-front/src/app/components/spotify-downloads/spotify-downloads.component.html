@@ -1,6 +1,6 @@
 <div class="spotify-split-container">
   <div class="left-panel spotify-panel">
-    <img src="/assets/spotify.png" alt="Spotify Logo" class="left-logo" />
+    <img src="assets/Spotify.png" alt="Spotify Logo" class="left-logo" />
   </div>
 
   <div class="right-panel">
@@ -19,7 +19,7 @@
       <button class="spotify-button" (click)="descargarListaCanciones()" [disabled]="cargando">
         {{ cargando ? 'Buscando canciones...' : 'Buscar canciones' }}
       </button>
-
+      
       <button class="spotify-button secondary" *ngIf="resultado?.length" (click)="descargarTodas()">
         ⬇️ Descargar toda la playlist
       </button>
