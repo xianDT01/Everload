@@ -63,7 +63,10 @@
   "PASTE_INSTAGRAM_URL": "Pega aquí la URL del vídeo de Instagram",
   "INVALID_INSTAGRAM_URL": "URL inválida. Asegúrate de que sea un enlace válido de Instagram.",
   "SUBTITLE_INSTAGRAM": "Descarga vídeos públicos de Instagram fácilmente.",
-  "INSTAGRAM_LIMITATION": "Solo se pueden descargar Reels y publicaciones públicas. No se admiten stories ni vídeos de cuentas privadas."
+  "INSTAGRAM_LIMITATION": "Solo se pueden descargar Reels y publicaciones públicas. No se admiten stories ni vídeos de cuentas privadas.",
+
+  "_comment6": "Sección de Spotify",
+  "DOWNLOAD_SPOTIFY": "Descargar de Spotify"
 
 
     
