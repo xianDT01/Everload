@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-spotify-downloads',
@@ -9,9 +10,15 @@ import { HttpClient } from '@angular/common/http';
 export class SpotifyDownloadsComponent {
   playlistUrl: string = '';
   cargando: boolean = false;
+  error: string | null = null;
   resultado: any = null;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private translate: TranslateService) { }
+
+    changeLanguage(lang: string) {
+    this.translate.use(lang);
+    localStorage.setItem('language', lang);
+  }
 
   descargarListaCanciones() {
     if (!this.playlistUrl) return;
@@ -29,6 +36,7 @@ export class SpotifyDownloadsComponent {
         },
         error: (err) => {
           console.error('❌ Error al obtener canciones:', err);
+          this.error = this.translate.instant('DOWNLOAD_Spotify_FAILED');
           this.resultado = [];
           this.cargando = false;
         }

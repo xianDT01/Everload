@@ -5,37 +5,53 @@
 
   <div class="right-panel">
     <div class="spotify-card">
-      <h2 class="spotify-title">Spotify Playlist Downloader</h2>
+      <h2 class="spotify-title">{{ 'TITLE' | translate }}</h2>
 
-      <p class="subtitle">Pega la URL de tu playlist y descarga las canciones una a una</p>
+      <p class="subtitle">{{ 'SUBTITLE' | translate }}</p>
 
       <input
         type="text"
         [(ngModel)]="playlistUrl"
-        placeholder="Pega aquí la URL de la playlist"
+        [placeholder]="'PLACEHOLDER' | translate"
         class="spotify-input"
       />
 
       <button class="spotify-button" (click)="descargarListaCanciones()" [disabled]="cargando">
-        {{ cargando ? 'Buscando canciones...' : 'Buscar canciones' }}
+        {{ cargando ? ('LOADING' | translate) : ('SEARCH_BUTTON' | translate) }}
       </button>
-      
+
+      <!-- 🔙 Botón volver al inicio -->
+      <a routerLink="/" class="forgot-link" aria-label="Volver al inicio">
+        {{ 'HOME' | translate }}
+      </a>
+
+      <!-- 🌐 Botones de idioma -->
+      <div class="language-switcher" style="margin-top: 0.5rem;">
+        <button (click)="changeLanguage('es')" aria-label="Cambiar a español">🇪🇸 </button>
+        <button (click)="changeLanguage('en')" aria-label="Switch to English">🇬🇧</button>
+        <button (click)="changeLanguage('gl')">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego" width="20" />
+        </button>
+      </div>
+
       <button class="spotify-button secondary" *ngIf="resultado?.length" (click)="descargarTodas()">
-        ⬇️ Descargar toda la playlist
+        ⬇️ {{ 'DOWNLOAD_ALL' | translate }}
       </button>
 
       <div *ngIf="resultado?.length">
-        <h4>🎵 Canciones encontradas:</h4>
+        <h4>🎵 {{ 'FOUND_TRACKS' | translate }}</h4>
         <ul class="track-list">
           <li *ngFor="let song of resultado">
             {{ song.title }}
-            <button class="mini-button" (click)="descargarCancion(song.youtubeUrl)">Descargar</button>
+            <button class="mini-button" (click)="descargarCancion(song.youtubeUrl)">
+              {{ 'DOWNLOAD' | translate }}
+            </button>
           </li>
         </ul>
       </div>
 
       <p *ngIf="!cargando && resultado && resultado.length === 0" class="error-text">
-        ❌ No se encontraron canciones o hubo un error.
+        ❌ {{ 'NO_RESULTS' | translate }}
       </p>
     </div>
   </div>
