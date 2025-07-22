@@ -22,6 +22,7 @@
   <img src="docs/assets/Download%20from%20Facebook.png" alt="Facebook" width="200"/>
   <img src="docs/assets/Download%20from%20Instagram.png" alt="Instagram" width="200"/>
   <img src="docs/assets/Download%20from%20X.png" alt="Twitter/X" width="200"/>
+  <img src="docs/assets/Spotify.png" alt="Spotify" width="200"/>
 </p>
 
 
@@ -31,6 +32,9 @@
 - 🐦 **Twitter/X**: vídeos públicos / public videos / vídeos públicos.
 - 📘 **Facebook**: vídeos públicos / public videos / vídeos públicos.
 - 📸 **Instagram**: Reels e posts públicos / public Reels and posts / Reels e publicacións públicas.
+- 🎧 **Spotify**: pega una playlist y descarga las canciones desde YouTube automáticamente
+  Paste a playlist and download songs from YouTube automatically
+  Pega unha playlist e descarga cancións desde YouTube automaticamente.
 - 🌐 Frontend multilingüe / Multilingual frontend / Frontend multilingüe (ES, EN, GL).
 - 📦 Backend con API REST en Spring Boot.
 - 🖼️ UI responsive e temática por plataforma.
@@ -96,6 +100,10 @@ ng serve
 
 `GET /api/downloadInstagram?url=URL_REEL`
 
+### 🎧 Spotify (nueva)
+
+`POST /api/spotify/playlist`
+
 ---
 
 ## 📜 Swagger
@@ -124,6 +132,10 @@ ng serve
 - Twitter/X: Solo contenido público.  
   Public content only.  
   Só contido público.
+
+- Spotify: No se descargan directamente desde Spotify. Se leen los títulos y se buscan en YouTube.
+  Does not download directly from Spotify. It reads song titles and searches them on YouTube.
+  Non descarga directamente desde Spotify. Le os títulos e búscaos en YouTube.
 
 ---
 ## Licencia
