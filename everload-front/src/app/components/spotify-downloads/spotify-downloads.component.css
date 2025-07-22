@@ -3,7 +3,7 @@
   height: 100vh;
   background-color: #121212;
   color: white;
-  font-family: sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .left-panel {
@@ -68,11 +68,17 @@
   font-size: 1rem;
   cursor: pointer;
   margin-bottom: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.spotify-button:hover {
+  background-color: #17a84b;
 }
 
 .spotify-button.secondary {
   background-color: #282828;
   border: 1px solid #1db954;
+  margin-top: 1rem;
 }
 
 .track-list {
@@ -102,4 +108,83 @@
 .error-text {
   color: #ff4c4c;
   margin-top: 1rem;
+}
+
+/* 🔙 Botón de volver al inicio */
+.forgot-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: #1db954;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.forgot-link:hover {
+  color: #17a84b;
+}
+
+/* 🌐 Botones de idioma */
+.language-switcher {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.language-switcher button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: transform 0.2s;
+}
+
+.language-switcher button:hover {
+  transform: scale(1.1);
+}
+
+.language-switcher img {
+  width: 20px;
+  height: 14px;
+  object-fit: contain;
+}
+@media (max-width: 768px) {
+  .spotify-split-container {
+    flex-direction: column;
+  }
+
+  .left-panel, .right-panel {
+    flex: none;
+    width: 100%;
+    height: auto;
+  }
+
+  .left-logo {
+    width: 40%;
+    margin: 2rem auto;
+  }
+
+  .spotify-card {
+    width: 90%;
+    padding: 1.5rem;
+  }
+
+  .language-switcher {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .spotify-title {
+    font-size: 1.5rem;
+  }
+
+  .spotify-button {
+    font-size: 0.95rem;
+  }
+
+  .forgot-link {
+    font-size: 0.9rem;
+  }
 }

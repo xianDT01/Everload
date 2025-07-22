@@ -69,8 +69,17 @@
 "INSTAGRAM_LIMITATION": "Só se poden descargar Reels e publicacións públicas. Non se admiten historias nin contido de contas privadas.",
 
 "_comment6": "Sección de Spotify",
-"DOWNLOAD_SPOTIFY": "Descargar dende Spotify"
-
+"DOWNLOAD_SPOTIFY": "Descargar dende Spotify",
+"DOWNLOAD_Spotify_FAILED": "Produciuse un erro ao descargar dende Spotify",
+  "TITLE": "Descargador de listas de Spotify",
+  "SUBTITLE": "Pega a URL da túa lista e descarga as cancións unha a unha",
+  "PLACEHOLDER": "Pega aquí a URL da lista",
+  "SEARCH_BUTTON": "Buscar cancións",
+  "LOADING": "Buscando cancións...",
+  "DOWNLOAD_ALL": "Descargar toda a lista",
+  "FOUND_TRACKS": "Cancións atopadas:",
+  "DOWNLOAD": "Descargar",
+  "NO_RESULTS": "Non se atoparon cancións ou houbo un erro."
 
 
 

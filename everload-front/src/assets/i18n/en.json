@@ -66,8 +66,17 @@
 
 
 "_comment6": "Sección de Spotify",
-"DOWNLOAD_SPOTIFY": "Download from Spotify"
-
+"DOWNLOAD_SPOTIFY": "Download from Spotify",
+"DOWNLOAD_Spotify_FAILED": "An error occurred while downloading from Spotify",
+  "TITLE": "Spotify Playlist Downloader",
+  "SUBTITLE": "Paste your playlist URL and download the songs one by one",
+  "PLACEHOLDER": "Paste the playlist URL here",
+  "SEARCH_BUTTON": "Search songs",
+  "LOADING": "Searching songs...",
+  "DOWNLOAD_ALL": "Download entire playlist",
+  "FOUND_TRACKS": "Found songs:",
+  "DOWNLOAD": "Download",
+  "NO_RESULTS": "No songs found or an error occurred."
 
 
 
