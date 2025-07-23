@@ -14,6 +14,7 @@ import { FacebookDownloadsComponent } from './components/facebook-downloads/face
 import { InstagramDownloadsComponent } from './components/instagram-downloads/instagram-downloads.component';
 import { SafeUrlPipe } from './components/youtube-downloads/safe-url.pipe';
 import { SpotifyDownloadsComponent } from './components/spotify-downloads/spotify-downloads.component';
+import { TiktokDownloadsComponent } from './components/tiktok-downloads/tiktok-downloads.component';
 // Función para cargar archivos de traducción
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -29,7 +30,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     InstagramDownloadsComponent,
     InstagramDownloadsComponent,
     SafeUrlPipe,
-    SpotifyDownloadsComponent
+    SpotifyDownloadsComponent,
+    TiktokDownloadsComponent
   ],
   imports: [
     BrowserModule,
