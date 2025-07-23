@@ -63,5 +63,11 @@ public class DownloadController {
     public ResponseEntity<?> getPlaylistVideos(@RequestParam String playlistUrl) {
         return downloadService.getPlaylistVideos(playlistUrl);
     }
+    @Operation(summary = "Descargar video de TikTok")
+    @GetMapping("/downloadTikTok")
+    public ResponseEntity<FileSystemResource> downloadTikTokVideo(@RequestParam String url) {
+        return downloadService.downloadTikTokVideo(url);
+    }
+
 
 }
