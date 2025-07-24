@@ -85,13 +85,15 @@ html, body {
   width: 100%;
   box-sizing: border-box;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: fadeInUp 0.4s ease forwards;
 }
 .button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-  
+  box-shadow: 0 0 10px rgba(255,255,255,0.2);
 }
-
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 .icon {
   width: 40px;
   height: 40px;
@@ -99,43 +101,47 @@ html, body {
 
 /* Colores por plataforma */
 .youtube-button {
-  background-color: #ff0000;
+  background: linear-gradient(45deg, #FF0000, #CC0000);
+  color: white;
 }
 
 .youtube-button:hover {
-  background-color: #cc0000;
+  filter: brightness(1.1);
 }
 
 .twitter-button {
-  background-color: #1da1f2;
+  background: linear-gradient(45deg, #1DA1F2, #0D8FDB);
+  color: white;
 }
 
 .twitter-button:hover {
-  background-color: #0d8ddb;
+  filter: brightness(1.1);
 }
-
 .facebook-button {
-  background-color: #1877f2;
+  background: linear-gradient(45deg, #1877F2, #145DBF);
+  color: white;
 }
 
 .facebook-button:hover {
-  background-color: #145dbf;
+  filter: brightness(1.1);
 }
 
 .instagram-button {
-  background-color: #e1306c;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: white;
 }
 
 .instagram-button:hover {
-  background-color: #c72c60;
+  filter: brightness(1.1);
 }
 
 .spotify-button {
-  background-color: #1DB954;
+  background: linear-gradient(45deg, #1ED760, #1DB954);
+  color: white;
 }
 
 .spotify-button:hover {
-  background-color: #1aa34a;
+  filter: brightness(1.1);
 }
 .tiktok-button {
   background: linear-gradient(45deg, #25F4EE, #FE2C55);
