@@ -1,0 +1,121 @@
+/* Contenedor principal */
+.login-split-container {
+  display: flex;
+  height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Lado izquierdo con degradado */
+.left-panel {
+  flex: 1;
+  background: linear-gradient(to bottom right, #000000, #1a1a1a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left-logo {
+  max-width: 60%;
+  height: auto;
+}
+
+/* Lado derecho */
+.right-panel {
+  flex: 1;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  width: 80%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-title {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  font-weight: bold;
+  color: #000;
+}
+
+/* Input */
+.login-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 25px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+/* Botón */
+.login-button {
+  background: linear-gradient(to right, #fe2c55, #25f4ee);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.login-button:hover {
+  transform: scale(1.05);
+}
+
+.forgot-link {
+  display: block;
+  margin-top: 15px;
+  text-decoration: none;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+/* Selector de idioma */
+.language-selector {
+  margin-top: 10px;
+}
+
+.language-selector button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin: 0 5px;
+}
+
+/* Mensaje de error */
+.error-msg {
+  color: red;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+/* Barra de progreso */
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.progress-fill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, #25f4ee, #fe2c55);
+  animation: loadingBar 2s linear infinite;
+}
+
+@keyframes loadingBar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
