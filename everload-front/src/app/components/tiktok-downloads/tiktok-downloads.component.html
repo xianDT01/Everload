@@ -1,1 +1,59 @@
-<p>tiktok-downloads works!</p>
+<div class="login-split-container">
+  <!-- Lado izquierdo (logo) -->
+  <div class="left-panel">
+    <img src="/assets/tiktok_logo.png" alt="TikTok Logo" class="left-logo" />
+  </div>
+
+  <!-- Lado derecho (formulario) -->
+  <div class="right-panel">
+    <div class="login-card">
+      <h2 class="login-title">TikTok Downloader</h2>
+
+      <!-- Campo de entrada -->
+      <input
+        type="text"
+        [(ngModel)]="tiktokUrl"
+        placeholder="{{ 'PASTE_TIKTOK_URL' | translate }}"
+        class="login-input"
+        aria-label="TikTok URL"
+      />
+
+      <!-- Botón de descarga -->
+      <button
+        class="login-button"
+        (click)="descargar()"
+        [disabled]="cargando"
+        aria-label="Descargar vídeo de TikTok"
+      >
+        <span *ngIf="!cargando">{{ 'DOWNLOAD_TIKTOK' | translate }}</span>
+        <span *ngIf="cargando">{{ 'LOADING' | translate }}...</span>
+      </button>
+
+      <!-- Mensaje de error -->
+      <div *ngIf="error" class="error-msg" role="alert">
+        {{ error }}
+      </div>
+
+      <!-- Barra de progreso -->
+      <div class="progress-bar" *ngIf="cargando">
+        <div class="progress-fill"></div>
+      </div>
+
+      <!-- Enlace a inicio -->
+      <a routerLink="/" class="forgot-link">{{ 'HOME' | translate }}</a>
+
+      <!-- Selector de idioma -->
+      <div class="language-selector">
+        <button (click)="changeLanguage('es')">🇪🇸</button>
+        <button (click)="changeLanguage('en')">🇬🇧</button>
+        <button (click)="changeLanguage('gl')">
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg"
+            alt="Galego"
+            width="20"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

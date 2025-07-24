@@ -77,7 +77,16 @@
   "DOWNLOAD_ALL": "Descargar toda la playlist",
   "FOUND_TRACKS": "Canciones encontradas:",
   "DOWNLOAD": "Descargar",
-  "NO_RESULTS": "No se encontraron canciones o hubo un error."
+  "NO_RESULTS": "No se encontraron canciones o hubo un error.",
+
+
+  "_comment7": "Sección de TikTok",
+  "PASTE_TIKTOK_URL": "Pega el enlace de TikTok",
+  "DOWNLOAD_TIKTOK": "Descargar desde TikTok",
+  "LOADING": "Descargando",
+  "HOME": "Inicio",
+  "EMPTY_URL_ERROR": "Por favor, introduce un enlace de TikTok.",
+  "DOWNLOAD_FAILED": "No se pudo descargar el vídeo. Inténtalo de nuevo más tarde."
 
     
     
