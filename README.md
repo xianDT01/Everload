@@ -23,6 +23,7 @@
   <img src="docs/assets/Download%20from%20Instagram.png" alt="Instagram" width="200"/>
   <img src="docs/assets/Download%20from%20X.png" alt="Twitter/X" width="200"/>
   <img src="docs/assets/Spotify.png" alt="Spotify" width="200"/>
+  <img src="docs/assets/TIkTok.png" alt="TikTok" width="200">
 </p>
 
 
@@ -36,6 +37,9 @@
   Paste a playlist and download songs from YouTube automatically
   Pega unha playlist e descarga cancións desde YouTube automaticamente.
 - 🌐 Frontend multilingüe / Multilingual frontend / Frontend multilingüe (ES, EN, GL).
+- 🎵 TikTok: descarga vídeos de TikTok pegando la URL directamente
+  Download TikTok videos by pasting the URL directly
+  Descarga vídeos de TikTok pegando directamente a URL.
 - 📦 Backend con API REST en Spring Boot.
 - 🖼️ UI responsive e temática por plataforma.
 - 🐳 Preparado para Docker / Docker-ready / Preparado para Docker.
@@ -99,6 +103,10 @@ ng serve
 ### 📸 Instagram
 
 `GET /api/downloadInstagram?url=URL_REEL`
+
+### 🎵 TikTok (nuevo)
+
+`GET /api/downloadTikTok?url=URL_VIDEO`
 
 ### 🎧 Spotify (nueva)
 
