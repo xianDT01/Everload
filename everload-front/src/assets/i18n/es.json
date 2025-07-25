@@ -70,7 +70,7 @@
   "DOWNLOAD_SPOTIFY": "Descargar de Spotify",
   "DOWNLOAD_Spotify_FAILED": "Ocurrió un error al descargar desde Spotify",
   "TITLE": "Descargador de playlists de Spotify",
-  "SUBTITLE": "Pega la URL de tu playlist y descarga las canciones una a una",
+  "Spotify_Subtitle": "Pega la URL de tu playlist y descarga las canciones una a una",
   "PLACEHOLDER": "Pega aquí la URL de la playlist",
   "SEARCH_BUTTON": "Buscar canciones",
   "LOADING": "Buscando canciones...",
