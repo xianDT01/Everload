@@ -36,6 +36,9 @@
   width: 80%;
   max-width: 500px;
   text-align: center;
+
+  max-height: 90vh; /* altura máxima de la tarjeta */
+  overflow-y: auto; /* añade scroll vertical si se excede */
 }
 
 .spotify-title {
@@ -82,10 +85,9 @@
 }
 
 .track-list {
-  list-style: none;
-  padding: 0;
-  text-align: left;
-  margin-top: 1rem;
+  max-height: 300px; /* opcional si quieres limitar aún más el listado */
+  overflow-y: auto;
+  margin-bottom: 1rem;
 }
 
 .track-list li {
