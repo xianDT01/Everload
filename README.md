@@ -33,13 +33,13 @@
 - 🐦 **Twitter/X**: vídeos públicos / public videos / vídeos públicos.
 - 📘 **Facebook**: vídeos públicos / public videos / vídeos públicos.
 - 📸 **Instagram**: Reels e posts públicos / public Reels and posts / Reels e publicacións públicas.
-- 🎧 **Spotify**: pega una playlist y descarga las canciones desde YouTube automáticamente
-  Paste a playlist and download songs from YouTube automatically
+- 🎧 **Spotify**: Pega una playlist y descarga las canciones desde YouTube automáticamente/
+  Paste a playlist and download songs from YouTube automatically/
   Pega unha playlist e descarga cancións desde YouTube automaticamente.
-- 🌐 Frontend multilingüe / Multilingual frontend / Frontend multilingüe (ES, EN, GL).
-- 🎵 TikTok: descarga vídeos de TikTok pegando la URL directamente
-  Download TikTok videos by pasting the URL directly
+- 🎵 TikTok: Descarga vídeos de TikTok pegando la URL directamente/
+  Download TikTok videos by pasting the URL directly/
   Descarga vídeos de TikTok pegando directamente a URL.
+- 🌐 Frontend multilingüe / Multilingual frontend / Frontend multilingüe (ES, EN, GL).
 - 📦 Backend con API REST en Spring Boot.
 - 🖼️ UI responsive e temática por plataforma.
 - 🐳 Preparado para Docker / Docker-ready / Preparado para Docker.
