@@ -29,6 +29,7 @@ export class SpotifyDownloadsComponent {
     const body = { url: this.playlistUrl };
 
     this.http.post<any[]>('http://localhost:8080/api/spotify/playlist', body)
+  //  this.http.post<any[]>('/api/spotify/playlist', body)
       .subscribe({
         next: (res) => {
           this.resultado = res;
@@ -51,6 +52,7 @@ export class SpotifyDownloadsComponent {
     setTimeout(() => {
       const enlace = document.createElement('a');
       enlace.href = `http://localhost:8080/api/downloadMusic?videoId=${videoId}&format=mp3`;
+   //   enlace.href = `/api/downloadMusic?videoId=${videoId}&format=mp3`;
       enlace.target = '_blank';
       enlace.click();
     }, delay);
@@ -61,6 +63,7 @@ export class SpotifyDownloadsComponent {
   descargarCancion(url: string) {
     const videoId = this.extraerId(url);
     window.open(`http://localhost:8080/api/downloadMusic?videoId=${videoId}&format=mp3`, '_blank');
+ //   window.open(`/api/downloadMusic?videoId=${videoId}&format=mp3`, '_blank');
   }
 
   extraerId(url: string): string {
