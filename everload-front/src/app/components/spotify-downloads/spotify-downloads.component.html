@@ -15,6 +15,7 @@
         [placeholder]="'PLACEHOLDER' | translate"
         class="spotify-input"
       />
+      <p *ngIf="error" class="error-text">❌ {{ error }}</p>
 
       <button class="spotify-button" (click)="descargarListaCanciones()" [disabled]="cargando">
         {{ cargando ? ('LOADING' | translate) : ('SEARCH_BUTTON' | translate) }}
