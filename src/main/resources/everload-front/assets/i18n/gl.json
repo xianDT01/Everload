@@ -1,11 +1,12 @@
 {
 "_comment1": "Textos generales de la app",
-"APP_NAME": "EverLoad",
+"Youtube": "YouTube",
 "SUBTITLE": "Descarga vídeos e audios doadamente",
 "DOWNLOAD_YOUTUBE": "Descargar dende YouTube",
 "CREATED_BY": "Creado por",
 "GITHUB": "GitHub",
 "DOWNLOAD_Twitter": "Descargar dende Twitter",
+"DOWNLOAD_TIKTOK": "Descargar dende TikTok",
 
 
 
@@ -66,8 +67,31 @@
 "PASTE_INSTAGRAM_URL": "Pega aquí a URL do vídeo de Instagram",
 "INVALID_INSTAGRAM_URL": "URL non válida. Asegúrate de que sexa un enlace correcto de Instagram.",
 "SUBTITLE_INSTAGRAM": "Descarga vídeos públicos de Instagram facilmente.",
-"INSTAGRAM_LIMITATION": "Só se poden descargar Reels e publicacións públicas. Non se admiten historias nin contido de contas privadas."
+"INSTAGRAM_LIMITATION": "Só se poden descargar Reels e publicacións públicas. Non se admiten historias nin contido de contas privadas.",
 
+"_comment6": "Sección de Spotify",
+"DOWNLOAD_SPOTIFY": "Descargar dende Spotify",
+"DOWNLOAD_Spotify_FAILED": "Produciuse un erro ao descargar dende Spotify",
+  "TITLE": "Descargador de listas de Spotify",
+  "Spotify_Subtitle": "Pega a URL da túa lista e descarga as cancións unha a unha",
+  "PLACEHOLDER": "Pega aquí a URL da lista",
+  "SEARCH_BUTTON": "Buscar cancións",
+  "LOADING": "Buscando cancións...",
+  "DOWNLOAD_ALL": "Descargar toda a lista",
+  "FOUND_TRACKS": "Cancións atopadas:",
+  "DOWNLOAD": "Descargar",
+  "NO_RESULTS": "Non se atoparon cancións ou houbo un erro.",
+  "EMPTY_URL_ERROR_Spotify": "Por favor, introduce unha ligazón válida de Spotify.",
+
+
+
+  "_comment7": "Sección de TikTok",
+  "PASTE_TIKTOK_URL": "Pega a ligazón de TikTok",
+  "DOWNLOAD_TIKTOK": "Descargar dende TikTok",
+  "LOADING": "Descargando",
+  "HOME": "Inicio",
+  "EMPTY_URL_ERROR": "Por favor, introduce unha ligazón de TikTok.",
+  "DOWNLOAD_FAILED": "Non se puido descargar o vídeo. Inténtao de novo máis tarde."
 
 
 
