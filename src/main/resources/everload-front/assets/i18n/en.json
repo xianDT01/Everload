@@ -1,11 +1,12 @@
 {
 "_comment1": "Textos generales de la app",
-"APP_NAME": "EverLoad",
+"Youtube": "YouTube",
 "SUBTITLE": "Download videos and music easily",
 "DOWNLOAD_YOUTUBE": "Download from YouTube",
 "CREATED_BY": "Created by",
 "GITHUB": "GitHub",
 "DOWNLOAD_Twitter": "Download from Twitter",
+"DOWNLOAD_TIKTOK": "Download from TikTok",
 
 
 
@@ -61,8 +62,34 @@
 "PASTE_INSTAGRAM_URL": "Paste the Instagram video URL here",
 "INVALID_INSTAGRAM_URL": "Invalid URL. Make sure it's a valid Instagram video link.",
 "SUBTITLE_INSTAGRAM": "Easily download public videos from Instagram.",
-"INSTAGRAM_LIMITATION": "Only public Reels and posts can be downloaded. Stories and private account content are not supported."
+"INSTAGRAM_LIMITATION": "Only public Reels and posts can be downloaded. Stories and private account content are not supported.",
 
+
+
+"_comment6": "Sección de Spotify",
+"DOWNLOAD_SPOTIFY": "Download from Spotify",
+"DOWNLOAD_Spotify_FAILED": "An error occurred while downloading from Spotify",
+  "TITLE": "Spotify Playlist Downloader",
+  "Spotify_Subtitle": "Paste your playlist URL and download the songs one by one",
+  "PLACEHOLDER": "Paste the playlist URL here",
+  "SEARCH_BUTTON": "Search songs",
+  "LOADING": "Searching songs...",
+  "DOWNLOAD_ALL": "Download entire playlist",
+  "FOUND_TRACKS": "Found songs:",
+  "DOWNLOAD": "Download",
+  "NO_RESULTS": "No songs found or an error occurred.",
+  "EMPTY_URL_ERROR_Spotify": "Please enter a valid URL for Spotify.",
+
+
+  "_comment7": "Sección de TikTok",
+  "PASTE_TIKTOK_URL": "Paste the TikTok link",
+  "DOWNLOAD_TIKTOK": "Download from TikTok",
+  "LOADING": "Downloading",
+  "HOME": "Home",
+  "EMPTY_URL_ERROR": "Please enter a TikTok link.",
+  "DOWNLOAD_FAILED": "Failed to download the video. Please try again later."
+  
+  
 
 
 
