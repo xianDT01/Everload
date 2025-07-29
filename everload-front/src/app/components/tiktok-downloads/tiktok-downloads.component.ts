@@ -33,8 +33,8 @@ export class TiktokDownloadsComponent {
     this.cargando = true;
     this.error = null;
 
-    const apiUrl = 'http://localhost:8080/api/downloadTikTok';
-  //  const apiUrl = '/api/downloadTikTok';
+  //  const apiUrl = 'http://localhost:8080/api/downloadTikTok';
+   const apiUrl = '/api/downloadTikTok';
     const params = { url: this.tiktokUrl };
 
     this.http.get(apiUrl, {
