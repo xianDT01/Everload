@@ -21,7 +21,10 @@ export class SpotifyDownloadsComponent {
   }
 
   descargarListaCanciones() {
-    if (!this.playlistUrl) return;
+     if (!this.playlistUrl.trim()) {
+    this.error = this.translate.instant('EMPTY_URL_ERROR_Spotify');
+    return;
+  }
 
     this.cargando = true;
     this.resultado = null;
