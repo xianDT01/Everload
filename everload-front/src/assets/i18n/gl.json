@@ -81,6 +81,8 @@
   "FOUND_TRACKS": "Cancións atopadas:",
   "DOWNLOAD": "Descargar",
   "NO_RESULTS": "Non se atoparon cancións ou houbo un erro.",
+  "EMPTY_URL_ERROR_Spotify": "Por favor, introduce unha ligazón válida de Spotify.",
+
 
 
   "_comment7": "Sección de TikTok",

@@ -78,6 +78,7 @@
   "FOUND_TRACKS": "Found songs:",
   "DOWNLOAD": "Download",
   "NO_RESULTS": "No songs found or an error occurred.",
+  "EMPTY_URL_ERROR_Spotify": "Please enter a valid URL for Spotify.",
 
 
   "_comment7": "Sección de TikTok",
@@ -87,6 +88,8 @@
   "HOME": "Home",
   "EMPTY_URL_ERROR": "Please enter a TikTok link.",
   "DOWNLOAD_FAILED": "Failed to download the video. Please try again later."
+  
+  
 
 
 
