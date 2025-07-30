@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.io.File;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -20,7 +22,7 @@ public class DownloadControllerTest {
 
     private MockMvc mockMvc;
     private DownloadService downloadService;
-
+    private final DownloadService service = new DownloadService();
     @BeforeEach
     void setUp() {
         downloadService = Mockito.mock(DownloadService.class);
@@ -84,4 +86,16 @@ public class DownloadControllerTest {
 
         tempFile.delete();
     }
+
+
+
+    @Test
+    public void testGetPlaylistVideos_InvalidURL_ReturnsErrorResponse() {
+        ResponseEntity<?> response = service.getPlaylistVideos("https://invalid-url.com");
+
+        // Aunque falle internamente, debe devolver una respuesta válida (con 5xx) si se ve fallo se da el test por ok por consola
+        assertNotNull(response);
+        assertTrue(response.getStatusCode().is5xxServerError());
+    }
+
 }

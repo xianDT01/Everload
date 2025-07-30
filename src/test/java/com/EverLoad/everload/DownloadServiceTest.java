@@ -4,8 +4,9 @@ import com.EverLoad.everload.service.DownloadService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.io.File;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DownloadServiceTest {
     @Test
@@ -61,6 +62,7 @@ public class DownloadServiceTest {
 
         assertEquals(500, response.getStatusCodeValue());
     }
+
 
 
 }

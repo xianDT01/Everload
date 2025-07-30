@@ -25,6 +25,21 @@ public class SpotifyServiceTest {
             service.extractPlaylistId("https://open.spotify.com/album/1234");
         });
     }
+    private final SpotifyService service = new SpotifyService(null);
+    @Test
+    public void testExtractPlaylistId_WorksWithValidURL() {
+        String url = "https://open.spotify.com/playlist/3VwUtJH3G6Q9TgJ5ivgqJd?si=abc";
+        String result = service.extractPlaylistId(url);
+        assertEquals("3VwUtJH3G6Q9TgJ5ivgqJd", result);
+    }
+
+    @Test
+    public void testExtractPlaylistId_InvalidURL_ThrowsException() {
+        String url = "https://open.spotify.com/album/1234";
+        assertThrows(IllegalArgumentException.class, () -> {
+            service.extractPlaylistId(url);
+        });
+    }
 
 
 }
