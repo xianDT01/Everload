@@ -12,8 +12,8 @@ export class YoutubeDownloadsComponent {
   videoUrl: string = '';
   resolution: string = '720';
   isLoading: boolean = false;
-//  backendUrl: string = 'http://localhost:8080/api';
- backendUrl: string = '/api';
+  backendUrl: string = 'http://localhost:8080/api';
+// backendUrl: string = '/api';
 
   searchResults: any[] = [];
   searchQuery: string = '';
