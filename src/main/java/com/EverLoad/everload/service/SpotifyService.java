@@ -1,6 +1,8 @@
 package com.EverLoad.everload.service;
 
+import com.EverLoad.everload.config.CredentialConfig;
 import com.EverLoad.everload.model.SpotifyResult;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -14,11 +16,16 @@ import java.util.stream.Collectors;
 public class SpotifyService {
 
     private final RestTemplate restTemplate;
-    private final String clientId = "9656c5e6ac6540629503b41dca0b4392";
-    private final String clientSecret = "7a3004e38e83431daf3d6380255f551e";
+    @Autowired
+    private CredentialConfig credentialConfig;
 
     public SpotifyService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
+    }
+
+    public SpotifyService(RestTemplate restTemplate, CredentialConfig credentialConfig) {
+        this.restTemplate = restTemplate;
+        this.credentialConfig = credentialConfig;
     }
 
     public String getAccessToken() {
@@ -26,7 +33,9 @@ public class SpotifyService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        String auth = clientId + ":" + clientSecret;
+        String id = credentialConfig != null ? credentialConfig.getClientId() : "";
+        String secret = credentialConfig != null ? credentialConfig.getClientSecret() : "";
+        String auth = id + ":" + secret;
         headers.setBasicAuth(Base64.getEncoder().encodeToString(auth.getBytes()));
 
         HttpEntity<String> request = new HttpEntity<>("grant_type=client_credentials", headers);
@@ -71,7 +80,7 @@ public class SpotifyService {
     }
 
     private String searchYouTube(String rawTitle) {
-        String apiKey = "AIzaSyCVzVmbSB5YVeYzOfiUtw3Hx_J58nGytxI";
+        String apiKey = credentialConfig != null ? credentialConfig.getYoutubeApiKey() : "";
 
         // Limpieza y normalización del título
         String cleaned = rawTitle

@@ -2,6 +2,8 @@ package com.EverLoad.everload.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
+import com.EverLoad.everload.config.CredentialConfig;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -12,7 +14,8 @@ import org.springframework.web.client.RestTemplate;
 public class YouTubeController {
 
     private final RestTemplate restTemplate;
-    private final String API_KEY = "AIzaSyCVzVmbSB5YVeYzOfiUtw3Hx_J58nGytxI";
+    @Autowired
+    private CredentialConfig credentialConfig;
 
     public YouTubeController(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -20,8 +23,9 @@ public class YouTubeController {
 
     @GetMapping("/search")
     public ResponseEntity<String> searchVideos(@RequestParam String query) {
+        String key = credentialConfig != null ? credentialConfig.getYoutubeApiKey() : "";
         String url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q="
-                + query + "&key=" + API_KEY;
+                + query + "&key=" + key;
 
         String response = restTemplate.getForObject(url, String.class);
         return ResponseEntity.ok(response);

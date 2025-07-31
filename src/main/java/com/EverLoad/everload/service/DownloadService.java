@@ -1,5 +1,7 @@
 package com.EverLoad.everload.service;
 
+import com.EverLoad.everload.service.LogService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,8 @@ import java.util.*;
 public class DownloadService {
 
     private static final String DOWNLOADS_DIR = "./downloads/";
+    @Autowired
+    private LogService logService;
 
     public ResponseEntity<FileSystemResource> downloadVideo(String videoId, String resolution) {
         try {
@@ -26,9 +30,16 @@ public class DownloadService {
                             "https://www.youtube.com/watch?v=%s",
                     resolution, tempDir, videoId
             );
-            return executeCommand(command);
+            ResponseEntity<FileSystemResource> resp = executeCommand(command);
+            if (logService != null) {
+                logService.log("YouTube", videoId, resp.getStatusCode().is2xxSuccessful(), null);
+            }
+            return resp;
         } catch (Exception e) {
             e.printStackTrace();
+            if (logService != null) {
+                logService.log("YouTube", videoId, false, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -45,9 +56,16 @@ public class DownloadService {
                     format, tempDir, videoId
             );
 
-            return executeCommand(command);
+            ResponseEntity<FileSystemResource> resp = executeCommand(command);
+            if (logService != null) {
+                logService.log("YouTube", videoId, resp.getStatusCode().is2xxSuccessful(), null);
+            }
+            return resp;
         } catch (Exception e) {
             e.printStackTrace();
+            if (logService != null) {
+                logService.log("YouTube", videoId, false, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -193,9 +211,16 @@ public class DownloadService {
                     "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
                     tempDir, tweetUrl
             );
-            return executeCommand(command);
+            ResponseEntity<FileSystemResource> resp = executeCommand(command);
+            if (logService != null) {
+                logService.log("Twitter", tweetUrl, resp.getStatusCode().is2xxSuccessful(), null);
+            }
+            return resp;
         } catch (Exception e) {
             e.printStackTrace();
+            if (logService != null) {
+                logService.log("Twitter", tweetUrl, false, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -207,9 +232,16 @@ public class DownloadService {
                     "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
                     tempDir, videoUrl
             );
-            return executeCommand(command);
+            ResponseEntity<FileSystemResource> resp = executeCommand(command);
+            if (logService != null) {
+                logService.log("Facebook", videoUrl, resp.getStatusCode().is2xxSuccessful(), null);
+            }
+            return resp;
         } catch (Exception e) {
             e.printStackTrace();
+            if (logService != null) {
+                logService.log("Facebook", videoUrl, false, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -221,9 +253,16 @@ public class DownloadService {
                     "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
                     tempDir, videoUrl
             );
-            return executeCommand(command);
+            ResponseEntity<FileSystemResource> resp = executeCommand(command);
+            if (logService != null) {
+                logService.log("Instagram", videoUrl, resp.getStatusCode().is2xxSuccessful(), null);
+            }
+            return resp;
         } catch (Exception e) {
             e.printStackTrace();
+            if (logService != null) {
+                logService.log("Instagram", videoUrl, false, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -234,9 +273,16 @@ public class DownloadService {
                     "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
                     tempDir, videoUrl
             );
-            return executeCommand(command);
+            ResponseEntity<FileSystemResource> resp = executeCommand(command);
+            if (logService != null) {
+                logService.log("TikTok", videoUrl, resp.getStatusCode().is2xxSuccessful(), null);
+            }
+            return resp;
         } catch (Exception e) {
             e.printStackTrace();
+            if (logService != null) {
+                logService.log("TikTok", videoUrl, false, e.getMessage());
+            }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
