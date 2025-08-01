@@ -1,59 +1,62 @@
-<h2>⚙️ Panel de configuración</h2>
+<div class="dashboard">
+  <h2 class="dashboard-title">🚀 Panel de control EverLoad</h2>
 
-<form (ngSubmit)="guardarCambios()" *ngIf="config">
-  <label>Client ID:</label>
-  <input [(ngModel)]="config.clientId" name="clientId" required />
+  <form (ngSubmit)="guardarCambios()" *ngIf="config" class="form-grid">
+    <label>Client ID Spotify:</label>
+    <input [(ngModel)]="config.clientId" name="clientId" required />
 
-  <label>Client Secret:</label>
-  <input [(ngModel)]="config.clientSecret" name="clientSecret" required />
+    <label>Client Secret Spotify:</label>
+    <input [(ngModel)]="config.clientSecret" name="clientSecret" required />
 
-  <label>API Key de YouTube:</label>
-  <input [(ngModel)]="config.apiKey" name="apiKey" required />
+    <label>API Key de YouTube:</label>
+    <input [(ngModel)]="config.apiKey" name="apiKey" required />
 
-  <button type="submit" [disabled]="cargando">Guardar</button>
-</form>
+    <button type="submit" class="btn primary" [disabled]="cargando">💾 Guardar</button>
+  </form>
 
-<p *ngIf="mensaje">{{ mensaje }}</p>
+  <p *ngIf="mensaje" class="message">{{ mensaje }}</p>
 
-<hr />
-<button (click)="actualizarYtDlp()" [disabled]="cargando">🔄 Actualizar yt-dlp</button>
+  <div class="actions-row">
+    <button (click)="actualizarYtDlp()" class="btn secondary" [disabled]="cargando">🔄 Actualizar yt-dlp</button>
+    <button (click)="limpiarTemporales()" class="btn warning">🧹 Limpiar temporales</button>
+    <button (click)="vaciarHistorial()" class="btn danger">🗑️ Vaciar historial</button>
+    <button (click)="limpiarLog()" class="btn dark">🧽 Limpiar log</button>
+  </div>
 
-<hr>
-<h3>📜 Logs recientes</h3>
+  <p>{{ mensajeLimpieza }}</p>
+  <p>{{ mensajeVaciarHistorial }}</p>
+  <p>{{ mensajeLogLimpio }}</p>
 
-<input [(ngModel)]="filtroLog" placeholder="Filtrar por palabra (opcional)">
-<button (click)="cargarLogs()">🔍 Ver logs</button>
+  <hr />
+  <h3>📜 Logs recientes</h3>
+  <div class="logs-section">
+    <input [(ngModel)]="filtroLog" placeholder="Filtrar por palabra (opcional)">
+    <button class="btn small" (click)="cargarLogs()">🔍 Ver logs</button>
+  </div>
 
-<div #logContainer style="background:#111; color:#0f0; font-family:monospace; padding:1rem; max-height:300px; overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; border:1px solid #444; margin-top:1rem;">
-  <div *ngFor="let l of logs">{{ l }}</div>
+  <div #logContainer class="log-output">
+    <div *ngFor="let l of logs">{{ l }}</div>
+  </div>
+
+  <hr />
+  <h3>📂 Historial de descargas</h3>
+
+  <table *ngIf="historial.length > 0" class="history-table">
+    <thead>
+      <tr>
+        <th>Título</th>
+        <th>Tipo</th>
+        <th>Plataforma</th>
+        <th>Fecha</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of historial">
+        <td>{{ item.titulo }}</td>
+        <td>{{ item.tipo }}</td>
+        <td>{{ item.plataforma }}</td>
+        <td>{{ item.fecha | date:'short' }}</td>
+      </tr>
+    </tbody>
+  </table>
 </div>
-<hr>
-<h3>📂 Historial de descargas</h3>
-
-<table *ngIf="historial.length > 0" border="1" style="width: 100%; border-collapse: collapse;">
-  <thead>
-    <tr>
-      <th>Título</th>
-      <th>Tipo</th>
-      <th>Plataforma</th>
-      <th>Fecha</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let item of historial">
-      <td>{{ item.titulo }}</td>
-      <td>{{ item.tipo }}</td>
-      <td>{{ item.plataforma }}</td>
-      <td>{{ item.fecha | date:'short' }}</td>
-    </tr>
-  </tbody>
-</table>
-
-<button (click)="limpiarTemporales()">🧹 Limpiar temporales</button>
-<p>{{ mensajeLimpieza }}</p>
-
-<button (click)="vaciarHistorial()">🗑️ Vaciar historial</button>
-<p>{{ mensajeVaciarHistorial }}</p>
-
-<button (click)="limpiarLog()">🧽 Limpiar log</button>
-<p>{{ mensajeLogLimpio }}</p>
