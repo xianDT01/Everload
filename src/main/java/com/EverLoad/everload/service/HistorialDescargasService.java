@@ -64,4 +64,14 @@ public class HistorialDescargasService {
         }
     }
 
+    public synchronized void vaciarHistorial() {
+        try {
+            File file = new File(HISTORIAL_PATH);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(file, new ArrayList<>()); // lista vacía
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }
