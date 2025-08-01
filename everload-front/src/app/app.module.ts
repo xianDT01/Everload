@@ -6,6 +6,7 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 
+
 import { AppComponent } from './app.component';
 import { HomeComponent } from './components/home/home.component';
 import { YoutubeDownloadsComponent } from './components/youtube-downloads/youtube-downloads.component';
@@ -15,6 +16,7 @@ import { InstagramDownloadsComponent } from './components/instagram-downloads/in
 import { SafeUrlPipe } from './components/youtube-downloads/safe-url.pipe';
 import { SpotifyDownloadsComponent } from './components/spotify-downloads/spotify-downloads.component';
 import { TiktokDownloadsComponent } from './components/tiktok-downloads/tiktok-downloads.component';
+import { AdminConfigComponent } from './components/admin-config/admin-config.component';
 // Función para cargar archivos de traducción
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -31,7 +33,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     InstagramDownloadsComponent,
     SafeUrlPipe,
     SpotifyDownloadsComponent,
-    TiktokDownloadsComponent
+    TiktokDownloadsComponent,
+    AdminConfigComponent
   ],
   imports: [
     BrowserModule,

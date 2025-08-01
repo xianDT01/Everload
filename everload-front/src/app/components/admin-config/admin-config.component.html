@@ -1,0 +1,53 @@
+<h2>⚙️ Panel de configuración</h2>
+
+<form (ngSubmit)="guardarCambios()" *ngIf="config">
+  <label>Client ID:</label>
+  <input [(ngModel)]="config.clientId" name="clientId" required />
+
+  <label>Client Secret:</label>
+  <input [(ngModel)]="config.clientSecret" name="clientSecret" required />
+
+  <label>API Key de YouTube:</label>
+  <input [(ngModel)]="config.apiKey" name="apiKey" required />
+
+  <button type="submit" [disabled]="cargando">Guardar</button>
+</form>
+
+<p *ngIf="mensaje">{{ mensaje }}</p>
+
+<hr />
+<button (click)="actualizarYtDlp()" [disabled]="cargando">🔄 Actualizar yt-dlp</button>
+
+<hr>
+<h3>📜 Logs recientes</h3>
+
+<input [(ngModel)]="filtroLog" placeholder="Filtrar por palabra (opcional)">
+<button (click)="cargarLogs()">🔍 Ver logs</button>
+
+<div #logContainer style="background:#111; color:#0f0; font-family:monospace; padding:1rem; max-height:300px; overflow-y:auto; overflow-x:hidden; white-space:pre-wrap; border:1px solid #444; margin-top:1rem;">
+  <div *ngFor="let l of logs">{{ l }}</div>
+</div>
+<hr>
+<h3>📂 Historial de descargas</h3>
+
+<table *ngIf="historial.length > 0" border="1" style="width: 100%; border-collapse: collapse;">
+  <thead>
+    <tr>
+      <th>Título</th>
+      <th>Tipo</th>
+      <th>Plataforma</th>
+      <th>Fecha</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let item of historial">
+      <td>{{ item.titulo }}</td>
+      <td>{{ item.tipo }}</td>
+      <td>{{ item.plataforma }}</td>
+      <td>{{ item.fecha | date:'short' }}</td>
+    </tr>
+  </tbody>
+</table>
+
+<button (click)="limpiarTemporales()">🧹 Limpiar temporales</button>
+<p>{{ mensajeLimpieza }}</p>

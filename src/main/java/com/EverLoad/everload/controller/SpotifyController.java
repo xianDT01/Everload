@@ -1,7 +1,9 @@
 package com.EverLoad.everload.controller;
 
+import com.EverLoad.everload.model.Descarga;
 import com.EverLoad.everload.model.SpotifyResult;
 import com.EverLoad.everload.service.DownloadService;
+import com.EverLoad.everload.service.HistorialDescargasService;
 import com.EverLoad.everload.service.SpotifyService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.FileSystemResource;
@@ -21,10 +23,12 @@ public class SpotifyController {
 
     private final SpotifyService spotifyService;
     private final DownloadService downloadService;
+    private final HistorialDescargasService historialDescargasService;
 
-    public SpotifyController(SpotifyService spotifyService, DownloadService downloadService) {
+    public SpotifyController(SpotifyService spotifyService, DownloadService downloadService, HistorialDescargasService historialDescargasService) {
         this.spotifyService = spotifyService;
         this.downloadService = downloadService;
+        this.historialDescargasService = historialDescargasService;
     }
 
 
@@ -60,8 +64,11 @@ public class SpotifyController {
                 ResponseEntity<FileSystemResource> resp = downloadService.downloadMusic(videoId, "mp3");
 
                 if (resp.getStatusCode().is2xxSuccessful()) {
+                    historialDescargasService.registrarDescarga(
+                            new Descarga(result.getTitle(), "música", "Spotify")
+                    );
                     descargadas.add(result.getTitle());
-                } else {
+            } else {
                     errores.add(result.getTitle());
                 }
             } catch (Exception e) {
