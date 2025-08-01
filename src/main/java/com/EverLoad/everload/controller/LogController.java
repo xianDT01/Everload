@@ -1,21 +1,20 @@
 package com.EverLoad.everload.controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/logs")
 public class LogController {
 
-    private final String LOG_PATH = "everload.log";
+    private static final String LOG_PATH = "everload.log";
 
     @GetMapping
     public ResponseEntity<List<String>> getLogs(
@@ -36,6 +35,35 @@ public class LogController {
             return ResponseEntity.ok(filtered);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().body(List.of("❌ Error leyendo el log: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/limpiar")
+    public ResponseEntity<String> limpiarLog() {
+        try {
+            Path path = Path.of(LOG_PATH);
+            if (Files.exists(path)) {
+                Files.write(path, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
+                return ResponseEntity.ok("🧹 Log limpiado correctamente.");
+            } else {
+                return ResponseEntity.status(404).body("⚠️ Log no encontrado.");
+            }
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("❌ Error al limpiar el log: " + e.getMessage());
+        }
+    }
+
+    // Cada 7 días (7 * 24 * 60 * 60 * 1000 ms)
+    @Scheduled(fixedRate = 604800000)
+    public void limpiarLogAutomaticamente() {
+        try {
+            Path path = Path.of(LOG_PATH);
+            if (Files.exists(path)) {
+                Files.write(path, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
+                System.out.println("🧹 Log limpiado automáticamente.");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
