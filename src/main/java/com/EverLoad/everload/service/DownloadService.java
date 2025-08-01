@@ -1,10 +1,13 @@
 package com.EverLoad.everload.service;
 
+import com.EverLoad.everload.model.Descarga;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -15,6 +18,15 @@ import java.util.*;
 public class DownloadService {
 
     private static final String DOWNLOADS_DIR = "./downloads/";
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DownloadService.class);
+    private final HistorialDescargasService historialDescargasService;
+    private final HistorialDescargasService historial;
+
+    public DownloadService(HistorialDescargasService historialDescargasService, HistorialDescargasService historial) {
+        this.historialDescargasService = historialDescargasService;
+        this.historial = historial;
+    }
+
 
     public ResponseEntity<FileSystemResource> downloadVideo(String videoId, String resolution) {
         try {
@@ -25,7 +37,9 @@ public class DownloadService {
                             "-o %s%%(title)s.%%(ext)s " +
                             "https://www.youtube.com/watch?v=%s",
                     resolution, tempDir, videoId
+
             );
+            historialDescargasService.registrarDescarga(new Descarga("videoId=" + videoId, "vídeo", "YouTube"));
             return executeCommand(command);
         } catch (Exception e) {
             e.printStackTrace();
@@ -88,6 +102,7 @@ public class DownloadService {
     private ResponseEntity<FileSystemResource> executeCommand(String command) {
         try {
             System.out.println("🔵 Ejecutando comando: " + command);
+            logger.info("🔵 Ejecutando comando: " + command);
 
             Process process = Runtime.getRuntime().exec(command);
 
@@ -102,7 +117,6 @@ public class DownloadService {
                             System.out.println("⚠️ YT-DLP ERROR: " + line);
                         }
                     }
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -110,23 +124,24 @@ public class DownloadService {
 
             int exitCode = process.waitFor();
             String finalPath = outputReader.readLine();
-
             outputReader.close();
             errorReader.close();
 
             if (exitCode != 0 || finalPath == null || finalPath.isEmpty()) {
                 System.out.println("❌ yt-dlp terminó con error o no devolvió la ruta final.");
+                logger.info("❌ yt-dlp terminó con error o no devolvió la ruta final.");
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
 
             System.out.println("✅ Ruta final tras descarga: " + finalPath);
-
             File finalFile = new File(finalPath);
+
             if (!finalFile.exists()) {
                 System.out.println("❌ El archivo indicado por yt-dlp no existe: " + finalPath);
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
 
+            historial.registrarDescarga(new Descarga(finalFile.getName(), "vídeo", "YouTube"));
             return sendFile(finalFile);
 
         } catch (IOException | InterruptedException e) {
@@ -135,6 +150,7 @@ public class DownloadService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
 
     private String createTempDownloadDir() {
         String tempDirName = DOWNLOADS_DIR + "tmp-" + UUID.randomUUID();
@@ -151,7 +167,7 @@ public class DownloadService {
         headers.add(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
 
         System.out.println("📤 Enviando archivo: " + file.getAbsolutePath() + " con header: " + safeName);
-
+        logger.info("📤 Enviando archivo: {} con header: {}", file.getAbsolutePath(), safeName);
         FileSystemResource resource = new FileSystemResource(file);
 
         // Elimina el directorio temporal completo después de 5 segundos
@@ -164,9 +180,11 @@ public class DownloadService {
                         .map(Path::toFile)
                         .forEach(f -> {
                             if (f.delete()) {
+                                logger.info("🧹 Eliminado: " + f.getAbsolutePath());
                                 System.out.println("🧹 Eliminado: " + f.getAbsolutePath());
                             } else {
                                 System.out.println("⚠️ No se pudo eliminar: " + f.getAbsolutePath());
+                                logger.info("⚠️ No se pudo eliminar: " + f.getAbsolutePath());
                             }
                         });
             } catch (InterruptedException | IOException e) {

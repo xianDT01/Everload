@@ -1,10 +1,12 @@
 package com.EverLoad.everload.service;
 
+import com.EverLoad.everload.config.AdminConfigService;
 import com.EverLoad.everload.model.SpotifyResult;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -14,30 +16,36 @@ import java.util.stream.Collectors;
 public class SpotifyService {
 
     private final RestTemplate restTemplate;
-    private final String clientId = "9656c5e6ac6540629503b41dca0b4392";
-    private final String clientSecret = "7a3004e38e83431daf3d6380255f551e";
+    private final AdminConfigService configService;
 
-    public SpotifyService(RestTemplate restTemplate) {
+    public SpotifyService(RestTemplate restTemplate, AdminConfigService configService) {
         this.restTemplate = restTemplate;
+        this.configService = configService;
     }
 
     public String getAccessToken() {
-        String url = "https://accounts.spotify.com/api/token";
+        try {
+            String url = "https://accounts.spotify.com/api/token";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        String auth = clientId + ":" + clientSecret;
-        headers.setBasicAuth(Base64.getEncoder().encodeToString(auth.getBytes()));
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            String auth = configService.getClientId() + ":" + configService.getClientSecret();
+            headers.setBasicAuth(Base64.getEncoder().encodeToString(auth.getBytes()));
 
-        HttpEntity<String> request = new HttpEntity<>("grant_type=client_credentials", headers);
+            HttpEntity<String> request = new HttpEntity<>("grant_type=client_credentials", headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
-        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-        if (response.getStatusCode().is2xxSuccessful()) {
-            return (String) response.getBody().get("access_token");
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return (String) response.getBody().get("access_token");
+            }
+
+            throw new RuntimeException("No se pudo obtener el token de Spotify");
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error al leer el archivo de configuración", e);
         }
-
-        throw new RuntimeException("No se pudo obtener el token de Spotify");
     }
+
 
     public List<SpotifyResult> getPlaylistTracks(String playlistId) {
         String token = getAccessToken();
@@ -71,19 +79,18 @@ public class SpotifyService {
     }
 
     private String searchYouTube(String rawTitle) {
-        String apiKey = "AIzaSyCVzVmbSB5YVeYzOfiUtw3Hx_J58nGytxI";
-
-        // Limpieza y normalización del título
-        String cleaned = rawTitle
-                .replaceAll("[\\(\\)\\[\\]\"']", "")   // elimina paréntesis, corchetes y comillas
-                .replaceAll("[^\\w\\s-]", "")          // elimina símbolos raros
-                .replaceAll("\\s+", " ")               // múltiples espacios -> uno solo
-                .trim();
-
-        String query = cleaned + " lyrics";
-
         try {
+            String apiKey = configService.getApiKey();
+
+            String cleaned = rawTitle
+                    .replaceAll("[\\(\\)\\[\\]\"']", "")
+                    .replaceAll("[^\\w\\s-]", "")
+                    .replaceAll("\\s+", " ")
+                    .trim();
+
+            String query = cleaned + " lyrics";
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
+
             String url = "https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=3&q="
                     + encodedQuery + "&key=" + apiKey;
 
@@ -109,17 +116,17 @@ public class SpotifyService {
         return null;
     }
 
+
     public String extractPlaylistId(String url) {
         try {
             if (url.contains("playlist/")) {
                 String[] parts = url.split("playlist/");
                 String idWithParams = parts[1];
-                return idWithParams.split("[?&]")[0]; // mejor que solo "\\?"
+                return idWithParams.split("[?&]")[0];
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
         throw new IllegalArgumentException("URL de playlist inválida");
     }
-
 }
