@@ -40,7 +40,8 @@ public class DownloadService {
 
             );
             historialDescargasService.registrarDescarga(new Descarga("videoId=" + videoId, "vídeo", "YouTube"));
-            return executeCommand(command);
+            return executeCommand(command, "vídeo", "YouTube");
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -59,7 +60,7 @@ public class DownloadService {
                     format, tempDir, videoId
             );
 
-            return executeCommand(command);
+            return executeCommand(command, "music", "YouTube");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -99,7 +100,7 @@ public class DownloadService {
 
 
 
-    private ResponseEntity<FileSystemResource> executeCommand(String command) {
+    private ResponseEntity<FileSystemResource> executeCommand(String command, String tipo, String origen) {
         try {
             System.out.println("🔵 Ejecutando comando: " + command);
             logger.info("🔵 Ejecutando comando: " + command);
@@ -141,7 +142,7 @@ public class DownloadService {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
 
-            historial.registrarDescarga(new Descarga(finalFile.getName(), "vídeo", "YouTube"));
+            historial.registrarDescarga(new Descarga(finalFile.getName(), tipo, origen));
             return sendFile(finalFile);
 
         } catch (IOException | InterruptedException e) {
@@ -150,6 +151,8 @@ public class DownloadService {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+
 
 
     private String createTempDownloadDir() {
@@ -211,12 +214,13 @@ public class DownloadService {
                     "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
                     tempDir, tweetUrl
             );
-            return executeCommand(command);
+            return executeCommand(command, "vídeo","Twitter");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
 
     public ResponseEntity<FileSystemResource> downloadFacebookVideo(String videoUrl) {
         try {
@@ -225,7 +229,7 @@ public class DownloadService {
                     "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
                     tempDir, videoUrl
             );
-            return executeCommand(command);
+            return executeCommand(command, "vídeo","FacebookVideo");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -239,7 +243,7 @@ public class DownloadService {
                     "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
                     tempDir, videoUrl
             );
-            return executeCommand(command);
+            return executeCommand(command,"vídeo" ,"InstagramVideo");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -252,7 +256,7 @@ public class DownloadService {
                     "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
                     tempDir, videoUrl
             );
-            return executeCommand(command);
+            return executeCommand(command, "vídeo", "TikTok");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
