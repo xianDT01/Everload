@@ -22,6 +22,7 @@ export class AdminConfigComponent implements OnInit {
   cargando = false;
 
   constructor(private http: HttpClient) { }
+  
 
   ngOnInit(): void {
     // Cargar la config una sola vez
@@ -155,5 +156,16 @@ limpiarLog(): void {
     });
 }
 
-
+  getIconPath(plataforma: string): string {
+    const rutas: { [key: string]: string } = {
+      YouTube: '/assets/youtube-icon-logo-719479.png',
+      Twitter: '/assets/twitter-icon.png',
+      Facebook: '/assets/fb sin fondo.png',
+      Instagram: '/assets/instagram-icon.png',
+      Spotify: '/assets/Spotify.png',
+      TikTok: '/assets/tiktok_logo.png'
+    };
+    return rutas[plataforma] || '';
+  }
 }
+
