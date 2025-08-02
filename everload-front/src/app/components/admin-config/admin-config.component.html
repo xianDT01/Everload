@@ -1,6 +1,30 @@
 <div class="dashboard">
   <h2 class="dashboard-title">🚀 Panel de control EverLoad</h2>
 
+  <div class="options">
+    <a routerLink="/youtube-downloads" class="button youtube-button">
+      <img src="/assets/youtube-icon-logo-719479.png" class="icon"> YouTube
+    </a>
+    <a routerLink="/twitter-downloads" class="button twitter-button">
+      <img src="/assets/twitter-icon.png" class="icon"> Twitter
+    </a>
+    <a routerLink="/facebook-downloads" class="button facebook-button">
+      <img src="/assets/fb sin fondo.png" class="icon"> Facebook
+    </a>
+    <a routerLink="/instagram-downloads" class="button instagram-button">
+      <img src="/assets/instagram-icon.png" class="icon"> Instagram
+    </a>
+    <a routerLink="/spotify-downloads" class="button spotify-button">
+      <img src="/assets/Spotify.png" class="icon"> Spotify
+    </a>
+    <a routerLink="/tiktok-downloads" class="button tiktok-button">
+      <img src="/assets/tiktok_logo.png" class="icon"> TikTok
+    </a>
+    <a routerLink="/admin-config" class="button admin-button">
+      <img src="/assets/config-icon.png" class="icon"> Configuración
+    </a>
+  </div>
+
   <form (ngSubmit)="guardarCambios()" *ngIf="config" class="form-grid">
     <label>Client ID Spotify:</label>
     <input [(ngModel)]="config.clientId" name="clientId" required />
@@ -41,6 +65,7 @@
   <hr />
   <h3>📂 Historial de descargas</h3>
 
+<div class="history-container">
   <table *ngIf="historial.length > 0" class="history-table">
     <thead>
       <tr>
@@ -54,9 +79,13 @@
       <tr *ngFor="let item of historial">
         <td>{{ item.titulo }}</td>
         <td>{{ item.tipo }}</td>
-        <td>{{ item.plataforma }}</td>
+        <td>
+          <img [src]="getIconPath(item.plataforma)" class="icon-table" />
+          {{ item.plataforma }}
+        </td>
         <td>{{ item.fecha | date:'short' }}</td>
       </tr>
     </tbody>
   </table>
 </div>
+
