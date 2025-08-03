@@ -1,29 +1,27 @@
 <div class="dashboard">
   <h2 class="dashboard-title">🚀 Panel de control EverLoad</h2>
 
-  <div class="options">
-    <a routerLink="/youtube-downloads" class="button youtube-button">
-      <img src="/assets/youtube-icon-logo-719479.png" class="icon"> YouTube
-    </a>
-    <a routerLink="/twitter-downloads" class="button twitter-button">
-      <img src="/assets/twitter-icon.png" class="icon"> Twitter
-    </a>
-    <a routerLink="/facebook-downloads" class="button facebook-button">
-      <img src="/assets/fb sin fondo.png" class="icon"> Facebook
-    </a>
-    <a routerLink="/instagram-downloads" class="button instagram-button">
-      <img src="/assets/instagram-icon.png" class="icon"> Instagram
-    </a>
-    <a routerLink="/spotify-downloads" class="button spotify-button">
-      <img src="/assets/Spotify.png" class="icon"> Spotify
-    </a>
-    <a routerLink="/tiktok-downloads" class="button tiktok-button">
-      <img src="/assets/tiktok_logo.png" class="icon"> TikTok
-    </a>
-    <a routerLink="/admin-config" class="button admin-button">
-      <img src="/assets/config-icon.png" class="icon"> Configuración
-    </a>
-  </div>
+<div class="platform-buttons">
+  <a routerLink="/youtube-downloads" class="platform youtube">
+    <img src="/assets/youtube-icon-logo-719479.png" class="icon"> YouTube
+  </a>
+  <a routerLink="/twitter-downloads" class="platform twitter">
+    <img src="/assets/twitter-icon.png" class="icon"> Twitter
+  </a>
+  <a routerLink="/facebook-downloads" class="platform facebook">
+    <img src="/assets/fb sin fondo.png" class="icon"> Facebook
+  </a>
+  <a routerLink="/instagram-downloads" class="platform instagram">
+    <img src="/assets/instagram-icon.png" class="icon"> Instagram
+  </a>
+  <a routerLink="/spotify-downloads" class="platform spotify">
+    <img src="/assets/Spotify.png" class="icon"> Spotify
+  </a>
+  <a routerLink="/tiktok-downloads" class="platform tiktok">
+    <img src="/assets/tiktok_logo.png" class="icon"> TikTok
+  </a>
+</div>
+
 
   <form (ngSubmit)="guardarCambios()" *ngIf="config" class="form-grid">
     <label>Client ID Spotify:</label>
@@ -63,8 +61,7 @@
   </div>
 
   <hr />
-  <h3>📂 Historial de descargas</h3>
-
+ <h3>📂 Historial de descargas</h3>
 <div class="history-container">
   <table *ngIf="historial.length > 0" class="history-table">
     <thead>
@@ -87,5 +84,24 @@
       </tr>
     </tbody>
   </table>
+</div>
+
+<!-- ¡IMPORTANTE! Este bloque ahora está FUERA del .history-container -->
+<h3>📶 Estado de las APIs</h3>
+<div class="api-status">
+  <button (click)="comprobarApis()" class="btn secondary">🔍 Comprobar estado</button>
+  <ul>
+    <li><strong>YouTube:</strong> {{ apiEstados['youtube'] }}</li>
+    <li><strong>Spotify:</strong> {{ apiEstados['spotify'] }}</li>
+    <li><strong>TikTok:</strong> {{ apiEstados['tiktok'] }}</li>
+    <li><strong>Facebook:</strong> {{ apiEstados['facebook'] }}</li>
+    <li><strong>Instagram:</strong> {{ apiEstados['instagram'] }}</li>
+  </ul>
+</div>
+
+
+
+
+
 </div>
 
