@@ -22,7 +22,7 @@ export class AdminConfigComponent implements OnInit {
   cargando = false;
 
   constructor(private http: HttpClient) { }
-  
+
 
   ngOnInit(): void {
     // Cargar la config una sola vez
@@ -35,6 +35,7 @@ export class AdminConfigComponent implements OnInit {
     // Cargar logs e historial por primera vez
     this.cargarLogs();
     this.cargarHistorial();
+
 
     // Refrescar logs e historial cada 10 segundos
     this.intervalId = setInterval(() => {
@@ -60,22 +61,27 @@ export class AdminConfigComponent implements OnInit {
       });
   }
 
-  actualizarYtDlp(): void {
-    this.mensaje = '⏳ Actualizando yt-dlp...';
-    this.cargando = true;
+actualizarYtDlp(): void {
+  this.mensaje = '⏳ Actualizando yt-dlp...';
+  this.cargando = true;
 
-    this.http.post('http://localhost:8080/api/admin/update-yt-dlp', null)
-      .subscribe({
-        next: (data: any) => {
-          this.mensaje = typeof data === 'string' ? data : '✅ Actualización completada';
-          this.cargando = false;
-        },
-        error: () => {
-          this.mensaje = '❌ Error al actualizar yt-dlp';
-          this.cargando = false;
+  this.http.post('http://localhost:8080/api/admin/update-yt-dlp', null, { responseType: 'text' })
+    .subscribe({
+      next: (respuesta: string) => {
+        this.mensaje = '📦 ' + respuesta;
+        this.cargando = false;
+      },
+      error: (error) => {
+        if (error?.error) {
+          this.mensaje = '❌ ' + error.error;
+        } else {
+          this.mensaje = '❌ Error desconocido al actualizar yt-dlp';
         }
-      });
-  }
+        this.cargando = false;
+      }
+    });
+}
+
 
 
   logs: string[] = [];
@@ -143,18 +149,18 @@ export class AdminConfigComponent implements OnInit {
       });
   }
 
-mensajeLogLimpio: string = '';
+  mensajeLogLimpio: string = '';
 
-limpiarLog(): void {
-  this.http.post('http://localhost:8080/api/admin/logs/limpiar', null, { responseType: 'text' })
-    .subscribe({
-      next: (msg) => {
-        this.mensajeLogLimpio = msg;
-        this.cargarLogs(); // refrescar tras limpiar
-      },
-      error: () => this.mensajeLogLimpio = '❌ Error al limpiar el log'
-    });
-}
+  limpiarLog(): void {
+    this.http.post('http://localhost:8080/api/admin/logs/limpiar', null, { responseType: 'text' })
+      .subscribe({
+        next: (msg) => {
+          this.mensajeLogLimpio = msg;
+          this.cargarLogs(); // refrescar tras limpiar
+        },
+        error: () => this.mensajeLogLimpio = '❌ Error al limpiar el log'
+      });
+  }
 
   getIconPath(plataforma: string): string {
     const rutas: { [key: string]: string } = {
@@ -167,5 +173,35 @@ limpiarLog(): void {
     };
     return rutas[plataforma] || '';
   }
+
+apiEstados: { [key: string]: string } = {
+  backend: '⏳',
+  youtube: '⏳',
+  spotify: '⏳',
+  tiktok: '⏳',
+  facebook: '⏳',
+  instagram: '⏳'
+};
+
+comprobarApis(): void {
+  const endpoints = {
+    youtube: 'http://localhost:8080/api/admin/test-api/youtube',
+    spotify: 'http://localhost:8080/api/admin/test-api/spotify',
+    tiktok: 'http://localhost:8080/api/admin/test-api/tiktok',
+    facebook: 'http://localhost:8080/api/admin/test-api/facebook',
+    instagram: 'http://localhost:8080/api/admin/test-api/instagram'
+  };
+
+  for (const [clave, url] of Object.entries(endpoints)) {
+    this.http.get(url, { responseType: 'text' }).subscribe({
+      next: (respuesta) => this.apiEstados[clave] = respuesta,
+      error: () => this.apiEstados[clave] = `🔴 ${clave} ERROR`
+    });
+  }
+}
+
+
+
+
 }
 
