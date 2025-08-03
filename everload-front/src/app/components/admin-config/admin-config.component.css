@@ -264,3 +264,84 @@ h3 {
   border-radius: 0; /* el border radius va en el contenedor ahora */
   margin: 0;
 }
+
+/* NUEVO: Botones de plataformas estilo tarjeta */
+.platform-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  animation-delay: 0.1s;
+}
+
+.platform {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1rem 1.2rem;
+  font-weight: 600;
+  border-radius: 8px;
+  color: white;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+  gap: 10px;
+}
+
+.platform:hover {
+  transform: translateY(-2px);
+}
+
+/* Iconos de plataforma */
+.platform .icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Colores por plataforma */
+.platform.youtube {
+  background-color: #ff0000;
+}
+.platform.twitter {
+  background-color: #1da1f2;
+}
+.platform.facebook {
+  background-color: #1877f2;
+}
+.platform.instagram {
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+}
+.platform.spotify {
+  background-color: #1db954;
+}
+.platform.tiktok {
+  background: linear-gradient(45deg, #69c9d0, #ee1d52);
+}
+
+
+/* Estado de las APIs */
+.api-status {
+  background-color: #263759;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  margin-top: 2rem;
+  color: #f0f4ff;
+}
+
+.api-status ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+}
+
+.api-status li {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.api-status li::before {
+  content: "✅ ";
+  color: #4caf50;
+  margin-right: 4px;
+}
