@@ -91,7 +91,38 @@
   "LOADING": "Descargando",
   "HOME": "Inicio",
   "EMPTY_URL_ERROR": "Por favor, introduce unha ligazón de TikTok.",
-  "DOWNLOAD_FAILED": "Non se puido descargar o vídeo. Inténtao de novo máis tarde."
+  "DOWNLOAD_FAILED": "Non se puido descargar o vídeo. Inténtao de novo máis tarde.",
+
+
+"_comment8": "Sección de configuración de administrador",
+  "TITULO": "🚀 Panel de control EverLoad",
+  "YOUTUBE": "YouTube",
+  "TWITTER": "Twitter",
+  "FACEBOOK": "Facebook",
+  "INSTAGRAM": "Instagram",
+  "SPOTIFY": "Spotify",
+  "TIKTOK": "TikTok",
+  "CLIENT_ID": "Client ID de Spotify",
+  "CLIENT_SECRET": "Client Secret de Spotify",
+  "API_KEY": "API Key de YouTube",
+  "GUARDAR": "💾 Gardar",
+  "ACTUALIZAR_YTDLP": "🔄 Actualizar yt-dlp",
+  "LIMPIAR_TEMP": "🧹 Limpar temporais",
+  "VACIAR_HIST": "🗑️ Baleirar historial",
+  "LIMPIAR_LOG": "🧽 Limpar log",
+  "LOGS": "📜 Rexistros recentes",
+  "FILTRAR": "Filtrar por palabra (opcional)",
+  "VER_LOGS": "🔍 Ver rexistros",
+  "HIST_DESCARGAS": "📂 Historial de descargas",
+  "ESTADO_APIS": "📶 Estado das APIs",
+  "COMPROBAR_ESTADO": "🔍 Comprobar estado",
+  "TITULO_TABLA": "Título",
+  "TIPO": "Tipo",
+  "PLATAFORMA": "Plataforma",
+  "FECHA": "Data",
+  "API_OK": "🟢 {{ platform }} operativo",
+  "API_ERROR": "🔴 {{ platform }} con erros"
+  
 
 
 

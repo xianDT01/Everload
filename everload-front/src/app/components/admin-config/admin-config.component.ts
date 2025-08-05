@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ViewChild, ElementRef } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 
 @Component({
@@ -21,9 +22,13 @@ export class AdminConfigComponent implements OnInit {
   mensaje = '';
   cargando = false;
 
-  constructor(private http: HttpClient) { }
-
-
+  constructor(private http: HttpClient, private translate: TranslateService) {
+    translate.setDefaultLang('gl');
+    const savedLang = localStorage.getItem('language');
+    if (savedLang) {
+      translate.use(savedLang);
+    }
+  }
   ngOnInit(): void {
     // Cargar la config una sola vez
     this.http.get<any>('http://localhost:8080/api/admin/config')
@@ -44,6 +49,11 @@ export class AdminConfigComponent implements OnInit {
     }, 10000); // 10 segundos
   }
 
+  changeLanguage(lang: string) {
+    this.translate.use(lang);
+    localStorage.setItem('language', lang);
+  }
+
 
 
   guardarCambios(): void {
@@ -61,26 +71,26 @@ export class AdminConfigComponent implements OnInit {
       });
   }
 
-actualizarYtDlp(): void {
-  this.mensaje = '⏳ Actualizando yt-dlp...';
-  this.cargando = true;
+  actualizarYtDlp(): void {
+    this.mensaje = '⏳ Actualizando yt-dlp...';
+    this.cargando = true;
 
-  this.http.post('http://localhost:8080/api/admin/update-yt-dlp', null, { responseType: 'text' })
-    .subscribe({
-      next: (respuesta: string) => {
-        this.mensaje = '📦 ' + respuesta;
-        this.cargando = false;
-      },
-      error: (error) => {
-        if (error?.error) {
-          this.mensaje = '❌ ' + error.error;
-        } else {
-          this.mensaje = '❌ Error desconocido al actualizar yt-dlp';
+    this.http.post('http://localhost:8080/api/admin/update-yt-dlp', null, { responseType: 'text' })
+      .subscribe({
+        next: (respuesta: string) => {
+          this.mensaje = '📦 ' + respuesta;
+          this.cargando = false;
+        },
+        error: (error) => {
+          if (error?.error) {
+            this.mensaje = '❌ ' + error.error;
+          } else {
+            this.mensaje = '❌ Error desconocido al actualizar yt-dlp';
+          }
+          this.cargando = false;
         }
-        this.cargando = false;
-      }
-    });
-}
+      });
+  }
 
 
 
@@ -174,34 +184,41 @@ actualizarYtDlp(): void {
     return rutas[plataforma] || '';
   }
 
-apiEstados: { [key: string]: string } = {
-  backend: '⏳',
-  youtube: '⏳',
-  spotify: '⏳',
-  tiktok: '⏳',
-  facebook: '⏳',
-  instagram: '⏳'
-};
-
-comprobarApis(): void {
-  const endpoints = {
-    youtube: 'http://localhost:8080/api/admin/test-api/youtube',
-    spotify: 'http://localhost:8080/api/admin/test-api/spotify',
-    tiktok: 'http://localhost:8080/api/admin/test-api/tiktok',
-    facebook: 'http://localhost:8080/api/admin/test-api/facebook',
-    instagram: 'http://localhost:8080/api/admin/test-api/instagram'
+  apiEstados: { [key: string]: string } = {
+    backend: '⏳',
+    youtube: '⏳',
+    spotify: '⏳',
+    tiktok: '⏳',
+    facebook: '⏳',
+    instagram: '⏳'
   };
 
-  for (const [clave, url] of Object.entries(endpoints)) {
-    this.http.get(url, { responseType: 'text' }).subscribe({
-      next: (respuesta) => this.apiEstados[clave] = respuesta,
-      error: () => this.apiEstados[clave] = `🔴 ${clave} ERROR`
-    });
+  comprobarApis(): void {
+    const endpoints = {
+      youtube: 'http://localhost:8080/api/admin/test-api/youtube',
+      spotify: 'http://localhost:8080/api/admin/test-api/spotify',
+      tiktok: 'http://localhost:8080/api/admin/test-api/tiktok',
+      facebook: 'http://localhost:8080/api/admin/test-api/facebook',
+      instagram: 'http://localhost:8080/api/admin/test-api/instagram'
+    };
+
+    for (const [clave, url] of Object.entries(endpoints)) {
+      this.http.get<any>(url).subscribe({
+        next: (respuesta) => {
+          const platform = respuesta.platform || clave;
+          const statusKey = respuesta.status === 'ok' ? 'API_OK' : 'API_ERROR';
+
+          // Traducir el mensaje con el nombre de la plataforma
+          this.apiEstados[clave] = this.translate.instant(statusKey, { platform });
+        },
+        error: () => {
+          this.apiEstados[clave] = this.translate.instant('API_ERROR', { platform: clave });
+        }
+      });
+    }
+
+
   }
-}
-
-
-
 
 }
 
