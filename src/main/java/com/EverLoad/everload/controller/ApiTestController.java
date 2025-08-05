@@ -6,6 +6,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/admin/test-api")
 public class ApiTestController {
@@ -19,68 +22,116 @@ public class ApiTestController {
     }
 
     @GetMapping("/youtube")
-    public ResponseEntity<String> testYouTube() {
+    public ResponseEntity<Map<String, String>> testYouTube() {
+        Map<String, String> response = new HashMap<>();
+        response.put("platform", "YouTube");
+
         try {
             String apiKey = configService.getApiKey();
             String url = "https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&type=video&maxResults=1&key=" + apiKey;
             RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            ResponseEntity<String> apiResponse = restTemplate.getForEntity(url, String.class);
 
-            return response.getStatusCode().is2xxSuccessful()
-                    ? ResponseEntity.ok("🟢 YouTube OK")
-                    : ResponseEntity.status(500).body("🔴 YouTube ERROR: " + response.getStatusCode());
+            if (apiResponse.getStatusCode().is2xxSuccessful()) {
+                response.put("status", "ok");
+            } else {
+                response.put("status", "error");
+                response.put("message", "Código de estado: " + apiResponse.getStatusCode());
+            }
+
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("🔴 YouTube ERROR: " + e.getMessage());
+            response.put("status", "error");
+            response.put("message", e.getMessage());
         }
+
+        return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/spotify")
-    public ResponseEntity<String> testSpotify() {
+    public ResponseEntity<Map<String, String>> testSpotify() {
+        Map<String, String> response = new HashMap<>();
+        response.put("platform", "Spotify");
+
         try {
             spotifyService.getAccessToken();
-            return ResponseEntity.ok("🟢 Spotify OK");
+            response.put("status", "ok");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("🔴 Spotify ERROR: " + e.getMessage());
+            response.put("status", "error");
+            response.put("message", e.getMessage());
         }
+
+        return ResponseEntity.ok(response);
     }
 
+
     @GetMapping("/tiktok")
-    public ResponseEntity<String> testTikTok() {
+    public ResponseEntity<Map<String, String>> testTikTok() {
+        Map<String, String> response = new HashMap<>();
+        response.put("platform", "TikTok");
+
         try {
             RestTemplate rest = new RestTemplate();
             ResponseEntity<String> resp = rest.getForEntity("https://www.tiktok.com/", String.class);
-            return resp.getStatusCode().is2xxSuccessful()
-                    ? ResponseEntity.ok("🟢 TikTok responde correctamente")
-                    : ResponseEntity.status(500).body("🔴 TikTok respondió con error");
+
+            response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
+            if (!resp.getStatusCode().is2xxSuccessful()) {
+                response.put("message", "Código de estado: " + resp.getStatusCode());
+            }
+
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("🔴 Error al conectar con TikTok: " + e.getMessage());
+            response.put("status", "error");
+            response.put("message", e.getMessage());
         }
+
+        return ResponseEntity.ok(response);
     }
 
+
     @GetMapping("/facebook")
-    public ResponseEntity<String> testFacebook() {
+    public ResponseEntity<Map<String, String>> testFacebook() {
+        Map<String, String> response = new HashMap<>();
+        response.put("platform", "Facebook");
+
         try {
             RestTemplate rest = new RestTemplate();
             ResponseEntity<String> resp = rest.getForEntity("https://www.facebook.com/", String.class);
-            return resp.getStatusCode().is2xxSuccessful()
-                    ? ResponseEntity.ok("🟢 Facebook responde correctamente")
-                    : ResponseEntity.status(500).body("🔴 Facebook respondió con error");
+
+            response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
+            if (!resp.getStatusCode().is2xxSuccessful()) {
+                response.put("message", "Código de estado: " + resp.getStatusCode());
+            }
+
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("🔴 Error al conectar con Facebook: " + e.getMessage());
+            response.put("status", "error");
+            response.put("message", e.getMessage());
         }
+
+        return ResponseEntity.ok(response);
     }
 
+
     @GetMapping("/instagram")
-    public ResponseEntity<String> testInstagram() {
+    public ResponseEntity<Map<String, String>> testInstagram() {
+        Map<String, String> response = new HashMap<>();
+        response.put("platform", "Instagram");
+
         try {
             RestTemplate rest = new RestTemplate();
             ResponseEntity<String> resp = rest.getForEntity("https://www.instagram.com/", String.class);
-            return resp.getStatusCode().is2xxSuccessful()
-                    ? ResponseEntity.ok("🟢 Instagram responde correctamente")
-                    : ResponseEntity.status(500).body("🔴 Instagram respondió con error");
+
+            response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
+            if (!resp.getStatusCode().is2xxSuccessful()) {
+                response.put("message", "Código de estado: " + resp.getStatusCode());
+            }
+
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("🔴 Error al conectar con Instagram: " + e.getMessage());
+            response.put("status", "error");
+            response.put("message", e.getMessage());
         }
+
+        return ResponseEntity.ok(response);
     }
+
 
 }

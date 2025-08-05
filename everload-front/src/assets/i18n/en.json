@@ -87,8 +87,38 @@
   "LOADING": "Downloading",
   "HOME": "Home",
   "EMPTY_URL_ERROR": "Please enter a TikTok link.",
-  "DOWNLOAD_FAILED": "Failed to download the video. Please try again later."
+  "DOWNLOAD_FAILED": "Failed to download the video. Please try again later.",
   
+  
+  "_comment8": "Sección de configuración de administrador",
+    "TITULO": "🚀 EverLoad Control Panel",
+  "YOUTUBE": "YouTube",
+  "TWITTER": "Twitter",
+  "FACEBOOK": "Facebook",
+  "INSTAGRAM": "Instagram",
+  "SPOTIFY": "Spotify",
+  "TIKTOK": "TikTok",
+  "CLIENT_ID": "Spotify Client ID",
+  "CLIENT_SECRET": "Spotify Client Secret",
+  "API_KEY": "YouTube API Key",
+  "GUARDAR": "💾 Save",
+  "ACTUALIZAR_YTDLP": "🔄 Update yt-dlp",
+  "LIMPIAR_TEMP": "🧹 Clear temp files",
+  "VACIAR_HIST": "🗑️ Clear history",
+  "LIMPIAR_LOG": "🧽 Clear log",
+  "LOGS": "📜 Recent logs",
+  "FILTRAR": "Filter by word (optional)",
+  "VER_LOGS": "🔍 View logs",
+  "HIST_DESCARGAS": "📂 Download history",
+  "ESTADO_APIS": "📶 API status",
+  "COMPROBAR_ESTADO": "🔍 Check status",
+  "TITULO_TABLA": "Title",
+  "TIPO": "Type",
+  "PLATAFORMA": "Platform",
+  "FECHA": "Date",
+  "API_OK": "🟢 {{ platform }} working",
+  "API_ERROR": "🔴 {{ platform }} has issues"
+
   
 
 

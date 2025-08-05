@@ -1,48 +1,59 @@
-<div class="dashboard">
-  <h2 class="dashboard-title">🚀 Panel de control EverLoad</h2>
 
-<div class="platform-buttons">
-  <a routerLink="/youtube-downloads" class="platform youtube">
-    <img src="/assets/youtube-icon-logo-719479.png" class="icon"> YouTube
-  </a>
-  <a routerLink="/twitter-downloads" class="platform twitter">
-    <img src="/assets/twitter-icon.png" class="icon"> Twitter
-  </a>
-  <a routerLink="/facebook-downloads" class="platform facebook">
-    <img src="/assets/fb sin fondo.png" class="icon"> Facebook
-  </a>
-  <a routerLink="/instagram-downloads" class="platform instagram">
-    <img src="/assets/instagram-icon.png" class="icon"> Instagram
-  </a>
-  <a routerLink="/spotify-downloads" class="platform spotify">
-    <img src="/assets/Spotify.png" class="icon"> Spotify
-  </a>
-  <a routerLink="/tiktok-downloads" class="platform tiktok">
-    <img src="/assets/tiktok_logo.png" class="icon"> TikTok
-  </a>
-</div>
+<div class="dashboard">
+  <div class="dashboard-header">
+    <h2 class="dashboard-title">{{ 'TITULO' | translate }}</h2>
+    <div class="language-selector">
+      <button (click)="changeLanguage('es')">🇪🇸 <span>Español</span></button>
+      <button (click)="changeLanguage('en')">🇬🇧 <span>English</span></button>
+      <button (click)="changeLanguage('gl')">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galicia" width="20">
+        <span>Galego</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="platform-buttons">
+    <a routerLink="/youtube-downloads" class="platform youtube">
+      <img src="/assets/youtube-icon-logo-719479.png" class="icon"> {{ 'YOUTUBE' | translate }}
+    </a>
+    <a routerLink="/twitter-downloads" class="platform twitter">
+      <img src="/assets/twitter-icon.png" class="icon"> {{ 'TWITTER' | translate }}
+    </a>
+    <a routerLink="/facebook-downloads" class="platform facebook">
+      <img src="/assets/fb sin fondo.png" class="icon"> {{ 'FACEBOOK' | translate }}
+    </a>
+    <a routerLink="/instagram-downloads" class="platform instagram">
+      <img src="/assets/instagram-icon.png" class="icon"> {{ 'INSTAGRAM' | translate }}
+    </a>
+    <a routerLink="/spotify-downloads" class="platform spotify">
+      <img src="/assets/Spotify.png" class="icon"> {{ 'SPOTIFY' | translate }}
+    </a>
+    <a routerLink="/tiktok-downloads" class="platform tiktok">
+      <img src="/assets/tiktok_logo.png" class="icon"> {{ 'TIKTOK' | translate }}
+    </a>
+  </div>
 
 
   <form (ngSubmit)="guardarCambios()" *ngIf="config" class="form-grid">
-    <label>Client ID Spotify:</label>
+    <label>{{ 'CLIENT_ID' | translate }}:</label>
     <input [(ngModel)]="config.clientId" name="clientId" required />
 
-    <label>Client Secret Spotify:</label>
+    <label>{{ 'CLIENT_SECRET' | translate }}:</label>
     <input [(ngModel)]="config.clientSecret" name="clientSecret" required />
 
-    <label>API Key de YouTube:</label>
+    <label>{{ 'API_KEY' | translate }}:</label>
     <input [(ngModel)]="config.apiKey" name="apiKey" required />
 
-    <button type="submit" class="btn primary" [disabled]="cargando">💾 Guardar</button>
+    <button type="submit" class="btn primary" [disabled]="cargando">{{ 'GUARDAR' | translate }}</button>
   </form>
 
   <p *ngIf="mensaje" class="message">{{ mensaje }}</p>
 
   <div class="actions-row">
-    <button (click)="actualizarYtDlp()" class="btn secondary" [disabled]="cargando">🔄 Actualizar yt-dlp</button>
-    <button (click)="limpiarTemporales()" class="btn warning">🧹 Limpiar temporales</button>
-    <button (click)="vaciarHistorial()" class="btn danger">🗑️ Vaciar historial</button>
-    <button (click)="limpiarLog()" class="btn dark">🧽 Limpiar log</button>
+    <button (click)="actualizarYtDlp()" class="btn secondary" [disabled]="cargando">{{ 'ACTUALIZAR_YTDLP' | translate }}</button>
+    <button (click)="limpiarTemporales()" class="btn warning">{{ 'LIMPIAR_TEMP' | translate }}</button>
+    <button (click)="vaciarHistorial()" class="btn danger">{{ 'VACIAR_HIST' | translate }}</button>
+    <button (click)="limpiarLog()" class="btn dark">{{ 'LIMPIAR_LOG' | translate }}</button>
   </div>
 
   <p>{{ mensajeLimpieza }}</p>
@@ -50,10 +61,10 @@
   <p>{{ mensajeLogLimpio }}</p>
 
   <hr />
-  <h3>📜 Logs recientes</h3>
+  <h3>{{ 'LOGS' | translate }}</h3>
   <div class="logs-section">
-    <input [(ngModel)]="filtroLog" placeholder="Filtrar por palabra (opcional)">
-    <button class="btn small" (click)="cargarLogs()">🔍 Ver logs</button>
+    <input [(ngModel)]="filtroLog" [placeholder]="'FILTRAR' | translate">
+    <button class="btn small" (click)="cargarLogs()">{{ 'VER_LOGS' | translate }}</button>
   </div>
 
   <div #logContainer class="log-output">
@@ -61,47 +72,40 @@
   </div>
 
   <hr />
- <h3>📂 Historial de descargas</h3>
-<div class="history-container">
-  <table *ngIf="historial.length > 0" class="history-table">
-    <thead>
-      <tr>
-        <th>Título</th>
-        <th>Tipo</th>
-        <th>Plataforma</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let item of historial">
-        <td>{{ item.titulo }}</td>
-        <td>{{ item.tipo }}</td>
-        <td>
-          <img [src]="getIconPath(item.plataforma)" class="icon-table" />
-          {{ item.plataforma }}
-        </td>
-        <td>{{ item.fecha | date:'short' }}</td>
-      </tr>
-    </tbody>
-  </table>
+  <h3>{{ 'HIST_DESCARGAS' | translate }}</h3>
+  <div class="history-container">
+    <table *ngIf="historial.length > 0" class="history-table">
+      <thead>
+        <tr>
+          <th>{{ 'TITULO_TABLA' | translate }}</th>
+          <th>{{ 'TIPO' | translate }}</th>
+          <th>{{ 'PLATAFORMA' | translate }}</th>
+          <th>{{ 'FECHA' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of historial">
+          <td>{{ item.titulo }}</td>
+          <td>{{ item.tipo }}</td>
+          <td>
+            <img [src]="getIconPath(item.plataforma)" class="icon-table" />
+            {{ item.plataforma }}
+          </td>
+          <td>{{ item.fecha | date:'short' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>{{ 'ESTADO_APIS' | translate }}</h3>
+  <div class="api-status">
+    <button (click)="comprobarApis()" class="btn secondary">{{ 'COMPROBAR_ESTADO' | translate }}</button>
+    <ul>
+      <li><strong>YouTube:</strong> {{ apiEstados['youtube'] }}</li>
+      <li><strong>Spotify:</strong> {{ apiEstados['spotify'] }}</li>
+      <li><strong>TikTok:</strong> {{ apiEstados['tiktok'] }}</li>
+      <li><strong>Facebook:</strong> {{ apiEstados['facebook'] }}</li>
+      <li><strong>Instagram:</strong> {{ apiEstados['instagram'] }}</li>
+    </ul>
+  </div>
 </div>
-
-<!-- ¡IMPORTANTE! Este bloque ahora está FUERA del .history-container -->
-<h3>📶 Estado de las APIs</h3>
-<div class="api-status">
-  <button (click)="comprobarApis()" class="btn secondary">🔍 Comprobar estado</button>
-  <ul>
-    <li><strong>YouTube:</strong> {{ apiEstados['youtube'] }}</li>
-    <li><strong>Spotify:</strong> {{ apiEstados['spotify'] }}</li>
-    <li><strong>TikTok:</strong> {{ apiEstados['tiktok'] }}</li>
-    <li><strong>Facebook:</strong> {{ apiEstados['facebook'] }}</li>
-    <li><strong>Instagram:</strong> {{ apiEstados['instagram'] }}</li>
-  </ul>
-</div>
-
-
-
-
-
-</div>
-
