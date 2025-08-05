@@ -345,3 +345,53 @@ h3 {
   color: #4caf50;
   margin-right: 4px;
 }
+
+/* Botonera de idiomas */
+.language-selector {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.language-selector {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.language-selector button {
+  background-color: #32476d;
+  color: #f0f4ff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.language-selector button:hover {
+  background-color: #4e9af1;
+}
+
+.language-selector img {
+  height: 16px;
+  width: auto;
+}
+
+
+
