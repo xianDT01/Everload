@@ -1,14 +1,7 @@
 # EverLoad - Descarga Música y Videos de Internet
 
 <p align="center">
-  <lottie-player
-    src="https://lottie.host/2308d19f-1a01-4c90-949c-2d93b84f0554/VX8IMVeqdK.json"
-    background="transparent"
-    speed="1"
-    style="width: 200px; height: 200px;"
-    loop
-    autoplay>
-  </lottie-player>
+  <img src="https://media.giphy.com/media/jQnU4Ck3l8S6zdEWTv/giphy.gif" width="200" alt="EverLoad animation"/>
 </p>
 
 **EverLoad** es una aplicación desarrollada en **Spring Boot** y **Angular 15** que permite descargar fácilmente videos y audios desde las plataformas más populares, todo de forma rápida, segura y desde tu red privada.
