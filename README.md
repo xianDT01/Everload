@@ -1,16 +1,17 @@
 # EverLoad - Descarga Música y Videos de Internet
 
+<p align="center">
+  <img src="https://assets4.lottiefiles.com/private_files/lf30_qwwwnlrz.json" alt="EverLoad animation" width="200" />
+</p>
+
 **EverLoad** es una aplicación desarrollada en **Spring Boot** y **Angular 15** que permite descargar fácilmente videos y audios desde las plataformas más populares, todo de forma rápida, segura y desde tu red privada.
 
----
-
 **EverLoad** is an app built with **Spring Boot** and **Angular 15** that allows you to easily download videos and audio from the most popular platforms, quickly, securely, and within your private network.
-
----
 
 **EverLoad** é unha aplicación feita con **Spring Boot** e **Angular 15** que permite descargar vídeos e audios das plataformas máis populares de forma rápida, segura e desde a túa rede privada.
 
 ---
+
 ## 🖼️ Vista previa de la aplicación
 
 <p align="center">
@@ -26,6 +27,7 @@
   <img src="docs/assets/TIkTok.png" alt="TikTok" width="200">
 </p>
 
+---
 
 ## 🚀 Características / Features / Características
 
@@ -33,17 +35,13 @@
 - 🐦 **Twitter/X**: vídeos públicos / public videos / vídeos públicos.
 - 📘 **Facebook**: vídeos públicos / public videos / vídeos públicos.
 - 📸 **Instagram**: Reels e posts públicos / public Reels and posts / Reels e publicacións públicas.
-- 🎧 **Spotify**: Pega una playlist y descarga las canciones desde YouTube automáticamente/
-  Paste a playlist and download songs from YouTube automatically/
-  Pega unha playlist e descarga cancións desde YouTube automaticamente.
-- 🎵 TikTok: Descarga vídeos de TikTok pegando la URL directamente/
-  Download TikTok videos by pasting the URL directly/
-  Descarga vídeos de TikTok pegando directamente a URL.
-- 🌐 Frontend multilingüe / Multilingual frontend / Frontend multilingüe (ES, EN, GL).
-- 📦 Backend con API REST en Spring Boot.
-- 🖼️ UI responsive e temática por plataforma.
-- 🐳 Preparado para Docker / Docker-ready / Preparado para Docker.
-- 📜 Documentación con Swagger.
+- 🎧 **Spotify**: Pega una playlist y descarga las canciones desde YouTube automáticamente.
+- 🎵 **TikTok**: Descarga vídeos pegando la URL directamente.
+- 🌐 **Frontend multilingüe**: ES, EN, GL.
+- 📦 **Backend con API REST** (Spring Boot).
+- 🖼️ **UI responsive** y temática por plataforma.
+- 🐳 **Preparado para Docker**.
+- 📜 **Documentación Swagger** integrada.
 
 ---
 
@@ -51,7 +49,7 @@
 
 - Java 17+
 - Node.js + Angular CLI
-- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) instalado / installed / instalado
+- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp)
 
 ---
 
@@ -62,9 +60,7 @@ mvn clean package
 java -jar target/everload-1.0.0.jar
 ```
 
-- ES: Backend disponible en `http://localhost:8080`
-- EN: Backend available at `http://localhost:8080`
-- GL: Backend dispoñible en `http://localhost:8080`
+- `http://localhost:8080`
 
 ---
 
@@ -76,9 +72,7 @@ npm install
 ng serve
 ```
 
-- ES: Frontend disponible en `http://localhost:4200`
-- EN: Frontend available at `http://localhost:4200`
-- GL: Frontend dispoñible en `http://localhost:4200`
+- `http://localhost:4200`
 
 ---
 
@@ -86,10 +80,10 @@ ng serve
 
 ### 📥 YouTube
 
-- 🎥 Video:  
+- Video:  
   `GET /api/downloadVideo?videoId=VIDEO_ID&resolution=1080`
 
-- 🎧 Música / Music:  
+- Música / Music:  
   `GET /api/downloadMusic?videoId=VIDEO_ID&format=mp3`
 
 ### 🐦 Twitter/X
@@ -104,11 +98,11 @@ ng serve
 
 `GET /api/downloadInstagram?url=URL_REEL`
 
-### 🎵 TikTok (nuevo)
+### 🎵 TikTok
 
 `GET /api/downloadTikTok?url=URL_VIDEO`
 
-### 🎧 Spotify (nueva)
+### 🎧 Spotify
 
 `POST /api/spotify/playlist`
 
@@ -129,27 +123,15 @@ ng serve
 
 ## ⚠️ Limitaciones / Limitations / Limitacións
 
-- Instagram: Solo se permiten Reels y publicaciones públicas.  
-  Only public Reels and posts are supported.  
-  Só se permiten Reels e publicacións públicas.
-
-- Facebook: Solo vídeos públicos.  
-  Public videos only.  
-  Só vídeos públicos.
-
-- Twitter/X: Solo contenido público.  
-  Public content only.  
-  Só contido público.
-
-- Spotify: No se descargan directamente desde Spotify. Se leen los títulos y se buscan en YouTube.
-  Does not download directly from Spotify. It reads song titles and searches them on YouTube.
-  Non descarga directamente desde Spotify. Le os títulos e búscaos en YouTube.
+- Instagram, Facebook y Twitter/X: Solo contenido público.
+- Spotify: No descarga directamente desde Spotify. Se leen los títulos y se buscan en YouTube.
 
 ---
-## Licencia
 
-Este proyecto está bajo la Licencia MIT. Puedes usarlo, modificarlo y distribuirlo libremente, siempre que me menciones como autor original:  
-**Xián Duán Taboada – xiandt01@gmail.com**  
-Ver archivo [LICENSE](./LICENSE) para más detalles.
+## 📝 Licencia
 
----
+Este proyecto está bajo la Licencia MIT.  
+Puedes usarlo, modificarlo y distribuirlo libremente, siempre que menciones al autor original:  
+**Xián Duán Taboada – xiandt01@gmail.com**
+
+Consulta el archivo [LICENSE](./LICENSE) para más detalles.
