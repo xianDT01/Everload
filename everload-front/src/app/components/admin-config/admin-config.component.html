@@ -2,6 +2,9 @@
 <div class="dashboard">
   <div class="dashboard-header">
     <h2 class="dashboard-title">{{ 'TITULO' | translate }}</h2>
+    <a routerLink="/" class="btn return-home" aria-label="Volver al inicio">
+  🔙 {{ 'HOME' | translate }}
+</a>
     <div class="language-selector">
       <button (click)="changeLanguage('es')">🇪🇸 <span>Español</span></button>
       <button (click)="changeLanguage('en')">🇬🇧 <span>English</span></button>
