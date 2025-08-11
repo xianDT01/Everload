@@ -188,12 +188,13 @@ button:active {
 }
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* Fuerza 5 columnas */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); /* antes eran 4 columnas fijas */
   gap: 20px;
   width: 100%;
-  max-width: 1400px; /* Ajusta según el ancho de tu layout */
+  max-width: 1400px;
   margin-top: 30px;
 }
+
 
 
 .video-card {
@@ -217,15 +218,25 @@ button:active {
   object-fit: cover;
 }
 .video-card img.thumbnail {
-  width: 180px;
-  height: auto;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+}
+
+.video-card .thumbnail {
+  width: 100%;
+  height: 150px;
   object-fit: cover;
 }
+
 .video-info {
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  align-items: center; /* Centra el botón y el texto */
+  text-align: center;  /* Centra también los textos */
 }
 .video-info .title {
   font-size: 16px;
@@ -239,19 +250,20 @@ button:active {
 }
 
 .video-info button {
-  align-self: flex-start;
   background-color: #ff0000;
   color: white;
   font-weight: bold;
   border: none;
   border-radius: 6px;
-  padding: 8px 12px;
+  padding: 5px 10px; /* Más fino */
+  font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .video-info button:hover {
   background-color: #cc0000;
+  transform: scale(1.03);
 }
 .video-details {
   padding: 15px;
