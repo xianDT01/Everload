@@ -275,48 +275,60 @@ h3 {
 }
 
 .platform {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  gap: 12px;
   padding: 1rem 1.2rem;
-  font-weight: 600;
-  border-radius: 8px;
-  color: white;
+  border-radius: 16px;                 /* más redondeado */
+  color: #fff;
   text-decoration: none;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-  transition: transform 0.2s ease;
-  gap: 10px;
+  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }
 
 .platform:hover {
   transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,.32);
+  filter: saturate(1.05);
 }
-
 /* Iconos de plataforma */
+
+
+
+
 .platform .icon {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
 }
 
 /* Colores por plataforma */
 .platform.youtube {
-  background-color: #ff0000;
+  background: linear-gradient(135deg, #ff4d4d 0%, #ff0000 45%, #b30000 100%);
 }
-.platform.twitter {
-  background-color: #1da1f2;
+.platform.twitter { /* X: estilo oscuro con azul sutil */
+  background: linear-gradient(135deg, #0f1419 0%, #1c2633 50%, #0f1419 100%);
+  box-shadow: 0 8px 18px rgba(15,20,25,.35);
 }
 .platform.facebook {
-  background-color: #1877f2;
-}
-.platform.instagram {
-  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  background: linear-gradient(135deg, #1d86ff 0%, #1877f2 50%, #0e5ad6 100%);
 }
 .platform.spotify {
-  background-color: #1db954;
+  background: linear-gradient(135deg, #23e36a 0%, #1db954 50%, #159b41 100%);
+}
+.platform.instagram {
+  background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
 }
 .platform.tiktok {
   background: linear-gradient(45deg, #69c9d0, #ee1d52);
 }
+
+/* Glow por marca al hover (muy suave) */
+.platform.youtube:hover  { box-shadow: 0 14px 28px rgba(255,0,0,.35); }
+.platform.twitter:hover  { box-shadow: 0 14px 28px rgba(29,161,242,.28); }
+.platform.facebook:hover { box-shadow: 0 14px 28px rgba(24,119,242,.32); }
+.platform.spotify:hover  { box-shadow: 0 14px 28px rgba(30,215,96,.32); }
+
 
 
 /* Estado de las APIs */
@@ -413,5 +425,3 @@ h3 {
   transform: translateY(-2px);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
-
-

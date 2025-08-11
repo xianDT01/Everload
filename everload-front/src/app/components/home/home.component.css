@@ -66,30 +66,48 @@ html, body {
   
 }
 .button {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center; /* centra el contenido */
-  gap: 10px;
-  padding: 12px 24px;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 22px;
   font-size: 18px;
-  font-weight: bold;
-  border-radius: 8px;
+  font-weight: 700;
+  border-radius: 16px;                /* más redondeado */
+  color: #fff;
   text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   border: none;
-  color: white;
   cursor: pointer;
   min-width: 280px;
   max-width: 90vw;
   width: 100%;
   box-sizing: border-box;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  animation: fadeInUp 0.4s ease forwards;
+  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }
 .button:hover {
-  box-shadow: 0 0 10px rgba(255,255,255,0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,.32);
+  filter: saturate(1.05);
 }
+/* borde interior para profundidad */
+.button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+  pointer-events: none;
+}
+
+/* Iconos consistentes */
+.button .icon {
+  width: 28px;
+  height: 28px;
+
+}
+
 @keyframes fadeInUp {
   0% { opacity: 0; transform: translateY(10px); }
   100% { opacity: 1; transform: translateY(0); }
@@ -104,50 +122,48 @@ html, body {
   position: absolute;
   top: 20px;
   right: 20px;
-  background: #6366f1;
-  color: white;
+  background: linear-gradient(135deg, #6d78ff, #5a62f1);
+  color: #fff;
   padding: 10px 16px;
-  border-radius: 8px;
-  font-weight: bold;
+  border-radius: 999px;               /* pill */
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 8px;
   text-decoration: none;
   font-size: 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: background 0.2s ease;
+  box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
   z-index: 999;
 }
 .admin-top-button:hover {
-  background: #4f46e5;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0,0,0,.32);
+  filter: saturate(1.05);
 }
-.admin-top-button .icon {
-  width: 20px;
-  height: 20px;
-}
+.admin-top-button .icon { width: 20px; height: 20px; }
+
 
 
 /* Colores por plataforma */
 .youtube-button {
-  background: linear-gradient(45deg, #FF0000, #CC0000);
-  color: white;
+  background: linear-gradient(135deg, #ff4d4d 0%, #ff0000 45%, #b30000 100%);
 }
 
 .youtube-button:hover {
   filter: brightness(1.1);
 }
 
-.twitter-button {
-  background: linear-gradient(45deg, #1DA1F2, #0D8FDB);
-  color: white;
+.twitter-button { /* X estilo oscuro con azul sutil */
+  background: linear-gradient(135deg, #0f1419 0%, #1c2633 50%, #0f1419 100%);
+  box-shadow: 0 8px 18px rgba(15,20,25,.35);
 }
 
 .twitter-button:hover {
   filter: brightness(1.1);
 }
 .facebook-button {
-  background: linear-gradient(45deg, #1877F2, #145DBF);
-  color: white;
+  background: linear-gradient(135deg, #1d86ff 0%, #1877f2 50%, #0e5ad6 100%);
 }
 
 .facebook-button:hover {
@@ -159,21 +175,19 @@ html, body {
   color: white;
 }
 
-.instagram-button:hover {
-  filter: brightness(1.1);
+.instagram-button {
+  background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);
 }
 
 .spotify-button {
-  background: linear-gradient(45deg, #1ED760, #1DB954);
-  color: white;
+  background: linear-gradient(135deg, #23e36a 0%, #1db954 50%, #159b41 100%);
 }
 
 .spotify-button:hover {
   filter: brightness(1.1);
 }
 .tiktok-button {
-  background: linear-gradient(45deg, #25F4EE, #FE2C55);
-  color: white;
+  background: linear-gradient(45deg, #69c9d0, #ee1d52);
 }
 
 .tiktok-button:hover {
@@ -274,13 +288,19 @@ html, body {
     gap: 5px;
   }
 
-  .options {
-    flex-direction: column;
-    align-items: center;
-  }
+ .options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 16px;
+  margin-top: 30px;
+  max-width: 640px;
+  width: 100%;
 }
+
+}
+/* Responsive */ 
 @media (max-width: 600px) {
-  .options {
-    grid-template-columns: 1fr;
-  }
+  .options { grid-template-columns: 1fr; }
+  .button  { font-size: 16px; padding: 12px 18px; }
+  .button .icon { width: 24px; height: 24px; }
 }
