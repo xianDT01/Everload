@@ -1,3 +1,0 @@
-2025-08-11T19:03:24.770+02:00  INFO 6659 --- [Everload] [http-nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2025-08-11T19:03:24.771+02:00  INFO 6659 --- [Everload] [http-nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2025-08-11T19:03:24.773+02:00  INFO 6659 --- [Everload] [http-nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
