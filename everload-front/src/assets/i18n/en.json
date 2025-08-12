@@ -35,6 +35,8 @@
 "ERROR_UNKNOWN": "Something went wrong. Please try again later.",
 "ERROR_DOWNLOADING_MUSIC": "An error occurred while downloading the music",
 "ERROR_LOADING_PLAYLIST": "An error occurred while loading the playlist",
+"PLEASE_ENTER_YOUTUBE_LINK": "Please enter a YouTube link",
+
 
 
 
