@@ -139,7 +139,12 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 4px 6px;
+  padding: 0;
+  width: 24px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: transform 0.2s;
 }
 
@@ -147,11 +152,18 @@
   transform: scale(1.1);
 }
 
-.language-switcher img {
-  width: 20px;
-  height: 14px;
+.language-switcher .flag {
+  width: 24px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 16px;
+  display: inline-block;
   object-fit: contain;
+  max-width: 100%;
 }
+
+
+
 @media (max-width: 768px) {
   .spotify-split-container {
     flex-direction: column;

@@ -9,12 +9,7 @@
 
       <p class="Spotify_Subtitle">{{ 'Spotify_Subtitle' | translate }}</p>
 
-      <input
-        type="text"
-        [(ngModel)]="playlistUrl"
-        [placeholder]="'PLACEHOLDER' | translate"
-        class="spotify-input"
-      />
+      <input type="text" [(ngModel)]="playlistUrl" [placeholder]="'PLACEHOLDER' | translate" class="spotify-input" />
       <p *ngIf="error" class="error-text">❌ {{ error }}</p>
 
       <button class="spotify-button" (click)="descargarListaCanciones()" [disabled]="cargando">
@@ -27,13 +22,19 @@
       </a>
 
       <!-- 🌐 Botones de idioma -->
-      <div class="language-switcher" style="margin-top: 0.5rem;">
-        <button (click)="changeLanguage('es')" aria-label="Cambiar a español">🇪🇸 </button>
-        <button (click)="changeLanguage('en')" aria-label="Switch to English">🇬🇧</button>
-        <button (click)="changeLanguage('gl')">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego" width="20" />
+      <div class="language-switcher">
+        <button (click)="changeLanguage('es')" aria-label="Cambiar a español">
+          <span class="flag">🇪🇸</span>
+        </button>
+        <button (click)="changeLanguage('en')" aria-label="Switch to English">
+          <span class="flag">🇬🇧</span>
+        </button>
+        <button (click)="changeLanguage('gl')" aria-label="Cambiar a galego">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego"
+            class="flag" />
         </button>
       </div>
+
 
       <button class="spotify-button secondary" *ngIf="resultado?.length" (click)="descargarTodas()">
         ⬇️ {{ 'DOWNLOAD_ALL' | translate }}
