@@ -31,13 +31,13 @@
 - 🐦 **Twitter/X**: vídeos públicos / public videos / vídeos públicos.
 - 📘 **Facebook**: vídeos públicos / public videos / vídeos públicos.
 - 📸 **Instagram**: Reels e posts públicos / public Reels and posts / Reels e publicacións públicas.
-- 🎧 **Spotify**: Pega una playlist y descarga las canciones desde YouTube automáticamente.
-- 🎵 **TikTok**: Descarga vídeos pegando la URL directamente.
+- 🎧 **Spotify**: Pega una playlist y descarga las canciones desde YouTube automáticamente. / Pega unha playlist e descarga as cancións de YouTube automaticamente
+- 🎵 **TikTok**: Descarga vídeos pegando la URL directamente / Download videos by pasting the URL directly / Descarga vídeos pegando directamente la URL.
 - 🌐 **Frontend multilingüe**: ES, EN, GL.
-- 📦 **Backend con API REST** (Spring Boot).
-- 🖼️ **UI responsive** y temática por plataforma.
-- 🐳 **Preparado para Docker**.
-- 📜 **Documentación Swagger** integrada.
+- 📦 **Backend con API REST** (Spring Boot) / Backend with REST API (Spring Boot) / Backend con API REST (Spring Boot).
+- 🖼️ **UI responsive** y temática por plataforma. / Responsive UI with platform-specific themes / UI responsive e temática por plataforma.
+- 🐳 **Preparado para Docker**. / Ready for Docker / Preparado para Docker.
+- 📜 **Documentación Swagger** / Integrada.ntegrated Swagger documentation / Documentación Swagger integrada.
 
 ---
 
