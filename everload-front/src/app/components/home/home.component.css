@@ -117,33 +117,6 @@ html, body {
   height: 40px;
 }
 
-/* Botón de administrador */
-.admin-top-button {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: linear-gradient(135deg, #6d78ff, #5a62f1);
-  color: #fff;
-  padding: 10px 16px;
-  border-radius: 999px;               /* pill */
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  font-size: 14px;
-  box-shadow: 0 8px 18px rgba(0,0,0,.25);
-  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
-  z-index: 999;
-}
-.admin-top-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(0,0,0,.32);
-  filter: saturate(1.05);
-}
-.admin-top-button .icon { width: 20px; height: 20px; }
-
-
 
 /* Colores por plataforma */
 .youtube-button {
@@ -238,6 +211,177 @@ html, body {
 .language-selector button:hover {
   opacity: 0.8;
 }
+
+
+/* ========== MENÚ HAMBURGUESA ========== */
+
+/* Oculta checkbox */
+#navcheck {
+  position: fixed;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Icono hamburguesa */
+label {
+  position: absolute;
+  top: 1em;
+  left: 1em;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.burger {
+  width: 2em;
+  height: 2em;
+  position: relative;
+  display: block;
+}
+
+.burger::before,
+.burger .bar,
+.burger::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 12%;
+  background: #fff;
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.burger .bar {
+  top: 44%;
+}
+
+.burger::before {
+  top: 0;
+  transform-origin: top left;
+}
+
+.burger::after {
+  bottom: 0;
+  transform-origin: bottom left;
+}
+
+/* Menú lateral */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 250px;
+  background: #1f1f1f;
+  transform: translateX(-100%);
+  transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  padding-top: 5em;
+  z-index: 999;
+  box-shadow: 3px 0 12px rgba(0, 0, 0, 0.3);
+}
+
+nav a {
+  display: block;
+  margin: 1em 2em;
+  font-size: 1.2em;
+  color: #fff;
+  text-decoration: none;
+  font-family: 'Poppins', sans-serif;
+  transition: color 0.2s;
+}
+
+nav a:hover {
+  color: #00ccff;
+}
+
+/* Contenido principal afectado */
+main .content {
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* Activación del menú */
+#navcheck:checked + label .burger::before {
+  transform: rotate(45deg) translateY(-50%);
+  width: 141.42%;
+}
+
+#navcheck:checked + label .burger::after {
+  transform: rotate(-45deg) translateY(50%);
+  width: 141.42%;
+}
+
+#navcheck:checked + label .burger .bar {
+  transform: scale(0.1);
+}
+
+#navcheck:checked ~ nav {
+  transform: translateX(0);
+}
+
+#navcheck:checked ~ main .content {
+  transform: translateX(3em);
+  filter: blur(2px);
+}
+
+/* Visually hidden (accesibilidad) */
+.visuallyhidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ========== FIN MENÚ HAMBURGUESA ========== */
+
+/* Variante del botón admin cuando está dentro del menú */
+nav .admin-menu-button.in-menu {
+  margin: 2em auto 0;
+  padding: 12px 20px;
+  width: 80%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  background: linear-gradient(135deg, #9d00ff, #6f00d4);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  font-family: 'Poppins', sans-serif;
+
+  border: none;
+  border-radius: 14px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+nav .admin-menu-button.in-menu:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.4);
+  filter: brightness(1.1) saturate(1.1);
+}
+
+nav .admin-menu-button.in-menu .icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1); /* lo hace blanco si no lo es */
+  transition: transform 0.3s ease;
+}
+
+nav .admin-menu-button.in-menu:hover .icon {
+  transform: rotate(10deg) scale(1.05);
+}
+
+
+
+
+
 
 /* -------------------- RESPONSIVE -------------------- */
 @media (max-width: 768px) {
