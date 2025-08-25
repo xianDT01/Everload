@@ -17,6 +17,7 @@ import { SafeUrlPipe } from './components/youtube-downloads/safe-url.pipe';
 import { SpotifyDownloadsComponent } from './components/spotify-downloads/spotify-downloads.component';
 import { TiktokDownloadsComponent } from './components/tiktok-downloads/tiktok-downloads.component';
 import { AdminConfigComponent } from './components/admin-config/admin-config.component';
+import { AboutAppComponent } from './components/about-app/about-app.component';
 // Función para cargar archivos de traducción
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -34,7 +35,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     SafeUrlPipe,
     SpotifyDownloadsComponent,
     TiktokDownloadsComponent,
-    AdminConfigComponent
+    AdminConfigComponent,
+    AboutAppComponent
   ],
   imports: [
     BrowserModule,

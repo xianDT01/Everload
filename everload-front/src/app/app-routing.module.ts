@@ -8,6 +8,7 @@ import { InstagramDownloadsComponent } from './components/instagram-downloads/in
 import { SpotifyDownloadsComponent } from './components/spotify-downloads/spotify-downloads.component';
 import { TiktokDownloadsComponent } from './components/tiktok-downloads/tiktok-downloads.component'; 
 import { AdminConfigComponent } from './components/admin-config/admin-config.component';
+import { AboutAppComponent } from './components/about-app/about-app.component';
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'youtube-downloads', component: YoutubeDownloadsComponent },
@@ -16,7 +17,8 @@ const routes: Routes = [
   {path : 'instagram-downloads', component: InstagramDownloadsComponent},
   {path: 'spotify-downloads', component: SpotifyDownloadsComponent},
   {path: 'tiktok-downloads', component: TiktokDownloadsComponent},
-  {path: 'admin-config', component: AdminConfigComponent}
+  {path: 'admin-config', component: AdminConfigComponent},
+  {path: 'about-app', component: AboutAppComponent}
 ];
 
 @NgModule({
