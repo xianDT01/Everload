@@ -49,13 +49,23 @@
       </div>
 
       <div class="language-selector">
-        <button (click)="changeLanguage('es')">🇪🇸 Español</button>
-        <button (click)="changeLanguage('en')">🇬🇧 English</button>
+        <button (click)="changeLanguage('es')">
+          <img src="https://flagcdn.com/w40/es.png" alt="Bandera de España" class="flag" />
+          Español
+        </button>
+
+        <button (click)="changeLanguage('en')">
+          <img src="https://flagcdn.com/w40/gb.png" alt="Bandera del Reino Unido" class="flag" />
+          English
+        </button>
+
         <button (click)="changeLanguage('gl')">
           <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Bandera de Galicia"
-            width="20"> Galego
+            class="flag" />
+          Galego
         </button>
       </div>
+
     </div>
   </main>
 </div>

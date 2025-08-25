@@ -90,9 +90,31 @@
 .language-selector button {
   background: transparent;
   border: none;
-  font-size: 20px;
+  padding: 4px;
   cursor: pointer;
+  width: 42px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
 }
+
+.language-selector button:hover {
+  transform: scale(1.1);
+}
+
+.language-selector .flag {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  aspect-ratio: 3 / 2;
+  border-radius: 4px;
+  display: block;
+}
+
+
+
 
 .error-msg {
   margin-top: 10px;

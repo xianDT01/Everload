@@ -203,13 +203,22 @@ html, body {
   color: white;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   padding: 5px 10px;
   transition: opacity 0.3s ease;
 }
 
 .language-selector button:hover {
   opacity: 0.8;
+}
+
+.language-selector .flag {
+  width: 30px;
+  height: 20px;
+  object-fit: cover;
+  aspect-ratio: 3 / 2;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 
