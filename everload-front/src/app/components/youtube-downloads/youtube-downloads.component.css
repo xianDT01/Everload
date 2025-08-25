@@ -48,7 +48,10 @@
 
 .language-selector {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
 }
 
 .language-selector button {
@@ -59,11 +62,24 @@
   color: white;
   display: flex;
   align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  transition: opacity 0.3s ease;
 }
 
 .language-selector button:hover {
   opacity: 0.8;
 }
+
+.language-selector .flag {
+  width: 30px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+  aspect-ratio: 3 / 2;
+}
+
 
 .home-button {
   padding: 8px 15px;

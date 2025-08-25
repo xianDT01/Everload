@@ -1,4 +1,0 @@
-2025-08-24 15:14:26 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2025-08-24 15:14:26 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2025-08-24 15:14:26 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
-2025-08-24 16:25:24 INFO  o.s.api.AbstractOpenApiResource - Init duration for springdoc-openapi is: 408 ms
