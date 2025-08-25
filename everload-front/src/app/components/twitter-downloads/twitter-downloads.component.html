@@ -7,20 +7,10 @@
     <div class="login-card">
       <h2 class="login-title">Twitter/X Downloader</h2>
 
-      <input
-        type="text"
-        [(ngModel)]="tweetUrl"
-        placeholder="{{ 'PASTE_TWEET_URL' | translate }}"
-        class="login-input"
-        aria-label="Tweet URL"
-      />
+      <input type="text" [(ngModel)]="tweetUrl" placeholder="{{ 'PASTE_TWEET_URL' | translate }}" class="login-input"
+        aria-label="Tweet URL" />
 
-      <button
-        class="login-button"
-        (click)="download()"
-        [disabled]="loading"
-        aria-label="Descargar tweet"
-      >
+      <button class="login-button" (click)="download()" [disabled]="loading" aria-label="Descargar tweet">
         <span *ngIf="!loading">{{ 'DOWNLOAD_TWITTER' | translate }}</span>
         <span *ngIf="loading">{{ 'LOADING' | translate }}...</span>
       </button>
@@ -29,13 +19,23 @@
         {{ 'HOME' | translate }}
       </a>
 
-      <div class="language-selector" aria-label="Selector de idioma">
-        <button (click)="changeLanguage('es')" aria-label="Cambiar a español">🇪🇸 </button>
-        <button (click)="changeLanguage('en')" aria-label="Switch to English">🇬🇧</button>
-        <button (click)="changeLanguage('gl')" aria-label="Cambiar a galego">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego" width="20" />
-        </button>
-      </div>
+<div class="language-selector" aria-label="Selector de idioma">
+  <button (click)="changeLanguage('es')" aria-label="Cambiar a español">
+    <img src="https://flagcdn.com/w40/es.png" alt="Español" class="flag" />
+  </button>
+
+  <button (click)="changeLanguage('en')" aria-label="Switch to English">
+    <img src="https://flagcdn.com/w40/gb.png" alt="English" class="flag" />
+  </button>
+
+  <button (click)="changeLanguage('gl')" aria-label="Cambiar a galego">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg"
+         alt="Galego" class="flag" />
+  </button>
+</div>
+
+
+
 
       <div *ngIf="error" class="error-msg" role="alert">{{ error }}</div>
     </div>

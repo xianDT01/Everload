@@ -6,13 +6,24 @@
         <span class="app-name">{{ 'Youtube' | translate }}</span>
       </div>
       <div class="language-selector">
-        <button (click)="changeLanguage('es')">🇪🇸 Español</button>
-        <button (click)="changeLanguage('en')">🇬🇧 English</button>
+        <button (click)="changeLanguage('es')">
+          <img src="https://flagcdn.com/w40/es.png" alt="Bandera de España" class="flag" />
+          Español
+        </button>
+
+        <button (click)="changeLanguage('en')">
+          <img src="https://flagcdn.com/w40/gb.png" alt="Bandera del Reino Unido" class="flag" />
+          English
+        </button>
+
         <button (click)="changeLanguage('gl')">
           <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Bandera de Galicia"
-            width="20"> Galego
+            class="flag" />
+          Galego
         </button>
       </div>
+
+
     </div>
     <button class="home-button" routerLink="/">{{ 'HOME' | translate }}</button>
   </header>
@@ -28,10 +39,7 @@
     <!-- ✅ Previsualización del vídeo -->
     <div class="video-preview" *ngIf="getVideoId(videoUrl)">
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
-      <iframe [src]="getEmbedUrl(videoUrl)"
-              width="560" height="315"
-              frameborder="0"
-              allowfullscreen>
+      <iframe [src]="getEmbedUrl(videoUrl)" width="560" height="315" frameborder="0" allowfullscreen>
       </iframe>
       <p style="font-size: 12px; color: #ccc;">* {{ 'VIDEO_NOT_LOADING_WARNING' | translate }}</p>
       <a [href]="videoUrl" target="_blank" style="color: #ff0000; text-decoration: underline; font-size: 14px;">
@@ -48,7 +56,7 @@
       <button (click)="toggleSelectAll()" style="margin-bottom: 10px;">
         {{ allSelected ? '❌ ' + ('DESELECT_ALL' | translate) : '✅ ' + ('SELECT_ALL' | translate) }}
       </button>
-      
+
       <!-- Contenedor con scroll -->
       <div class="playlist-scroll-container">
         <div class="playlist-grid">

@@ -24,18 +24,18 @@
       <!-- 🌐 Botones de idioma -->
       <div class="language-switcher">
         <button (click)="changeLanguage('es')" aria-label="Cambiar a español">
-          <span class="flag">🇪🇸</span>
+          <img src="https://flagcdn.com/w40/es.png" alt="Español" class="flag" />
         </button>
+
         <button (click)="changeLanguage('en')" aria-label="Switch to English">
-          <span class="flag">🇬🇧</span>
+          <img src="https://flagcdn.com/w40/gb.png" alt="English" class="flag" />
         </button>
+
         <button (click)="changeLanguage('gl')" aria-label="Cambiar a galego">
           <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego"
             class="flag" />
         </button>
       </div>
-
-
       <button class="spotify-button secondary" *ngIf="resultado?.length" (click)="descargarTodas()">
         ⬇️ {{ 'DOWNLOAD_ALL' | translate }}
       </button>

@@ -13,12 +13,8 @@
         ⚠️ {{ 'INSTAGRAM_LIMITATION' | translate }}
       </div>
 
-      <input
-        type="text"
-        [(ngModel)]="videoUrl"
-        placeholder="{{ 'PASTE_INSTAGRAM_URL' | translate }}"
-        class="login-input"
-      />
+      <input type="text" [(ngModel)]="videoUrl" placeholder="{{ 'PASTE_INSTAGRAM_URL' | translate }}"
+        class="login-input" />
 
       <button class="login-button instagram-button" (click)="download()" [disabled]="loading">
         <span *ngIf="!loading">{{ 'DOWNLOAD_INSTAGRAM' | translate }}</span>
@@ -30,12 +26,21 @@
       <div *ngIf="error" class="error-msg">{{ error }}</div>
 
       <div class="language-selector">
-        <button (click)="changeLanguage('es')">🇪🇸</button>
-        <button (click)="changeLanguage('en')">🇬🇧</button>
-        <button (click)="changeLanguage('gl')">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galicia" width="20" />
+        <button (click)="changeLanguage('es')" aria-label="Cambiar a español">
+          <img src="https://flagcdn.com/w40/es.png" alt="España" class="flag" />
+        </button>
+
+        <button (click)="changeLanguage('en')" aria-label="Switch to English">
+          <img src="https://flagcdn.com/w40/gb.png" alt="Reino Unido" class="flag" />
+        </button>
+
+        <button (click)="changeLanguage('gl')" aria-label="Cambiar a galego">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galicia"
+            class="flag" />
         </button>
       </div>
+
+
     </div>
   </div>
 </div>
