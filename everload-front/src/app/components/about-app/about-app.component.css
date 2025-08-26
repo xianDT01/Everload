@@ -133,3 +133,44 @@ h1 { font-size: 2rem; margin: .15rem 0 .4rem; color: #ffffff; }
               linear-gradient(180deg, #111827 0%, #0f172a 100%);
   min-height: 100vh;
 }
+/* */
+
+.about-container .logo {
+  width: 78px;
+  margin-bottom: .75rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.25);
+  object-fit: cover;
+}
+
+.clean-about {
+  padding: 2.25rem 2rem;
+}
+
+.role-label {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+.clean-about h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+  color: #ffffff;
+}
+
+.clean-about .description {
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  color: #cbd5e1;
+}
+
+.clean-about .by {
+  font-style: italic;
+  color: #aab2c8;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
