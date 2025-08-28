@@ -1,176 +1,103 @@
-/* ======= Tarjeta superior (glass) ======= */
-.about-container {
-  max-width: 680px;
-  margin: 2.5rem auto 2rem;
-  text-align: center;
-  padding: 2rem 2.25rem;
-  color: #e7e7e7;
-  background: rgba(17, 24, 39, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
+
+/* ====== Lienzo centrado ====== */
+.about-platforms{
+  min-height:100svh;
+  display:grid;
+  place-items:center;
+  padding:4rem 1rem;
+  box-sizing:border-box;
+}
+.developer-center{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:fit-content;  /* el anillo se centra respecto a la tarjeta */
+}
+
+/* ====== Tarjeta ====== */
+.developer-card{
+  z-index:2;
+  width:min(520px, 92vw);
+  padding:2.1rem 2.3rem;
+  text-align:center;
+  color:#e7e7e7;
+  background: rgba(17,24,39,0.55);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:20px;
   backdrop-filter: blur(8px);
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  box-shadow: 0 18px 40px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,0.03);
 }
 
-.logo { width: 78px; margin-bottom: .75rem; opacity: .95; }
-h1 { font-size: 2rem; margin: .15rem 0 .4rem; color: #ffffff; }
-.description { color: #cbd5e1; margin: 0; }
-.by { margin-top: .5rem; font-style: italic; color: #aab2c8; }
+/* ====== ÓRBITA (SIEMPRE EN MOVIMIENTO) ====== */
+.icons-ring{
+  /* tamaño del anillo: usa UNA variable para que ancho/alto y radio coincidan */
+  --size: clamp(560px, 70vw, 760px);
+  --r: calc(var(--size) / 2);
 
-.github-link {
-  display: inline-flex; align-items: center; gap: .5rem;
-  margin-top: 1rem; font-weight: 600; text-decoration: none;
-  color: #22c55e;
-}
-.github-link img { width: 22px; height: 22px; filter: brightness(0) invert(1); }
+  position:absolute;
+  top:50%; left:50%;
+  width: var(--size);
+  height: var(--size);
+  transform: translate(-50%, -50%); /* centra exacto respecto al card */
+  z-index:1;
 
-/* ======= Sección plataformas (hero oscuro con degradado) ======= */
-.platforms {
-  /* Fondo: mezcla de radial + linear para un hero elegante */
-  background:
-    radial-gradient(1200px 500px at 50% -10%, rgba(56, 189, 248, 0.12), transparent 55%),
-    radial-gradient(900px 400px at 85% 20%, rgba(216, 180, 254, 0.12), transparent 60%),
-    radial-gradient(900px 400px at 15% 25%, rgba(74, 222, 128, 0.10), transparent 60%),
-    linear-gradient(180deg, #0b1020 0%, #0a0f1c 45%, #080e19 100%);
-  padding: 3.5rem 1rem;
-  border-radius: 18px;
-  margin: 0 auto 2rem;
+  pointer-events:none;                 /* el contenedor no tapa la tarjeta */
+  animation: orbit 80s linear infinite;/* órbita suave y continua */
 }
 
-.platforms-inner {
-  max-width: 1150px;
-  margin: 0 auto;
-  text-align: center;
+@keyframes orbit{
+  from{ transform: translate(-50%, -50%) rotate(0deg); }
+  to  { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-.title {
-  color: #f5e7ea;
-  font-size: 1.75rem;
-  font-weight: 700;
-  letter-spacing: .3px;
-  margin: 0 0 1.75rem;
-  text-shadow: 0 1px 0 rgba(0,0,0,.4);
-}
+/* IMPORTANTE: elimina cualquier regla antigua tipo:
+   .developer-center:hover .icons-ring { animation-play-state: paused; }
+   No queremos pausas. */
 
-/* ======= Grid de iconos ======= */
-.icons {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(110px, 1fr));
-  gap: 2.25rem 3.5rem;
-  justify-items: center;
-  align-items: center;
-  padding: .5rem;
-}
+/* ====== Chips de icono (sin animación de hover) ====== */
+.icons-ring .icon{
+  position:absolute;
+  top:50%; left:50%;
+  width:86px; height:86px;
+  margin:-43px 0 0 -43px;     /* centra cada chip en su punto */
+  border-radius:999px;
+  display:grid; place-items:center;
 
-@media (max-width: 1024px) {
-  .icons { grid-template-columns: repeat(3, minmax(110px, 1fr)); }
-}
-@media (max-width: 640px) {
-  .icons { grid-template-columns: repeat(2, minmax(110px, 1fr)); gap: 1.75rem 2rem; }
-}
-
-/* ======= Icono/“chip” ======= */
-.icon {
-  width: 120px; height: 120px;
-  display: grid; place-items: center;
-  border-radius: 999px;
-  position: relative;
-  transition: transform .28s ease, box-shadow .28s ease, background .28s ease;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 10px 24px rgba(0,0,0,.35);
-}
-.icon img {
-  width: 56px; height: 56px; pointer-events: none;
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
-  transition: transform .28s ease, filter .28s ease, opacity .28s ease;
-  opacity: .95;
-}
-
-/* Glow suave al pasar */
-.icon::after {
-  content: "";
-  position: absolute; inset: -2px;
-  border-radius: inherit;
-  opacity: 0; transition: opacity .28s ease, filter .28s ease;
-  filter: blur(10px);
-}
-
-/* Hover universal */
-.icon:hover {
-  transform: translateY(-6px) scale(1.04);
-  box-shadow: 0 16px 36px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,0.06);
   background: rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 12px 26px rgba(0,0,0,.40);
+
+  pointer-events:auto;  /* clicables */
+  transition:none;      /* sin efectos al pasar por encima */
 }
-.icon:hover img { transform: scale(1.08); opacity: 1; }
-
-/* ======= Colores por marca (borde + glow) ======= */
-.fb { border-color: rgba(59, 130, 246, 0.35); }
-.fb::after { background: radial-gradient(60% 60% at 50% 50%, rgba(59,130,246,.45), transparent 70%); }
-
-.ig { border-color: rgba(244, 114, 182, 0.35); }
-.ig::after { background: radial-gradient(60% 60% at 50% 50%, rgba(244,114,182,.45), transparent 70%); }
-
-.tw { border-color: rgba(56, 189, 248, 0.35); }
-.tw::after { background: radial-gradient(60% 60% at 50% 50%, rgba(56,189,248,.45), transparent 70%); }
-
-.yt { border-color: rgba(239, 68, 68, 0.35); }
-.yt::after { background: radial-gradient(60% 60% at 50% 50%, rgba(239,68,68,.45), transparent 70%); }
-
-.sp { border-color: rgba(34, 197, 94, 0.35); }
-.sp::after { background: radial-gradient(60% 60% at 50% 50%, rgba(34,197,94,.45), transparent 70%); }
-
-.tk { border-color: rgba(148, 163, 184, 0.35); }
-.tk::after { background: radial-gradient(60% 60% at 50% 50%, rgba(148,163,184,.45), transparent 70%); }
-
-.icon:hover::after { opacity: 1; }
-
-/* ======= Ajustes de página (solo si quieres que todo el body acompañe) ======= */
-:host {
-  display: block;
-  /* Fondo general muy sutil (no negro plano) */
-  background: radial-gradient(1600px 600px at 50% -15%, rgba(99,102,241,0.08), transparent 60%),
-              linear-gradient(180deg, #111827 0%, #0f172a 100%);
-  min-height: 100vh;
-}
-/* */
-
-.about-container .logo {
-  width: 78px;
-  margin-bottom: .75rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.25);
-  object-fit: cover;
+.icons-ring .icon img{
+  width:44px; height:44px;
+  pointer-events:none;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
 }
 
-.clean-about {
-  padding: 2.25rem 2rem;
-}
+/* ====== Colocación perfecta (6 a 60°) y “desgiro” del logo ====== */
+.icons-ring .icon:nth-child(1){ transform: rotate(-90deg)  translate(var(--r)) rotate( 90deg); }
+.icons-ring .icon:nth-child(2){ transform: rotate(-30deg)  translate(var(--r)) rotate( 30deg); }
+.icons-ring .icon:nth-child(3){ transform: rotate( 30deg)  translate(var(--r)) rotate(-30deg); }
+.icons-ring .icon:nth-child(4){ transform: rotate( 90deg)  translate(var(--r)) rotate(-90deg); }
+.icons-ring .icon:nth-child(5){ transform: rotate(150deg)  translate(var(--r)) rotate(-150deg); }
+.icons-ring .icon:nth-child(6){ transform: rotate(-150deg) translate(var(--r)) rotate(150deg); }
 
-.role-label {
-  font-size: 0.9rem;
-  color: #94a3b8;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
-}
+/* ====== Tintado sutil por marca ====== */
+.fb{ border-color: rgba(59,130,246,.35); }
+.ig{ border-color: rgba(244,114,182,.35); }
+.tw{ border-color: rgba(56,189,248,.35); }
+.yt{ border-color: rgba(239,68,68,.35); }
+.sp{ border-color: rgba(34,197,94,.35); }
+.tk{ border-color: rgba(148,163,184,.35); }
 
-.clean-about h1 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin-bottom: 0.35rem;
-  color: #ffffff;
+/* ====== Responsive ====== */
+@media (max-width: 720px){
+  .icons-ring{ --size: clamp(460px, 92vw, 560px); }
+  .icons-ring .icon{ width:78px; height:78px; margin:-39px 0 0 -39px; }
+  .icons-ring .icon img{ width:40px; height:40px; }
 }
-
-.clean-about .description {
-  margin-bottom: 0.75rem;
-  font-size: 1rem;
-  color: #cbd5e1;
-}
-
-.clean-about .by {
-  font-style: italic;
-  color: #aab2c8;
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
+@media (prefers-reduced-motion: reduce){
+  .icons-ring{ animation:none; }
 }
