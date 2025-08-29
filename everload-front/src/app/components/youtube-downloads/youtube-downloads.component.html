@@ -34,7 +34,7 @@
         (ngModelChange)="onVideoUrlChange()">
     </div>
 
-    <!-- ✅ Previsualización del vídeo -->
+    <!--  Previsualización del vídeo -->
     <div class="video-preview" *ngIf="getVideoId(videoUrl)">
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
       <iframe [src]="getEmbedUrl(videoUrl)" width="560" height="315" frameborder="0" allowfullscreen>
@@ -45,7 +45,7 @@
       </a>
     </div>
 
-    <!-- ✅ Bloque para listas de reproducción -->
+    <!--  Bloque para listas de reproducción -->
 
     <div *ngIf="playlistVideos.length > 0" class="playlist-section">
       <h3 style="color: white;">{{ 'PLAYLIST_VIDEOS' | translate }}</h3>
