@@ -120,7 +120,15 @@
   "PLATAFORMA": "Plataforma",
   "FECHA": "Fecha",
   "API_OK": "🟢 {{ platform }} operativo",
-  "API_ERROR": "🔴 {{ platform }} con errores"
+  "API_ERROR": "🔴 {{ platform }} con errores",
+
+  
+  "ABOUT": "Acerca de la app",
+    "ABOUT.CREATOR": "EverLoad es una aplicación gratuita y de código abierto para descargar vídeos y música de YouTube, Twitter, Facebook, Instagram, Spotify y TikTok.",
+    "ABOUT.ROLE": "Desarrollador",
+    "ABOUT.NAME": "XiánDT",
+    "ABOUT.EMAIL": "xiandt01@gmail.com"
+ 
 
     
     

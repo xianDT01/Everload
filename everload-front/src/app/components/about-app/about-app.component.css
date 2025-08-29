@@ -1,3 +1,77 @@
+.developer-card::before {
+  content:"";
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 48px; height: 48px;
+  background: url('/assets/tu-logo.svg') no-repeat center/contain;
+  opacity: .25;
+}
+.developer-card h1 {
+  background: linear-gradient(90deg,#60a5fa,#a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.home-button {
+  position: absolute;
+  top: 24px;       /* distancia desde arriba */
+  left: 24px;      /* o pon right: 24px para esquina derecha */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .55rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: .9rem;
+  color: #e7e7e7;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04),
+              0 4px 12px rgba(0,0,0,.35);
+  transition: all .25s ease;
+  cursor: pointer;
+  z-index: 10; /* encima del fondo/orbita */
+}
+
+.home-button:hover {
+  background: rgba(34,197,94,0.25);   /* verde para diferenciar */
+  border-color: rgba(34,197,94,.45);
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(34,197,94,.5),
+              0 6px 16px rgba(0,0,0,.4);
+}
+/* Esquina superior derecha, por encima del fondo/orbita */
+.lang-switch{
+  position:absolute;
+  top:24px; right:24px;
+  display:flex; gap:.4rem;
+  z-index:10;
+}
+
+.lang-btn{
+  padding:.45rem .7rem;
+  border-radius:999px;
+  font-weight:600;
+  font-size:.8rem;
+  color:#e7e7e7;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.04), 0 4px 12px rgba(0,0,0,.35);
+  cursor:pointer;
+  transition:all .2s ease;
+}
+.lang-btn:hover{ transform:scale(1.05); }
+.lang-btn.active{
+  background:rgba(59,130,246,.25);
+  border-color:rgba(59,130,246,.45);
+  color:#fff;
+}
+
+/* (ya tienes .home-button; no lo repito) */
+
+
+
 /* El contenedor*/
 .about-platforms{
   position: relative;
@@ -67,18 +141,38 @@
 
 /*Botón de acción*/
 
-.github-link{
-  display:inline-flex; gap:.5rem; align-items:center;
-  margin-top:1rem; padding:.6rem 1rem;
-  border-radius:12px; text-decoration:none;
-  background: rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.08);
-  transition:.25s;
+.github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  margin-top: 1rem;
+  padding: .65rem 1.3rem;
+  border-radius: 999px; /* pill shape */
+  text-decoration: none;
+  font-weight: 500;
+  color: #e7e7e7;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04),
+              0 4px 12px rgba(0,0,0,.35);
+  transition: all .25s ease;
 }
-.github-link:hover{
-  background: rgba(59,130,246,.15);
-  border-color: rgba(59,130,246,.35);
+
+.github-link svg {
+  width: 18px; height: 18px;
+  fill: currentColor;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.4));
 }
+
+.github-link:hover {
+  background: rgba(59,130,246,0.25);  /* blue glow */
+  border-color: rgba(59,130,246,.45);
+  color: #fff;
+  transform: scale(1.03);
+  box-shadow: 0 0 12px rgba(59,130,246,.5),
+              0 6px 16px rgba(0,0,0,.4);
+}
+
 
 
 /* ====== Lienzo centrado ====== */
@@ -96,8 +190,51 @@
   width:fit-content;  /* el anillo que hace que se centra respecto a la tarjeta */
 }
 
+.brand-badge img{
+  width: 40px; height: 40px;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+
+/* --- Typography tweaks (subtle) --- */
+.role-label{
+  margin: 0 0 .25rem;
+  color: #a8b1c7;
+  letter-spacing: .08em;
+  font-size: .9rem;                /* was .85-ish */
+  text-transform: uppercase;
+}
+
+
+/* --- Brand logo badge (centered above the card) --- */
+.brand-badge{
+  position: absolute;
+  top: -34px;                  /* floats above card */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 68px; height: 68px;
+  border-radius: 999px;
+  display: grid; place-items: center;
+
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.35),
+    inset 0 0 0 1px rgba(255,255,255,.04);
+  z-index: 3;
+}
+
+.developer-card h1{
+  font-size: clamp(1.8rem, 1.2rem + 1.9vw, 2.35rem); /* a bit larger */
+  letter-spacing: .015em;
+  margin: .2rem 0 .6rem;
+}
+.description{ color:#b6c0d6; font-size: .98rem; }
+.by{ color:#c7cfdd; font-size: .95rem; }
+
 /* ====== Tarjeta ====== */
 .developer-card{
+  position: relative;          /* needed for absolute badge */
+  padding-top: 3.6rem;  
   z-index:2;
   width:min(520px, 92vw);
   padding:2.1rem 2.3rem;
