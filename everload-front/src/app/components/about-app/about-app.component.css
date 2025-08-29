@@ -1,3 +1,85 @@
+/* El contenedor*/
+.about-platforms{
+  position: relative;
+  isolation: isolate; 
+  overflow: clip;     
+}
+
+/* Gradiente + grano + viñeta SOLO dentro del componente */
+.about-platforms::before,
+.about-platforms::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;            
+  pointer-events: none;
+}
+
+/* Gradiente base */
+.about-platforms::before{
+  background:
+    radial-gradient(1200px 800px at 50% 45%,
+      #1f2937 0%,      
+      #0f172a 55%,     
+      #0b1220 100%);   /* azul-negruzco */
+  /* si quieres, añade una capa ligera */
+  background-blend-mode: normal;
+  opacity: 1;
+}
+
+/* Grano + viñeta */
+.about-platforms::after{
+  background:
+    radial-gradient(70% 60% at 50% 50%, transparent 60%, rgba(0,0,0,.35) 100%),
+    url('/assets/noise-512.png');
+  mix-blend-mode: overlay;   /* el grano es sutil */
+  opacity: .10;              /* ajusta a tu gusto */
+}
+
+/* Contenido real */
+.developer-center,
+.developer-card,
+.icons-ring{
+  position: relative;
+  z-index: 1;
+}
+
+.icons-ring .icon:hover {
+  box-shadow: 0 0 18px currentColor, inset 0 0 0 1px rgba(255,255,255,.1);
+  transform: scale(1.08);
+  transition: .25s ease;
+}
+.fb:hover   { color:#3b82f6; }
+.ig:hover   { color:#f43f5e; }
+.tw:hover   { color:#38bdf8; }
+.yt:hover   { color:#ef4444; }
+.sp:hover   { color:#22c55e; }
+.tk:hover   { color:#a855f7; }
+
+/*Animacion de la tarjeta*/
+.developer-card {
+  animation: breathe 6s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.005); }
+}
+
+/*Botón de acción*/
+
+.github-link{
+  display:inline-flex; gap:.5rem; align-items:center;
+  margin-top:1rem; padding:.6rem 1rem;
+  border-radius:12px; text-decoration:none;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  transition:.25s;
+}
+.github-link:hover{
+  background: rgba(59,130,246,.15);
+  border-color: rgba(59,130,246,.35);
+}
+
 
 /* ====== Lienzo centrado ====== */
 .about-platforms{
@@ -11,7 +93,7 @@
   position:relative;
   display:grid;
   place-items:center;
-  width:fit-content;  /* el anillo se centra respecto a la tarjeta */
+  width:fit-content;  /* el anillo que hace que se centra respecto a la tarjeta */
 }
 
 /* ====== Tarjeta ====== */
@@ -30,7 +112,7 @@
 
 /* ====== ÓRBITA (SIEMPRE EN MOVIMIENTO) ====== */
 .icons-ring{
-  /* tamaño del anillo: usa UNA variable para que ancho/alto y radio coincidan */
+
   --size: clamp(560px, 70vw, 760px);
   --r: calc(var(--size) / 2);
 
@@ -49,10 +131,6 @@
   from{ transform: translate(-50%, -50%) rotate(0deg); }
   to  { transform: translate(-50%, -50%) rotate(360deg); }
 }
-
-/* IMPORTANTE: elimina cualquier regla antigua tipo:
-   .developer-center:hover .icons-ring { animation-play-state: paused; }
-   No queremos pausas. */
 
 /* ====== Chips de icono (sin animación de hover) ====== */
 .icons-ring .icon{
