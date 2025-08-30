@@ -167,25 +167,6 @@ html, body {
   filter: brightness(1.1);
 }
 
-
-/* Información del creador */
-.creator-info {
-  margin-top: 40px;
-  font-size: 16px;
-  color: #bbbbbb;
-  font-family: 'Poppins', sans-serif;
-}
-
-.creator-info a {
-  color: #ff0000;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.creator-info a:hover {
-  text-decoration: underline;
-}
-
 /* Selector de idiomas */
 .language-selector {
   display: flex;
