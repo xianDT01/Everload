@@ -11,18 +11,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin")
 public class ClearTempController {
 
-    private final DownloadHistoryService historial;
+    private final DownloadHistoryService history;
 
-    public ClearTempController(DownloadHistoryService historial) {
-        this.historial = historial;
+    public ClearTempController(DownloadHistoryService history) {
+        this.history = history;
     }
 
-    @Operation(summary = "Eliminar carpetas temporales de descargas")
-    @GetMapping("/limpiarTemp")
-    public ResponseEntity<String> limpiarTemporales() {
-        boolean ok = historial.limpiarTemporales();
+    @Operation(summary = "Delete temporary download folders")
+    @GetMapping({"/clear-temp", "/limpiarTemp"}) // inglés + compatibilidad
+    public ResponseEntity<String> clearTemp() {
+        boolean ok = history.clearTemporaryFolders();
         return ok
-                ? ResponseEntity.ok("🧹 Carpetas temporales eliminadas.")
-                : ResponseEntity.status(500).body("❌ Error al eliminar carpetas temporales");
+                ? ResponseEntity.ok("🧹 Temporary folders removed.")
+                : ResponseEntity.status(500).body("❌ Error removing temporary folders.");
     }
 }
