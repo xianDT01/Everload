@@ -23,44 +23,44 @@ public class LogController {
         try {
             Path path = Path.of(LOG_PATH);
             if (!Files.exists(path)) {
-                return ResponseEntity.status(404).body(List.of("Log no encontrado"));
+                return ResponseEntity.status(404).body(List.of("Log file not found"));
             }
 
             List<String> allLines = Files.readAllLines(path);
             List<String> filtered = allLines.stream()
                     .filter(line -> filter == null || line.toLowerCase().contains(filter.toLowerCase()))
-                    .skip(Math.max(0, allLines.size() - lines)) // últimas N líneas
+                    .skip(Math.max(0, allLines.size() - lines))
                     .toList();
 
             return ResponseEntity.ok(filtered);
         } catch (IOException e) {
-            return ResponseEntity.internalServerError().body(List.of("❌ Error leyendo el log: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(List.of("❌ Error reading log: " + e.getMessage()));
         }
     }
 
-    @PostMapping("/limpiar")
-    public ResponseEntity<String> limpiarLog() {
+    @PostMapping("/clear")
+    public ResponseEntity<String> clearLog() {
         try {
             Path path = Path.of(LOG_PATH);
             if (Files.exists(path)) {
                 Files.write(path, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
-                return ResponseEntity.ok("🧹 Log limpiado correctamente.");
+                return ResponseEntity.ok("🧹 Log cleared successfully.");
             } else {
-                return ResponseEntity.status(404).body("⚠️ Log no encontrado.");
+                return ResponseEntity.status(404).body("⚠️ Log file not found.");
             }
         } catch (IOException e) {
-            return ResponseEntity.internalServerError().body("❌ Error al limpiar el log: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("❌ Error clearing log: " + e.getMessage());
         }
     }
 
-    // Cada 7 días (7 * 24 * 60 * 60 * 1000 ms)
-    @Scheduled(fixedRate = 604800000)
-    public void limpiarLogAutomaticamente() {
+    // Every 7 days (7 * 24 * 60 * 60 * 1000 ms)
+    @Scheduled(fixedRate = 604_800_000)
+    public void autoClearLog() {
         try {
             Path path = Path.of(LOG_PATH);
             if (Files.exists(path)) {
                 Files.write(path, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
-                System.out.println("🧹 Log limpiado automáticamente.");
+                System.out.println("🧹 Log automatically cleared.");
             }
         } catch (IOException e) {
             e.printStackTrace();

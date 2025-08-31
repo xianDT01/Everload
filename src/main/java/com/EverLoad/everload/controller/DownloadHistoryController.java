@@ -1,6 +1,6 @@
 package com.EverLoad.everload.controller;
 
-import com.EverLoad.everload.model.Descarga;
+import com.EverLoad.everload.model.Download;
 import com.EverLoad.everload.service.DownloadHistoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -10,31 +10,34 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 @RestController
-@RequestMapping("/api/admin/historial")
+// Soporta ambas rutas: nueva en inglés y la existente en español
+@RequestMapping({"/api/admin/history", "/api/admin/historial"})
 public class DownloadHistoryController {
 
+    private final DownloadHistoryService history;
 
-        private final DownloadHistoryService historial;
+    public DownloadHistoryController(DownloadHistoryService history) {
+        this.history = history;
+    }
 
-        public DownloadHistoryController(DownloadHistoryService historial) {
-            this.historial = historial;
-        }
+    @GetMapping
+    public ResponseEntity<List<Download>> getHistory() {
+        return ResponseEntity.ok(history.getHistory());
+    }
 
-        @GetMapping
-        public ResponseEntity<List<Descarga>> verHistorial() {
-            return ResponseEntity.ok(historial.getHistorial());
-        }
-
-    @DeleteMapping("/vaciar")
-    public ResponseEntity<String> vaciarHistorial() {
+    @DeleteMapping("/clear")
+    public ResponseEntity<String> clearHistory() {
         try {
-            historial.vaciarHistorial();
-            return ResponseEntity.ok("🗑️ Historial vaciado correctamente.");
+            history.clearHistory();
+            return ResponseEntity.ok("🗑️ History cleared successfully.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("❌ Error al vaciar historial.");
+            return ResponseEntity.status(500).body("❌ Error clearing history.");
         }
     }
 
-
+    // Alias de compatibilidad con el endpoint antiguo
+    @DeleteMapping("/vaciar")
+    public ResponseEntity<String> clearHistoryLegacy() {
+        return clearHistory();
+    }
 }
-

@@ -1,6 +1,6 @@
 package com.EverLoad.everload.service;
 
-import com.EverLoad.everload.model.Descarga;
+import com.EverLoad.everload.model.Download;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
@@ -14,45 +14,47 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 @Service
 public class DownloadHistoryService {
-    private final String HISTORIAL_PATH = "descargas.json";
+    private static final String DOWNLOAD_HISTORY_PATH = "downloads_history.json";
     private final ObjectMapper mapper;
 
     public DownloadHistoryService(ObjectMapper mapper) {
         this.mapper = mapper;
     }
 
-    public synchronized void registrarDescarga(Descarga descarga) {
+    public synchronized void recordDownload(Download download) {
         try {
-            List<Descarga> historial = getHistorial();
-            historial.add(descarga);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(new File(HISTORIAL_PATH), historial);
+            List<Download> history = getHistory();
+            history.add(download);
+            mapper.writerWithDefaultPrettyPrinter()
+                    .writeValue(new File(DOWNLOAD_HISTORY_PATH), history);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public synchronized List<Descarga> getHistorial() {
+    public synchronized List<Download> getHistory() {
         try {
-            File file = new File(HISTORIAL_PATH);
+            File file = new File(DOWNLOAD_HISTORY_PATH);
             if (!file.exists()) return new ArrayList<>();
-            return new ArrayList<>(mapper.readValue(file, new TypeReference<List<Descarga>>() {}));
+            return new ArrayList<>(mapper.readValue(file, new TypeReference<List<Download>>() {}));
         } catch (Exception e) {
-            e.printStackTrace(); // Muy importante ver errores
+            e.printStackTrace();
             return Collections.emptyList();
         }
     }
 
-    public boolean limpiarTemporales() {
+    public boolean clearTemporaryFolders() {
         try {
             Path tempDir = Paths.get("./downloads");
+            if (!Files.exists(tempDir)) return true;
+
             Files.walk(tempDir)
                     .filter(path -> Files.isDirectory(path) && path.getFileName().toString().startsWith("tmp-"))
                     .forEach(path -> {
                         try {
-                            FileUtils.deleteDirectory(path.toFile()); // commons-io
+                            FileUtils.deleteDirectory(path.toFile());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -64,14 +66,12 @@ public class DownloadHistoryService {
         }
     }
 
-    public synchronized void vaciarHistorial() {
+    public synchronized void clearHistory() {
         try {
-            File file = new File(HISTORIAL_PATH);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(file, new ArrayList<>()); // lista vacía
+            File file = new File(DOWNLOAD_HISTORY_PATH);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(file, new ArrayList<>());
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
-
 }
