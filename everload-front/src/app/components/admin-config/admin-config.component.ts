@@ -1,52 +1,96 @@
-import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 
+interface AdminConfig {
+  clientId: string;
+  clientSecret: string;
+  apiKey: string;
+}
+
+interface DownloadHistoryDto {
+  title: string;
+  type: string;
+  platform: string;
+  createdAt: string;
+}
+
+interface DownloadHistoryVm {
+  titulo: string;
+  tipo: string;
+  plataforma: string;
+  fecha: string;
+}
 
 @Component({
   selector: 'app-admin-config',
   templateUrl: './admin-config.component.html',
-  // styleUrls: ['./admin-config.component.scss']
   styleUrls: ['./admin-config.component.css']
-
 })
-export class AdminConfigComponent implements OnInit {
-  config = {
+export class AdminConfigComponent implements OnInit, OnDestroy {
+
+  // 🔧 Si tienes environments, sustituye por environment.apiUrl
+  private readonly BASE = 'http://localhost:8080';
+
+  config: AdminConfig = {
     clientId: '',
     clientSecret: '',
     apiKey: ''
-
   };
+
   intervalId: any;
   mensaje = '';
   cargando = false;
 
+  logs: string[] = [];
+  filtroLog = '';
+
+  @ViewChild('logContainer') logContainer!: ElementRef<HTMLDivElement>;
+
+  historial: DownloadHistoryVm[] = [];
+  mensajeLimpieza = '';
+  mensajeVaciarHistorial = '';
+  mensajeLogLimpio = '';
+
+  apiEstados: { [key: string]: string } = {
+    backend: '⏳',
+    youtube: '⏳',
+    spotify: '⏳',
+    tiktok: '⏳',
+    facebook: '⏳',
+    instagram: '⏳'
+  };
+
   constructor(private http: HttpClient, private translate: TranslateService) {
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
-    if (savedLang) {
-      translate.use(savedLang);
-    }
+    if (savedLang) translate.use(savedLang);
   }
+
   ngOnInit(): void {
-    // Cargar la config una sola vez
-    this.http.get<any>('http://localhost:8080/api/admin/config')
+    // Config
+    this.http.get<AdminConfig>(`${this.BASE}/api/admin/config`)
       .subscribe({
         next: data => this.config = data,
-        error: err => this.mensaje = '❌ Error al cargar la configuración'
+        error: () => this.mensaje = '❌ Error al cargar la configuración'
       });
 
-    // Cargar logs e historial por primera vez
+    // Cargar logs e historial inicialmente
     this.cargarLogs();
     this.cargarHistorial();
 
-
-    // Refrescar logs e historial cada 10 segundos
+    // Refrescar cada 10s
     this.intervalId = setInterval(() => {
       this.cargarLogs();
       this.cargarHistorial();
-    }, 10000); // 10 segundos
+    }, 10_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 
   changeLanguage(lang: string) {
@@ -54,11 +98,9 @@ export class AdminConfigComponent implements OnInit {
     localStorage.setItem('language', lang);
   }
 
-
-
   guardarCambios(): void {
     this.cargando = true;
-    this.http.post('http://localhost:8080/api/admin/config', this.config)
+    this.http.post(`${this.BASE}/api/admin/config`, this.config)
       .subscribe({
         next: () => {
           this.mensaje = '✅ Configuración guardada correctamente';
@@ -75,9 +117,9 @@ export class AdminConfigComponent implements OnInit {
     this.mensaje = '⏳ Actualizando yt-dlp...';
     this.cargando = true;
 
-    this.http.post('http://localhost:8080/api/admin/update-yt-dlp', null, { responseType: 'text' })
+    this.http.post(`${this.BASE}/api/admin/update-yt-dlp`, null, { responseType: 'text' })
       .subscribe({
-        next: (respuesta: string) => {
+        next: (respuesta) => {
           this.mensaje = '📦 ' + respuesta;
           this.cargando = false;
         },
@@ -92,51 +134,56 @@ export class AdminConfigComponent implements OnInit {
       });
   }
 
-
-
-  logs: string[] = [];
-  filtroLog = '';
-  @ViewChild('logContainer') logContainer!: ElementRef;
-
   cargarLogs(): void {
-    this.http.get<string[]>(`http://localhost:8080/api/admin/logs?lines=100&filter=${this.filtroLog}`)
+    const params = new HttpParams()
+      .set('lines', '100')
+      .set('filter', this.filtroLog || '');
+
+    this.http.get<string[]>(`${this.BASE}/api/admin/logs`, { params })
       .subscribe({
         next: data => {
-          this.logs = data;
+          this.logs = data || [];
+          // Asegurar scroll al final tras render
           setTimeout(() => {
-            const element = this.logContainer.nativeElement;
-            element.scrollTop = element.scrollHeight;
-          }, 50); // Pequeño retraso para asegurar renderizado
+            if (this.logContainer?.nativeElement) {
+              const el = this.logContainer.nativeElement;
+              el.scrollTop = el.scrollHeight;
+            }
+          }, 50);
         },
         error: () => this.logs = ['❌ Error al cargar logs']
       });
   }
 
-
-  ngOnDestroy(): void {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-    }
-  }
-
-  historial: any[] = [];
-
   cargarHistorial(): void {
-    this.http.get<any[]>('http://localhost:8080/api/admin/historial')
+    // El backend tiene alias: /api/admin/history y /api/admin/historial
+    // Aquí mantenemos el español para compatibilidad.
+    this.http.get<DownloadHistoryDto[]>(`${this.BASE}/api/admin/historial`)
       .subscribe({
-        next: data => this.historial = data,
-        error: () => this.historial = [{ titulo: '❌ Error al cargar historial' }]
+        next: data => {
+          const list = Array.isArray(data) ? data : [];
+          // Mapear a las claves que espera tu template (en español)
+          this.historial = list.map(d => ({
+            titulo: d.title,
+            tipo: d.type,
+            plataforma: d.platform,
+            fecha: d.createdAt
+          }));
+        },
+        error: () => {
+          this.historial = [{ titulo: '❌ Error al cargar historial', tipo: '', plataforma: '', fecha: '' }];
+        }
       });
   }
 
-  mensajeLimpieza: string = '';
-
-  limpiarTemporales() {
-    this.http.get('http://localhost:8080/api/admin/limpiarTemp', { responseType: 'text' })
+  limpiarTemporales(): void {
+    // Alias en backend: { "/clear-temp", "/limpiarTemp" } -> mantenemos español
+    this.http.get(`${this.BASE}/api/admin/limpiarTemp`, { responseType: 'text' })
       .subscribe({
         next: (respuesta) => {
           this.mensajeLimpieza = respuesta;
-          this.cargarHistorial(); // Opcional: refresca historial tras limpiar
+          // Si quieres, refresca historial o stats
+          this.cargarHistorial();
         },
         error: () => {
           this.mensajeLimpieza = '❌ Error al intentar limpiar temporales';
@@ -144,14 +191,13 @@ export class AdminConfigComponent implements OnInit {
       });
   }
 
-  mensajeVaciarHistorial: string = '';
-
   vaciarHistorial(): void {
-    this.http.delete('http://localhost:8080/api/admin/historial/vaciar', { responseType: 'text' })
+    // Alias en backend: /history/clear y /historial/vaciar -> mantenemos español
+    this.http.delete(`${this.BASE}/api/admin/historial/vaciar`, { responseType: 'text' })
       .subscribe({
         next: (respuesta) => {
           this.mensajeVaciarHistorial = respuesta;
-          this.cargarHistorial(); // Refrescar tabla
+          this.cargarHistorial();
         },
         error: () => {
           this.mensajeVaciarHistorial = '❌ Error al vaciar historial';
@@ -159,21 +205,20 @@ export class AdminConfigComponent implements OnInit {
       });
   }
 
-  mensajeLogLimpio: string = '';
-
   limpiarLog(): void {
-    this.http.post('http://localhost:8080/api/admin/logs/limpiar', null, { responseType: 'text' })
+    // Backend renombrado a /logs/clear; si añadiste alias /limpiar, puedes dejar el antiguo.
+    this.http.post(`${this.BASE}/api/admin/logs/clear`, null, { responseType: 'text' })
       .subscribe({
         next: (msg) => {
           this.mensajeLogLimpio = msg;
-          this.cargarLogs(); // refrescar tras limpiar
+          this.cargarLogs();
         },
         error: () => this.mensajeLogLimpio = '❌ Error al limpiar el log'
       });
   }
 
   getIconPath(plataforma: string): string {
-    const rutas: { [key: string]: string } = {
+    const rutas: Record<string, string> = {
       YouTube: '/assets/youtube-icon-logo-719479.png',
       Twitter: '/assets/twitter-icon.png',
       Facebook: '/assets/fb sin fondo.png',
@@ -184,31 +229,20 @@ export class AdminConfigComponent implements OnInit {
     return rutas[plataforma] || '';
   }
 
-  apiEstados: { [key: string]: string } = {
-    backend: '⏳',
-    youtube: '⏳',
-    spotify: '⏳',
-    tiktok: '⏳',
-    facebook: '⏳',
-    instagram: '⏳'
-  };
-
   comprobarApis(): void {
-    const endpoints = {
-      youtube: 'http://localhost:8080/api/admin/test-api/youtube',
-      spotify: 'http://localhost:8080/api/admin/test-api/spotify',
-      tiktok: 'http://localhost:8080/api/admin/test-api/tiktok',
-      facebook: 'http://localhost:8080/api/admin/test-api/facebook',
-      instagram: 'http://localhost:8080/api/admin/test-api/instagram'
+    const endpoints: Record<string, string> = {
+      youtube: `${this.BASE}/api/admin/test-api/youtube`,
+      spotify: `${this.BASE}/api/admin/test-api/spotify`,
+      tiktok: `${this.BASE}/api/admin/test-api/tiktok`,
+      facebook: `${this.BASE}/api/admin/test-api/facebook`,
+      instagram: `${this.BASE}/api/admin/test-api/instagram`
     };
 
     for (const [clave, url] of Object.entries(endpoints)) {
       this.http.get<any>(url).subscribe({
         next: (respuesta) => {
-          const platform = respuesta.platform || clave;
-          const statusKey = respuesta.status === 'ok' ? 'API_OK' : 'API_ERROR';
-
-          // Traducir el mensaje con el nombre de la plataforma
+          const platform = respuesta?.platform || clave;
+          const statusKey = respuesta?.status === 'ok' ? 'API_OK' : 'API_ERROR';
           this.apiEstados[clave] = this.translate.instant(statusKey, { platform });
         },
         error: () => {
@@ -216,9 +250,10 @@ export class AdminConfigComponent implements OnInit {
         }
       });
     }
-
-
   }
 
+  // Útil para *ngFor trackBy en historial
+  trackByHistorial(_index: number, item: DownloadHistoryVm) {
+    return `${item.titulo}-${item.fecha}`;
+  }
 }
-

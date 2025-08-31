@@ -1,6 +1,6 @@
 package com.EverLoad.everload;
 
-import com.EverLoad.everload.model.Descarga;
+import com.EverLoad.everload.model.Download;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -11,7 +11,7 @@ class DescargaTest {
 
     @Test
     void noArgsConstructor_and_SettersWork() {
-        Descarga d = new Descarga();
+        Download d = new Download();
 
         LocalDateTime fecha = LocalDateTime.of(2025, 1, 1, 12, 0);
 
@@ -29,7 +29,7 @@ class DescargaTest {
     @Test
     void allArgsConstructor_setsFields_and_FechaIsNow() {
         LocalDateTime before = LocalDateTime.now();
-        Descarga d = new Descarga("David Guetta", "música", "Spotify");
+        Download d = new Download("David Guetta", "música", "Spotify");
         LocalDateTime after = LocalDateTime.now();
 
         assertEquals("David Guetta", d.getTitulo());
@@ -44,7 +44,7 @@ class DescargaTest {
 
     @Test
     void setters_allowNulls() {
-        Descarga d = new Descarga();
+        Download d = new Download();
         d.setTitulo(null);
         d.setTipo(null);
         d.setPlataforma(null);

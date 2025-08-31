@@ -1,6 +1,6 @@
 package com.EverLoad.everload.service;
 
-import com.EverLoad.everload.model.Descarga;
+import com.EverLoad.everload.model.Download;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,7 +37,7 @@ public class DownloadService {
                     resolution, tempDir, videoId
 
             );
-            downloadHistoryService.registrarDescarga(new Descarga("videoId=" + videoId, "vídeo", "YouTube"));
+            downloadHistoryService.recordDownload(new Download("videoId=" + videoId, "vídeo", "YouTube"));
             return executeCommand(command, "vídeo", "YouTube");
 
         } catch (Exception e) {
@@ -140,7 +140,7 @@ public class DownloadService {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
 
-            historial.registrarDescarga(new Descarga(finalFile.getName(), tipo, origen));
+            historial.recordDownload(new Download(finalFile.getName(), tipo, origen));
             return sendFile(finalFile);
 
         } catch (IOException | InterruptedException e) {

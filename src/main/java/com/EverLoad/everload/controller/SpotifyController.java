@@ -1,6 +1,6 @@
 package com.EverLoad.everload.controller;
 
-import com.EverLoad.everload.model.Descarga;
+import com.EverLoad.everload.model.Download;
 import com.EverLoad.everload.model.SpotifyResult;
 import com.EverLoad.everload.service.DownloadService;
 import com.EverLoad.everload.service.DownloadHistoryService;
@@ -64,8 +64,8 @@ public class SpotifyController {
                 ResponseEntity<FileSystemResource> resp = downloadService.downloadMusic(videoId, "mp3");
 
                 if (resp.getStatusCode().is2xxSuccessful()) {
-                    downloadHistoryService.registrarDescarga(
-                            new Descarga(result.getTitle(), "música", "Spotify")
+                    downloadHistoryService.recordDownload(
+                            new Download(result.getTitle(), "música", "Spotify")
                     );
                     descargadas.add(result.getTitle());
             } else {
