@@ -6,8 +6,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -19,11 +17,11 @@ public class DownloadService {
 
     private static final String DOWNLOADS_DIR = "./downloads/";
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DownloadService.class);
-    private final HistorialDescargasService historialDescargasService;
-    private final HistorialDescargasService historial;
+    private final DownloadHistoryService downloadHistoryService;
+    private final DownloadHistoryService historial;
 
-    public DownloadService(HistorialDescargasService historialDescargasService, HistorialDescargasService historial) {
-        this.historialDescargasService = historialDescargasService;
+    public DownloadService(DownloadHistoryService downloadHistoryService, DownloadHistoryService historial) {
+        this.downloadHistoryService = downloadHistoryService;
         this.historial = historial;
     }
 
@@ -39,7 +37,7 @@ public class DownloadService {
                     resolution, tempDir, videoId
 
             );
-            historialDescargasService.registrarDescarga(new Descarga("videoId=" + videoId, "vídeo", "YouTube"));
+            downloadHistoryService.registrarDescarga(new Descarga("videoId=" + videoId, "vídeo", "YouTube"));
             return executeCommand(command, "vídeo", "YouTube");
 
         } catch (Exception e) {

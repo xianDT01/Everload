@@ -1,14 +1,9 @@
 package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.config.AdminConfigService;
-import com.EverLoad.everload.model.Descarga;
-import com.EverLoad.everload.service.HistorialDescargasService;
-import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.File;
-import java.util.List;
 import java.util.Map;
 
 @RestController

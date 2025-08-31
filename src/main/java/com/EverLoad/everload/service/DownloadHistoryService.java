@@ -16,11 +16,11 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
-public class HistorialDescargasService {
+public class DownloadHistoryService {
     private final String HISTORIAL_PATH = "descargas.json";
     private final ObjectMapper mapper;
 
-    public HistorialDescargasService(ObjectMapper mapper) {
+    public DownloadHistoryService(ObjectMapper mapper) {
         this.mapper = mapper;
     }
 

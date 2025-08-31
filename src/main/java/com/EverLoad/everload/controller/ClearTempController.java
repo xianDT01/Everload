@@ -1,6 +1,6 @@
 package com.EverLoad.everload.controller;
 
-import com.EverLoad.everload.service.HistorialDescargasService;
+import com.EverLoad.everload.service.DownloadHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,11 +9,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/admin")
-public class LimpiarTempController {
+public class ClearTempController {
 
-    private final HistorialDescargasService historial;
+    private final DownloadHistoryService historial;
 
-    public LimpiarTempController(HistorialDescargasService historial) {
+    public ClearTempController(DownloadHistoryService historial) {
         this.historial = historial;
     }
 
