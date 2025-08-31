@@ -1,24 +1,22 @@
 package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.model.Descarga;
-import com.EverLoad.everload.service.HistorialDescargasService;
-import io.swagger.v3.oas.annotations.Operation;
+import com.EverLoad.everload.service.DownloadHistoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.File;
 import java.util.List;
 @RestController
 @RequestMapping("/api/admin/historial")
-public class HistorialDescargasController {
+public class DownloadHistoryController {
 
 
-        private final HistorialDescargasService historial;
+        private final DownloadHistoryService historial;
 
-        public HistorialDescargasController(HistorialDescargasService historial) {
+        public DownloadHistoryController(DownloadHistoryService historial) {
             this.historial = historial;
         }
 
