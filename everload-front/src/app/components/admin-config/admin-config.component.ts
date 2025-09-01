@@ -29,7 +29,6 @@ interface DownloadHistoryVm {
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
 
-  // 🔧 Si tienes environments, sustituye por environment.apiUrl
   private readonly BASE = 'http://localhost:8080';
 
   config: AdminConfig = {
