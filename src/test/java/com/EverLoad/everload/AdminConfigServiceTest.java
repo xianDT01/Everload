@@ -43,4 +43,12 @@ class AdminConfigServiceTest {
     }
 
 
+    @Test
+    void updateConfig_sobrescribeArchivo() throws IOException {
+        Map<String, String> nuevo = Map.of(
+                "clientId", "NEW_ID",
+                "clientSecret", "NEW_SECRET",
+                "apiKey", "NEW_API"
+        );
+    }
 }
