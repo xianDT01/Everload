@@ -51,4 +51,11 @@ class AdminConfigServiceTest {
                 "apiKey", "NEW_API"
         );
     }
+
+    @Test
+    void getValoresIndividuales_funcionan() throws IOException {
+        assertEquals("CID", service.getClientId());
+        assertEquals("CSEC", service.getClientSecret());
+        assertEquals("API", service.getApiKey());
+    }
 }
