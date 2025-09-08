@@ -1,0 +1,30 @@
+2025-09-08 18:29:58 INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-09-08 18:29:58 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2025-09-08 18:29:58 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2025-09-08 18:32:27 INFO  c.EverLoad.everload.CorsConfigTest - Starting CorsConfigTest using Java 23.0.2 with PID 14427 (started by xiandt in /home/xiandt/IdeaProjects/Everload)
+2025-09-08 18:32:27 INFO  c.EverLoad.everload.CorsConfigTest - No active profile set, falling back to 1 default profile: "default"
+2025-09-08 18:32:28 INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-09-08 18:32:28 INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2025-09-08 18:32:28 INFO  o.s.t.w.s.TestDispatcherServlet - Initializing Servlet ''
+2025-09-08 18:32:28 INFO  o.s.t.w.s.TestDispatcherServlet - Completed initialization in 2 ms
+2025-09-08 18:32:28 INFO  c.EverLoad.everload.CorsConfigTest - Started CorsConfigTest in 2.353 seconds (process running for 3.961)
+2025-09-08 18:34:36 INFO  c.EverLoad.everload.CorsConfigTest - Starting CorsConfigTest using Java 23.0.2 with PID 16424 (started by xiandt in /home/xiandt/IdeaProjects/Everload)
+2025-09-08 18:34:36 INFO  c.EverLoad.everload.CorsConfigTest - No active profile set, falling back to 1 default profile: "default"
+2025-09-08 18:34:37 INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-09-08 18:34:37 INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2025-09-08 18:34:37 INFO  o.s.t.w.s.TestDispatcherServlet - Initializing Servlet ''
+2025-09-08 18:34:37 INFO  o.s.t.w.s.TestDispatcherServlet - Completed initialization in 1 ms
+2025-09-08 18:34:38 INFO  c.EverLoad.everload.CorsConfigTest - Started CorsConfigTest in 2.392 seconds (process running for 4.077)
+2025-09-08 18:34:51 INFO  c.EverLoad.everload.CorsConfigTest - Starting CorsConfigTest using Java 23.0.2 with PID 16704 (started by xiandt in /home/xiandt/IdeaProjects/Everload)
+2025-09-08 18:34:51 INFO  c.EverLoad.everload.CorsConfigTest - No active profile set, falling back to 1 default profile: "default"
+2025-09-08 18:34:52 INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-09-08 18:34:52 INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2025-09-08 18:34:52 INFO  o.s.t.w.s.TestDispatcherServlet - Initializing Servlet ''
+2025-09-08 18:34:52 INFO  o.s.t.w.s.TestDispatcherServlet - Completed initialization in 3 ms
+2025-09-08 18:34:58 INFO  c.EverLoad.everload.CorsConfigTest - Starting CorsConfigTest using Java 23.0.2 with PID 16890 (started by xiandt in /home/xiandt/IdeaProjects/Everload)
+2025-09-08 18:34:58 INFO  c.EverLoad.everload.CorsConfigTest - No active profile set, falling back to 1 default profile: "default"
+2025-09-08 18:34:59 INFO  o.s.v.b.OptionalValidatorFactoryBean - Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-09-08 18:35:00 INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2025-09-08 18:35:00 INFO  o.s.t.w.s.TestDispatcherServlet - Initializing Servlet ''
+2025-09-08 18:35:00 INFO  o.s.t.w.s.TestDispatcherServlet - Completed initialization in 7 ms
+2025-09-08 18:35:00 INFO  c.EverLoad.everload.CorsConfigTest - Started CorsConfigTest in 2.53 seconds (process running for 4.259)
