@@ -31,7 +31,6 @@ class CorsConfigTest {
                         options("/api/test")
                                 .header("Origin", "http://localhost:4200")
                                 .header("Access-Control-Request-Method", "GET")
-                                // Spring suele reflejar los request-headers, no devuelve "*" literal
                                 .header("Access-Control-Request-Headers", "X-Requested-With")
                 )
                 .andExpect(status().isOk())
@@ -40,5 +39,6 @@ class CorsConfigTest {
                 .andExpect(header().string("Access-Control-Allow-Headers", containsString("X-Requested-With")))
                 .andExpect(header().string("Access-Control-Expose-Headers", containsString("Content-Disposition")));
     }
+
 
 }
