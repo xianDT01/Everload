@@ -17,5 +17,15 @@ class DownloadTest {
         assertThat(d.getCreatedAt()).isBeforeOrEqualTo(LocalDateTime.now());
     }
 
+    @Test
+    void constructorConArgs_asignaValoresYCreatedAt() {
+        Download d = new Download("Canción X", "music", "YouTube");
+
+        assertThat(d.getTitle()).isEqualTo("Canción X");
+        assertThat(d.getType()).isEqualTo("music");
+        assertThat(d.getPlatform()).isEqualTo("YouTube");
+        assertThat(d.getCreatedAt()).isNotNull();
+    }
+
 
 }
