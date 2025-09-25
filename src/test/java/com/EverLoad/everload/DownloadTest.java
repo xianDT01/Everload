@@ -27,5 +27,21 @@ class DownloadTest {
         assertThat(d.getCreatedAt()).isNotNull();
     }
 
+    @Test
+    void settersYgetters_funcionanCorrectamente() {
+        Download d = new Download();
+        d.setTitle("Video Y");
+        d.setType("video");
+        d.setPlatform("TikTok");
+
+        LocalDateTime now = LocalDateTime.now();
+        d.setCreatedAt(now);
+
+        assertThat(d.getTitle()).isEqualTo("Video Y");
+        assertThat(d.getType()).isEqualTo("video");
+        assertThat(d.getPlatform()).isEqualTo("TikTok");
+        assertThat(d.getCreatedAt()).isEqualTo(now);
+    }
+
 
 }
