@@ -25,4 +25,15 @@ public class SpotifyResultTest {
         assertThat(result.getYoutubeUrl()).isEqualTo("https://youtube.com/watch?v=12345");
     }
 
+    @Test
+    void getters_retornaValoresEsperados() {
+        String title = "Track B - Artist";
+        String url = "https://youtube.com/watch?v=abcde";
+
+        SpotifyResult result = new SpotifyResult(title, url);
+
+        assertThat(result.getTitle()).isEqualTo(title);
+        assertThat(result.getYoutubeUrl()).isEqualTo(url);
+    }
+
 }
