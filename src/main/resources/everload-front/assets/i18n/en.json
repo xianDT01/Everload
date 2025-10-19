@@ -3,7 +3,6 @@
 "Youtube": "YouTube",
 "SUBTITLE": "Download videos and music easily",
 "DOWNLOAD_YOUTUBE": "Download from YouTube",
-"CREATED_BY": "Created by",
 "GITHUB": "GitHub",
 "DOWNLOAD_Twitter": "Download from Twitter",
 "DOWNLOAD_TIKTOK": "Download from TikTok",
@@ -35,6 +34,8 @@
 "ERROR_UNKNOWN": "Something went wrong. Please try again later.",
 "ERROR_DOWNLOADING_MUSIC": "An error occurred while downloading the music",
 "ERROR_LOADING_PLAYLIST": "An error occurred while loading the playlist",
+"PLEASE_ENTER_YOUTUBE_LINK": "Please enter a YouTube link",
+
 
 
 
@@ -69,7 +70,7 @@
 "_comment6": "Sección de Spotify",
 "DOWNLOAD_SPOTIFY": "Download from Spotify",
 "DOWNLOAD_Spotify_FAILED": "An error occurred while downloading from Spotify",
-  "TITLE": "Spotify Playlist Downloader",
+  "TITLE": "Spotify Downloader",
   "Spotify_Subtitle": "Paste your playlist URL and download the songs one by one",
   "PLACEHOLDER": "Paste the playlist URL here",
   "SEARCH_BUTTON": "Search songs",
@@ -87,12 +88,42 @@
   "LOADING": "Downloading",
   "HOME": "Home",
   "EMPTY_URL_ERROR": "Please enter a TikTok link.",
-  "DOWNLOAD_FAILED": "Failed to download the video. Please try again later."
+  "DOWNLOAD_FAILED": "Failed to download the video. Please try again later.",
   
   
+  "_comment8": "Sección de configuración de administrador",
+    "TITULO": "🚀 EverLoad Control Panel",
+  "YOUTUBE": "YouTube",
+  "TWITTER": "Twitter",
+  "FACEBOOK": "Facebook",
+  "INSTAGRAM": "Instagram",
+  "SPOTIFY": "Spotify",
+  "TIKTOK": "TikTok",
+  "CLIENT_ID": "Spotify Client ID",
+  "CLIENT_SECRET": "Spotify Client Secret",
+  "API_KEY": "YouTube API Key",
+  "GUARDAR": "💾 Save",
+  "ACTUALIZAR_YTDLP": "🔄 Update yt-dlp",
+  "LIMPIAR_TEMP": "🧹 Clear temp files",
+  "VACIAR_HIST": "🗑️ Clear history",
+  "LIMPIAR_LOG": "🧽 Clear log",
+  "LOGS": "📜 Recent logs",
+  "FILTRAR": "Filter by word (optional)",
+  "VER_LOGS": "🔍 View logs",
+  "HIST_DESCARGAS": "📂 Download history",
+  "ESTADO_APIS": "📶 API status",
+  "COMPROBAR_ESTADO": "🔍 Check status",
+  "TITULO_TABLA": "Title",
+  "TIPO": "Type",
+  "PLATAFORMA": "Platform",
+  "FECHA": "Date",
+  "API_OK": "🟢 {{ platform }} working",
+  "API_ERROR": "🔴 {{ platform }} has issues",
 
-
-
-    
+  "_about":"About the app",
+  "ABOUT.CREATOR": "EverLoad is a free and open-source app to download videos and music from YouTube, Twitter, Facebook, Instagram, Spotify, and TikTok.",
+  "ABOUT.ROLE": "Developer",
+  "ABOUT.NAME": "XiánDT",
+  "ABOUT.EMAIL": "xiandt01@gmail.com"
   }
   

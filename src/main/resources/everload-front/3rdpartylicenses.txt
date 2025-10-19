@@ -19,6 +19,9 @@ MIT
 @ngx-translate/http-loader
 MIT
 
+gsap
+Standard 'no charge' license: https://gsap.com/standard-license.
+
 rxjs
 Apache-2.0
                                Apache License
