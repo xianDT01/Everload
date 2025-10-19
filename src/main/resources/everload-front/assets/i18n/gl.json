@@ -3,7 +3,6 @@
 "Youtube": "YouTube",
 "SUBTITLE": "Descarga vídeos e audios doadamente",
 "DOWNLOAD_YOUTUBE": "Descargar dende YouTube",
-"CREATED_BY": "Creado por",
 "GITHUB": "GitHub",
 "DOWNLOAD_Twitter": "Descargar dende Twitter",
 "DOWNLOAD_TIKTOK": "Descargar dende TikTok",
@@ -37,6 +36,8 @@
 "ERROR_UNKNOWN": "Algo saíu mal. Inténtao de novo máis tarde.",
 "ERROR_DOWNLOADING_MUSIC": "Produciuse un erro ao descargar a música.",
 "ERROR_LOADING_PLAYLIST": "Produciuse un erro ao cargar a lista de reprodución",
+"PLEASE_ENTER_YOUTUBE_LINK": "Introduce unha ligazón de YouTube",
+
 
 
 
@@ -72,7 +73,7 @@
 "_comment6": "Sección de Spotify",
 "DOWNLOAD_SPOTIFY": "Descargar dende Spotify",
 "DOWNLOAD_Spotify_FAILED": "Produciuse un erro ao descargar dende Spotify",
-  "TITLE": "Descargador de listas de Spotify",
+  "TITLE": "Spotify Downloader",
   "Spotify_Subtitle": "Pega a URL da túa lista e descarga as cancións unha a unha",
   "PLACEHOLDER": "Pega aquí a URL da lista",
   "SEARCH_BUTTON": "Buscar cancións",
@@ -91,7 +92,44 @@
   "LOADING": "Descargando",
   "HOME": "Inicio",
   "EMPTY_URL_ERROR": "Por favor, introduce unha ligazón de TikTok.",
-  "DOWNLOAD_FAILED": "Non se puido descargar o vídeo. Inténtao de novo máis tarde."
+  "DOWNLOAD_FAILED": "Non se puido descargar o vídeo. Inténtao de novo máis tarde.",
+
+
+"_comment8": "Sección de configuración de administrador",
+  "TITULO": "🚀 Panel de control EverLoad",
+  "YOUTUBE": "YouTube",
+  "TWITTER": "Twitter",
+  "FACEBOOK": "Facebook",
+  "INSTAGRAM": "Instagram",
+  "SPOTIFY": "Spotify",
+  "TIKTOK": "TikTok",
+  "CLIENT_ID": "Client ID de Spotify",
+  "CLIENT_SECRET": "Client Secret de Spotify",
+  "API_KEY": "API Key de YouTube",
+  "GUARDAR": "💾 Gardar",
+  "ACTUALIZAR_YTDLP": "🔄 Actualizar yt-dlp",
+  "LIMPIAR_TEMP": "🧹 Limpar temporais",
+  "VACIAR_HIST": "🗑️ Baleirar historial",
+  "LIMPIAR_LOG": "🧽 Limpar log",
+  "LOGS": "📜 Rexistros recentes",
+  "FILTRAR": "Filtrar por palabra (opcional)",
+  "VER_LOGS": "🔍 Ver rexistros",
+  "HIST_DESCARGAS": "📂 Historial de descargas",
+  "ESTADO_APIS": "📶 Estado das APIs",
+  "COMPROBAR_ESTADO": "🔍 Comprobar estado",
+  "TITULO_TABLA": "Título",
+  "TIPO": "Tipo",
+  "PLATAFORMA": "Plataforma",
+  "FECHA": "Data",
+  "API_OK": "🟢 {{ platform }} operativo",
+  "API_ERROR": "🔴 {{ platform }} con erros",
+
+    "ABOUT":"Acerca da app",
+    "ABOUT.CREATOR": "EverLoad é unha aplicación gratuíta e de código aberto para descargar vídeos e música de YouTube, Twitter, Facebook, Instagram, Spotify e TikTok.",
+    "ABOUT.ROLE": "Desenvolvedor",
+    "ABOUT.NAME": "XiánDT",
+    "ABOUT.EMAIL": "xiandt01@gmail.com"
+  
 
 
 
