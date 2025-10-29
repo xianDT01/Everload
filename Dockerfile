@@ -15,14 +15,19 @@ RUN ./mvnw clean package -DskipTests
 FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
-# 🔽 Instalamos yt-dlp y sus dependencias
+# Instalamos yt-dlp y dependencias necesarias
 RUN apt-get update && \
     apt-get install -y wget ffmpeg python3 && \
     wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
-    ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp
+    ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Decimos a Spring dónde está yt-dlp
+ENV everload.ytdlp.path=/usr/local/bin/yt-dlp
 
 # Copiamos el JAR desde el build anterior
 COPY --from=backend-build /app/target/*.jar app.jar
+
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
