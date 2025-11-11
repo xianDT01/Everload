@@ -28,9 +28,20 @@ interface DownloadHistoryVm {
   styleUrls: ['./admin-config.component.css']
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
+  
 
-//  private readonly BASE = 'http://localhost:8080';
-  private readonly BASE = 'http:/api';
+// Detecta si se ejecuta en localhost o en producción (Docker):
+// - En localhost usa http://localhost:8080
+// - En producción usa rutas relativas /api/ (mismo host)
+private readonly BASE: string = (() => {
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:8080';
+  }
+  return ''; // en Docker o producción
+})();
+  //  private readonly BASE = 'http://localhost:8080';
+  //  private readonly BASE = 'http:/api';  // <- (typo) NO USAR
 
   config: AdminConfig = {
     clientId: '',

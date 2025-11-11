@@ -2,20 +2,25 @@
 FROM node:20 AS frontend-build
 WORKDIR /app
 COPY everload-front/ ./everload-front/
-RUN cd everload-front && npm install && npm run build -- --configuration production --base-href=/
+RUN cd everload-front \
+ && npm ci \
+ && npm run build -- --configuration production --base-href=/
 
 # Etapa 2: Build del backend con el frontend embebido
 FROM maven:3.9.5-eclipse-temurin-21 AS backend-build
 WORKDIR /app
 COPY . .
-COPY --from=frontend-build /app/everload-front/dist/everload-front/ src/main/resources/static/
-RUN ./mvnw clean package -DskipTests
+# Asegura permisos del wrapper (o usa mvn)
+RUN chmod +x mvnw || true
+# Copia el front a static (nota la carpeta 'browser')
+COPY --from=frontend-build /app/everload-front/dist/everload-front/browser/ src/main/resources/static/
+RUN ./mvnw clean package -DskipTests || mvn clean package -DskipTests
 
 # Etapa final: Imagen ligera solo con el JAR
 FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
-# Instalamos yt-dlp y dependencias necesarias
+# yt-dlp + ffmpeg
 RUN apt-get update && \
     apt-get install -y wget ffmpeg python3 && \
     wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp && \
@@ -23,10 +28,14 @@ RUN apt-get update && \
     ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Decimos a Spring dónde está yt-dlp
+# Apunta Spring a yt-dlp
 ENV everload.ytdlp.path=/usr/local/bin/yt-dlp
 
-# Copiamos el JAR desde el build anterior
+# PREPARA config.json para que el backend pueda leer/escribir
+RUN echo '{"clientId":"","clientSecret":"","apiKey":""}' > /app/config.json && \
+    chmod 666 /app/config.json
+
+# Copia el jar
 COPY --from=backend-build /app/target/*.jar app.jar
 
 EXPOSE 8080
