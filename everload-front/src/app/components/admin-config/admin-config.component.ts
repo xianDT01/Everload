@@ -29,8 +29,8 @@ interface DownloadHistoryVm {
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
 
-  private readonly BASE = 'http://localhost:8080';
- // private readonly BASE = 'http:/api';
+//  private readonly BASE = 'http://localhost:8080';
+  private readonly BASE = 'http:/api';
 
   config: AdminConfig = {
     clientId: '',
