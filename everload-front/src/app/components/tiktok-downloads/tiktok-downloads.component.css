@@ -102,8 +102,13 @@ html, body {
 .language-selector .flag {
   width: 30px;
   height: 20px;
-  object-fit: contain;
+  object-fit: cover;
+  display: inline-block;
+  vertical-align: middle;
 }
+
+
+
 
 /* Error */
 .error-msg {
