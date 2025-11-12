@@ -1,3 +1,4 @@
+<!-- HTML -->
 <div class="login-split-container">
   <!-- Lado izquierdo (logo) -->
   <div class="left-panel">
@@ -9,42 +10,43 @@
     <div class="login-card">
       <h2 class="login-title">TikTok Downloader</h2>
 
-      <!-- Campo de entrada -->
-      <input type="text" [(ngModel)]="tiktokUrl" placeholder="{{ 'PASTE_TIKTOK_URL' | translate }}" class="login-input"
-        aria-label="TikTok URL" />
+      <input
+        type="text"
+        [(ngModel)]="tiktokUrl"
+        placeholder="{{ 'PASTE_TIKTOK_URL' | translate }}"
+        class="login-input"
+        aria-label="TikTok URL"
+      />
 
-      <!-- Botón de descarga -->
-      <button class="login-button" (click)="descargar()" [disabled]="cargando" aria-label="Descargar vídeo de TikTok">
+      <button
+        class="login-button"
+        (click)="descargar()"
+        [disabled]="cargando"
+        aria-label="Descargar vídeo de TikTok"
+      >
         <span *ngIf="!cargando">{{ 'DOWNLOAD_TIKTOK' | translate }}</span>
         <span *ngIf="cargando">{{ 'LOADING' | translate }}...</span>
       </button>
 
-      <!-- Mensaje de error -->
       <div *ngIf="error" class="error-msg" role="alert">
         {{ error }}
       </div>
 
-      <!-- Barra de progreso -->
       <div class="progress-bar" *ngIf="cargando">
         <div class="progress-fill"></div>
       </div>
 
-      <!-- Enlace a inicio -->
       <a routerLink="/" class="forgot-link">{{ 'HOME' | translate }}</a>
 
-      <!-- Selector de idioma -->
       <div class="language-selector">
         <button (click)="changeLanguage('es')" aria-label="Cambiar a español">
           <img src="https://flagcdn.com/w40/es.png" alt="Español" class="flag" />
         </button>
-
         <button (click)="changeLanguage('en')" aria-label="Switch to English">
           <img src="https://flagcdn.com/w40/gb.png" alt="English" class="flag" />
         </button>
-
         <button (click)="changeLanguage('gl')" aria-label="Cambiar a galego">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego"
-            class="flag" />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego" class="flag" />
         </button>
       </div>
     </div>
