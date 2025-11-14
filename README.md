@@ -17,23 +17,17 @@ populares de forma rápida, segura e desde a túa rede privada.
 
 ## 🖼️ Vista previa de la aplicación
 
-```{=html}
 <p align="center">
-```
-`<img src="docs/assets/HomeEverload.png" alt="Pantalla principal" width="600"/>`{=html}
-```{=html}
+  <img src="docs/assets/HomeEverload.png" alt="Pantalla principal" width="600"/>
 </p>
-```
-```{=html}
+
 <p align="center">
-```
-`<img src="docs/assets/Download%20from%20YouTube.png" alt="YouTube" width="200"/>`{=html}
-`<img src="docs/assets/Download%20from%20Facebook.png" alt="Facebook" width="200"/>`{=html}
-`<img src="docs/assets/Download%20from%20Instagram.png" alt="Instagram" width="200"/>`{=html}
-`<img src="docs/assets/Download%20from%20X.png" alt="Twitter/X" width="200"/>`{=html}
-`<img src="docs/assets/Spotify.png" alt="Spotify" width="200"/>`{=html}
-`<img src="docs/assets/TIkTok.png" alt="TikTok" width="200">`{=html}
-```{=html}
+  <img src="docs/assets/Download%20from%20YouTube.png" alt="YouTube" width="200"/>
+  <img src="docs/assets/Download%20from%20Facebook.png" alt="Facebook" width="200"/>
+  <img src="docs/assets/Download%20from%20Instagram.png" alt="Instagram" width="200"/>
+  <img src="docs/assets/Download%20from%20X.png" alt="Twitter/X" width="200"/>
+  <img src="docs/assets/Spotify.png" alt="Spotify" width="200"/>
+  <img src="docs/assets/TIkTok.png" alt="TikTok" width="200">
 </p>
 ```
 
