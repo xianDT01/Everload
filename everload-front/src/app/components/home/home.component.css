@@ -103,9 +103,10 @@ html, body {
 
 /* Iconos consistentes */
 .button .icon {
-  width: 28px;
-  height: 28px;
-
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
 }
 
 @keyframes fadeInUp {
