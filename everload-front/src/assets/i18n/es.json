@@ -73,7 +73,7 @@
   "TITLE": "Spotify Downloader",
   "Spotify_Subtitle": "Pega la URL de tu playlist y descarga las canciones una a una",
   "PLACEHOLDER": "Pega aquí la URL de la playlist",
-  "SEARCH_BUTTON": "Buscar canciones",
+  "SEARCH_BUTTON": "Buscar",
   "LOADING": "Buscando canciones...",
   "DOWNLOAD_ALL": "Descargar toda la playlist",
   "FOUND_TRACKS": "Canciones encontradas:",
