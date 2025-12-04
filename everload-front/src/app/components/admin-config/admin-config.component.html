@@ -94,7 +94,13 @@
             <img [src]="getIconPath(item.plataforma)" class="icon-table" />
             {{ item.plataforma }}
           </td>
-          <td>{{ item.fecha | date:'short' }}</td>
+          <td>
+  <ng-container *ngIf="item.fecha; else sinFecha">
+    {{ item.fecha | date:'dd/MM/yy, HH:mm' }}
+  </ng-container>
+  <ng-template #sinFecha>–</ng-template>
+</td>
+
         </tr>
       </tbody>
     </table>

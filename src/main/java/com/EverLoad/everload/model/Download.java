@@ -9,8 +9,8 @@ public class Download {
     private LocalDateTime createdAt;
 
     public Download() {
-        this.createdAt = LocalDateTime.now();
     }
+
 
     public Download(String title, String type, String platform) {
         this.title = title;
