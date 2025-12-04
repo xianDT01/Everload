@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { NgModule, LOCALE_ID } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +6,12 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 
+// IMPORTS NECESARIOS PARA CAMBIAR EL FORMATO DE FECHA
+import { registerLocaleData } from '@angular/common';
+import localeEs from '@angular/common/locales/es';
+
+// Registrar español como locale
+registerLocaleData(localeEs);
 
 import { AppComponent } from './app.component';
 import { HomeComponent } from './components/home/home.component';
@@ -18,6 +24,7 @@ import { SpotifyDownloadsComponent } from './components/spotify-downloads/spotif
 import { TiktokDownloadsComponent } from './components/tiktok-downloads/tiktok-downloads.component';
 import { AdminConfigComponent } from './components/admin-config/admin-config.component';
 import { AboutAppComponent } from './components/about-app/about-app.component';
+
 // Función para cargar archivos de traducción
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -51,7 +58,9 @@ export function HttpLoaderFactory(http: HttpClient) {
       }
     })
   ],
-  providers: [],
+  providers: [
+    { provide: LOCALE_ID, useValue: 'es-ES' }   // 👈 ESTA LÍNEA ES LA CLAVE
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
