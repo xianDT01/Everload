@@ -1,3 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+  font-family: 'Poppins', sans-serif;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .developer-card::before {
   content:"";
   position: absolute;
@@ -14,23 +53,23 @@
 
 .home-button {
   position: absolute;
-  top: 24px;       /* distancia desde arriba */
-  left: 24px;      /* o pon right: 24px para esquina derecha */
+  top: 24px;
+  left: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: .55rem 1.1rem;
+  padding: 0.55rem 1.1rem;
   border-radius: 999px;
   font-weight: 500;
-  font-size: .9rem;
+  font-size: 0.9rem;
   color: #e7e7e7;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04),
-              0 4px 12px rgba(0,0,0,.35);
-  transition: all .25s ease;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s ease;
   cursor: pointer;
-  z-index: 10; /* encima del fondo/orbita */
+  z-index: 10;
+  animation: fadeIn 1s ease-out;
 }
 
 .home-button:hover {
@@ -41,12 +80,12 @@
   box-shadow: 0 0 12px rgba(34,197,94,.5),
               0 6px 16px rgba(0,0,0,.4);
 }
-/* Esquina superior derecha, por encima del fondo/orbita */
 .lang-switch{
   position:absolute;
   top:24px; right:24px;
   display:flex; gap:.4rem;
   z-index:10;
+  animation: fadeIn 1s ease-out 0.2s both;
 }
 
 .lang-btn{
@@ -72,11 +111,11 @@
 
 
 
-/* El contenedor*/
 .about-platforms{
   position: relative;
   isolation: isolate; 
-  overflow: clip;     
+  overflow: clip;
+  animation: fadeIn 1s ease-out;
 }
 
 /* Gradiente + grano + viñeta SOLO dentro del componente */
@@ -130,16 +169,13 @@
 .sp:hover   { color:#22c55e; }
 .tk:hover   { color:#a855f7; }
 
-/*Animacion de la tarjeta*/
 .developer-card {
-  animation: breathe 6s ease-in-out infinite;
+  animation: breathe 6s ease-in-out infinite, slideInLeft 1.2s ease-out 0.5s both;
 }
 @keyframes breathe {
   0%,100% { transform: scale(1); }
   50%     { transform: scale(1.005); }
 }
-
-/*Botón de acción*/
 
 .github-link {
   display: inline-flex;
@@ -147,7 +183,7 @@
   gap: .6rem;
   margin-top: 1rem;
   padding: .65rem 1.3rem;
-  border-radius: 999px; /* pill shape */
+  border-radius: 999px;
   text-decoration: none;
   font-weight: 500;
   color: #e7e7e7;
@@ -156,6 +192,7 @@
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04),
               0 4px 12px rgba(0,0,0,.35);
   transition: all .25s ease;
+  animation: fadeIn 1s ease-out 0.8s both;
 }
 
 .github-link svg {
@@ -175,7 +212,6 @@
 
 
 
-/* ====== Lienzo centrado ====== */
 .about-platforms{
   min-height:100svh;
   display:grid;
@@ -195,20 +231,18 @@
   filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
 }
 
-/* --- Typography tweaks (subtle) --- */
 .role-label{
   margin: 0 0 .25rem;
   color: #a8b1c7;
   letter-spacing: .08em;
-  font-size: .9rem;                /* was .85-ish */
+  font-size: .9rem;
   text-transform: uppercase;
 }
 
 
-/* --- Brand logo badge (centered above the card) --- */
 .brand-badge{
   position: absolute;
-  top: -34px;                  /* floats above card */
+  top: -34px;
   left: 50%;
   transform: translateX(-50%);
   width: 68px; height: 68px;
@@ -221,19 +255,19 @@
     0 10px 24px rgba(0,0,0,.35),
     inset 0 0 0 1px rgba(255,255,255,.04);
   z-index: 3;
+  animation: slideInRight 1.2s ease-out 0.3s both;
 }
 
 .developer-card h1{
-  font-size: clamp(1.8rem, 1.2rem + 1.9vw, 2.35rem); /* a bit larger */
+  font-size: clamp(1.8rem, 1.2rem + 1.9vw, 2.35rem);
   letter-spacing: .015em;
   margin: .2rem 0 .6rem;
 }
 .description{ color:#b6c0d6; font-size: .98rem; }
 .by{ color:#c7cfdd; font-size: .95rem; }
 
-/* ====== Tarjeta ====== */
 .developer-card{
-  position: relative;          /* needed for absolute badge */
+  position: relative;
   padding-top: 3.6rem;  
   z-index:2;
   width:min(520px, 92vw);
@@ -247,7 +281,6 @@
   box-shadow: 0 18px 40px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,0.03);
 }
 
-/* ====== ÓRBITA (SIEMPRE EN MOVIMIENTO) ====== */
 .icons-ring{
 
   --size: clamp(560px, 70vw, 760px);
@@ -257,11 +290,11 @@
   top:50%; left:50%;
   width: var(--size);
   height: var(--size);
-  transform: translate(-50%, -50%); /* centra exacto respecto al card */
+  transform: translate(-50%, -50%);
   z-index:1;
 
-  pointer-events:none;                 /* el contenedor no tapa la tarjeta */
-  animation: orbit 80s linear infinite;/* órbita suave y continua */
+  pointer-events:none;
+  animation: orbit 80s linear infinite;
 }
 
 @keyframes orbit{
@@ -269,12 +302,11 @@
   to  { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* ====== Chips de icono (sin animación de hover) ====== */
 .icons-ring .icon{
   position:absolute;
   top:50%; left:50%;
   width:86px; height:86px;
-  margin:-43px 0 0 -43px;     /* centra cada chip en su punto */
+  margin:-43px 0 0 -43px;
   border-radius:999px;
   display:grid; place-items:center;
 
@@ -282,8 +314,8 @@
   border:1px solid rgba(255,255,255,0.08);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 12px 26px rgba(0,0,0,.40);
 
-  pointer-events:auto;  /* clicables */
-  transition:none;      /* sin efectos al pasar por encima */
+  pointer-events:auto;
+  transition:none;
 }
 .icons-ring .icon img{
   width:44px; height:44px;
@@ -291,7 +323,7 @@
   filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
 }
 
-/* ====== Colocación perfecta (6 a 60°) y “desgiro” del logo ====== */
+
 .icons-ring .icon:nth-child(1){ transform: rotate(-90deg)  translate(var(--r)) rotate( 90deg); }
 .icons-ring .icon:nth-child(2){ transform: rotate(-30deg)  translate(var(--r)) rotate( 30deg); }
 .icons-ring .icon:nth-child(3){ transform: rotate( 30deg)  translate(var(--r)) rotate(-30deg); }
@@ -299,7 +331,6 @@
 .icons-ring .icon:nth-child(5){ transform: rotate(150deg)  translate(var(--r)) rotate(-150deg); }
 .icons-ring .icon:nth-child(6){ transform: rotate(-150deg) translate(var(--r)) rotate(150deg); }
 
-/* ====== Tintado sutil por marca ====== */
 .fb{ border-color: rgba(59,130,246,.35); }
 .ig{ border-color: rgba(244,114,182,.35); }
 .tw{ border-color: rgba(56,189,248,.35); }
@@ -307,12 +338,45 @@
 .sp{ border-color: rgba(34,197,94,.35); }
 .tk{ border-color: rgba(148,163,184,.35); }
 
-/* ====== Responsive ====== */
-@media (max-width: 720px){
+@media (max-width: 768px){
+  .about-platforms{
+    padding:2rem 1rem;
+  }
+  .developer-card{
+    width:min(480px, 95vw);
+    padding:1.8rem 2rem;
+  }
   .icons-ring{ --size: clamp(460px, 92vw, 560px); }
   .icons-ring .icon{ width:78px; height:78px; margin:-39px 0 0 -39px; }
   .icons-ring .icon img{ width:40px; height:40px; }
+  .brand-badge{
+    width: 60px; height: 60px;
+    top: -30px;
+  }
+  .brand-badge img{
+    width: 35px; height: 35px;
+  }
+  .home-button,
+  .lang-switch{
+    top:16px;
+  }
+  .home-button{
+    left:16px;
+    padding:.5rem 1rem;
+    font-size:.85rem;
+  }
+  .lang-btn{
+    padding:.4rem .65rem;
+    font-size:.75rem;
+  }
 }
 @media (prefers-reduced-motion: reduce){
   .icons-ring{ animation:none; }
+  .developer-card,
+  .home-button,
+  .lang-switch,
+  .github-link,
+  .brand-badge{
+    animation: none;
+  }
 }

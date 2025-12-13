@@ -5,78 +5,116 @@ html, body {
   background-color: #ffffff;
 }
 
-/* Contenedor principal */
 .login-split-container {
   display: flex;
   flex-direction: row;
   min-height: 100vh;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: 'Poppins', sans-serif;
   overflow: hidden;
+  animation: fadeIn 1s ease-in-out;
 }
 
-/* Lado izquierdo con degradado */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  0% { opacity: 0; transform: translateX(-50px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  0% { opacity: 0; transform: translateX(50px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
 .left-panel {
   flex: 1;
-  background: linear-gradient(to bottom right, #000000, #1a1a1a);
+  background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: slideInLeft 1.2s ease-out;
 }
+
 .left-logo {
   max-width: 60%;
   height: auto;
+  filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
+  animation: fadeIn 1.5s ease-out;
 }
 
-/* Lado derecho */
 .right-panel {
   flex: 1;
-  background-color: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  animation: slideInRight 1.2s ease-out;
 }
+
 .login-card {
   width: 90%;
   max-width: 400px;
   text-align: center;
-}
-.login-title {
-  font-size: 1.8rem;
-  margin-bottom: 20px;
-  font-weight: bold;
-  color: #000;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 1.5s ease-out;
 }
 
-/* Input */
+.login-title {
+  font-size: 28px;
+  margin-bottom: 20px;
+  font-weight: 700;
+  color: #000;
+  background: linear-gradient(135deg, #fe2c55 0%, #25f4ee 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .login-input {
   width: 100%;
-  padding: 12px;
+  padding: 16px;
   border-radius: 25px;
-  border: 1px solid #ccc;
+  border: 2px solid #e1e5e9;
   font-size: 1rem;
   outline: none;
   margin-bottom: 10px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: #f8f9fa;
 }
 
-/* Botón */
+.login-input:focus {
+  border-color: #fe2c55;
+  box-shadow: 0 0 0 3px rgba(254, 44, 85, 0.2);
+}
+
 .login-button {
-  background: linear-gradient(to right, #fe2c55, #25f4ee);
+  background: linear-gradient(135deg, #fe2c55 0%, #25f4ee 100%);
   color: white;
   border: none;
-  padding: 12px 24px;
+  padding: 16px 24px;
   border-radius: 25px;
   cursor: pointer;
   font-size: 1rem;
-  transition: transform 0.2s ease;
+  font-weight: 700;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
   margin-top: 10px;
   width: 100%;
-}
-.login-button:hover {
-  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(254, 44, 85, 0.3);
 }
 
-/* Enlace */
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(254, 44, 85, 0.5);
+  filter: brightness(1.1);
+}
+
 .forgot-link {
   display: block;
   margin-top: 15px;
@@ -85,7 +123,6 @@ html, body {
   font-size: 0.9rem;
 }
 
-/* Selector de idioma */
 .language-selector {
   margin-top: 10px;
   display: flex;
@@ -93,31 +130,39 @@ html, body {
   align-items: center;
   gap: 10px;
 }
+
 .language-selector button {
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
+  width: 42px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
 }
+
+.language-selector button:hover {
+  transform: scale(1.1);
+}
+
 .language-selector .flag {
   width: 30px;
   height: 20px;
   object-fit: cover;
   display: inline-block;
   vertical-align: middle;
+  border-radius: 4px;
 }
 
-
-
-
-/* Error */
 .error-msg {
-  color: red;
+  color: #ff4c4c;
   font-size: 0.9rem;
   margin-top: 10px;
 }
 
-/* Barra de progreso */
 .progress-bar {
   width: 100%;
   height: 6px;
@@ -126,12 +171,14 @@ html, body {
   overflow: hidden;
   margin: 10px 0;
 }
+
 .progress-fill {
   width: 100%;
   height: 100%;
-  background: linear-gradient(to right, #25f4ee, #fe2c55);
+  background: linear-gradient(135deg, #25f4ee 0%, #fe2c55 100%);
   animation: loadingBar 2s linear infinite;
 }
+
 @keyframes loadingBar {
   0% {
     transform: translateX(-100%);
@@ -141,7 +188,6 @@ html, body {
   }
 }
 
-/* 🔄 Media queries para móviles */
 @media (max-width: 768px) {
   .login-split-container {
     flex-direction: column;
@@ -163,5 +209,14 @@ html, body {
 
   .left-logo {
     max-width: 40%;
+  }
+
+  .login-card {
+    width: 90%;
+    padding: 1.5rem;
+  }
+
+  .login-title {
+    font-size: 24px;
   }
 }
