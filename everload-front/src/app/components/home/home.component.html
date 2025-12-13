@@ -1,66 +1,64 @@
 <div class="home-container">
-  <div class="logo-container">
-    <img src="/assets/EverLoad home logo.png" alt="" class="everload-logo">
-    <link rel="icon" type="image/png" href="assets/Logo App.png">
-
+  <header class="logo-container">
+    <img src="/assets/EverLoad home logo.png" alt="Everload Logo" class="everload-logo">
 
     <!-- ====== MENÚ HAMBURGUESA ====== -->
-    <input type="checkbox" id="navcheck" role="button" title="menu">
+    <input type="checkbox" id="navcheck" role="button" title="menu" aria-label="Toggle navigation menu">
     <label for="navcheck" aria-hidden="true" title="menu">
       <span class="burger">
-        <span class="bar"><span class="visuallyhidden"></span></span>
+        <span class="bar"><span class="visuallyhidden">Menu</span></span>
       </span>
     </label>
-    <nav id="menu">
-      <a routerLink="/admin-config" class="admin-menu-button in-menu">Admin</a>
-      <a routerLink="/about-app" class="about-menu-button in-menu">About</a>
+    <nav id="menu" role="navigation" aria-label="Main navigation">
+      <a routerLink="/admin-config" class="admin-menu-button in-menu" aria-label="Go to Admin Configuration">Admin</a>
+      <a routerLink="/about-app" class="about-menu-button in-menu" aria-label="Go to About App">About</a>
     </nav>
     <!-- ====== FIN MENÚ HAMBURGUESA ====== -->
-  </div>
+  </header>
 
   <main>
     <div class="content">
       <p class="subtitle">{{ 'SUBTITLE' | translate }}</p>
 
-      <div class="options">
-        <a routerLink="/youtube-downloads" class="button youtube-button">
-          <img src="/assets/youtube-icon-logo-719479.png" alt="YouTube" class="icon"> {{ 'DOWNLOAD_YOUTUBE' | translate
-          }}
+      <section class="options" aria-labelledby="downloads-heading">
+        <h2 id="downloads-heading" class="visuallyhidden">Download Options</h2>
+        <a routerLink="/youtube-downloads" class="button youtube-button" aria-label="Download from YouTube">
+          <img src="/assets/youtube-icon-logo-719479.png" alt="YouTube icon" class="icon"> {{ 'DOWNLOAD_YOUTUBE' | translate }}
         </a>
-        <a routerLink="/twitter-downloads" class="button twitter-button">
-          <img src="/assets/twitter-icon.png" alt="Twitter" class="icon"> {{ 'DOWNLOAD_TWITTER' | translate }}
+        <a routerLink="/twitter-downloads" class="button twitter-button" aria-label="Download from Twitter">
+          <img src="/assets/twitter-icon.png" alt="Twitter icon" class="icon"> {{ 'DOWNLOAD_TWITTER' | translate }}
         </a>
-        <a routerLink="/facebook-downloads" class="button facebook-button">
-          <img src="/assets/fb sin fondo.png" alt="Facebook" class="icon"> {{ 'DOWNLOAD_FACEBOOK' | translate }}
+        <a routerLink="/facebook-downloads" class="button facebook-button" aria-label="Download from Facebook">
+          <img src="/assets/fb sin fondo.png" alt="Facebook icon" class="icon"> {{ 'DOWNLOAD_FACEBOOK' | translate }}
         </a>
-        <a routerLink="/instagram-downloads" class="button instagram-button">
-          <img src="/assets/instagram-icon.png" alt="Instagram" class="icon"> {{ 'DOWNLOAD_INSTAGRAM' | translate }}
+        <a routerLink="/instagram-downloads" class="button instagram-button" aria-label="Download from Instagram">
+          <img src="/assets/instagram-icon.png" alt="Instagram icon" class="icon"> {{ 'DOWNLOAD_INSTAGRAM' | translate }}
         </a>
-        <a routerLink="/spotify-downloads" class="button spotify-button">
-          <img src="assets/Spotify.png" alt="Spotify" class="icon"> {{ 'DOWNLOAD_SPOTIFY' | translate }}
+        <a routerLink="/spotify-downloads" class="button spotify-button" aria-label="Download from Spotify">
+          <img src="assets/Spotify.png" alt="Spotify icon" class="icon"> {{ 'DOWNLOAD_SPOTIFY' | translate }}
         </a>
-        <a routerLink="/tiktok-downloads" class="button tiktok-button">
-          <img src="/assets/tiktok_logo.png" alt="TikTok" class="icon"> {{ 'DOWNLOAD_TIKTOK' | translate }}
+        <a routerLink="/tiktok-downloads" class="button tiktok-button" aria-label="Download from TikTok">
+          <img src="/assets/tiktok_logo.png" alt="TikTok icon" class="icon"> {{ 'DOWNLOAD_TIKTOK' | translate }}
         </a>
-      </div>
+      </section>
 
-      <div class="language-selector">
-        <button (click)="changeLanguage('es')">
-          <img src="https://flagcdn.com/w40/es.png" alt="Bandera de España" class="flag" />
+      <section class="language-selector" aria-labelledby="language-heading">
+        <h2 id="language-heading" class="visuallyhidden">Select Language</h2>
+        <button (click)="changeLanguage('es')" aria-label="Change language to Spanish">
+          <img src="https://flagcdn.com/w40/es.png" alt="Spanish flag" class="flag" loading="lazy" />
           Español
         </button>
 
-        <button (click)="changeLanguage('en')">
-          <img src="https://flagcdn.com/w40/gb.png" alt="Bandera del Reino Unido" class="flag" />
+        <button (click)="changeLanguage('en')" aria-label="Change language to English">
+          <img src="https://flagcdn.com/w40/gb.png" alt="English flag" class="flag" loading="lazy" />
           English
         </button>
 
-        <button (click)="changeLanguage('gl')">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Bandera de Galicia"
-            class="flag" />
+        <button (click)="changeLanguage('gl')" aria-label="Change language to Galician">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galician flag" class="flag" loading="lazy" />
           Galego
         </button>
-      </div>
+      </section>
 
     </div>
   </main>
