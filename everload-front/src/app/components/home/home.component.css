@@ -17,6 +17,7 @@ html, body {
   color: white;
   text-align: center;
   padding: 20px;
+  animation: fadeIn 1s ease-in-out;
 }
 
 /* Contenedor del logo */
@@ -25,18 +26,19 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  animation: slideInFromTop 1.2s ease-out;
 }
 
 .everload-logo {
   width: 500px;
   height: auto;
+  animation: fadeIn 1.5s ease-out;
 }
 /* Logo everload que hace zoom al poner el re */
 .everload-logo:hover {
   transform: scale(1.05);
   transition: transform 0.3s ease-in-out;
 }
-
 
 /* Nombre de la app */
 .app-name {
@@ -46,6 +48,7 @@ html, body {
   color: #ff0000;
   text-transform: uppercase;
   letter-spacing: 2px;
+  animation: fadeInUp 1.8s ease-out;
 }
 
 .subtitle {
@@ -53,6 +56,7 @@ html, body {
   color: #cccccc;
   margin-top: 10px;
   font-family: 'Poppins', sans-serif;
+  animation: fadeInUp 2s ease-out;
 }
 
 /* Botones de descarga */
@@ -63,7 +67,7 @@ html, body {
   margin-top: 30px;
   max-width: 600px;
   width: 100%;
-  
+  animation: fadeInUp 2.2s ease-out;
 }
 .button {
   position: relative;
@@ -85,11 +89,13 @@ html, body {
   box-sizing: border-box;
   box-shadow: 0 8px 18px rgba(0,0,0,.25);
   transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+  animation: fadeIn 2.5s ease-out;
 }
 .button:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 24px rgba(0,0,0,.32);
   filter: saturate(1.05);
+  animation: wiggle 0.5s ease-in-out;
 }
 /* borde interior para profundidad */
 .button::after {
@@ -107,11 +113,66 @@ html, body {
   height: 40px;
   object-fit: contain;
   display: block;
+  transition: transform 0.3s ease;
+}
+
+.button:hover .icon {
+  animation: spin 0.5s ease-in-out;
 }
 
 @keyframes fadeInUp {
   0% { opacity: 0; transform: translateY(10px); }
   100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideInFromTop {
+  0% { opacity: 0; transform: translateY(-50px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounceIn {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: translateY(-2px) rotate(0deg); }
+  25% { transform: translateY(-2px) rotate(-1deg); }
+  75% { transform: translateY(-2px) rotate(1deg); }
+}
+
+@keyframes slideInFromBottom {
+  0% { opacity: 0; transform: translateY(50px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0) scale(1.1); }
+  40% { transform: translateY(-10px) scale(1.1); }
+  60% { transform: translateY(-5px) scale(1.1); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes slideInFromLeft {
+  0% { opacity: 0; transform: translateX(-100%); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 .icon {
   width: 40px;
@@ -175,6 +236,7 @@ html, body {
   margin-top: 20px;
   align-items: center;
   justify-content: center;
+  animation: fadeInUp 2.5s ease-out;
 }
 
 .language-selector button {
@@ -187,11 +249,13 @@ html, body {
   align-items: center;
   gap: 6px;
   padding: 5px 10px;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .language-selector button:hover {
   opacity: 0.8;
+  transform: scale(1.1);
+  animation: bounce 0.6s ease-in-out;
 }
 
 .language-selector .flag {
@@ -264,7 +328,8 @@ nav {
   width: 250px;
   background: #1f1f1f;
   transform: translateX(-100%);
-  transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+  transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.5s ease;
+  opacity: 0;
   padding-top: 5em;
   z-index: 999;
   box-shadow: 3px 0 12px rgba(0, 0, 0, 0.3);
@@ -277,11 +342,12 @@ nav a {
   color: #fff;
   text-decoration: none;
   font-family: 'Poppins', sans-serif;
-  transition: color 0.2s;
+  transition: color 0.2s, transform 0.3s ease;
 }
 
 nav a:hover {
   color: #00ccff;
+  transform: translateX(10px);
 }
 
 /* Contenido principal afectado */
@@ -306,6 +372,7 @@ main .content {
 
 #navcheck:checked ~ nav {
   transform: translateX(0);
+  opacity: 1;
 }
 
 #navcheck:checked ~ main .content {
