@@ -1,23 +1,17 @@
-/* === mínimo para que el fondo se vea === */
 html, body { height: 100%; margin: 0; }
 
-/* Crea un “layer” de fondo fijo detrás de toda la app */
 body {
-  position: relative;           /* crea contexto de apilamiento */
+  position: relative;
   z-index: 0;
-  background-color: #0f172a;    /* color base por si falla la imagen */
+  background-color: #0f172a;
 }
 
-/* Capa de fondo visual (NO depende del alto del contenido) */
 body::before {
   content: "";
-  position: fixed;              /* ocupa siempre el viewport */
+  position: fixed;
   inset: 0;
-  z-index: -1;                  /* queda detrás de todo */
+  z-index: -1;
   pointer-events: none;
-
-  /* Usa background-* en lugar del shorthand 'background:' 
-     para evitar que otra regla lo “borre” sin querer */
   background-image:
     radial-gradient(1000px 600px at 50% 50%, rgba(99,102,241,0.08), transparent 70%),
     radial-gradient(800px 400px at 20% 30%, rgba(56,189,248,0.12), transparent 70%),
@@ -29,26 +23,34 @@ body::before {
   background-attachment: fixed;
 }
 
-/* Asegura que tu raíz ocupa toda la pantalla encima del fondo */
 app-root {
   display: block;
   min-height: 100vh;
   position: relative;
-  z-index: 1;  /* sobre el ::before */
+  z-index: 1;
 }
-
-
-
-
-
-
-
 
 .login-split-container {
   display: flex;
   height: 100vh;
   width: 100%;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Poppins', sans-serif;
+  animation: fadeIn 1s ease-in-out;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  0% { opacity: 0; transform: translateX(-50px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  0% { opacity: 0; transform: translateX(50px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 
 .left-panel {
@@ -56,40 +58,58 @@ app-root {
   display: flex;
   justify-content: center;
   align-items: center;
+  animation: slideInLeft 1.2s ease-out;
 }
 
 .facebook-panel {
-  background-color: #1877f2;
+  background: linear-gradient(135deg, #1877f2 0%, #42a5f5 100%);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .left-logo {
   width: 400px;
   height: auto;
+  filter: drop-shadow(0 0 20px rgba(0,0,0,0.3));
+  animation: fadeIn 1.5s ease-out;
 }
 
 .right-panel {
-  background-color: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 30px;
+  animation: slideInRight 1.2s ease-out;
 }
 
 .login-card {
   max-width: 400px;
   width: 100%;
   text-align: center;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 1.5s ease-out;
 }
 
 .login-title {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 28px;
+  font-weight: 700;
   margin-bottom: 10px;
 }
 
 .facebook-title {
   color: #1877f2;
+  background: linear-gradient(135deg, #1877f2 0%, #42a5f5 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .subtitle {
@@ -100,37 +120,42 @@ app-root {
 
 .login-input {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   font-size: 16px;
-  border: 1px solid #ccc;
+  border: 2px solid #e1e5e9;
   border-radius: 30px;
   margin-bottom: 20px;
   outline: none;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: #f8f9fa;
 }
 
 .login-input:focus {
   border-color: #1877f2;
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.2);
 }
 
 .login-button {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 700;
   border: none;
   border-radius: 30px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+  box-shadow: 0 4px 15px rgba(24, 119, 242, 0.3);
 }
 
 .facebook-button {
-  background-color: #1877f2;
+  background: linear-gradient(135deg, #1877f2 0%, #42a5f5 100%);
   color: white;
 }
 
 .facebook-button:hover {
-  background-color: #145dbf;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(24, 119, 242, 0.5);
+  filter: brightness(1.1);
 }
 
 .forgot-link {
@@ -203,8 +228,7 @@ app-root {
   .right-panel {
     flex: none;
     width: 100%;
-    height: auto;
-    padding: 20px;
+    height: 50vh;
   }
 
   .left-panel {
@@ -218,18 +242,11 @@ app-root {
   }
 
   .login-card {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .login-split-container {
-    flex-direction: column;
+    max-width: 90%;
+    padding: 1.5rem;
   }
 
-  .left-panel, .right-panel {
-    flex: none;
-    width: 100%;
-    height: 50vh;
+  .login-title {
+    font-size: 24px;
   }
 }

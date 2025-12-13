@@ -1,23 +1,26 @@
 .spotify-split-container {
   display: flex;
   height: 100vh;
-  background-color: #121212;
+  background: linear-gradient(135deg, #121212 0%, #1a1a1a 100%);
   color: white;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Poppins', sans-serif;
+  animation: fadeIn 1s ease-in-out;
 }
 
 .left-panel {
   flex: 1;
-  background-color: #1db954;
+  background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: slideInUp 1.2s ease-out;
 }
 
 .left-logo {
   width: 60%;
   max-width: 250px;
-  filter: drop-shadow(0 0 10px black);
+  filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
+  animation: fadeIn 1.5s ease-out;
 }
 
 .right-panel {
@@ -29,82 +32,120 @@
 }
 
 .spotify-card {
-  background: #181818;
-  padding: 2rem;
-  border-radius: 15px;
-  box-shadow: 0 0 10px #000;
+  background: linear-gradient(135deg, #181818 0%, #282828 100%);
+  padding: 2.5rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   width: 80%;
   max-width: 500px;
   text-align: center;
-
-  max-height: 90vh; /* altura máxima de la tarjeta */
-  overflow-y: auto; /* añade scroll vertical si se excede */
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideInUp 1.5s ease-out;
 }
 
 .spotify-title {
   color: #1db954;
-  font-size: 1.8rem;
+  font-size: 2rem;
+  font-weight: 700;
   margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .subtitle {
   color: #ccc;
   margin-bottom: 1.5rem;
+  font-size: 1.1rem;
 }
 
 .spotify-input {
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
+  padding: 12px;
+  border-radius: 10px;
+  border: 2px solid #333;
   margin-bottom: 1rem;
   font-size: 1rem;
+  background: #2a2a2a;
+  color: white;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.spotify-input:focus {
+  outline: none;
+  border-color: #1db954;
+  box-shadow: 0 0 0 3px rgba(29, 185, 84, 0.3);
 }
 
 .spotify-button {
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 10px;
   border: none;
-  background-color: #1db954;
+  background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
   color: white;
   font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
   margin-bottom: 1rem;
-  transition: background-color 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+  box-shadow: 0 4px 15px rgba(29, 185, 84, 0.3);
 }
 
 .spotify-button:hover {
-  background-color: #17a84b;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(29, 185, 84, 0.5);
+  filter: brightness(1.1);
 }
 
 .spotify-button.secondary {
-  background-color: #282828;
-  border: 1px solid #1db954;
+  background: linear-gradient(135deg, #282828 0%, #3a3a3a 100%);
+  border: 2px solid #1db954;
   margin-top: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.spotify-button.secondary:hover {
+  background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
 }
 
 .track-list {
-  max-height: 300px; /* opcional si quieres limitar aún más el listado */
+  max-height: 300px;
   overflow-y: auto;
   margin-bottom: 1rem;
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 10px;
 }
 
 .track-list li {
   display: flex;
   justify-content: space-between;
-  padding: 6px 0;
+  padding: 10px 0;
   border-bottom: 1px solid #333;
+  transition: background-color 0.2s ease;
+}
+
+.track-list li:hover {
+  background: #2a2a2a;
+  border-radius: 5px;
 }
 
 .mini-button {
-  background-color: #1db954;
+  background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
   border: none;
   color: white;
-  padding: 4px 10px;
-  border-radius: 5px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.85rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
+}
+
+.mini-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.5);
 }
 
 .error-text {
@@ -112,7 +153,16 @@
   margin-top: 1rem;
 }
 
-/* 🔙 Botón de volver al inicio */
+/* Animaciones */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideInUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 .forgot-link {
   display: inline-block;
   margin-top: 0.5rem;
@@ -171,7 +221,7 @@
   .left-panel, .right-panel {
     flex: none;
     width: 100%;
-    height: auto;
+    height: 50vh;
   }
 
   .left-logo {
@@ -181,7 +231,8 @@
 
   .spotify-card {
     width: 90%;
-    padding: 1.5rem;
+    padding: 2rem;
+    max-height: 80vh;
   }
 
   .language-switcher {
@@ -190,7 +241,7 @@
   }
 
   .spotify-title {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
   }
 
   .spotify-button {
