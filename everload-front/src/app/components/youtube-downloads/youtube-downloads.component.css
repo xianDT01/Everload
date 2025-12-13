@@ -1,14 +1,15 @@
-/* Estilos originales */
+/* Estilos mejorados */
 .youtube-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', sans-serif;
   background-color: #2c2c2c;
   min-height: 100vh;
   padding: 20px;
   color: white;
+  animation: fadeIn 1s ease-in-out;
 }
 
 .youtube-header {
@@ -16,12 +17,13 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  max-width: 800px;
-  padding: 10px 20px;
-  background: #3a3a3a;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-  margin-bottom: 20px;
+  max-width: 1000px;
+  padding: 15px 25px;
+  background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+  border-radius: 15px;
+  margin-bottom: 25px;
+  animation: slideInFromTop 1s ease-out;
 }
 
 .left-header {
@@ -36,14 +38,20 @@
 }
 
 .logo img {
-  height: 40px;
-  margin-right: 10px;
+  height: 45px;
+  margin-right: 12px;
+  transition: transform 0.3s ease;
+}
+
+.logo img:hover {
+  transform: scale(1.1);
 }
 
 .app-name {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
   color: #ff0000;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .language-selector {
@@ -82,28 +90,32 @@
 
 
 .home-button {
-  padding: 8px 15px;
-  font-size: 14px;
-  background-color: #ff0000;
+  padding: 10px 18px;
+  font-size: 15px;
+  background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 10px rgba(255,0,0,0.3);
 }
 
 .home-button:hover {
-  background-color: #cc0000;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(255,0,0,0.5);
 }
 
 .downloads-box {
   text-align: center;
-  background: #424242;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
+  background: linear-gradient(135deg, #424242 0%, #5a5a5a 100%);
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  max-width: 600px;
   width: 100%;
+  animation: fadeInUp 1.2s ease-out;
 }
 
 .input-group {
@@ -148,43 +160,55 @@ select {
 }
 
 button {
-  padding: 10px 15px;
+  padding: 12px 18px;
   font-size: 16px;
   border: none;
   color: white;
-  background-color: #ff0000;
+  background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: 8px;
   font-weight: bold;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+  box-shadow: 0 4px 10px rgba(255,0,0,0.3);
 }
 
 button:hover {
-  background-color: #cc0000;
-  transform: scale(1.05);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(255,0,0,0.5);
+  filter: brightness(1.1);
 }
 
 button:active {
-  transform: scale(1);
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(255,0,0,0.3);
 }
 
 .loading {
-  margin-top: 10px;
+  margin-top: 15px;
   text-align: center;
   font-weight: bold;
   color: white;
+  animation: pulse 1s infinite;
 }
 
 .progress-bar {
   width: 100%;
-  height: 6px;
-  background: linear-gradient(to right, #ff0000, #cc0000);
-  animation: progressAnimation 1s infinite ease-in-out;
+  height: 8px;
+  background: linear-gradient(90deg, #ff0000, #ff6666, #ff0000);
+  background-size: 200% 100%;
+  animation: progressAnimation 2s infinite linear;
+  border-radius: 4px;
+  margin-top: 10px;
 }
 
 @keyframes progressAnimation {
-  0% { width: 0%; }
-  50% { width: 50%; }
-  100% { width: 100%; }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .search-box {
@@ -351,39 +375,51 @@ button:active {
   color: #b0b0b0;
 }
 .video-preview {
-  margin-top: 15px;
-  margin-bottom: 20px;
+  margin-top: 20px;
+  margin-bottom: 25px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
+  animation: fadeIn 1s ease-out;
 }
 
 .video-preview iframe {
   width: 100%;
   max-width: 100%;
   aspect-ratio: 16 / 9;
-  border: 3px solid #444;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+  border: 4px solid #ff0000;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(255,0,0,0.4);
 }
 
 .no-results {
   text-align: center;
-  padding: 30px 20px;
-  margin-top: 20px;
+  padding: 40px 25px;
+  margin-top: 25px;
   border: 2px dashed #ff0000;
-  border-radius: 10px;
+  border-radius: 12px;
   color: #ffb3b3;
-  background-color: #3a3a3a;
+  background: linear-gradient(135deg, #3a3a3a 0%, #4a4a4a 100%);
   font-size: 18px;
   font-weight: bold;
-  animation: fadeIn 0.5s ease-in-out;
+  box-shadow: 0 4px 10px rgba(255,0,0,0.2);
+  animation: fadeIn 0.8s ease-in-out;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInFromTop {
+  0% { opacity: 0; transform: translateY(-30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 .playlist-scroll-container {
   max-height: 500px;
@@ -434,20 +470,23 @@ button:active {
 /* Media Queries para diseño responsive */
 @media (max-width: 768px) {
   .youtube-container {
-    padding: 10px;
+    padding: 15px;
   }
 
   .youtube-header {
     flex-direction: column;
     align-items: flex-start;
-    padding: 10px;
+    padding: 15px;
+    max-width: 95%;
   }
 
- .left-header {
-  display: flex;
-  align-items: center; 
-  gap: 20px;
-}
+  .left-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    justify-content: space-between;
+  }
 
   .home-button {
     align-self: flex-end;
@@ -455,16 +494,17 @@ button:active {
   }
 
   .downloads-box {
-    padding: 15px;
-    max-width: 90%;
+    padding: 20px;
+    max-width: 95%;
   }
 
   .search-box {
     flex-direction: column;
+    gap: 10px;
   }
 
   .results {
-    gap: 10px;
+    gap: 15px;
   }
 
   .video-result {
@@ -475,6 +515,10 @@ button:active {
   .video-result img {
     width: 100%;
     height: auto;
+  }
+
+  .playlist-grid {
+    grid-template-columns: 1fr;
   }
 }
 
