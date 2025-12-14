@@ -67,6 +67,7 @@ html, body {
   margin-top: 30px;
   max-width: 600px;
   width: 100%;
+  place-items: center;
   animation: fadeInUp 2.2s ease-out;
 }
 .button {
@@ -534,9 +535,16 @@ nav .about-menu-button.in-menu:active .ripple{
     font-size: 16px;
   }
 
+  .options {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
   .button {
     font-size: 16px;
     padding: 10px 20px;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .icon {

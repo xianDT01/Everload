@@ -153,10 +153,13 @@ select {
 }
 
 .buttons {
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 15px;
   margin-top: 20px;
+  max-width: 400px;
+  width: 100%;
+  justify-items: center;
 }
 
 button {
@@ -475,22 +478,42 @@ button:active {
 
   .youtube-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     padding: 15px;
-    max-width: 95%;
+    gap: 15px;
   }
 
   .left-header {
-    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
     width: 100%;
-    justify-content: space-between;
   }
 
   .home-button {
-    align-self: flex-end;
+    align-self: center;
     margin-top: 10px;
+  }
+
+  .language-selector {
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .language-selector button {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+
+  .language-selector .flag {
+    width: 24px;
+    height: 16px;
+  }
+
+  .buttons {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .downloads-box {
