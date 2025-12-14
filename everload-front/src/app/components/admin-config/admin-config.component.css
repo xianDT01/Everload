@@ -49,6 +49,40 @@
   animation: slideInLeft 1s ease-out;
 }
 
+.language-selector {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0;
+}
+
+.language-selector button {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  transition: opacity 0.3s ease;
+}
+
+.language-selector button:hover {
+  opacity: 0.8;
+}
+
+.language-selector .flag {
+  width: 30px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+  aspect-ratio: 3 / 2;
+}
+
 /* Botonera de plataformas */
 .options {
   display: flex;
@@ -308,6 +342,22 @@ h3 {
     font-size: 2rem;
   }
 
+  .language-selector {
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .language-selector button {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+
+  .language-selector .flag {
+    width: 24px;
+    height: 16px;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -458,26 +508,6 @@ h3 {
   flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 2rem;
-}
-
-.language-selector {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.language-selector button {
-  background-color: #32476d;
-  color: #f0f4ff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.4rem 0.8rem;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
 .language-selector button:hover {

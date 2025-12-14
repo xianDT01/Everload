@@ -6,10 +6,16 @@
   🔙 {{ 'HOME' | translate }}
 </a>
     <div class="language-selector">
-      <button (click)="changeLanguage('es')">🇪🇸 <span>Español</span></button>
-      <button (click)="changeLanguage('en')">🇬🇧 <span>English</span></button>
+      <button (click)="changeLanguage('es')">
+        <img src="https://flagcdn.com/w40/es.png" alt="Bandera de España" class="flag" />
+        <span>Español</span>
+      </button>
+      <button (click)="changeLanguage('en')">
+        <img src="https://flagcdn.com/w40/gb.png" alt="Bandera del Reino Unido" class="flag" />
+        <span>English</span>
+      </button>
       <button (click)="changeLanguage('gl')">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galicia" width="20">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Bandera de Galicia" class="flag" />
         <span>Galego</span>
       </button>
     </div>
