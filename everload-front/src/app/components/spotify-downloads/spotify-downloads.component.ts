@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-spotify-downloads',
@@ -12,8 +13,10 @@ export class SpotifyDownloadsComponent {
   cargando: boolean = false;
   error: string | null = null;
   resultado: any = null;
+  showNasBrowser = false;
+  get hasNasAccess(): boolean { return this.authService.hasNasAccess(); }
 
-  constructor(private http: HttpClient, private translate: TranslateService) { }
+  constructor(private http: HttpClient, private translate: TranslateService, private authService: AuthService) { }
 
     changeLanguage(lang: string) {
     this.translate.use(lang);

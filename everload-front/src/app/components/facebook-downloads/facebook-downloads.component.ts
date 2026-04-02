@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-facebook-downloads',
@@ -11,8 +12,10 @@ export class FacebookDownloadsComponent {
   videoUrl: string = '';
   error: string | null = null;
   loading: boolean = false;
+  showNasBrowser = false;
+  get hasNasAccess(): boolean { return this.authService.hasNasAccess(); }
 
-  constructor(private http: HttpClient, private translate: TranslateService) {
+  constructor(private http: HttpClient, private translate: TranslateService, private authService: AuthService) {
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
       translate.use(savedLang);

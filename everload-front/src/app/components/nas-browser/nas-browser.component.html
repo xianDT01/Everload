@@ -1,0 +1,91 @@
+<div class="nas-overlay">
+  <div class="nas-panel">
+
+    <div class="nas-header">
+      <h3>📁 {{ 'NAS.TITLE' | translate }}
+        <span *ngIf="mode === 'select' && downloadFileName" class="filename-hint">→ {{ downloadFileName }}</span>
+      </h3>
+      <button class="btn-close" (click)="close()">✕</button>
+    </div>
+
+    <!-- Selector de ruta raíz -->
+    <div *ngIf="!selectedPath" class="path-selector">
+      <p class="hint">{{ 'NAS.SELECT_LOCATION' | translate }}</p>
+      <div *ngIf="error" class="error-msg">{{ error }}</div>
+      <div class="path-list">
+        <div *ngFor="let p of paths" class="path-item" (click)="selectRoot(p)">
+          <span class="path-icon">💾</span>
+          <div class="path-info">
+            <strong>{{ p.name }}</strong>
+            <small>{{ p.path }}</small>
+            <small *ngIf="p.description" class="desc">{{ p.description }}</small>
+          </div>
+          <div class="path-perms">
+            <span [class]="p.readable ? 'perm ok' : 'perm no'">R</span>
+            <span [class]="p.writable ? 'perm ok' : 'perm no'">W</span>
+          </div>
+        </div>
+        <div *ngIf="paths.length === 0" class="empty-msg">
+          {{ 'NAS.NO_PATHS' | translate }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Explorador de archivos -->
+    <div *ngIf="selectedPath" class="file-browser">
+
+      <!-- Breadcrumb -->
+      <div class="breadcrumb">
+        <span class="bc-item" (click)="selectRoot(selectedPath)">{{ selectedPath.name }}</span>
+        <ng-container *ngFor="let crumb of breadcrumbs; let i = index">
+          <span class="bc-sep">/</span>
+          <span class="bc-item" (click)="navigateBreadcrumb(i)">{{ crumb }}</span>
+        </ng-container>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button class="btn-sm" (click)="goUp()" [disabled]="!currentSubPath">⬆ {{ 'NAS.GO_UP' | translate }}</button>
+        <button class="btn-sm" (click)="showNewFolder = !showNewFolder">📁+ {{ 'NAS.NEW_FOLDER' | translate }}</button>
+        <button class="btn-sm secondary" (click)="selectedPath = null; files = []">↩ {{ 'NAS.ROOTS' | translate }}</button>
+      </div>
+
+      <!-- Nueva carpeta inline -->
+      <div *ngIf="showNewFolder" class="new-folder-row">
+        <input [(ngModel)]="newFolderName" [placeholder]="'NAS.FOLDER_NAME_PLACEHOLDER' | translate"
+               (keyup.enter)="createFolder()" />
+        <button class="btn-sm ok" (click)="createFolder()">{{ 'NAS.CREATE' | translate }}</button>
+        <button class="btn-sm" (click)="showNewFolder = false; newFolderName = ''">{{ 'NAS.CANCEL' | translate }}</button>
+      </div>
+
+      <div *ngIf="error" class="error-msg">{{ error }}</div>
+      <div *ngIf="loading" class="loading">{{ 'NAS.LOADING' | translate }}</div>
+
+      <!-- Listado de archivos -->
+      <div class="file-list" *ngIf="!loading">
+        <div *ngIf="files.length === 0" class="empty-msg">{{ 'NAS.EMPTY_FOLDER' | translate }}</div>
+        <div *ngFor="let f of files" class="file-item" [class.dir]="f.directory">
+          <span class="file-icon" (click)="f.directory && enterFolder(f)">
+            {{ f.directory ? '📁' : '📄' }}
+          </span>
+          <span class="file-name" (click)="f.directory && enterFolder(f)">{{ f.name }}</span>
+          <span class="file-meta">
+            <small>{{ f.lastModified }}</small>
+            <small *ngIf="!f.directory">{{ formatSize(f.size) }}</small>
+          </span>
+          <button class="btn-delete" (click)="deleteItem(f)" [title]="'NAS.DELETE' | translate">🗑</button>
+        </div>
+      </div>
+
+      <!-- Botón confirmar destino -->
+      <div *ngIf="mode === 'select'" class="select-footer">
+        <p class="dest-info">{{ 'NAS.SAVE_IN' | translate }} <strong>{{ selectedPath.name }}/{{ currentSubPath }}</strong></p>
+        <button class="btn-select" (click)="selectDestination()">
+          ✅ {{ 'NAS.SAVE_HERE' | translate }}{{ downloadFileName ? ' "' + downloadFileName + '"' : '' }}
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>

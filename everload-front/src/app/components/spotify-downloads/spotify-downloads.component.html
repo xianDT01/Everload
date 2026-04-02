@@ -39,6 +39,12 @@
       <button class="spotify-button secondary" *ngIf="resultado?.length" (click)="descargarTodas()">
         ⬇️ {{ 'DOWNLOAD_ALL' | translate }}
       </button>
+      <button *ngIf="hasNasAccess && resultado?.length" class="spotify-button btn-nas" (click)="showNasBrowser = true">
+        💾 Guardar todo en NAS
+      </button>
+      <app-nas-browser *ngIf="showNasBrowser" [mode]="'select'" [downloadFileName]="playlistUrl"
+        (pathSelected)="showNasBrowser = false; descargarTodas()" (closed)="showNasBrowser = false">
+      </app-nas-browser>
 
       <div *ngIf="resultado?.length">
         <h4>🎵 {{ 'FOUND_TRACKS' | translate }}</h4>

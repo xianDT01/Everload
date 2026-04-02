@@ -1,0 +1,190 @@
+<div class="chat-container">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════ -->
+  <aside class="chat-sidebar" [class.hidden]="!sidebarVisible">
+    <div class="sidebar-header">
+      <button class="back-btn" (click)="goHome()" [title]="'CHAT.BACK_TO_HOME' | translate">←</button>
+      <span class="sidebar-title">💬 Chat</span>
+    </div>
+
+    <div class="sidebar-search">
+      <input type="text" [(ngModel)]="groupSearch" [placeholder]="'CHAT.SEARCH_CONVERSATIONS' | translate" />
+    </div>
+
+    <div class="group-list">
+      <div *ngIf="filteredGroups.length === 0" class="no-groups">
+        <span>💬</span>
+        <p>{{ 'CHAT.NO_CONVERSATIONS' | translate }}</p>
+        <small>{{ 'CHAT.NO_CONVERSATIONS_HINT' | translate }}</small>
+      </div>
+
+      <div
+        *ngFor="let group of filteredGroups; trackBy: trackByGroupId"
+        class="group-item"
+        [class.active]="selectedGroup?.id === group.id"
+        [class.announcement]="isAnnouncementGroup(group)"
+        (click)="selectGroup(group)">
+        <div class="group-avatar" [class.announcement-avatar]="isAnnouncementGroup(group)">
+          {{ getGroupIcon(group) }}
+        </div>
+        <div class="group-info">
+          <div class="group-name-row">
+            <span class="group-name">{{ group.name }}</span>
+            <span class="group-time" *ngIf="group.lastMessageTime">{{ formatTime(group.lastMessageTime) }}</span>
+          </div>
+          <div class="group-preview">
+            <span class="last-message" *ngIf="group.lastMessage">{{ group.lastMessage }}</span>
+            <span class="no-messages" *ngIf="!group.lastMessage">{{ 'CHAT.NO_MESSAGES_YET' | translate }}</span>
+          </div>
+          <span *ngIf="isAnnouncementGroup(group)" class="official-badge">{{ 'CHAT.OFFICIAL' | translate }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-actions">
+      <button class="btn-new-group" (click)="openCreateGroup()">
+        ➕ {{ 'CHAT.NEW_GROUP' | translate }}
+      </button>
+      <button class="btn-new-private" (click)="openPrivateChatModal()">
+        💬 {{ 'CHAT.PRIVATE_CHAT' | translate }}
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══ CONVERSATION AREA ═════════════════════════════════════════════ -->
+  <section class="chat-main" [class.visible]="!sidebarVisible || selectedGroup">
+
+    <!-- Empty state -->
+    <div class="empty-chat" *ngIf="!selectedGroup">
+      <div class="empty-icon">💬</div>
+      <h2>EverLoad Chat</h2>
+      <p>{{ 'CHAT.SELECT_CONVERSATION' | translate }}</p>
+    </div>
+
+    <!-- Conversation -->
+    <ng-container *ngIf="selectedGroup">
+      <!-- Header -->
+      <div class="chat-header">
+        <button class="mobile-back" (click)="backToSidebar()">←</button>
+        <div class="chat-header-avatar" [class.announcement-avatar]="isAnnouncementGroup(selectedGroup)">
+          {{ getGroupIcon(selectedGroup) }}
+        </div>
+        <div class="chat-header-info">
+          <span class="chat-header-name">{{ selectedGroup.name }}</span>
+          <span class="chat-header-sub">
+            {{ 'CHAT.MEMBERS_COUNT' | translate:{count: selectedGroup.memberCount} }}
+            <span *ngIf="isAnnouncementGroup(selectedGroup)" class="official-badge-sm">{{ 'CHAT.OFFICIAL_CHANNEL' | translate }}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-area" #messagesContainer>
+        <div class="messages-inner">
+          <div *ngIf="messages.length === 0" class="no-messages-state">
+            <span>💬</span>
+            <p>{{ 'CHAT.BE_FIRST_TO_WRITE' | translate }}</p>
+          </div>
+
+          <div
+            *ngFor="let msg of messages; trackBy: trackByMessageId"
+            class="message-wrapper"
+            [class.own]="isOwnMessage(msg)"
+            [class.other]="!isOwnMessage(msg)">
+
+            <!-- Avatar for others -->
+            <div class="msg-avatar" *ngIf="!isOwnMessage(msg)">
+              <img *ngIf="msg.senderAvatarUrl" [src]="resolveAvatarUrl(msg.senderAvatarUrl)" [alt]="msg.senderUsername" />
+              <span *ngIf="!msg.senderAvatarUrl" class="avatar-initial">{{ getInitials(msg.senderUsername) }}</span>
+            </div>
+
+            <div class="message-content-col">
+              <span class="msg-sender" *ngIf="!isOwnMessage(msg)">{{ msg.senderUsername }}</span>
+              <div class="message-bubble" [class.own-bubble]="isOwnMessage(msg)" [class.other-bubble]="!isOwnMessage(msg)">
+                <span class="msg-text" [innerHTML]="msg.content"></span>
+                <div class="msg-footer">
+                  <span class="msg-time">{{ formatMessageTime(msg.sentAt) }}</span>
+                  <span class="msg-edited" *ngIf="msg.edited"> · {{ 'CHAT.EDITED' | translate }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="chat-input-area">
+        <div *ngIf="!canSendMessage()" class="readonly-notice">
+          🔇 {{ 'CHAT.ANNOUNCEMENT_READONLY' | translate }}
+        </div>
+        <div *ngIf="canSendMessage()" class="input-wrapper">
+          <!-- Emoji picker popup -->
+          <div class="emoji-picker" *ngIf="emojiPickerOpen" #emojiPickerRef>
+            <button
+              *ngFor="let emoji of emojis"
+              class="emoji-item"
+              type="button"
+              (click)="insertEmoji(emoji)">{{ emoji }}</button>
+          </div>
+
+          <div class="input-row">
+            <button
+              class="emoji-trigger-btn"
+              type="button"
+              #emojiBtnRef
+              (click)="toggleEmojiPicker()"
+              [title]="'CHAT.EMOJI' | translate">😊</button>
+            <textarea
+              #messageTextarea
+              [(ngModel)]="messageInput"
+              (keydown)="onKeyDown($event)"
+              [placeholder]="'CHAT.MESSAGE_PLACEHOLDER' | translate"
+              rows="1"
+              class="message-input"
+              maxlength="4000">
+            </textarea>
+            <button
+              class="send-btn"
+              (click)="sendMessage()"
+              [disabled]="!messageInput.trim()"
+              [title]="'CHAT.SEND' | translate">
+              ➤
+            </button>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </section>
+
+  <!-- ═══ CREATE GROUP MODAL ═══════════════════════════════════════════ -->
+  <app-create-group-modal
+    *ngIf="showCreateGroupModal"
+    (created)="onGroupCreated($event)"
+    (cancelled)="showCreateGroupModal = false">
+  </app-create-group-modal>
+
+  <!-- ═══ PRIVATE CHAT MODAL ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="showPrivateChatModal" (click)="showPrivateChatModal = false">
+    <div class="modal-box private-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <span class="modal-title">💬 {{ 'CHAT.NEW_PRIVATE_CHAT' | translate }}</span>
+        <button class="modal-close" (click)="showPrivateChatModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" [(ngModel)]="userSearch" [placeholder]="'CHAT.SEARCH_USER' | translate" class="user-search-input" />
+        <div class="private-user-list">
+          <div *ngIf="filteredActiveUsers.length === 0" class="no-users-msg">{{ 'CHAT.NO_USERS_AVAILABLE' | translate }}</div>
+          <div *ngFor="let user of filteredActiveUsers" class="private-user-item" (click)="startPrivateChat(user.username)">
+            <div class="private-user-avatar">
+              <img *ngIf="user.avatarUrl" [src]="resolveAvatarUrl(user.avatarUrl)" [alt]="user.username" />
+              <span *ngIf="!user.avatarUrl">{{ getInitials(user.username) }}</span>
+            </div>
+            <span class="private-user-name">{{ user.username }}</span>
+            <span class="start-chat-icon">→</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

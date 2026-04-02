@@ -1,0 +1,36 @@
+<div class="notification-center">
+  <button class="bell-btn" (click)="toggle()" [class.has-unread]="unreadCount > 0" title="Notificaciones">
+    🔔
+    <span class="unread-badge" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+  </button>
+
+  <div class="notification-dropdown" *ngIf="isOpen">
+    <div class="dropdown-header">
+      <span class="dropdown-title">Notificaciones</span>
+      <button class="mark-all-btn" (click)="markAllRead()" *ngIf="unreadCount > 0">
+        Marcar todo como leído
+      </button>
+    </div>
+
+    <div class="notification-list">
+      <div class="empty-state" *ngIf="notifications.length === 0">
+        <span>🔔</span>
+        <p>Sin notificaciones</p>
+      </div>
+
+      <div
+        *ngFor="let notif of notifications"
+        class="notification-item"
+        [class.unread]="!notif.read"
+        (click)="markRead(notif)">
+        <div class="notif-icon">{{ getTypeIcon(notif.type) }}</div>
+        <div class="notif-content">
+          <div class="notif-title">{{ notif.title }}</div>
+          <div class="notif-message" *ngIf="notif.message">{{ notif.message }}</div>
+          <div class="notif-time">{{ timeAgo(notif.createdAt) }}</div>
+        </div>
+        <div class="unread-dot" *ngIf="!notif.read"></div>
+      </div>
+    </div>
+  </div>
+</div>

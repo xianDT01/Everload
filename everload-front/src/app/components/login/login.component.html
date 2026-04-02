@@ -1,0 +1,49 @@
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <img src="/assets/EverLoad.png" alt="EverLoad" class="logo-img" onerror="this.style.display='none'">
+      <h1 class="app-title">EverLoad</h1>
+    </div>
+
+    <h2 class="auth-subtitle">{{ 'LOGIN.TITLE' | translate }}</h2>
+
+    <form (ngSubmit)="login()" class="auth-form">
+      <div class="form-group">
+        <label for="username">{{ 'LOGIN.USERNAME_LABEL' | translate }}</label>
+        <input
+          id="username"
+          type="text"
+          [(ngModel)]="username"
+          name="username"
+          [placeholder]="'LOGIN.USERNAME_PLACEHOLDER' | translate"
+          required
+          autocomplete="username"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">{{ 'LOGIN.PASSWORD_LABEL' | translate }}</label>
+        <input
+          id="password"
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          [placeholder]="'LOGIN.PASSWORD_PLACEHOLDER' | translate"
+          required
+          autocomplete="current-password"
+        />
+      </div>
+
+      <div class="error-msg" *ngIf="error">{{ error }}</div>
+
+      <button type="submit" class="btn-primary" [disabled]="loading">
+        <span *ngIf="loading">{{ 'LOGIN.LOADING' | translate }}</span>
+        <span *ngIf="!loading">{{ 'LOGIN.SUBMIT' | translate }}</span>
+      </button>
+    </form>
+
+    <p class="auth-link">
+      {{ 'LOGIN.NO_ACCOUNT' | translate }} <a routerLink="/register">{{ 'LOGIN.REGISTER_LINK' | translate }}</a>
+    </p>
+  </div>
+</div>

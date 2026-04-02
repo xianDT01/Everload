@@ -1,22 +1,119 @@
 <div class="home-container">
+
+  <!-- ══ BOTÓN HAMBURGUESA ══════════════════════════════════════════════════ -->
+  <button class="burger-btn" (click)="toggleMenu()" [class.open]="menuOpen"
+          aria-label="Abrir menú" [attr.aria-expanded]="menuOpen">
+    <span class="bar bar1"></span>
+    <span class="bar bar2"></span>
+    <span class="bar bar3"></span>
+  </button>
+
+  <!-- ══ OVERLAY ════════════════════════════════════════════════════════════ -->
+  <div class="menu-overlay" [class.visible]="menuOpen" (click)="closeMenu()"></div>
+
+  <!-- ══ MENÚ LATERAL ═══════════════════════════════════════════════════════ -->
+  <nav class="side-menu" [class.open]="menuOpen" aria-label="Menú principal">
+
+    <!-- Cabecera de usuario -->
+    <div class="menu-user-header" *ngIf="currentUser">
+
+      <!-- Avatar clickable -->
+      <div class="avatar-wrapper" [class.loading]="avatarLoading">
+        <div class="avatar-circle" (click)="openAvatarPicker()" title="Cambiar foto de perfil">
+          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Avatar" class="avatar-img" />
+          <span *ngIf="!avatarUrl" class="avatar-initials">
+            {{ currentUser.username.charAt(0).toUpperCase() }}
+          </span>
+          <div class="avatar-overlay">
+            <span class="avatar-edit-icon">📷</span>
+          </div>
+        </div>
+        <button *ngIf="avatarUrl" class="avatar-remove-btn" (click)="removeAvatar()" title="Eliminar foto">✕</button>
+        <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+               (change)="onAvatarFileSelected($event)" style="display:none" />
+      </div>
+
+      <div class="user-details">
+        <span class="menu-username">{{ currentUser.username }}</span>
+        <span class="menu-email">{{ currentUser.email }}</span>
+        <span class="role-badge" [ngClass]="getRoleBadgeClass()">{{ currentUser.role }}</span>
+      </div>
+
+      <p *ngIf="avatarError" class="avatar-error">{{ avatarError }}</p>
+    </div>
+
+    <!-- Divisor -->
+    <div class="menu-divider"></div>
+
+    <!-- Navegación -->
+    <ul class="menu-nav">
+      <li>
+        <a routerLink="/" class="menu-link active-route" (click)="closeMenu()">
+          <span class="menu-icon">🏠</span>
+          <span>{{ 'HOME.MENU_HOME' | translate }}</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/profile" class="menu-link" (click)="closeMenu()">
+          <span class="menu-icon">👤</span>
+          <span>{{ 'HOME.MENU_PROFILE' | translate }}</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/chat" class="menu-link" (click)="closeMenu()">
+          <span class="menu-icon">💬</span>
+          <span>{{ 'HOME.MENU_CHAT' | translate }}</span>
+        </a>
+      </li>
+      <li *ngIf="isAdmin">
+        <a routerLink="/admin-config" class="menu-link admin-link" (click)="closeMenu()">
+          <span class="menu-icon">⚙️</span>
+          <span>{{ 'HOME.MENU_ADMIN' | translate }}</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/about-app" class="menu-link" (click)="closeMenu()">
+          <span class="menu-icon">ℹ️</span>
+          <span>{{ 'HOME.MENU_ABOUT' | translate }}</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Selector de idioma -->
+    <div class="menu-divider"></div>
+    <div class="menu-languages">
+      <p class="menu-section-label">{{ 'HOME.LANGUAGE_LABEL' | translate }}</p>
+      <div class="lang-buttons">
+        <button (click)="changeLanguage('es')" class="lang-btn">
+          <img src="https://flagcdn.com/w40/es.png" alt="ES" class="flag" />
+          <span>ES</span>
+        </button>
+        <button (click)="changeLanguage('en')" class="lang-btn">
+          <img src="https://flagcdn.com/w40/gb.png" alt="EN" class="flag" />
+          <span>EN</span>
+        </button>
+        <button (click)="changeLanguage('gl')" class="lang-btn">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="GL" class="flag" />
+          <span>GL</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Cerrar sesión al final -->
+    <div class="menu-footer" *ngIf="currentUser">
+      <button class="logout-btn" (click)="logout()">
+        <span class="menu-icon">🚪</span>
+        <span>{{ 'HOME.LOGOUT' | translate }}</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ══ CONTENIDO PRINCIPAL ════════════════════════════════════════════════ -->
   <header class="logo-container">
     <img src="/assets/EverloadLogo.png" alt="Everload Logo" class="everload-logo">
-
-    <!-- ====== MENÚ HAMBURGUESA ====== -->
-    <input type="checkbox" id="navcheck" role="button" title="menu" aria-label="Toggle navigation menu">
-    <label for="navcheck" aria-hidden="true" title="menu">
-      <span class="burger">
-        <span class="bar"><span class="visuallyhidden">Menu</span></span>
-      </span>
-    </label>
-    <nav id="menu" role="navigation" aria-label="Main navigation">
-      <a routerLink="/admin-config" class="admin-menu-button in-menu" aria-label="Go to Admin Configuration">Admin</a>
-      <a routerLink="/about-app" class="about-menu-button in-menu" aria-label="Go to About App">About</a>
-    </nav>
-    <!-- ====== FIN MENÚ HAMBURGUESA ====== -->
   </header>
 
-  <main>
+  <main [class.blurred]="menuOpen">
     <div class="content">
       <p class="subtitle">{{ 'SUBTITLE' | translate }}</p>
 
@@ -48,12 +145,10 @@
           <img src="https://flagcdn.com/w40/es.png" alt="Spanish flag" class="flag" loading="lazy" />
           Español
         </button>
-
         <button (click)="changeLanguage('en')" aria-label="Change language to English">
           <img src="https://flagcdn.com/w40/gb.png" alt="English flag" class="flag" loading="lazy" />
           English
         </button>
-
         <button (click)="changeLanguage('gl')" aria-label="Change language to Galician">
           <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galician flag" class="flag" loading="lazy" />
           Galego

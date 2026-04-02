@@ -1,126 +1,220 @@
-
 <div class="dashboard">
+
   <div class="dashboard-header">
-    <h2 class="dashboard-title">{{ 'TITULO' | translate }}</h2>
-    <a routerLink="/" class="btn return-home" aria-label="Volver al inicio">
-  🔙 {{ 'HOME' | translate }}
-</a>
+    <h2 class="dashboard-title">{{ 'ADMIN.TITLE' | translate }}</h2>
+    <a routerLink="/" class="btn return-home">🔙 Inicio</a>
     <div class="language-selector">
       <button (click)="changeLanguage('es')">
-        <img src="https://flagcdn.com/w40/es.png" alt="Bandera de España" class="flag" />
-        <span>Español</span>
+        <img src="https://flagcdn.com/w40/es.png" alt="ES" class="flag" /><span>Español</span>
       </button>
       <button (click)="changeLanguage('en')">
-        <img src="https://flagcdn.com/w40/gb.png" alt="Bandera del Reino Unido" class="flag" />
-        <span>English</span>
+        <img src="https://flagcdn.com/w40/gb.png" alt="EN" class="flag" /><span>English</span>
       </button>
       <button (click)="changeLanguage('gl')">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Bandera de Galicia" class="flag" />
-        <span>Galego</span>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="GL" class="flag" /><span>Galego</span>
       </button>
     </div>
   </div>
 
-  <div class="platform-buttons">
-    <a routerLink="/youtube-downloads" class="platform youtube">
-      <img src="/assets/youtube-icon-logo-719479.png" class="icon"> {{ 'YOUTUBE' | translate }}
-    </a>
-    <a routerLink="/twitter-downloads" class="platform twitter">
-      <img src="/assets/twitter-icon.png" class="icon"> {{ 'TWITTER' | translate }}
-    </a>
-    <a routerLink="/facebook-downloads" class="platform facebook">
-      <img src="/assets/fb sin fondo.png" class="icon"> {{ 'FACEBOOK' | translate }}
-    </a>
-    <a routerLink="/instagram-downloads" class="platform instagram">
-      <img src="/assets/instagram-icon.png" class="icon"> {{ 'INSTAGRAM' | translate }}
-    </a>
-    <a routerLink="/spotify-downloads" class="platform spotify">
-      <img src="/assets/Spotify.png" class="icon"> {{ 'SPOTIFY' | translate }}
-    </a>
-    <a routerLink="/tiktok-downloads" class="platform tiktok">
-      <img src="/assets/tiktok_logo.png" class="icon"> {{ 'TIKTOK' | translate }}
-    </a>
+  <!-- Tabs -->
+  <div class="tabs">
+    <button [class.active]="activeTab === 'config'" (click)="activeTab = 'config'">⚙️ {{ 'ADMIN.TAB_CONFIG' | translate }}</button>
+    <button [class.active]="activeTab === 'users'" (click)="activeTab = 'users'; loadPendingUsers(); loadActiveUsers()">👥 {{ 'ADMIN.TAB_USERS' | translate }}</button>
+    <button [class.active]="activeTab === 'nas'" (click)="activeTab = 'nas'; loadNasPaths()">💾 {{ 'ADMIN.TAB_NAS' | translate }}</button>
+    <button [class.active]="activeTab === 'logs'" (click)="activeTab = 'logs'; cargarLogs()">📋 {{ 'ADMIN.TAB_LOGS' | translate }}</button>
+    <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'; cargarHistorial()">📜 {{ 'ADMIN.TAB_HISTORY' | translate }}</button>
   </div>
 
+  <!-- ══ TAB: CONFIG ══════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'config'" class="tab-content">
 
-  <form (ngSubmit)="guardarCambios()" *ngIf="config" class="form-grid">
-    <label>{{ 'CLIENT_ID' | translate }}:</label>
-    <input [(ngModel)]="config.clientId" name="clientId" required />
+    <div class="platform-buttons">
+      <a routerLink="/youtube-downloads" class="platform youtube"><img src="/assets/youtube-icon-logo-719479.png" class="icon"> YouTube</a>
+      <a routerLink="/twitter-downloads" class="platform twitter"><img src="/assets/twitter-icon.png" class="icon"> Twitter</a>
+      <a routerLink="/facebook-downloads" class="platform facebook"><img src="/assets/fb sin fondo.png" class="icon"> Facebook</a>
+      <a routerLink="/instagram-downloads" class="platform instagram"><img src="/assets/instagram-icon.png" class="icon"> Instagram</a>
+      <a routerLink="/spotify-downloads" class="platform spotify"><img src="/assets/Spotify.png" class="icon"> Spotify</a>
+      <a routerLink="/tiktok-downloads" class="platform tiktok"><img src="/assets/tiktok_logo.png" class="icon"> TikTok</a>
+    </div>
 
-    <label>{{ 'CLIENT_SECRET' | translate }}:</label>
-    <input [(ngModel)]="config.clientSecret" name="clientSecret" required />
+    <form (ngSubmit)="guardarCambios()" *ngIf="config" class="form-grid">
+      <label>{{ 'CLIENT_ID' | translate }}:</label>
+      <input [(ngModel)]="config.clientId" name="clientId" required />
+      <label>{{ 'CLIENT_SECRET' | translate }}:</label>
+      <input [(ngModel)]="config.clientSecret" name="clientSecret" required />
+      <label>{{ 'API_KEY' | translate }}:</label>
+      <input [(ngModel)]="config.apiKey" name="apiKey" required />
+      <button type="submit" class="btn primary" [disabled]="cargando">{{ 'GUARDAR' | translate }}</button>
+    </form>
+    <p *ngIf="mensaje" class="message">{{ mensaje }}</p>
 
-    <label>{{ 'API_KEY' | translate }}:</label>
-    <input [(ngModel)]="config.apiKey" name="apiKey" required />
+    <div class="actions-row">
+      <button (click)="actualizarYtDlp()" class="btn secondary" [disabled]="cargando">{{ 'ACTUALIZAR_YTDLP' | translate }}</button>
+      <button (click)="limpiarTemporales()" class="btn warning">{{ 'LIMPIAR_TEMP' | translate }}</button>
+    </div>
+    <p>{{ mensajeLimpieza }}</p>
 
-    <button type="submit" class="btn primary" [disabled]="cargando">{{ 'GUARDAR' | translate }}</button>
-  </form>
-
-  <p *ngIf="mensaje" class="message">{{ mensaje }}</p>
-
-  <div class="actions-row">
-    <button (click)="actualizarYtDlp()" class="btn secondary" [disabled]="cargando">{{ 'ACTUALIZAR_YTDLP' | translate }}</button>
-    <button (click)="limpiarTemporales()" class="btn warning">{{ 'LIMPIAR_TEMP' | translate }}</button>
-    <button (click)="vaciarHistorial()" class="btn danger">{{ 'VACIAR_HIST' | translate }}</button>
-    <button (click)="limpiarLog()" class="btn dark">{{ 'LIMPIAR_LOG' | translate }}</button>
+    <h3>{{ 'ESTADO_APIS' | translate }}</h3>
+    <div class="api-status">
+      <button (click)="comprobarApis()" class="btn secondary">{{ 'COMPROBAR_ESTADO' | translate }}</button>
+      <ul>
+        <li><strong>YouTube:</strong> {{ apiEstados['youtube'] }}</li>
+        <li><strong>Spotify:</strong> {{ apiEstados['spotify'] }}</li>
+        <li><strong>TikTok:</strong> {{ apiEstados['tiktok'] }}</li>
+        <li><strong>Facebook:</strong> {{ apiEstados['facebook'] }}</li>
+        <li><strong>Instagram:</strong> {{ apiEstados['instagram'] }}</li>
+      </ul>
+    </div>
   </div>
 
-  <p>{{ mensajeLimpieza }}</p>
-  <p>{{ mensajeVaciarHistorial }}</p>
-  <p>{{ mensajeLogLimpio }}</p>
+  <!-- ══ TAB: USUARIOS ════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'users'" class="tab-content">
 
-  <hr />
-  <h3>{{ 'LOGS' | translate }}</h3>
-  <div class="logs-section">
-    <input [(ngModel)]="filtroLog" [placeholder]="'FILTRAR' | translate">
-    <button class="btn small" (click)="cargarLogs()">{{ 'VER_LOGS' | translate }}</button>
-  </div>
+    <p *ngIf="userMsg" class="message">{{ userMsg }}</p>
 
-  <div #logContainer class="log-output">
-    <div *ngFor="let l of logs">{{ l }}</div>
-  </div>
-
-  <hr />
-  <h3>{{ 'HIST_DESCARGAS' | translate }}</h3>
-  <div class="history-container">
-    <table *ngIf="historial.length > 0" class="history-table">
+    <h3>⏳ {{ 'ADMIN.PENDING_USERS' | translate }} ({{ pendingUsers.length }})</h3>
+    <div *ngIf="pendingUsers.length === 0" class="empty-state">{{ 'ADMIN.NO_PENDING' | translate }}</div>
+    <table *ngIf="pendingUsers.length > 0" class="users-table">
       <thead>
         <tr>
-          <th>{{ 'TITULO_TABLA' | translate }}</th>
-          <th>{{ 'TIPO' | translate }}</th>
-          <th>{{ 'PLATAFORMA' | translate }}</th>
-          <th>{{ 'FECHA' | translate }}</th>
+          <th>{{ 'ADMIN.COL_USER' | translate }}</th><th>{{ 'ADMIN.COL_EMAIL' | translate }}</th><th>{{ 'ADMIN.COL_REGISTERED' | translate }}</th><th>{{ 'ADMIN.COL_ASSIGN_ROLE' | translate }}</th><th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let item of historial">
-          <td>{{ item.titulo }}</td>
-          <td>{{ item.tipo }}</td>
+        <tr *ngFor="let u of pendingUsers">
+          <td>{{ u.username }}</td>
+          <td>{{ u.email }}</td>
+          <td>{{ u.createdAt | date:'dd/MM/yy HH:mm' }}</td>
           <td>
-            <img [src]="getIconPath(item.plataforma)" class="icon-table" />
-            {{ item.plataforma }}
+            <select #roleSelect class="role-select">
+              <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+            </select>
           </td>
-          <td>
-  <ng-container *ngIf="item.fecha; else sinFecha">
-    {{ item.fecha | date:'dd/MM/yy, HH:mm' }}
-  </ng-container>
-  <ng-template #sinFecha>–</ng-template>
-</td>
+          <td class="actions-cell">
+            <button class="btn-approve" (click)="approveUser(u, roleSelect.value)">✅ {{ 'ADMIN.APPROVE' | translate }}</button>
+            <button class="btn-reject" (click)="rejectUser(u)">❌ {{ 'ADMIN.REJECT' | translate }}</button>
+            <button class="btn-del" (click)="deleteUser(u)">🗑</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
+    <hr>
+
+    <h3>✅ {{ 'ADMIN.ACTIVE_USERS' | translate }} ({{ activeUsers.length }})</h3>
+    <div *ngIf="activeUsers.length === 0" class="empty-state">{{ 'ADMIN.NO_ACTIVE' | translate }}</div>
+    <table *ngIf="activeUsers.length > 0" class="users-table">
+      <thead>
+        <tr>
+          <th></th><th>{{ 'ADMIN.COL_USER' | translate }}</th><th>{{ 'ADMIN.COL_EMAIL' | translate }}</th><th>{{ 'ADMIN.COL_ROLE' | translate }}</th><th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of activeUsers">
+          <td>
+            <div class="user-avatar-sm">
+              <img *ngIf="u.avatarUrl" [src]="getFullAvatarUrl(u.avatarUrl)" alt="" />
+              <span *ngIf="!u.avatarUrl">{{ u.username.charAt(0).toUpperCase() }}</span>
+            </div>
+          </td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email }}</td>
+          <td>
+            <select [ngModel]="u.role" (ngModelChange)="changeRole(u, $event)" class="role-select">
+              <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+            </select>
+          </td>
+          <td class="actions-cell">
+            <button class="btn-reject" (click)="revokeUser(u)">🚫 {{ 'ADMIN.REVOKE' | translate }}</button>
+            <button class="btn-del" (click)="deleteUser(u)">🗑</button>
+          </td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <h3>{{ 'ESTADO_APIS' | translate }}</h3>
-  <div class="api-status">
-    <button (click)="comprobarApis()" class="btn secondary">{{ 'COMPROBAR_ESTADO' | translate }}</button>
-    <ul>
-      <li><strong>YouTube:</strong> {{ apiEstados['youtube'] }}</li>
-      <li><strong>Spotify:</strong> {{ apiEstados['spotify'] }}</li>
-      <li><strong>TikTok:</strong> {{ apiEstados['tiktok'] }}</li>
-      <li><strong>Facebook:</strong> {{ apiEstados['facebook'] }}</li>
-      <li><strong>Instagram:</strong> {{ apiEstados['instagram'] }}</li>
-    </ul>
+  <!-- ══ TAB: NAS ═════════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'nas'" class="tab-content">
+
+    <p *ngIf="nasMsg" class="message">{{ nasMsg }}</p>
+
+    <h3>➕ {{ 'ADMIN.NEW_NAS_TITLE' | translate }}</h3>
+    <div class="nas-form">
+      <input [(ngModel)]="newNasName" [placeholder]="'ADMIN.NAS_NAME_PLACEHOLDER' | translate" />
+      <input [(ngModel)]="newNasPath" [placeholder]="'ADMIN.NAS_PATH_PLACEHOLDER' | translate" />
+      <input [(ngModel)]="newNasDesc" [placeholder]="'ADMIN.NAS_DESC_PLACEHOLDER' | translate" />
+      <button class="btn primary" (click)="addNasPath()">{{ 'ADMIN.NAS_ADD' | translate }}</button>
+    </div>
+    <div class="nas-hint">
+      {{ 'ADMIN.NAS_HINT' | translate }} <code>/app/nas_storage</code>.<br>
+      <code>/ruta/en/tu/nas:/app/nas_storage</code>
+    </div>
+
+    <hr>
+
+    <h3>{{ 'ADMIN.NAS_CONFIGURED' | translate }}</h3>
+    <div *ngIf="nasPaths.length === 0" class="empty-state">{{ 'ADMIN.NAS_NO_PATHS' | translate }}</div>
+    <table *ngIf="nasPaths.length > 0" class="users-table">
+      <thead>
+        <tr><th>{{ 'ADMIN.COL_NAME' | translate }}</th><th>{{ 'ADMIN.COL_PATH' | translate }}</th><th>{{ 'ADMIN.COL_DESCRIPTION' | translate }}</th><th>{{ 'ADMIN.COL_PERMISSIONS' | translate }}</th><th>{{ 'ADMIN.COL_DELETE' | translate }}</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of nasPaths">
+          <td>{{ p.name }}</td>
+          <td><code>{{ p.path }}</code></td>
+          <td>{{ p.description }}</td>
+          <td>
+            <span [class]="p.readable ? 'perm-ok' : 'perm-no'">R</span>
+            <span [class]="p.writable ? 'perm-ok' : 'perm-no'">W</span>
+          </td>
+          <td><button class="btn-del" (click)="removeNasPath(p.id)">🗑</button></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
+
+  <!-- ══ TAB: LOGS ════════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'logs'" class="tab-content">
+    <div class="logs-section">
+      <input [(ngModel)]="filtroLog" [placeholder]="'ADMIN.FILTER_LOGS' | translate">
+      <button class="btn small" (click)="cargarLogs()">🔄 {{ 'ADMIN.REFRESH' | translate }}</button>
+      <button class="btn dark" (click)="limpiarLog()">🗑 {{ 'ADMIN.CLEAR_LOG' | translate }}</button>
+    </div>
+    <p *ngIf="mensajeLogLimpio">{{ mensajeLogLimpio }}</p>
+    <div #logContainer class="log-output">
+      <div *ngFor="let l of logs">{{ l }}</div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: HISTORIAL ═══════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'history'" class="tab-content">
+    <div class="actions-row">
+      <button (click)="vaciarHistorial()" class="btn danger">🗑 {{ 'ADMIN.CLEAR_HISTORY' | translate }}</button>
+    </div>
+    <p *ngIf="mensajeVaciarHistorial">{{ mensajeVaciarHistorial }}</p>
+    <div class="history-container">
+      <table *ngIf="historial.length > 0" class="history-table">
+        <thead>
+          <tr><th>{{ 'ADMIN.COL_TITLE' | translate }}</th><th>{{ 'TIPO' | translate }}</th><th>{{ 'PLATAFORMA' | translate }}</th><th>{{ 'FECHA' | translate }}</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of historial; trackBy: trackByHistorial">
+            <td>{{ item.titulo }}</td>
+            <td>{{ item.tipo }}</td>
+            <td>
+              <img [src]="getIconPath(item.plataforma)" class="icon-table" />
+              {{ item.plataforma }}
+            </td>
+            <td>
+              <ng-container *ngIf="item.fecha; else sinFecha">
+                {{ item.fecha | date:'dd/MM/yy, HH:mm' }}
+              </ng-container>
+              <ng-template #sinFecha>–</ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>

@@ -5,15 +5,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+
 @Tag(name = "Descargas", description = "Descargas desde varias plataformas")
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(
-        origins = "http://localhost:4200",
-        exposedHeaders = "Content-Disposition"
-)
+@PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
 public class DownloadController {
 
     private final DownloadService downloadService;

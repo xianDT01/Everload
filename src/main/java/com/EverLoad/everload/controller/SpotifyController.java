@@ -8,6 +8,7 @@ import com.EverLoad.everload.service.SpotifyService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.Map;
 @Tag(name = "Spotify", description = "Importar canciones desde Spotify")
 @RestController
 @RequestMapping("/api/spotify")
+@PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
 @CrossOrigin(origins = "http://localhost:4200")
 public class SpotifyController {
 

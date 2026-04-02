@@ -20,6 +20,12 @@
         <span *ngIf="!loading">{{ 'DOWNLOAD_INSTAGRAM' | translate }}</span>
         <span *ngIf="loading">{{ 'LOADING' | translate }}...</span>
       </button>
+      <button *ngIf="hasNasAccess" class="login-button btn-nas" (click)="showNasBrowser = true" [disabled]="loading">
+        💾 Guardar en NAS
+      </button>
+      <app-nas-browser *ngIf="showNasBrowser" [mode]="'select'" [downloadFileName]="videoUrl"
+        (pathSelected)="showNasBrowser = false; download()" (closed)="showNasBrowser = false">
+      </app-nas-browser>
 
       <a routerLink="/" class="forgot-link">{{ 'HOME' | translate }}</a>
 
