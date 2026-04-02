@@ -1,0 +1,86 @@
+<div class="profile-page">
+
+  <div class="profile-header">
+    <button class="btn-back" (click)="goBack()">← Volver</button>
+    <h1 class="profile-title">Mi Perfil</h1>
+  </div>
+
+  <div class="profile-content" *ngIf="profile">
+
+    <!-- ══ AVATAR ══════════════════════════════════════════════════════════════ -->
+    <section class="profile-section avatar-section">
+      <div class="avatar-area" [class.loading]="avatarLoading">
+        <div class="avatar-large" (click)="openAvatarPicker()" title="Cambiar foto">
+          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Avatar" class="avatar-img" />
+          <span *ngIf="!avatarUrl" class="avatar-initials-large">
+            {{ profile.username.charAt(0).toUpperCase() }}
+          </span>
+          <div class="avatar-overlay">
+            <span>📷</span>
+          </div>
+        </div>
+        <button *ngIf="avatarUrl" class="btn-remove-avatar" (click)="removeAvatar()" title="Eliminar foto">✕ Eliminar foto</button>
+        <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+               (change)="onAvatarFileSelected($event)" style="display:none" />
+      </div>
+      <p *ngIf="avatarError" class="msg-error">{{ avatarError }}</p>
+
+      <div class="user-summary">
+        <h2 class="profile-username">{{ profile.username }}</h2>
+        <p class="profile-email-display">{{ profile.email }}</p>
+        <span class="role-badge" [ngClass]="getRoleBadge()">{{ profile.role }}</span>
+      </div>
+    </section>
+
+    <!-- ══ EDITAR DATOS ════════════════════════════════════════════════════════ -->
+    <section class="profile-section">
+      <h3 class="section-title">Datos de la cuenta</h3>
+
+      <div class="form-group">
+        <label>Nombre de usuario</label>
+        <input type="text" [(ngModel)]="editUsername" class="form-input" placeholder="Nombre de usuario" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="editEmail" class="form-input" placeholder="tu@email.com" />
+      </div>
+
+      <p *ngIf="profileMsg" class="msg-success">✅ {{ profileMsg }}</p>
+      <p *ngIf="profileError" class="msg-error">❌ {{ profileError }}</p>
+
+      <button class="btn-save" (click)="saveProfile()" [disabled]="savingProfile">
+        {{ savingProfile ? 'Guardando...' : 'Guardar cambios' }}
+      </button>
+    </section>
+
+    <!-- ══ CAMBIAR CONTRASEÑA ══════════════════════════════════════════════════ -->
+    <section class="profile-section">
+      <h3 class="section-title">Cambiar contraseña</h3>
+
+      <div class="form-group">
+        <label>Contraseña actual</label>
+        <input type="password" [(ngModel)]="currentPassword" class="form-input" placeholder="Contraseña actual" />
+      </div>
+      <div class="form-group">
+        <label>Nueva contraseña</label>
+        <input type="password" [(ngModel)]="newPassword" class="form-input" placeholder="Nueva contraseña (mín. 6 caracteres)" />
+      </div>
+      <div class="form-group">
+        <label>Confirmar nueva contraseña</label>
+        <input type="password" [(ngModel)]="confirmPassword" class="form-input" placeholder="Repite la nueva contraseña" />
+      </div>
+
+      <p *ngIf="passwordMsg" class="msg-success">✅ {{ passwordMsg }}</p>
+      <p *ngIf="passwordError" class="msg-error">❌ {{ passwordError }}</p>
+
+      <button class="btn-save" (click)="changePassword()" [disabled]="savingPassword">
+        {{ savingPassword ? 'Cambiando...' : 'Cambiar contraseña' }}
+      </button>
+    </section>
+
+  </div>
+
+  <div *ngIf="!profile && !profileError" class="loading-state">Cargando perfil...</div>
+  <div *ngIf="profileError && !profile" class="msg-error page-error">{{ profileError }}</div>
+
+</div>

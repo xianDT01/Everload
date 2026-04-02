@@ -3,6 +3,7 @@ package com.EverLoad.everload.controller;
 import com.EverLoad.everload.config.AdminConfigService;
 import com.EverLoad.everload.service.SpotifyService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -11,6 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/test-api")
+@PreAuthorize("hasRole('ADMIN')")
 public class ApiTestController {
 
     private final AdminConfigService configService;

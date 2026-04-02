@@ -1,0 +1,56 @@
+.pending-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+}
+
+.pending-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 48px;
+  text-align: center;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.pending-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+h2 {
+  color: #fff;
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+}
+
+p {
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.sub {
+  color: rgba(255,255,255,0.45);
+  font-size: 0.9rem;
+  margin-bottom: 28px;
+}
+
+.btn-logout {
+  background: rgba(255,77,77,0.2);
+  border: 1px solid rgba(255,77,77,0.4);
+  color: #ff6b6b;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-logout:hover {
+  background: rgba(255,77,77,0.35);
+}

@@ -49,14 +49,14 @@ public class DownloadService {
 
     public ResponseEntity<FileSystemResource> downloadMusic(String videoId, String format) {
         try {
-            String tempDir = createTempDownloadDir();
-            String command = String.format(
-                    "yt-dlp --ignore-errors --print after_move:filepath " +
-                            "-x --audio-format %s " +
-                            "-o %s%%(title)s.%%(ext)s " +
-                            "https://www.youtube.com/watch?v=%s",
-                    format, tempDir, videoId
-            );
+                String tempDir = createTempDownloadDir();
+                String command = String.format(
+                        "./yt-dlp --ignore-errors --print after_move:filepath " +
+                                "-x --audio-format %s " +
+                                "-o %s%%(title)s.%%(ext)s " +
+                                "https://www.youtube.com/watch?v=%s",
+                        format, tempDir, videoId
+                );
 
             return executeCommand(command, "music", "YouTube");
         } catch (Exception e) {
