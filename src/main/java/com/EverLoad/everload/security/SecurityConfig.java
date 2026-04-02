@@ -33,12 +33,21 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Endpoints públicos
+                // Auth endpoints (public)
                 .requestMatchers("/api/auth/**").permitAll()
+                // Avatar images (served publicly for chat/profile display)
                 .requestMatchers("/api/user/avatar/img/**").permitAll()
+                // Swagger (dev tools)
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                // Todos los demás requieren autenticación
-                .anyRequest().authenticated()
+                // Angular frontend — root, HTML entry point, and all static assets
+                .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
+                .requestMatchers("/**/*.js", "/**/*.css", "/**/*.map").permitAll()
+                .requestMatchers("/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.svg", "/**/*.ico", "/**/*.webp").permitAll()
+                .requestMatchers("/assets/**", "/media/**").permitAll()
+                // All API endpoints require authentication
+                .requestMatchers("/api/**").authenticated()
+                // Any other non-API path (e.g. Angular client-side routes) serves index.html — allow
+                .anyRequest().permitAll()
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
