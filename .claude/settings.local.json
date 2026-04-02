@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/model/ChatGroup.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/model/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/model/ChatMessage.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/model/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/model/GroupMember.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/model/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/model/GroupType.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/model/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/model/MemberRole.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/model/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/repository/ChatGroupRepository.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/repository/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/repository/ChatMessageRepository.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/repository/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/repository/GroupMemberRepository.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/repository/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/repository/NotificationRepository.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/repository/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/dto/ChatGroupDto.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/dto/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/dto/ChatMessageDto.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/dto/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/dto/CreateGroupRequest.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/dto/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/dto/NotificationDto.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/dto/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/dto/SendMessageRequest.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/dto/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/service/ChatService.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/service/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/service/NotificationService.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/service/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/controller/ChatController.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/controller/)",
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/controller/NotificationController.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/controller/)"
+    ]
+  }
+}
