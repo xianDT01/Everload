@@ -64,6 +64,7 @@ public class ChatService {
                                 .user(u)
 
 
+
                                 .role(MemberRole.MEMBER)
                                 .build();
                         groupMemberRepository.save(member);
