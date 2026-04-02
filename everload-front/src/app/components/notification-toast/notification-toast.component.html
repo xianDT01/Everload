@@ -1,0 +1,17 @@
+<div class="toast-container">
+  <div
+    *ngFor="let toast of toasts"
+    class="toast"
+    [class]="'toast-' + toast.type"
+    [class.toast-hiding]="toast.progress <= 0">
+    <div class="toast-icon">{{ getIcon(toast.type) }}</div>
+    <div class="toast-content">
+      <div class="toast-title">{{ toast.title }}</div>
+      <div class="toast-message" *ngIf="toast.message">{{ toast.message }}</div>
+    </div>
+    <button class="toast-close" (click)="dismiss(toast.id)">✕</button>
+    <div class="toast-progress">
+      <div class="toast-progress-bar" [style.width.%]="toast.progress"></div>
+    </div>
+  </div>
+</div>

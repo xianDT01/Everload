@@ -1,0 +1,48 @@
+<div class="modal-overlay" (click)="cancel()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">👥 {{ 'CHAT.NEW_GROUP' | translate }}</span>
+      <button class="modal-close" (click)="cancel()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label>{{ 'CHAT.GROUP_NAME' | translate }}</label>
+        <input type="text" [(ngModel)]="name" [placeholder]="'CHAT.GROUP_NAME_PLACEHOLDER' | translate" maxlength="60" />
+      </div>
+
+      <div class="form-group">
+        <label>{{ 'CHAT.GROUP_DESCRIPTION' | translate }}</label>
+        <input type="text" [(ngModel)]="description" [placeholder]="'CHAT.GROUP_DESCRIPTION_PLACEHOLDER' | translate" maxlength="200" />
+      </div>
+
+      <div class="form-group">
+        <label>{{ 'CHAT.ADD_MEMBERS' | translate:{count: selectedUsernames.size} }}</label>
+        <input type="text" [(ngModel)]="userSearch" [placeholder]="'CHAT.SEARCH_USERS' | translate" />
+        <div class="user-list">
+          <div *ngIf="filteredUsers.length === 0" class="no-users">
+            {{ 'CHAT.NO_USERS_AVAILABLE' | translate }}
+          </div>
+          <div *ngFor="let user of filteredUsers"
+               class="user-item"
+               [class.selected]="selectedUsernames.has(user.username)"
+               (click)="toggleUser(user.username)">
+            <div class="user-avatar">
+              <img *ngIf="user.avatarUrl" [src]="resolveAvatarUrl(user.avatarUrl)" [alt]="user.username" />
+              <span *ngIf="!user.avatarUrl" class="avatar-initial">{{ getInitials(user.username) }}</span>
+            </div>
+            <span class="user-name">{{ user.username }}</span>
+            <span class="check-icon" *ngIf="selectedUsernames.has(user.username)">✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="cancel()">{{ 'CHAT.CANCEL' | translate }}</button>
+      <button class="btn-create" (click)="submit()" [disabled]="isLoading || !name.trim()">
+        {{ isLoading ? ('CHAT.CREATING' | translate) : ('CHAT.CREATE_GROUP' | translate) }}
+      </button>
+    </div>
+  </div>
+</div>

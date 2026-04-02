@@ -3,15 +3,18 @@ package com.EverLoad.everload.controller;
 import com.EverLoad.everload.model.Download;
 import com.EverLoad.everload.service.DownloadHistoryService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+
 @RestController
 // Soporta ambas rutas: nueva en inglés y la existente en español
 @RequestMapping({"/api/admin/history", "/api/admin/historial"})
+@PreAuthorize("hasRole('ADMIN')")
 public class DownloadHistoryController {
 
     private final DownloadHistoryService history;

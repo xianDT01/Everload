@@ -10,15 +10,12 @@
           <img src="https://flagcdn.com/w40/es.png" alt="Bandera de España" class="flag" />
           Español
         </button>
-
         <button (click)="changeLanguage('en')">
           <img src="https://flagcdn.com/w40/gb.png" alt="Bandera del Reino Unido" class="flag" />
           English
         </button>
-
         <button (click)="changeLanguage('gl')">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Bandera de Galicia"
-            class="flag" />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Bandera de Galicia" class="flag" />
           Galego
         </button>
       </div>
@@ -34,19 +31,17 @@
         (ngModelChange)="onVideoUrlChange()">
     </div>
 
-    <!--  Previsualización del vídeo -->
+    <!-- Previsualización del vídeo -->
     <div class="video-preview" *ngIf="getVideoId(videoUrl)">
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
-      <iframe [src]="getEmbedUrl(videoUrl)" width="560" height="315" frameborder="0" allowfullscreen>
-      </iframe>
+      <iframe [src]="getEmbedUrl(videoUrl)" width="560" height="315" frameborder="0" allowfullscreen></iframe>
       <p style="font-size: 12px; color: #ccc;">* {{ 'VIDEO_NOT_LOADING_WARNING' | translate }}</p>
       <a [href]="videoUrl" target="_blank" style="color: #ff0000; text-decoration: underline; font-size: 14px;">
         🔗 {{ 'OPEN_IN_YOUTUBE' | translate }}
       </a>
     </div>
 
-    <!--  Bloque para listas de reproducción -->
-
+    <!-- Bloque para listas de reproducción -->
     <div *ngIf="playlistVideos.length > 0" class="playlist-section">
       <h3 style="color: white;">{{ 'PLAYLIST_VIDEOS' | translate }}</h3>
       <p style="color: white;">{{ 'SELECT_VIDEOS_TO_DOWNLOAD' | translate }}</p>
@@ -55,7 +50,6 @@
         {{ allSelected ? '❌ ' + ('DESELECT_ALL' | translate) : '✅ ' + ('SELECT_ALL' | translate) }}
       </button>
 
-      <!-- Contenedor con scroll -->
       <div class="playlist-scroll-container">
         <div class="playlist-grid">
           <div *ngFor="let video of playlistVideos" class="playlist-card">
@@ -63,8 +57,6 @@
             <div class="playlist-info">
               <label>
                 <input type="checkbox" [checked]="selectedVideos.has(video.id)" (change)="toggleVideo(video.id)" />
-
-
                 {{ video.title }}
               </label>
             </div>
@@ -88,9 +80,79 @@
     </select>
 
     <div class="buttons">
-      <button (click)="downloadVideo()" [disabled]="isLoading">{{ 'DOWNLOAD_VIDEO' | translate }}</button>
-      <button (click)="downloadMusic()" [disabled]="isLoading">{{ 'DOWNLOAD_MUSIC' | translate }}</button>
+      <button (click)="addToQueue('video')" [disabled]="isLoading">{{ 'DOWNLOAD_VIDEO' | translate }}</button>
+      <button (click)="addToQueue('music')" [disabled]="isLoading">{{ 'DOWNLOAD_MUSIC' | translate }}</button>
+      <button *ngIf="hasNasAccess" (click)="openNasBrowser('video')" [disabled]="isLoading" class="btn-nas">
+        💾 Guardar en NAS
+      </button>
     </div>
+
+    <!-- ══ COLA DE DESCARGAS ══ -->
+    <div class="queue-panel" [class.expanded]="showQueue">
+      <div class="queue-header" (click)="showQueue = !showQueue">
+        <span class="queue-toggle-icon">{{ showQueue ? '▲' : '▼' }}</span>
+        <span class="queue-title">📋 Cola ({{ getQueueCount() }})</span>
+        <span class="queue-badges">
+          <span class="q-badge q-pending" *ngIf="getQueueCount('pending') > 0">{{ getQueueCount('pending') }} pendiente</span>
+          <span class="q-badge q-downloading" *ngIf="getQueueCount('downloading') > 0">{{ getQueueCount('downloading') }} descargando</span>
+          <span class="q-badge q-done" *ngIf="getQueueCount('completed') > 0">{{ getQueueCount('completed') }} listo</span>
+        </span>
+      </div>
+
+      <div class="queue-body" *ngIf="showQueue">
+        <div class="queue-actions-bar" *ngIf="queue.length > 0">
+          <button class="btn-clear-done" (click)="clearCompleted()">🗑 Limpiar completados</button>
+        </div>
+
+        <div class="queue-empty" *ngIf="queue.length === 0">
+          <span>No hay elementos en la cola</span>
+        </div>
+
+        <div class="queue-list">
+          <div *ngFor="let item of queue" class="queue-item" [class]="'status-' + item.status">
+            <div class="queue-item-left">
+              <span class="queue-status-icon" [class]="'icon-' + item.status">
+                {{ getStatusIcon(item.status) }}
+              </span>
+            </div>
+
+            <div class="queue-item-content">
+              <div class="queue-item-title">{{ item.title || item.videoId }}</div>
+              <div class="queue-item-meta">
+                <span class="type-badge" [class]="'type-' + item.type">
+                  {{ item.type === 'video' ? '🎬 Video' : '🎵 Música' }}
+                </span>
+                <span *ngIf="item.resolution" class="res-badge">{{ item.resolution }}p</span>
+                <span class="time-info" *ngIf="item.startedAt">{{ formatTime(item.startedAt) }}</span>
+              </div>
+
+              <div class="progress-bar-container" *ngIf="item.status === 'downloading'">
+                <div class="progress-bar-fill" [style.width.%]="item.progress"></div>
+                <span class="progress-text">{{ item.progress }}%</span>
+              </div>
+
+              <div class="error-msg" *ngIf="item.error">{{ item.error }}</div>
+            </div>
+
+            <div class="queue-item-actions">
+              <button *ngIf="item.status === 'pending' || item.status === 'downloading'"
+                class="btn-cancel" (click)="cancelItem(item.id)" title="Cancelar">✕</button>
+              <button *ngIf="item.status === 'failed'"
+                class="btn-retry" (click)="retryItem(item.id)" title="Reintentar">↺</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAS Browser modal -->
+    <app-nas-browser
+      *ngIf="showNasBrowser"
+      [mode]="'select'"
+      [downloadFileName]="videoUrl"
+      (pathSelected)="onNasPathSelected($event)"
+      (closed)="showNasBrowser = false">
+    </app-nas-browser>
 
     <div *ngIf="isLoading" class="loading">
       <p>{{ 'LOADING' | translate }}</p>
@@ -104,12 +166,10 @@
   </div>
 
   <div class="results">
-    <!-- Mensaje si no hay resultados -->
     <div *ngIf="noResults" class="no-results">
       <p>{{ 'NO_RESULTS_FOUND' | translate }}</p>
     </div>
 
-    <!-- Resultados de búsqueda -->
     <div class="video-grid">
       <div *ngFor="let video of searchResults" class="video-card">
         <img [src]="video.snippet.thumbnails.high.url" alt="Miniatura del video" class="thumbnail">

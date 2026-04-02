@@ -23,3 +23,15 @@
     flex-direction: column;
   }
   
+/* ── Botón NAS global ───────────────────────────────────────────────────── */
+.btn-nas {
+  background: linear-gradient(135deg, rgba(108,99,255,0.25), rgba(79,70,229,0.25)) !important;
+  border: 1px solid rgba(108,99,255,0.5) !important;
+  color: #a5b4fc !important;
+  transition: background 0.2s, border-color 0.2s !important;
+}
+.btn-nas:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(108,99,255,0.4), rgba(79,70,229,0.4)) !important;
+  border-color: #6c63ff !important;
+  color: #fff !important;
+}

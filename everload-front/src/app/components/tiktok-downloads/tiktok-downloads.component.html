@@ -18,19 +18,18 @@
         aria-label="TikTok URL"
       />
 
-      <button
-        class="login-button"
-        (click)="descargar()"
-        [disabled]="cargando"
-        aria-label="Descargar vídeo de TikTok"
-      >
+      <button class="login-button" (click)="descargar()" [disabled]="cargando" aria-label="Descargar vídeo de TikTok">
         <span *ngIf="!cargando">{{ 'DOWNLOAD_TIKTOK' | translate }}</span>
         <span *ngIf="cargando">{{ 'LOADING' | translate }}...</span>
       </button>
+      <button *ngIf="hasNasAccess" class="login-button btn-nas" (click)="showNasBrowser = true" [disabled]="cargando">
+        💾 Guardar en NAS
+      </button>
+      <app-nas-browser *ngIf="showNasBrowser" [mode]="'select'" [downloadFileName]="tiktokUrl"
+        (pathSelected)="showNasBrowser = false; descargar()" (closed)="showNasBrowser = false">
+      </app-nas-browser>
 
-      <div *ngIf="error" class="error-msg" role="alert">
-        {{ error }}
-      </div>
+      <div *ngIf="error" class="error-msg" role="alert">{{ error }}</div>
 
       <div class="progress-bar" *ngIf="cargando">
         <div class="progress-fill"></div>

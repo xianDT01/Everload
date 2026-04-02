@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -13,6 +14,7 @@ import java.io.IOException;
 @Tag(name = "Admin", description = "Operaciones administrativas (yt-dlp, configuración, etc.)")
 @RestController
 @RequestMapping("/api/admin")
+@PreAuthorize("hasRole('ADMIN')")
 public class YtDlpAdminController {
 
     // ⬇⬇⬇ CLAVE: damos un valor por defecto vacío "" para que Spring arranque aunque no haya nada configurado
