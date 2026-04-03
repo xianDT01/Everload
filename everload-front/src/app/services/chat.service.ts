@@ -69,11 +69,13 @@ export class ChatService implements OnDestroy {
 
   private pollIntervalRef: any = null;
   private currentPollGroupId: number | null = null;
+  private groupsPollRef: any = null;
 
   constructor(private http: HttpClient) {}
 
   ngOnDestroy(): void {
     this.stopPolling();
+    this.stopGroupsPolling();
   }
 
   getGroups(): Observable<ChatGroupDto[]> {
@@ -133,7 +135,7 @@ export class ChatService implements OnDestroy {
           error: () => {}
         });
       }
-    }, 3000);
+    }, 2000);
   }
 
   stopPolling(): void {
@@ -142,5 +144,19 @@ export class ChatService implements OnDestroy {
       this.pollIntervalRef = null;
     }
     this.currentPollGroupId = null;
+  }
+
+  startGroupsPolling(): void {
+    this.stopGroupsPolling();
+    this.groupsPollRef = setInterval(() => {
+      this.refreshGroups();
+    }, 5000);
+  }
+
+  stopGroupsPolling(): void {
+    if (this.groupsPollRef) {
+      clearInterval(this.groupsPollRef);
+      this.groupsPollRef = null;
+    }
   }
 }

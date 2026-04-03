@@ -40,7 +40,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   queue: QueueItem[] = [];
   showQueue = false;
   private processingQueue = false;
-  private cancelledIds = new Set<string>();
+  private cancelActiveDownload: (() => void) | null = null;
 
   // NAS
   showNasBrowser = false;
@@ -136,14 +136,15 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
     if (this.processingQueue) return;
     this.processingQueue = true;
 
-    while (true) {
-      const next = this.queue.find(i => i.status === 'pending');
-      if (!next) break;
-
-      await this.processItem(next);
+    try {
+      while (true) {
+        const next = this.queue.find(i => i.status === 'pending');
+        if (!next) break;
+        await this.processItem(next);
+      }
+    } finally {
+      this.processingQueue = false;
     }
-
-    this.processingQueue = false;
   }
 
   private processItem(item: QueueItem): Promise<void> {
@@ -154,35 +155,18 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         item.progress = 0;
       });
 
-      if (this.cancelledIds.has(item.id)) {
-        this.ngZone.run(() => {
-          item.status = 'cancelled';
-          item.completedAt = new Date();
-        });
-        resolve();
-        return;
-      }
-
       const endpoint = item.type === 'video' ? 'downloadVideo' : 'downloadMusic';
       const params: any = item.type === 'video'
         ? { videoId: item.videoId, resolution: item.resolution || '720' }
         : { videoId: item.videoId, format: 'mp3' };
 
-      this.http.get(`${this.backendUrl}/${endpoint}`, {
+      const sub = this.http.get(`${this.backendUrl}/${endpoint}`, {
         params,
         responseType: 'blob',
         observe: 'events',
         reportProgress: true
       }).subscribe({
         next: (event: HttpEvent<any>) => {
-          if (this.cancelledIds.has(item.id)) {
-            this.ngZone.run(() => {
-              item.status = 'cancelled';
-              item.completedAt = new Date();
-            });
-            resolve();
-            return;
-          }
           if (event.type === HttpEventType.DownloadProgress) {
             this.ngZone.run(() => {
               if (event.total) {
@@ -192,6 +176,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
               }
             });
           } else if (event.type === HttpEventType.Response) {
+            this.cancelActiveDownload = null;
             this.ngZone.run(() => {
               const contentDisposition = event.headers?.get('content-disposition');
               const match = contentDisposition?.match(/filename="(.+)"/);
@@ -206,7 +191,8 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
             resolve();
           }
         },
-        error: (err) => {
+        error: () => {
+          this.cancelActiveDownload = null;
           this.ngZone.run(() => {
             item.status = 'failed';
             item.error = 'Error al descargar';
@@ -216,13 +202,23 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
           resolve();
         }
       });
+
+      // Almacena el cancel: desuscribe el HTTP y resuelve la promesa
+      this.cancelActiveDownload = () => {
+        sub.unsubscribe();
+        this.cancelActiveDownload = null;
+        this.ngZone.run(() => {
+          item.status = 'cancelled';
+          item.completedAt = new Date();
+        });
+        resolve();
+      };
     });
   }
 
   retryItem(id: string): void {
     const item = this.queue.find(i => i.id === id);
     if (!item) return;
-    this.cancelledIds.delete(id);
     this.ngZone.run(() => {
       item.status = 'pending';
       item.progress = 0;
@@ -236,14 +232,16 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   cancelItem(id: string): void {
     const item = this.queue.find(i => i.id === id);
     if (!item) return;
-    this.cancelledIds.add(id);
+
     if (item.status === 'pending') {
       this.ngZone.run(() => {
         item.status = 'cancelled';
         item.completedAt = new Date();
       });
+    } else if (item.status === 'downloading') {
+      // Cancela el HTTP request activo y resuelve la promesa del bucle
+      this.cancelActiveDownload?.();
     }
-    // If downloading, the subscription will detect cancellation on next event
   }
 
   clearCompleted(): void {

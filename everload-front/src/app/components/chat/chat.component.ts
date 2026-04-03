@@ -63,11 +63,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
 
     this.chatService.refreshGroups();
+    this.chatService.startGroupsPolling();
   }
 
   ngOnDestroy(): void {
     this.groupsSub?.unsubscribe();
     this.chatService.stopPolling();
+    this.chatService.stopGroupsPolling();
   }
 
   ngAfterViewChecked(): void {
@@ -112,7 +114,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
 
     this.chatService.startPolling(group.id, (msgs) => {
-      if (msgs.length !== this.messages.length) {
+      const lastKnown = this.messages.length > 0 ? this.messages[this.messages.length - 1].id : -1;
+      const lastNew   = msgs.length > 0 ? msgs[msgs.length - 1].id : -1;
+      if (lastNew !== lastKnown || msgs.length !== this.messages.length) {
         this.messages = msgs;
         this.shouldScrollToBottom = true;
       }
