@@ -57,7 +57,7 @@ public class ChatController {
                                                        @RequestBody SendMessageRequest request,
                                                        @AuthenticationPrincipal UserDetails userDetails) {
         User user = getCurrentUser(userDetails);
-        return ResponseEntity.ok(chatService.sendMessage(id, request.getContent(), user));
+        return ResponseEntity.ok(chatService.sendMessage(id, request, user));
     }
 
     @GetMapping("/groups/{id}/members")

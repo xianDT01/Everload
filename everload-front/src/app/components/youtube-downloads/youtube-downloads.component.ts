@@ -1,9 +1,11 @@
-import { Component, NgZone, OnDestroy } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
+import { ChatService, ChatGroupDto, ActiveUser } from '../../services/chat.service';
 
 interface QueueItem {
   id: string;
@@ -26,7 +28,7 @@ interface QueueItem {
   templateUrl: './youtube-downloads.component.html',
   styleUrls: ['./youtube-downloads.component.css']
 })
-export class YoutubeDownloadsComponent implements OnDestroy {
+export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   videoUrl: string = '';
   resolution: string = '720';
   backendUrl: string = (() => {
@@ -48,6 +50,16 @@ export class YoutubeDownloadsComponent implements OnDestroy {
   searchResults: any[] = [];
   searchQuery: string = '';
 
+  // Share modal state
+  showShareModal = false;
+  shareGroups: ChatGroupDto[] = [];
+  shareUsers: ActiveUser[] = [];
+  shareSearch = '';
+  shareTab: 'groups' | 'users' = 'groups';
+  sharingPayload: { videoId: string; videoTitle: string; thumbnailUrl: string; channelTitle: string } | null = null;
+  shareLoading = false;
+  shareSent = false;
+
   get isLoading(): boolean {
     return this.queue.some(i => i.status === 'downloading');
   }
@@ -57,14 +69,27 @@ export class YoutubeDownloadsComponent implements OnDestroy {
     private ngZone: NgZone,
     private translate: TranslateService,
     private sanitizer: DomSanitizer,
+    private route: ActivatedRoute,
     private authService: AuthService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private chatService: ChatService
   ) {
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
     if (savedLang) {
       translate.use(savedLang);
     }
+  }
+
+  ngOnInit(): void {
+    // Support deep-link from chat card: /youtube-downloads?v=VIDEO_ID
+    this.route.queryParamMap.subscribe(params => {
+      const v = params.get('v');
+      if (v) {
+        this.videoUrl = `https://www.youtube.com/watch?v=${v}`;
+        this.onVideoUrlChange();
+      }
+    });
   }
 
   ngOnDestroy(): void {}
@@ -383,6 +408,94 @@ export class YoutubeDownloadsComponent implements OnDestroy {
     const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:&|$)/);
     return match ? match[1] : null;
   }
+
+  // ── SHARE MODAL ──────────────────────────────────────────────────────────
+
+  openShareModal(videoId: string, videoTitle: string, thumbnailUrl: string, channelTitle: string) {
+    this.sharingPayload = { videoId, videoTitle, thumbnailUrl, channelTitle };
+    this.shareSearch = '';
+    this.shareTab = 'groups';
+    this.shareSent = false;
+    this.shareLoading = true;
+    this.showShareModal = true;
+
+    this.chatService.getGroups().subscribe({
+      next: groups => {
+        this.shareGroups = groups.filter(g => g.type !== 'ANNOUNCEMENT');
+        this.shareLoading = false;
+      },
+      error: () => { this.shareLoading = false; }
+    });
+
+    this.chatService.getActiveUsers().subscribe({
+      next: users => { this.shareUsers = users; },
+      error: () => {}
+    });
+  }
+
+  openShareModalFromUrl() {
+    const videoId = this.extractVideoId(this.videoUrl);
+    if (!videoId) { alert('Introduce primero un enlace válido de YouTube'); return; }
+    const thumbnailUrl = this.getThumbnailUrl(videoId);
+    this.openShareModal(videoId, videoId, thumbnailUrl, '');
+  }
+
+  openShareModalFromSearch(video: any) {
+    const videoId = video.id.videoId;
+    const title = video.snippet.title;
+    const thumbnail = video.snippet.thumbnails.high.url;
+    const channel = video.snippet.channelTitle;
+    this.openShareModal(videoId, title, thumbnail, channel);
+  }
+
+  closeShareModal() {
+    this.showShareModal = false;
+    this.sharingPayload = null;
+  }
+
+  get filteredShareGroups(): ChatGroupDto[] {
+    if (!this.shareSearch.trim()) return this.shareGroups;
+    const q = this.shareSearch.toLowerCase();
+    return this.shareGroups.filter(g => g.name.toLowerCase().includes(q));
+  }
+
+  get filteredShareUsers(): ActiveUser[] {
+    if (!this.shareSearch.trim()) return this.shareUsers;
+    const q = this.shareSearch.toLowerCase();
+    return this.shareUsers.filter(u => u.username.toLowerCase().includes(q));
+  }
+
+  shareToGroup(group: ChatGroupDto) {
+    if (!this.sharingPayload) return;
+    this.chatService.sendYoutubeShare(group.id, this.sharingPayload).subscribe({
+      next: () => {
+        this.shareSent = true;
+        this.notificationService.showToast('success', 'Compartido', `Vídeo enviado a "${group.name}"`);
+        setTimeout(() => this.closeShareModal(), 1200);
+      },
+      error: () => this.notificationService.showToast('error', 'Error', 'No se pudo compartir el vídeo')
+    });
+  }
+
+  shareToUser(user: ActiveUser) {
+    if (!this.sharingPayload) return;
+    const payload = this.sharingPayload;
+    this.chatService.startPrivateChat(user.username).subscribe({
+      next: group => {
+        this.chatService.sendYoutubeShare(group.id, payload).subscribe({
+          next: () => {
+            this.shareSent = true;
+            this.notificationService.showToast('success', 'Compartido', `Vídeo enviado a ${user.username}`);
+            setTimeout(() => this.closeShareModal(), 1200);
+          },
+          error: () => this.notificationService.showToast('error', 'Error', 'No se pudo compartir el vídeo')
+        });
+      },
+      error: () => this.notificationService.showToast('error', 'Error', 'No se pudo abrir el chat')
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
 
   openNasBrowser(type: 'video' | 'music') {
     if (!this.videoUrl.trim()) {

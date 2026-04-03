@@ -17,6 +17,11 @@ public class ChatMessageDto {
     private String senderUsername;
     private String senderAvatarUrl;
     private String content;
+    private String messageType;
+    private String videoId;
+    private String videoTitle;
+    private String thumbnailUrl;
+    private String channelTitle;
     private LocalDateTime sentAt;
     private boolean edited;
 }

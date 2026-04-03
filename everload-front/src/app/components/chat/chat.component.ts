@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
 import { Router } from '@angular/router';
-import { ChatService, ChatGroupDto, ChatMessageDto, ActiveUser } from '../../services/chat.service';
+import { ChatService, ChatGroupDto, ChatMessageDto, ActiveUser, YoutubeSharePayload } from '../../services/chat.service';
 import { NotificationService } from '../../services/notification.service';
 import { AuthService } from '../../services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -300,5 +300,34 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   trackByGroupId(index: number, group: ChatGroupDto): number {
     return group.id;
+  }
+
+  isYoutubeShare(msg: ChatMessageDto): boolean {
+    return msg.messageType === 'YOUTUBE_SHARE';
+  }
+
+  downloadFromChat(videoId: string, type: 'video' | 'music'): void {
+    this.router.navigate(['/youtube-downloads'], { queryParams: { v: videoId, type } });
+  }
+
+  openInYoutube(videoId: string): void {
+    window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+  }
+
+  shareYoutubeCardToCurrentGroup(msg: ChatMessageDto): void {
+    if (!this.selectedGroup || !msg.videoId) return;
+    const payload: YoutubeSharePayload = {
+      videoId: msg.videoId,
+      videoTitle: msg.videoTitle || msg.videoId,
+      thumbnailUrl: msg.thumbnailUrl || `https://img.youtube.com/vi/${msg.videoId}/hqdefault.jpg`,
+      channelTitle: msg.channelTitle || ''
+    };
+    this.chatService.sendYoutubeShare(this.selectedGroup.id, payload).subscribe({
+      next: newMsg => {
+        this.messages = [...this.messages, newMsg];
+        this.shouldScrollToBottom = true;
+      },
+      error: () => {}
+    });
   }
 }

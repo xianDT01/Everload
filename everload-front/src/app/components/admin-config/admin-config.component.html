@@ -2,7 +2,7 @@
 
   <div class="dashboard-header">
     <h2 class="dashboard-title">{{ 'ADMIN.TITLE' | translate }}</h2>
-    <a routerLink="/" class="btn return-home">🔙 Inicio</a>
+    <a routerLink="/" class="btn return-home">🔙 {{ 'HOME.MENU_HOME' | translate }}</a>
     <div class="language-selector">
       <button (click)="changeLanguage('es')">
         <img src="https://flagcdn.com/w40/es.png" alt="ES" class="flag" /><span>Español</span>
@@ -74,63 +74,104 @@
 
     <h3>⏳ {{ 'ADMIN.PENDING_USERS' | translate }} ({{ pendingUsers.length }})</h3>
     <div *ngIf="pendingUsers.length === 0" class="empty-state">{{ 'ADMIN.NO_PENDING' | translate }}</div>
-    <table *ngIf="pendingUsers.length > 0" class="users-table">
-      <thead>
-        <tr>
-          <th>{{ 'ADMIN.COL_USER' | translate }}</th><th>{{ 'ADMIN.COL_EMAIL' | translate }}</th><th>{{ 'ADMIN.COL_REGISTERED' | translate }}</th><th>{{ 'ADMIN.COL_ASSIGN_ROLE' | translate }}</th><th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let u of pendingUsers">
-          <td>{{ u.username }}</td>
-          <td>{{ u.email }}</td>
-          <td>{{ u.createdAt | date:'dd/MM/yy HH:mm' }}</td>
-          <td>
-            <select #roleSelect class="role-select">
-              <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
-            </select>
-          </td>
-          <td class="actions-cell">
-            <button class="btn-approve" (click)="approveUser(u, roleSelect.value)">✅ {{ 'ADMIN.APPROVE' | translate }}</button>
-            <button class="btn-reject" (click)="rejectUser(u)">❌ {{ 'ADMIN.REJECT' | translate }}</button>
-            <button class="btn-del" (click)="deleteUser(u)">🗑</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+
+    <!-- Pending users: cards on mobile, table on desktop -->
+    <div *ngIf="pendingUsers.length > 0" class="table-wrapper">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>{{ 'ADMIN.COL_USER' | translate }}</th>
+            <th>{{ 'ADMIN.COL_EMAIL' | translate }}</th>
+            <th>{{ 'ADMIN.COL_REGISTERED' | translate }}</th>
+            <th>{{ 'ADMIN.COL_ASSIGN_ROLE' | translate }}</th>
+            <th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of pendingUsers">
+            <td data-label="Usuario">{{ u.username }}</td>
+            <td data-label="Email">{{ u.email }}</td>
+            <td data-label="Registro">{{ u.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+            <td data-label="Rol">
+              <select #roleSelect class="role-select">
+                <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+              </select>
+            </td>
+            <td data-label="Acciones" class="actions-cell">
+              <button class="btn-approve" (click)="approveUser(u, roleSelect.value)">✅ {{ 'ADMIN.APPROVE' | translate }}</button>
+              <button class="btn-reject" (click)="rejectUser(u)">❌ {{ 'ADMIN.REJECT' | translate }}</button>
+              <button class="btn-del" (click)="deleteUser(u)" title="{{ 'ADMIN.COL_DELETE' | translate }}">🗑</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <hr>
 
     <h3>✅ {{ 'ADMIN.ACTIVE_USERS' | translate }} ({{ activeUsers.length }})</h3>
     <div *ngIf="activeUsers.length === 0" class="empty-state">{{ 'ADMIN.NO_ACTIVE' | translate }}</div>
-    <table *ngIf="activeUsers.length > 0" class="users-table">
-      <thead>
-        <tr>
-          <th></th><th>{{ 'ADMIN.COL_USER' | translate }}</th><th>{{ 'ADMIN.COL_EMAIL' | translate }}</th><th>{{ 'ADMIN.COL_ROLE' | translate }}</th><th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let u of activeUsers">
-          <td>
-            <div class="user-avatar-sm">
-              <img *ngIf="u.avatarUrl" [src]="getFullAvatarUrl(u.avatarUrl)" alt="" />
-              <span *ngIf="!u.avatarUrl">{{ u.username.charAt(0).toUpperCase() }}</span>
-            </div>
-          </td>
-          <td>{{ u.username }}</td>
-          <td>{{ u.email }}</td>
-          <td>
-            <select [ngModel]="u.role" (ngModelChange)="changeRole(u, $event)" class="role-select">
-              <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
-            </select>
-          </td>
-          <td class="actions-cell">
+
+    <!-- Mobile: user cards -->
+    <div *ngIf="activeUsers.length > 0" class="user-cards-mobile">
+      <div *ngFor="let u of activeUsers" class="user-card-mobile">
+        <div class="user-card-header">
+          <div class="user-avatar-sm">
+            <img *ngIf="u.avatarUrl" [src]="getFullAvatarUrl(u.avatarUrl)" alt="" />
+            <span *ngIf="!u.avatarUrl">{{ u.username.charAt(0).toUpperCase() }}</span>
+          </div>
+          <div class="user-card-info">
+            <span class="user-card-name">{{ u.username }}</span>
+            <span class="user-card-email">{{ u.email }}</span>
+          </div>
+        </div>
+        <div class="user-card-footer">
+          <select [ngModel]="u.role" (ngModelChange)="changeRole(u, $event)" class="role-select">
+            <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+          </select>
+          <div class="actions-cell">
             <button class="btn-reject" (click)="revokeUser(u)">🚫 {{ 'ADMIN.REVOKE' | translate }}</button>
-            <button class="btn-del" (click)="deleteUser(u)">🗑</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <button class="btn-del" (click)="deleteUser(u)" title="{{ 'ADMIN.COL_DELETE' | translate }}">🗑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop: table -->
+    <div *ngIf="activeUsers.length > 0" class="table-wrapper table-desktop-only">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>{{ 'ADMIN.COL_USER' | translate }}</th>
+            <th>{{ 'ADMIN.COL_EMAIL' | translate }}</th>
+            <th>{{ 'ADMIN.COL_ROLE' | translate }}</th>
+            <th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of activeUsers">
+            <td>
+              <div class="user-avatar-sm">
+                <img *ngIf="u.avatarUrl" [src]="getFullAvatarUrl(u.avatarUrl)" alt="" />
+                <span *ngIf="!u.avatarUrl">{{ u.username.charAt(0).toUpperCase() }}</span>
+              </div>
+            </td>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email }}</td>
+            <td>
+              <select [ngModel]="u.role" (ngModelChange)="changeRole(u, $event)" class="role-select">
+                <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+              </select>
+            </td>
+            <td class="actions-cell">
+              <button class="btn-reject" (click)="revokeUser(u)">🚫 {{ 'ADMIN.REVOKE' | translate }}</button>
+              <button class="btn-del" (click)="deleteUser(u)" title="{{ 'ADMIN.COL_DELETE' | translate }}">🗑</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ══ TAB: NAS ═════════════════════════════════════════════════════════════ -->
@@ -143,7 +184,7 @@
       <input [(ngModel)]="newNasName" [placeholder]="'ADMIN.NAS_NAME_PLACEHOLDER' | translate" />
       <input [(ngModel)]="newNasPath" [placeholder]="'ADMIN.NAS_PATH_PLACEHOLDER' | translate" />
       <input [(ngModel)]="newNasDesc" [placeholder]="'ADMIN.NAS_DESC_PLACEHOLDER' | translate" />
-      <button class="btn primary" (click)="addNasPath()">{{ 'ADMIN.NAS_ADD' | translate }}</button>
+      <button class="btn primary nas-add-btn" (click)="addNasPath()">{{ 'ADMIN.NAS_ADD' | translate }}</button>
     </div>
     <div class="nas-hint">
       {{ 'ADMIN.NAS_HINT' | translate }} <code>/app/nas_storage</code>.<br>
@@ -154,31 +195,68 @@
 
     <h3>{{ 'ADMIN.NAS_CONFIGURED' | translate }}</h3>
     <div *ngIf="nasPaths.length === 0" class="empty-state">{{ 'ADMIN.NAS_NO_PATHS' | translate }}</div>
-    <table *ngIf="nasPaths.length > 0" class="users-table">
-      <thead>
-        <tr><th>{{ 'ADMIN.COL_NAME' | translate }}</th><th>{{ 'ADMIN.COL_PATH' | translate }}</th><th>{{ 'ADMIN.COL_DESCRIPTION' | translate }}</th><th>{{ 'ADMIN.COL_PERMISSIONS' | translate }}</th><th>{{ 'ADMIN.COL_DELETE' | translate }}</th></tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let p of nasPaths">
-          <td>{{ p.name }}</td>
-          <td><code>{{ p.path }}</code></td>
-          <td>{{ p.description }}</td>
-          <td>
+
+    <!-- NAS cards (mobile) -->
+    <div *ngIf="nasPaths.length > 0" class="nas-cards-mobile">
+      <div *ngFor="let p of nasPaths" class="nas-card">
+        <div class="nas-card-row">
+          <span class="nas-card-label">{{ 'ADMIN.COL_NAME' | translate }}</span>
+          <span class="nas-card-value">{{ p.name }}</span>
+        </div>
+        <div class="nas-card-row">
+          <span class="nas-card-label">{{ 'ADMIN.COL_PATH' | translate }}</span>
+          <code class="nas-card-value nas-code">{{ p.path }}</code>
+        </div>
+        <div *ngIf="p.description" class="nas-card-row">
+          <span class="nas-card-label">{{ 'ADMIN.COL_DESCRIPTION' | translate }}</span>
+          <span class="nas-card-value">{{ p.description }}</span>
+        </div>
+        <div class="nas-card-footer">
+          <div class="nas-perms">
             <span [class]="p.readable ? 'perm-ok' : 'perm-no'">R</span>
             <span [class]="p.writable ? 'perm-ok' : 'perm-no'">W</span>
-          </td>
-          <td><button class="btn-del" (click)="removeNasPath(p.id)">🗑</button></td>
-        </tr>
-      </tbody>
-    </table>
+          </div>
+          <button class="btn-del" (click)="removeNasPath(p.id)" title="{{ 'ADMIN.COL_DELETE' | translate }}">🗑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAS table (desktop) -->
+    <div *ngIf="nasPaths.length > 0" class="table-wrapper table-desktop-only">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>{{ 'ADMIN.COL_NAME' | translate }}</th>
+            <th>{{ 'ADMIN.COL_PATH' | translate }}</th>
+            <th>{{ 'ADMIN.COL_DESCRIPTION' | translate }}</th>
+            <th>{{ 'ADMIN.COL_PERMISSIONS' | translate }}</th>
+            <th>{{ 'ADMIN.COL_DELETE' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of nasPaths">
+            <td>{{ p.name }}</td>
+            <td><code>{{ p.path }}</code></td>
+            <td>{{ p.description }}</td>
+            <td>
+              <span [class]="p.readable ? 'perm-ok' : 'perm-no'">R</span>
+              <span [class]="p.writable ? 'perm-ok' : 'perm-no'">W</span>
+            </td>
+            <td><button class="btn-del" (click)="removeNasPath(p.id)">🗑</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ══ TAB: LOGS ════════════════════════════════════════════════════════════ -->
   <div *ngIf="activeTab === 'logs'" class="tab-content">
     <div class="logs-section">
-      <input [(ngModel)]="filtroLog" [placeholder]="'ADMIN.FILTER_LOGS' | translate">
-      <button class="btn small" (click)="cargarLogs()">🔄 {{ 'ADMIN.REFRESH' | translate }}</button>
-      <button class="btn dark" (click)="limpiarLog()">🗑 {{ 'ADMIN.CLEAR_LOG' | translate }}</button>
+      <input [(ngModel)]="filtroLog" [placeholder]="'ADMIN.FILTER_LOGS' | translate" class="log-filter-input">
+      <div class="log-buttons">
+        <button class="btn small" (click)="cargarLogs()">🔄 {{ 'ADMIN.REFRESH' | translate }}</button>
+        <button class="btn dark" (click)="limpiarLog()">🗑 {{ 'ADMIN.CLEAR_LOG' | translate }}</button>
+      </div>
     </div>
     <p *ngIf="mensajeLogLimpio">{{ mensajeLogLimpio }}</p>
     <div #logContainer class="log-output">
@@ -192,10 +270,35 @@
       <button (click)="vaciarHistorial()" class="btn danger">🗑 {{ 'ADMIN.CLEAR_HISTORY' | translate }}</button>
     </div>
     <p *ngIf="mensajeVaciarHistorial">{{ mensajeVaciarHistorial }}</p>
-    <div class="history-container">
+
+    <!-- History cards (mobile) -->
+    <div *ngIf="historial.length > 0" class="history-cards-mobile">
+      <div *ngFor="let item of historial; trackBy: trackByHistorial" class="history-card">
+        <div class="history-card-platform">
+          <img [src]="getIconPath(item.plataforma)" class="icon-table" />
+          <span>{{ item.plataforma }}</span>
+        </div>
+        <div class="history-card-title">{{ item.titulo }}</div>
+        <div class="history-card-meta">
+          <span class="history-card-type">{{ item.tipo }}</span>
+          <span class="history-card-date">
+            <ng-container *ngIf="item.fecha; else sinFechaCard">{{ item.fecha | date:'dd/MM/yy, HH:mm' }}</ng-container>
+            <ng-template #sinFechaCard>–</ng-template>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- History table (desktop) -->
+    <div class="history-container table-desktop-only">
       <table *ngIf="historial.length > 0" class="history-table">
         <thead>
-          <tr><th>{{ 'ADMIN.COL_TITLE' | translate }}</th><th>{{ 'TIPO' | translate }}</th><th>{{ 'PLATAFORMA' | translate }}</th><th>{{ 'FECHA' | translate }}</th></tr>
+          <tr>
+            <th>{{ 'ADMIN.COL_TITLE' | translate }}</th>
+            <th>{{ 'TIPO' | translate }}</th>
+            <th>{{ 'PLATAFORMA' | translate }}</th>
+            <th>{{ 'FECHA' | translate }}</th>
+          </tr>
         </thead>
         <tbody>
           <tr *ngFor="let item of historial; trackBy: trackByHistorial">

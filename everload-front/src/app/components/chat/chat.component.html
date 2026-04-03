@@ -100,13 +100,46 @@
 
             <div class="message-content-col">
               <span class="msg-sender" *ngIf="!isOwnMessage(msg)">{{ msg.senderUsername }}</span>
-              <div class="message-bubble" [class.own-bubble]="isOwnMessage(msg)" [class.other-bubble]="!isOwnMessage(msg)">
+
+              <!-- Mensaje de texto normal -->
+              <div *ngIf="!isYoutubeShare(msg)"
+                class="message-bubble"
+                [class.own-bubble]="isOwnMessage(msg)"
+                [class.other-bubble]="!isOwnMessage(msg)">
                 <span class="msg-text" [innerHTML]="msg.content"></span>
                 <div class="msg-footer">
                   <span class="msg-time">{{ formatMessageTime(msg.sentAt) }}</span>
                   <span class="msg-edited" *ngIf="msg.edited"> · {{ 'CHAT.EDITED' | translate }}</span>
                 </div>
               </div>
+
+              <!-- Tarjeta rich de YouTube -->
+              <div *ngIf="isYoutubeShare(msg)" class="yt-card" [class.yt-card-own]="isOwnMessage(msg)">
+                <div class="yt-card-thumb-wrap">
+                  <img [src]="msg.thumbnailUrl || 'https://img.youtube.com/vi/' + msg.videoId + '/hqdefault.jpg'"
+                    [alt]="msg.videoTitle" class="yt-card-thumb" />
+                  <span class="yt-card-platform-badge">▶ YouTube</span>
+                </div>
+                <div class="yt-card-body">
+                  <p class="yt-card-title">{{ msg.videoTitle || msg.videoId }}</p>
+                  <p class="yt-card-channel" *ngIf="msg.channelTitle">{{ msg.channelTitle }}</p>
+                  <div class="yt-card-actions">
+                    <button class="yt-btn yt-btn-video" (click)="downloadFromChat(msg.videoId!, 'video')" title="Descargar vídeo">
+                      🎬 Vídeo
+                    </button>
+                    <button class="yt-btn yt-btn-music" (click)="downloadFromChat(msg.videoId!, 'music')" title="Descargar audio">
+                      🎵 Audio
+                    </button>
+                    <button class="yt-btn yt-btn-yt" (click)="openInYoutube(msg.videoId!)" title="Abrir en YouTube">
+                      🔗
+                    </button>
+                  </div>
+                </div>
+                <div class="yt-card-footer">
+                  <span class="msg-time">{{ formatMessageTime(msg.sentAt) }}</span>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>

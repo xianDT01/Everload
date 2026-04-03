@@ -11,4 +11,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SendMessageRequest {
     private String content;
+    private String messageType;
+    private String videoId;
+    private String videoTitle;
+    private String thumbnailUrl;
+    private String channelTitle;
 }

@@ -21,8 +21,20 @@ export interface ChatMessageDto {
   senderUsername: string;
   senderAvatarUrl?: string;
   content: string;
+  messageType: 'TEXT' | 'YOUTUBE_SHARE';
+  videoId?: string;
+  videoTitle?: string;
+  thumbnailUrl?: string;
+  channelTitle?: string;
   sentAt: string;
   edited: boolean;
+}
+
+export interface YoutubeSharePayload {
+  videoId: string;
+  videoTitle: string;
+  thumbnailUrl: string;
+  channelTitle: string;
 }
 
 export interface MemberDto {
@@ -85,6 +97,17 @@ export class ChatService implements OnDestroy {
 
   sendMessage(groupId: number, content: string): Observable<ChatMessageDto> {
     return this.http.post<ChatMessageDto>(`${this.BASE}/api/chat/groups/${groupId}/messages`, { content });
+  }
+
+  sendYoutubeShare(groupId: number, payload: YoutubeSharePayload): Observable<ChatMessageDto> {
+    return this.http.post<ChatMessageDto>(`${this.BASE}/api/chat/groups/${groupId}/messages`, {
+      content: '',
+      messageType: 'YOUTUBE_SHARE',
+      videoId: payload.videoId,
+      videoTitle: payload.videoTitle,
+      thumbnailUrl: payload.thumbnailUrl,
+      channelTitle: payload.channelTitle
+    });
   }
 
   getMembers(groupId: number): Observable<MemberDto[]> {
