@@ -36,9 +36,14 @@
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
       <iframe [src]="getEmbedUrl(videoUrl)" width="560" height="315" frameborder="0" allowfullscreen></iframe>
       <p style="font-size: 12px; color: #ccc;">* {{ 'VIDEO_NOT_LOADING_WARNING' | translate }}</p>
-      <a [href]="videoUrl" target="_blank" style="color: #ff0000; text-decoration: underline; font-size: 14px;">
-        🔗 {{ 'OPEN_IN_YOUTUBE' | translate }}
-      </a>
+      <div class="preview-actions">
+        <a [href]="videoUrl" target="_blank" class="preview-link">
+          🔗 {{ 'OPEN_IN_YOUTUBE' | translate }}
+        </a>
+        <button class="btn-share-preview" (click)="openShareModalFromUrl()">
+          📤 Compartir en chat
+        </button>
+      </div>
     </div>
 
     <!-- Bloque para listas de reproducción -->
@@ -160,6 +165,81 @@
     </div>
   </div>
 
+  <!-- ══ MODAL: COMPARTIR EN CHAT ══ -->
+  <div class="share-overlay" *ngIf="showShareModal" (click)="closeShareModal()">
+    <div class="share-modal" (click)="$event.stopPropagation()">
+
+      <div class="share-modal-header">
+        <span class="share-modal-title">📤 Compartir en chat</span>
+        <button class="share-modal-close" (click)="closeShareModal()">✕</button>
+      </div>
+
+      <!-- Preview del vídeo a compartir -->
+      <div class="share-video-preview" *ngIf="sharingPayload">
+        <img [src]="sharingPayload.thumbnailUrl" alt="miniatura" class="share-thumb" />
+        <div class="share-video-info">
+          <span class="share-video-title">{{ sharingPayload.videoTitle || sharingPayload.videoId }}</span>
+          <span class="share-video-channel" *ngIf="sharingPayload.channelTitle">{{ sharingPayload.channelTitle }}</span>
+          <span class="share-video-platform">YouTube</span>
+        </div>
+      </div>
+
+      <!-- Pestañas -->
+      <div class="share-tabs">
+        <button class="share-tab" [class.active]="shareTab === 'groups'" (click)="shareTab = 'groups'">
+          👥 Grupos
+        </button>
+        <button class="share-tab" [class.active]="shareTab === 'users'" (click)="shareTab = 'users'">
+          💬 Chats privados
+        </button>
+      </div>
+
+      <!-- Buscador -->
+      <div class="share-search-wrap">
+        <input type="text" [(ngModel)]="shareSearch"
+          [placeholder]="shareTab === 'groups' ? 'Buscar grupo...' : 'Buscar usuario...'"
+          class="share-search-input" />
+      </div>
+
+      <!-- Estado enviado -->
+      <div class="share-sent-state" *ngIf="shareSent">
+        <span>✅ ¡Vídeo compartido!</span>
+      </div>
+
+      <!-- Loading -->
+      <div class="share-loading" *ngIf="shareLoading && !shareSent">
+        <span>Cargando...</span>
+      </div>
+
+      <!-- Lista de grupos -->
+      <div class="share-list" *ngIf="shareTab === 'groups' && !shareLoading && !shareSent">
+        <div *ngIf="filteredShareGroups.length === 0" class="share-empty">No hay grupos disponibles</div>
+        <div *ngFor="let group of filteredShareGroups" class="share-item" (click)="shareToGroup(group)">
+          <div class="share-item-icon">{{ group.type === 'PRIVATE' ? '👤' : '👥' }}</div>
+          <div class="share-item-info">
+            <span class="share-item-name">{{ group.name }}</span>
+            <span class="share-item-meta">{{ group.memberCount }} miembros</span>
+          </div>
+          <span class="share-item-arrow">→</span>
+        </div>
+      </div>
+
+      <!-- Lista de usuarios -->
+      <div class="share-list" *ngIf="shareTab === 'users' && !shareLoading && !shareSent">
+        <div *ngIf="filteredShareUsers.length === 0" class="share-empty">No hay usuarios disponibles</div>
+        <div *ngFor="let user of filteredShareUsers" class="share-item" (click)="shareToUser(user)">
+          <div class="share-item-avatar">
+            <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" [alt]="user.username" />
+            <span *ngIf="!user.avatarUrl" class="share-item-initial">{{ user.username.charAt(0).toUpperCase() }}</span>
+          </div>
+          <span class="share-item-name">{{ user.username }}</span>
+          <span class="share-item-arrow">→</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <div class="search-box">
     <input [(ngModel)]="searchQuery" placeholder="{{ 'SEARCH_PLACEHOLDER' | translate }}">
     <button (click)="searchVideos()">{{ 'SEARCH_BUTTON' | translate }}</button>
@@ -176,9 +256,14 @@
         <div class="video-info">
           <h3 class="title">{{ video.snippet.title }}</h3>
           <p class="channel">{{ video.snippet.channelTitle }}</p>
-          <button (click)="videoUrl = 'https://youtube.com/watch?v=' + video.id.videoId">
-            {{ 'USE_THIS_VIDEO' | translate }}
-          </button>
+          <div class="video-card-actions">
+            <button (click)="videoUrl = 'https://youtube.com/watch?v=' + video.id.videoId">
+              {{ 'USE_THIS_VIDEO' | translate }}
+            </button>
+            <button class="btn-share-card" (click)="openShareModalFromSearch(video)">
+              📤 Compartir
+            </button>
+          </div>
         </div>
       </div>
     </div>
