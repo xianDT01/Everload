@@ -51,7 +51,7 @@ public class DownloadService {
         try {
                 String tempDir = createTempDownloadDir();
                 String command = String.format(
-                        "yt-dlp --ignore-errors --print after_move:filepath " +
+                        "./yt-dlp --ignore-errors --print after_move:filepath " +
                                 "-x --audio-format %s " +
                                 "-o %s%%(title)s.%%(ext)s " +
                                 "https://www.youtube.com/watch?v=%s",

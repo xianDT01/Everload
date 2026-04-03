@@ -1,14 +1,14 @@
-2026-04-03 18:09:17 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
-2026-04-03 18:09:17 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
-2026-04-03 18:09:37 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-04-03 18:09:37 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-04-03 18:09:37 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
-2026-04-03 18:09:42 INFO  c.E.everload.service.DownloadService - 🔵 Ejecutando comando: ./yt-dlp --ignore-errors --print after_move:filepath -x --audio-format mp3 -o ./downloads/tmp-43fedb8b-18a2-4e53-a677-2ac781dbb92f/%(title)s.%(ext)s https://www.youtube.com/watch?v=g7O-7rF0Hqk
-2026-04-03 18:11:08 INFO  c.E.everload.service.DownloadService - 📤 Enviando archivo: /home/xiandt/IdeaProjects/Everload/downloads/tmp-43fedb8b-18a2-4e53-a677-2ac781dbb92f/David Guetta live @ Tomorrowland 2024.mp3 con header: David Guetta live @ Tomorrowland 2024.mp3
-2026-04-03 18:11:13 INFO  c.E.everload.service.DownloadService - 🧹 Eliminado: /home/xiandt/IdeaProjects/Everload/downloads/tmp-43fedb8b-18a2-4e53-a677-2ac781dbb92f/David Guetta live @ Tomorrowland 2024.mp3
-2026-04-03 18:11:13 INFO  c.E.everload.service.DownloadService - 🧹 Eliminado: /home/xiandt/IdeaProjects/Everload/downloads/tmp-43fedb8b-18a2-4e53-a677-2ac781dbb92f
-2026-04-03 18:13:28 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
-2026-04-03 18:13:28 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
-2026-04-03 18:13:28 INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-04-03 18:13:28 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-04-03 18:13:28 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-04-03 22:16:16 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
+2026-04-03 22:16:16 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-03 22:16:16 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-03 22:16:16 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-04-03 22:16:16 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2026-04-03 22:17:22 INFO  c.E.everload.service.DownloadService - 🔵 Ejecutando comando: ./yt-dlp --ignore-errors --print after_move:filepath -x --audio-format mp3 -o ./downloads/tmp-a01ea2df-1fc3-4f76-9f4f-ab378be894c4/%(title)s.%(ext)s https://www.youtube.com/watch?v=y8HLQn3YAiw
+2026-04-03 22:17:31 INFO  c.E.everload.service.DownloadService - 📤 Enviando archivo: /home/xiandt/IdeaProjects/Everload/downloads/tmp-a01ea2df-1fc3-4f76-9f4f-ab378be894c4/Jennifer Lopez & David Guetta - Save Me Tonight (Official Performance Video).mp3 con header: Jennifer Lopez & David Guetta - Save Me Tonight (Official Performance Video).mp3
+2026-04-03 22:17:36 INFO  c.E.everload.service.DownloadService - 🧹 Eliminado: /home/xiandt/IdeaProjects/Everload/downloads/tmp-a01ea2df-1fc3-4f76-9f4f-ab378be894c4/Jennifer Lopez & David Guetta - Save Me Tonight (Official Performance Video).mp3
+2026-04-03 22:17:36 INFO  c.E.everload.service.DownloadService - 🧹 Eliminado: /home/xiandt/IdeaProjects/Everload/downloads/tmp-a01ea2df-1fc3-4f76-9f4f-ab378be894c4
+2026-04-03 22:20:10 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-04-03 22:20:10 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
+2026-04-03 22:20:10 INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-03 22:20:10 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-04-03 22:20:10 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
