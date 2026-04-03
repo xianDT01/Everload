@@ -31,6 +31,22 @@ public class ChatMessage {
     @Column(nullable = false, length = 4000)
     private String content;
 
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private MessageType messageType = MessageType.TEXT;
+
+    @Column(length = 20)
+    private String videoId;
+
+    @Column(length = 500)
+    private String videoTitle;
+
+    @Column(length = 1000)
+    private String thumbnailUrl;
+
+    @Column(length = 200)
+    private String channelTitle;
+
     @Column(nullable = false)
     private LocalDateTime sentAt;
 

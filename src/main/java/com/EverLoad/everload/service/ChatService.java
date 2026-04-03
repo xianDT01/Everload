@@ -121,7 +121,7 @@ public class ChatService {
     }
 
     @Transactional
-    public ChatMessageDto sendMessage(Long groupId, String content, User sender) {
+    public ChatMessageDto sendMessage(Long groupId, com.EverLoad.everload.dto.SendMessageRequest request, User sender) {
         ChatGroup group = chatGroupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
@@ -132,10 +132,20 @@ public class ChatService {
             throw new RuntimeException("Read-only member cannot send messages");
         }
 
+        MessageType msgType = MessageType.TEXT;
+        if ("YOUTUBE_SHARE".equals(request.getMessageType())) {
+            msgType = MessageType.YOUTUBE_SHARE;
+        }
+
         ChatMessage message = ChatMessage.builder()
                 .group(group)
                 .sender(sender)
-                .content(content)
+                .content(request.getContent() != null ? request.getContent() : "")
+                .messageType(msgType)
+                .videoId(request.getVideoId())
+                .videoTitle(request.getVideoTitle())
+                .thumbnailUrl(request.getThumbnailUrl())
+                .channelTitle(request.getChannelTitle())
                 .edited(false)
                 .build();
         message = chatMessageRepository.save(message);
@@ -243,7 +253,10 @@ public class ChatService {
         LocalDateTime lastMessageTime = null;
         if (!lastMessages.isEmpty()) {
             ChatMessage lm = lastMessages.get(0);
-            lastMessage = lm.getSender().getUsername() + ": " + truncate(lm.getContent(), 50);
+            String preview = lm.getMessageType() == MessageType.YOUTUBE_SHARE
+                    ? "🎬 " + (lm.getVideoTitle() != null ? truncate(lm.getVideoTitle(), 40) : "Vídeo de YouTube")
+                    : truncate(lm.getContent(), 50);
+            lastMessage = lm.getSender().getUsername() + ": " + preview;
             lastMessageTime = lm.getSentAt();
         }
 
@@ -268,6 +281,11 @@ public class ChatService {
                 .senderUsername(m.getSender().getUsername())
                 .senderAvatarUrl(buildAvatarUrl(m.getSender()))
                 .content(m.getContent())
+                .messageType(m.getMessageType() != null ? m.getMessageType().name() : MessageType.TEXT.name())
+                .videoId(m.getVideoId())
+                .videoTitle(m.getVideoTitle())
+                .thumbnailUrl(m.getThumbnailUrl())
+                .channelTitle(m.getChannelTitle())
                 .sentAt(m.getSentAt())
                 .edited(m.isEdited())
                 .build();
