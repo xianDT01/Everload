@@ -18,11 +18,9 @@ public class DownloadService {
     private static final String DOWNLOADS_DIR = "./downloads/";
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DownloadService.class);
     private final DownloadHistoryService downloadHistoryService;
-    private final DownloadHistoryService historial;
 
-    public DownloadService(DownloadHistoryService downloadHistoryService, DownloadHistoryService historial) {
+    public DownloadService(DownloadHistoryService downloadHistoryService) {
         this.downloadHistoryService = downloadHistoryService;
-        this.historial = historial;
     }
 
 
@@ -58,6 +56,7 @@ public class DownloadService {
                         format, tempDir, videoId
                 );
 
+            downloadHistoryService.recordDownload(new Download("videoId=" + videoId, "music", "YouTube"));
             return executeCommand(command, "music", "YouTube");
         } catch (Exception e) {
             e.printStackTrace();
@@ -140,7 +139,7 @@ public class DownloadService {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
 
-            historial.recordDownload(new Download(finalFile.getName(), tipo, origen));
+            downloadHistoryService.recordDownload(new Download(finalFile.getName(), tipo, origen));
             return sendFile(finalFile);
 
         } catch (IOException | InterruptedException e) {

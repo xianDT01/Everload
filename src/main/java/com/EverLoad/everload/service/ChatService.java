@@ -1,5 +1,6 @@
 package com.EverLoad.everload.service;
 
+import com.EverLoad.everload.dto.AdminChatGroupDto;
 import com.EverLoad.everload.dto.ChatGroupDto;
 import com.EverLoad.everload.dto.ChatMessageDto;
 import com.EverLoad.everload.dto.CreateGroupRequest;
@@ -200,6 +201,64 @@ public class ChatService {
         }
     }
 
+    // ── Admin moderation ──────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public List<AdminChatGroupDto> adminGetAllGroups() {
+        return chatGroupRepository.findAll().stream()
+                .map(this::toAdminGroupDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatMessageDto> adminGetMessages(Long groupId) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+        return chatMessageRepository.findByGroupOrderBySentAtAsc(group)
+                .stream().map(this::toMessageDto).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> adminGetGroupMembers(Long groupId) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+        return groupMemberRepository.findByGroup(group).stream()
+                .map(m -> {
+                    Map<String, Object> info = new HashMap<>();
+                    info.put("username", m.getUser().getUsername());
+                    info.put("role", m.getRole().name());
+                    info.put("avatarUrl", buildAvatarUrl(m.getUser()));
+                    info.put("joinedAt", m.getJoinedAt());
+                    return info;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void adminDeleteGroup(Long groupId) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+        chatMessageRepository.deleteByGroup(group);
+        groupMemberRepository.deleteByGroup(group);
+        chatGroupRepository.delete(group);
+    }
+
+    @Transactional
+    public void adminDeleteMessage(Long messageId) {
+        chatMessageRepository.deleteById(messageId);
+    }
+
+    @Transactional
+    public void adminRemoveMember(Long groupId, String username) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+        userRepository.findByUsername(username).ifPresent(user ->
+                groupMemberRepository.findByGroupAndUser(group, user)
+                        .ifPresent(groupMemberRepository::delete));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Transactional
     public void ensureAnnouncementChannel() {
         List<ChatGroup> announcements = chatGroupRepository.findAllByType(GroupType.ANNOUNCEMENT);
@@ -294,6 +353,36 @@ public class ChatService {
     private String buildAvatarUrl(User user) {
         if (user.getAvatarFilename() == null || user.getAvatarFilename().isBlank()) return null;
         return "/api/user/avatar/img/" + user.getAvatarFilename();
+    }
+
+    private AdminChatGroupDto toAdminGroupDto(ChatGroup g) {
+        long memberCount = groupMemberRepository.countByGroup(g);
+        long messageCount = chatMessageRepository.countByGroup(g);
+
+        List<ChatMessage> lastMsgs = chatMessageRepository.findTop100ByGroupOrderBySentAtDesc(g);
+        String lastMessage = null;
+        java.time.LocalDateTime lastMessageTime = null;
+        if (!lastMsgs.isEmpty()) {
+            ChatMessage lm = lastMsgs.get(0);
+            String preview = lm.getMessageType() == MessageType.YOUTUBE_SHARE
+                    ? "🎬 " + (lm.getVideoTitle() != null ? truncate(lm.getVideoTitle(), 40) : "Vídeo de YouTube")
+                    : truncate(lm.getContent(), 50);
+            lastMessage = lm.getSender().getUsername() + ": " + preview;
+            lastMessageTime = lm.getSentAt();
+        }
+
+        return AdminChatGroupDto.builder()
+                .id(g.getId())
+                .name(g.getName())
+                .description(g.getDescription())
+                .type(g.getType().name())
+                .createdAt(g.getCreatedAt())
+                .memberCount((int) memberCount)
+                .messageCount(messageCount)
+                .lastMessage(lastMessage)
+                .lastMessageTime(lastMessageTime)
+                .createdByUsername(g.getCreatedBy() != null ? g.getCreatedBy().getUsername() : null)
+                .build();
     }
 
     private String truncate(String s, int max) {

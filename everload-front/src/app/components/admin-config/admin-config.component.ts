@@ -33,6 +33,35 @@ interface UserDto {
   createdAt: string;
 }
 
+interface AdminChatGroup {
+  id: number;
+  name: string;
+  description?: string;
+  type: string;
+  createdAt: string;
+  memberCount: number;
+  messageCount: number;
+  lastMessage?: string;
+  lastMessageTime?: string;
+  createdByUsername?: string;
+}
+
+interface AdminChatMessage {
+  id: number;
+  senderUsername: string;
+  content: string;
+  messageType: string;
+  videoTitle?: string;
+  sentAt: string;
+}
+
+interface AdminChatMember {
+  username: string;
+  role: string;
+  avatarUrl?: string;
+  joinedAt: string;
+}
+
 @Component({
   selector: 'app-admin-config',
   templateUrl: './admin-config.component.html',
@@ -40,7 +69,7 @@ interface UserDto {
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
 
-  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' = 'config';
+  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' | 'chat' = 'config';
 
   private readonly BASE: string = (() => {
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
@@ -306,6 +335,111 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       next: () => { this.nasMsg = '✅ Ruta eliminada'; this.loadNasPaths(); },
       error: () => this.nasMsg = '❌ Error al eliminar ruta'
     });
+  }
+
+  // ── Moderación de chat ────────────────────────────────────────────────────
+
+  chatGroups: AdminChatGroup[] = [];
+  chatGroupSearch = '';
+  chatMsg = '';
+  selectedChatGroup: AdminChatGroup | null = null;
+  chatGroupMessages: AdminChatMessage[] = [];
+  chatGroupMembers: AdminChatMember[] = [];
+  chatMessageSearch = '';
+  loadingChatDetail = false;
+
+  loadChatGroups(): void {
+    this.http.get<AdminChatGroup[]>(`${this.BASE}/api/admin/chat/groups`).subscribe({
+      next: data => this.chatGroups = data.sort((a, b) => (b.lastMessageTime ?? '').localeCompare(a.lastMessageTime ?? '')),
+      error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_LOAD')
+    });
+  }
+
+  selectChatGroup(group: AdminChatGroup): void {
+    if (this.selectedChatGroup?.id === group.id) {
+      this.selectedChatGroup = null;
+      return;
+    }
+    this.selectedChatGroup = group;
+    this.chatGroupMessages = [];
+    this.chatGroupMembers = [];
+    this.chatMessageSearch = '';
+    this.loadingChatDetail = true;
+
+    this.http.get<AdminChatMessage[]>(`${this.BASE}/api/admin/chat/groups/${group.id}/messages`).subscribe({
+      next: msgs => { this.chatGroupMessages = msgs; this.loadingChatDetail = false; },
+      error: () => { this.loadingChatDetail = false; }
+    });
+    this.http.get<AdminChatMember[]>(`${this.BASE}/api/admin/chat/groups/${group.id}/members`).subscribe({
+      next: members => this.chatGroupMembers = members,
+      error: () => {}
+    });
+  }
+
+  deleteChatGroup(group: AdminChatGroup, event: Event): void {
+    event.stopPropagation();
+    if (!confirm(this.translate.instant('ADMIN.CHAT_CONFIRM_DELETE_GROUP', { name: group.name }))) return;
+    this.http.delete(`${this.BASE}/api/admin/chat/groups/${group.id}`).subscribe({
+      next: () => {
+        this.chatMsg = '✅ ' + this.translate.instant('ADMIN.CHAT_GROUP_DELETED', { name: group.name });
+        if (this.selectedChatGroup?.id === group.id) this.selectedChatGroup = null;
+        this.loadChatGroups();
+      },
+      error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_DELETE_GROUP')
+    });
+  }
+
+  deleteChatMessage(msg: AdminChatMessage): void {
+    if (!confirm(this.translate.instant('ADMIN.CHAT_CONFIRM_DELETE_MSG'))) return;
+    this.http.delete(`${this.BASE}/api/admin/chat/messages/${msg.id}`).subscribe({
+      next: () => {
+        this.chatGroupMessages = this.chatGroupMessages.filter(m => m.id !== msg.id);
+        if (this.selectedChatGroup) this.selectedChatGroup.messageCount--;
+      },
+      error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_DELETE_MSG')
+    });
+  }
+
+  removeChatMember(username: string): void {
+    if (!this.selectedChatGroup) return;
+    if (!confirm(this.translate.instant('ADMIN.CHAT_CONFIRM_KICK', { username }))) return;
+    this.http.delete(`${this.BASE}/api/admin/chat/groups/${this.selectedChatGroup.id}/members/${username}`).subscribe({
+      next: () => {
+        this.chatGroupMembers = this.chatGroupMembers.filter(m => m.username !== username);
+        if (this.selectedChatGroup) this.selectedChatGroup.memberCount--;
+      },
+      error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_KICK')
+    });
+  }
+
+  getChatMessagePreview(msg: AdminChatMessage): string {
+    if (msg.messageType === 'YOUTUBE_SHARE') return '🎬 ' + (msg.videoTitle || 'Vídeo de YouTube');
+    return msg.content;
+  }
+
+  getGroupTypeBadge(type: string): string {
+    if (type === 'PRIVATE') return '👤';
+    if (type === 'ANNOUNCEMENT') return '📢';
+    return '👥';
+  }
+
+  get filteredChatGroups(): AdminChatGroup[] {
+    if (!this.chatGroupSearch.trim()) return this.chatGroups;
+    const q = this.chatGroupSearch.toLowerCase();
+    return this.chatGroups.filter(g =>
+      g.name.toLowerCase().includes(q) ||
+      g.type.toLowerCase().includes(q) ||
+      (g.createdByUsername ?? '').toLowerCase().includes(q)
+    );
+  }
+
+  get filteredChatMessages(): AdminChatMessage[] {
+    if (!this.chatMessageSearch.trim()) return this.chatGroupMessages;
+    const q = this.chatMessageSearch.toLowerCase();
+    return this.chatGroupMessages.filter(m =>
+      m.senderUsername.toLowerCase().includes(q) ||
+      m.content.toLowerCase().includes(q)
+    );
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
