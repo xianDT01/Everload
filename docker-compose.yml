@@ -1,0 +1,25 @@
+services:
+  everload:
+    build: .
+    image: everload:latest
+    container_name: everload
+    ports:
+      - "8080:8080"
+    environment:
+      # Cambia este valor en producción
+      JWT_SECRET: "EverloadSecretKey2024!SuperSeguro_CambiarEnProduccion_32chars+"
+      # BD H2 en el volumen persistente
+      SPRING_DATASOURCE_URL: "jdbc:h2:file:/app/data/everload-db;DB_CLOSE_ON_EXIT=FALSE"
+    volumes:
+      # Base de datos H2 persistente
+      - everload-db:/app/data
+      # Avatares de usuarios
+      - everload-avatars:/app/avatars
+      # Almacenamiento NAS (monta aquí tu disco)
+      - everload-nas:/app/nas_storage
+    restart: unless-stopped
+
+volumes:
+  everload-db:
+  everload-avatars:
+  everload-nas:
