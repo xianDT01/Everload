@@ -9,6 +9,7 @@ public class Download {
     private LocalDateTime createdAt;
 
     public Download() {
+        this.createdAt = LocalDateTime.now();
     }
 
 

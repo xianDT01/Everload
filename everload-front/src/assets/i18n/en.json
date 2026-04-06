@@ -271,6 +271,29 @@
   "CHAT.GROUP_NAME_REQUIRED": "Name required",
   "CHAT.GROUP_NAME_REQUIRED_MSG": "Write a name for the group",
   "CHAT.GROUP_CREATED": "Group created",
-  "CHAT.ERROR_CREATE_GROUP": "Could not create group"
+  "CHAT.ERROR_CREATE_GROUP": "Could not create group",
+
+  "_comment16": "Admin chat moderation",
+  "ADMIN.TAB_CHAT": "Chat",
+  "ADMIN.CHAT_SEARCH": "Search groups...",
+  "ADMIN.CHAT_GROUPS_COUNT": "groups",
+  "ADMIN.CHAT_NO_GROUPS": "No chat groups found.",
+  "ADMIN.CHAT_CREATED_BY": "Created by",
+  "ADMIN.CHAT_MEMBERS": "Members",
+  "ADMIN.CHAT_MESSAGES": "Messages",
+  "ADMIN.CHAT_NO_MEMBERS": "No members",
+  "ADMIN.CHAT_NO_MESSAGES": "No messages",
+  "ADMIN.CHAT_SEARCH_MSG": "Search messages...",
+  "ADMIN.CHAT_KICK": "Kick",
+  "ADMIN.CHAT_DELETE_GROUP": "Delete group",
+  "ADMIN.CHAT_CONFIRM_DELETE_GROUP": "Delete group \"{{name}}\" and all its messages? This cannot be undone.",
+  "ADMIN.CHAT_GROUP_DELETED": "Group \"{{name}}\" deleted successfully.",
+  "ADMIN.CHAT_DELETE_MSG": "Delete message",
+  "ADMIN.CHAT_CONFIRM_DELETE_MSG": "Delete this message?",
+  "ADMIN.CHAT_CONFIRM_KICK": "Kick {{username}} from the group?",
+  "ADMIN.CHAT_ERROR_LOAD": "Error loading groups",
+  "ADMIN.CHAT_ERROR_DELETE_GROUP": "Error deleting group",
+  "ADMIN.CHAT_ERROR_DELETE_MSG": "Error deleting message",
+  "ADMIN.CHAT_ERROR_KICK": "Error kicking user"
   }
   

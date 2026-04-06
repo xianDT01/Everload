@@ -23,6 +23,7 @@
     <button [class.active]="activeTab === 'nas'" (click)="activeTab = 'nas'; loadNasPaths()">💾 {{ 'ADMIN.TAB_NAS' | translate }}</button>
     <button [class.active]="activeTab === 'logs'" (click)="activeTab = 'logs'; cargarLogs()">📋 {{ 'ADMIN.TAB_LOGS' | translate }}</button>
     <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'; cargarHistorial()">📜 {{ 'ADMIN.TAB_HISTORY' | translate }}</button>
+    <button [class.active]="activeTab === 'chat'" (click)="activeTab = 'chat'; loadChatGroups()">💬 {{ 'ADMIN.TAB_CHAT' | translate }}</button>
   </div>
 
   <!-- ══ TAB: CONFIG ══════════════════════════════════════════════════════════ -->
@@ -317,6 +318,92 @@
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ══ TAB: CHAT ════════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'chat'" class="tab-content">
+
+    <p *ngIf="chatMsg" class="message">{{ chatMsg }}</p>
+
+    <div class="chat-mod-toolbar">
+      <input [(ngModel)]="chatGroupSearch" [placeholder]="'ADMIN.CHAT_SEARCH' | translate" class="log-filter-input" />
+      <button class="btn small" (click)="loadChatGroups()">🔄 {{ 'ADMIN.REFRESH' | translate }}</button>
+      <span class="chat-stats">{{ filteredChatGroups.length }} {{ 'ADMIN.CHAT_GROUPS_COUNT' | translate }}</span>
+    </div>
+
+    <div *ngIf="filteredChatGroups.length === 0" class="empty-state">{{ 'ADMIN.CHAT_NO_GROUPS' | translate }}</div>
+
+    <div class="chat-group-list">
+      <div *ngFor="let g of filteredChatGroups" class="chat-group-card">
+
+        <!-- Group header row -->
+        <div class="chat-group-header" (click)="selectChatGroup(g)">
+          <span class="group-type-badge" [title]="g.type">{{ getGroupTypeBadge(g.type) }}</span>
+          <div class="group-info">
+            <span class="group-name">{{ g.name }}</span>
+            <span *ngIf="g.description" class="group-desc">{{ g.description }}</span>
+            <span class="group-meta">
+              {{ 'ADMIN.CHAT_CREATED_BY' | translate }}: <strong>{{ g.createdByUsername || '—' }}</strong>
+              &nbsp;·&nbsp;{{ g.memberCount }} 👥 &nbsp;·&nbsp; {{ g.messageCount }} 💬
+            </span>
+            <span *ngIf="g.lastMessage" class="group-last-msg">{{ g.lastMessage }}</span>
+          </div>
+          <div class="group-card-actions">
+            <button class="btn-del" (click)="deleteChatGroup(g, $event)" [title]="'ADMIN.CHAT_DELETE_GROUP' | translate">🗑</button>
+            <span class="expand-chevron">{{ selectedChatGroup?.id === g.id ? '▲' : '▼' }}</span>
+          </div>
+        </div>
+
+        <!-- Expanded detail -->
+        <div *ngIf="selectedChatGroup?.id === g.id" class="chat-group-detail">
+          <div *ngIf="loadingChatDetail" class="empty-state">{{ 'NAS.LOADING' | translate }}</div>
+
+          <div *ngIf="!loadingChatDetail" class="chat-detail-columns">
+
+            <!-- Members column -->
+            <div class="chat-detail-col">
+              <h4>👥 {{ 'ADMIN.CHAT_MEMBERS' | translate }} ({{ chatGroupMembers.length }})</h4>
+              <div *ngIf="chatGroupMembers.length === 0" class="empty-state-sm">{{ 'ADMIN.CHAT_NO_MEMBERS' | translate }}</div>
+              <div *ngFor="let m of chatGroupMembers" class="member-row-admin">
+                <div class="member-avatar-sm">
+                  <img *ngIf="m.avatarUrl" [src]="getFullAvatarUrl(m.avatarUrl)" alt="" />
+                  <span *ngIf="!m.avatarUrl">{{ m.username.charAt(0).toUpperCase() }}</span>
+                </div>
+                <span class="member-name">{{ m.username }}</span>
+                <span class="member-role-badge"
+                      [class.role-admin]="m.role === 'ADMIN'"
+                      [class.role-readonly]="m.role === 'READONLY'">{{ m.role }}</span>
+                <button class="btn-reject btn-sm" (click)="removeChatMember(m.username)">
+                  🚫 {{ 'ADMIN.CHAT_KICK' | translate }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Messages column -->
+            <div class="chat-detail-col chat-messages-col">
+              <h4>💬 {{ 'ADMIN.CHAT_MESSAGES' | translate }} ({{ chatGroupMessages.length }})</h4>
+              <input *ngIf="chatGroupMessages.length > 5"
+                     [(ngModel)]="chatMessageSearch"
+                     [placeholder]="'ADMIN.CHAT_SEARCH_MSG' | translate"
+                     class="msg-search-input" />
+              <div *ngIf="filteredChatMessages.length === 0" class="empty-state-sm">{{ 'ADMIN.CHAT_NO_MESSAGES' | translate }}</div>
+              <div class="messages-scroll">
+                <div *ngFor="let m of filteredChatMessages" class="message-row-admin">
+                  <div class="msg-header-admin">
+                    <span class="msg-sender-admin">{{ m.senderUsername }}</span>
+                    <span class="msg-time-admin">{{ m.sentAt | date:'dd/MM/yy HH:mm' }}</span>
+                    <button class="btn-del btn-sm" (click)="deleteChatMessage(m)">🗑</button>
+                  </div>
+                  <div class="msg-content-admin">{{ getChatMessagePreview(m) }}</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 

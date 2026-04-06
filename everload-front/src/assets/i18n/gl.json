@@ -275,6 +275,29 @@
   "CHAT.GROUP_NAME_REQUIRED": "Nome requirido",
   "CHAT.GROUP_NAME_REQUIRED_MSG": "Escribe un nome para o grupo",
   "CHAT.GROUP_CREATED": "Grupo creado",
-  "CHAT.ERROR_CREATE_GROUP": "Non se puido crear o grupo"
+  "CHAT.ERROR_CREATE_GROUP": "Non se puido crear o grupo",
+
+  "_comment16": "Admin chat moderation",
+  "ADMIN.TAB_CHAT": "Chat",
+  "ADMIN.CHAT_SEARCH": "Buscar grupos...",
+  "ADMIN.CHAT_GROUPS_COUNT": "grupos",
+  "ADMIN.CHAT_NO_GROUPS": "Non se atoparon grupos de chat.",
+  "ADMIN.CHAT_CREATED_BY": "Creado por",
+  "ADMIN.CHAT_MEMBERS": "Membros",
+  "ADMIN.CHAT_MESSAGES": "Mensaxes",
+  "ADMIN.CHAT_NO_MEMBERS": "Sen membros",
+  "ADMIN.CHAT_NO_MESSAGES": "Sen mensaxes",
+  "ADMIN.CHAT_SEARCH_MSG": "Buscar mensaxes...",
+  "ADMIN.CHAT_KICK": "Expulsar",
+  "ADMIN.CHAT_DELETE_GROUP": "Eliminar grupo",
+  "ADMIN.CHAT_CONFIRM_DELETE_GROUP": "Eliminar o grupo \"{{name}}\" e todas as súas mensaxes? Esta acción non se pode desfacer.",
+  "ADMIN.CHAT_GROUP_DELETED": "Grupo \"{{name}}\" eliminado correctamente.",
+  "ADMIN.CHAT_DELETE_MSG": "Eliminar mensaxe",
+  "ADMIN.CHAT_CONFIRM_DELETE_MSG": "Eliminar esta mensaxe?",
+  "ADMIN.CHAT_CONFIRM_KICK": "Expulsar a {{username}} do grupo?",
+  "ADMIN.CHAT_ERROR_LOAD": "Erro ao cargar os grupos",
+  "ADMIN.CHAT_ERROR_DELETE_GROUP": "Erro ao eliminar o grupo",
+  "ADMIN.CHAT_ERROR_DELETE_MSG": "Erro ao eliminar a mensaxe",
+  "ADMIN.CHAT_ERROR_KICK": "Erro ao expulsar o usuario"
   }
   
