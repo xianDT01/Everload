@@ -11,4 +11,8 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     List<ChatMessage> findByGroupOrderBySentAtAsc(ChatGroup group);
 
     List<ChatMessage> findTop100ByGroupOrderBySentAtDesc(ChatGroup group);
+
+    long countByGroup(ChatGroup group);
+
+    void deleteByGroup(ChatGroup group);
 }
