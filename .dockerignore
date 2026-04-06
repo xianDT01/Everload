@@ -1,0 +1,13 @@
+target/
+everload-front/node_modules/
+everload-front/dist/
+everload-db.mv.db
+everload-db.lock.db
+everload-db.trace.db
+everload.log
+avatars/
+downloads/
+.git/
+.idea/
+*.iml
+sonarqube/
