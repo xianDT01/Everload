@@ -1451,3 +1451,143 @@
   object-fit: cover;
   border-radius: 50%;
 }
+
+/* ═══════════════════════════════════════
+   CHAT OPTIONS (clear / delete)
+═══════════════════════════════════════ */
+
+.chat-options-wrap {
+  position: relative;
+}
+
+.chat-options-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+  box-shadow: none;
+  letter-spacing: 1px;
+}
+.chat-options-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.9);
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.chat-options-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #1e2a45;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 600;
+  min-width: 190px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.chat-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.85);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+  box-shadow: none;
+}
+.chat-option-item:hover {
+  background: rgba(255,255,255,0.08);
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+.chat-option-item.danger { color: #ff6b6b; }
+.chat-option-item.danger:hover { background: rgba(255,107,107,0.1); }
+
+/* ═══════════════════════════════════════
+   CONFIRM MODAL
+═══════════════════════════════════════ */
+
+.confirm-modal {
+  max-width: 360px;
+  text-align: center;
+  padding: 32px 28px 28px;
+}
+
+.confirm-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.confirm-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 10px;
+}
+
+.confirm-body {
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.confirm-btn-cancel {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.8);
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  box-shadow: none;
+}
+.confirm-btn-cancel:hover {
+  background: rgba(255,255,255,0.14);
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.confirm-btn-danger {
+  background: linear-gradient(135deg, #e94560, #c62a47);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  box-shadow: none;
+}
+.confirm-btn-danger:hover {
+  opacity: 0.85;
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
