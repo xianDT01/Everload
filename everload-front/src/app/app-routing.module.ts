@@ -15,6 +15,7 @@ import { RegisterComponent } from './components/register/register.component';
 import { PendingApprovalComponent } from './components/pending-approval/pending-approval.component';
 import { UserProfileComponent } from './components/user-profile/user-profile.component';
 import { ChatComponent } from './components/chat/chat.component';
+import { AudioToolsComponent } from './components/audio-tools/audio-tools.component';
 
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
@@ -36,6 +37,7 @@ const routes: Routes = [
   { path: 'about-app', component: AboutAppComponent, canActivate: [AuthGuard] },
   { path: 'profile', component: UserProfileComponent, canActivate: [AuthGuard] },
   { path: 'chat', component: ChatComponent, canActivate: [AuthGuard] },
+  { path: 'audio-tools', component: AudioToolsComponent, canActivate: [AuthGuard] },
 
   // Solo ADMIN
   { path: 'admin-config', component: AdminConfigComponent, canActivate: [AdminGuard] },

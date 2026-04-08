@@ -93,6 +93,22 @@ public class ChatController {
         return ResponseEntity.ok(chatService.searchMessages(id, q, user));
     }
 
+    @DeleteMapping("/groups/{id}/messages")
+    public ResponseEntity<Void> clearMessages(@PathVariable Long id,
+                                              @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        chatService.clearGroupMessages(id, user);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/groups/{id}")
+    public ResponseEntity<Void> deleteGroup(@PathVariable Long id,
+                                            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        chatService.deleteGroupByUser(id, user);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/users")
     public ResponseEntity<List<Map<String, String>>> getActiveUsers(@AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = getCurrentUser(userDetails);

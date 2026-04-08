@@ -112,6 +112,22 @@
                 (click)="toggleSearch()"
                 [class.active]="searchMode"
                 [title]="'CHAT.SEARCH_TOGGLE' | translate">🔍</button>
+
+        <!-- Chat options menu -->
+        <div class="chat-options-wrap" *ngIf="canManageChat()">
+          <button class="chat-options-btn"
+                  #chatOptionsBtnRef
+                  (click)="toggleChatOptions()"
+                  [title]="'CHAT.OPTIONS' | translate">⋮</button>
+          <div class="chat-options-panel" *ngIf="showChatOptions" #chatOptionsPanelRef>
+            <button class="chat-option-item" (click)="confirmClear()">
+              🗑 {{ 'CHAT.CLEAR_MESSAGES' | translate }}
+            </button>
+            <button class="chat-option-item danger" (click)="confirmDelete()">
+              ❌ {{ 'CHAT.DELETE_CHAT' | translate }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Search bar -->
@@ -267,6 +283,32 @@
       </div>
     </ng-container>
   </section>
+
+  <!-- ═══ CLEAR MESSAGES CONFIRM ══════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="showClearConfirm" (click)="showClearConfirm = false">
+    <div class="modal-box confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">🗑</div>
+      <h3 class="confirm-title">{{ 'CHAT.CLEAR_MESSAGES' | translate }}</h3>
+      <p class="confirm-body">{{ 'CHAT.CLEAR_CONFIRM_MSG' | translate }}</p>
+      <div class="confirm-actions">
+        <button class="confirm-btn-cancel" (click)="showClearConfirm = false">{{ 'CHAT.CANCEL' | translate }}</button>
+        <button class="confirm-btn-danger" (click)="executeClear()">{{ 'CHAT.CLEAR_MESSAGES' | translate }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ DELETE CHAT CONFIRM ══════════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
+    <div class="modal-box confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">❌</div>
+      <h3 class="confirm-title">{{ 'CHAT.DELETE_CHAT' | translate }}</h3>
+      <p class="confirm-body">{{ 'CHAT.DELETE_CONFIRM_MSG' | translate }}</p>
+      <div class="confirm-actions">
+        <button class="confirm-btn-cancel" (click)="showDeleteConfirm = false">{{ 'CHAT.CANCEL' | translate }}</button>
+        <button class="confirm-btn-danger" (click)="executeDelete()">{{ 'CHAT.DELETE_CHAT' | translate }}</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ═══ CREATE GROUP MODAL ═══════════════════════════════════════════ -->
   <app-create-group-modal

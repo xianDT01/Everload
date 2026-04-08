@@ -51,6 +51,11 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   // ── Mute UI ─────────────────────────────────────────────────────────────────
   showMutePicker = false;
 
+  // ── Chat options (clear / delete) ─────────────────────────────────────────
+  showChatOptions = false;
+  showClearConfirm = false;
+  showDeleteConfirm = false;
+
   // ── Reply ──────────────────────────────────────────────────────────────────
   replyTo: ChatMessageDto | null = null;
 
@@ -65,6 +70,8 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messageTextarea') messageTextarea!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('emojiPickerRef') emojiPickerRef!: ElementRef;
   @ViewChild('emojiBtnRef') emojiBtnRef!: ElementRef;
+  @ViewChild('chatOptionsPanelRef') chatOptionsPanelRef!: ElementRef;
+  @ViewChild('chatOptionsBtnRef') chatOptionsBtnRef!: ElementRef;
 
   private groupsSub!: Subscription;
   private shouldScrollToBottom = false;
@@ -303,13 +310,25 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.emojiPickerOpen) return;
-    const picker = this.emojiPickerRef?.nativeElement;
-    const btn = this.emojiBtnRef?.nativeElement;
-    if (picker && btn &&
-        !picker.contains(event.target as Node) &&
-        !btn.contains(event.target as Node)) {
-      this.emojiPickerOpen = false;
+    // Close emoji picker
+    if (this.emojiPickerOpen) {
+      const picker = this.emojiPickerRef?.nativeElement;
+      const btn = this.emojiBtnRef?.nativeElement;
+      if (picker && btn &&
+          !picker.contains(event.target as Node) &&
+          !btn.contains(event.target as Node)) {
+        this.emojiPickerOpen = false;
+      }
+    }
+    // Close chat options panel
+    if (this.showChatOptions) {
+      const panel = this.chatOptionsPanelRef?.nativeElement;
+      const btn = this.chatOptionsBtnRef?.nativeElement;
+      if (panel && btn &&
+          !panel.contains(event.target as Node) &&
+          !btn.contains(event.target as Node)) {
+        this.showChatOptions = false;
+      }
     }
   }
 
@@ -506,6 +525,61 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   openInYoutube(videoId: string): void {
     window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
+  }
+
+  // ── Chat options (clear / delete) ─────────────────────────────────────────
+
+  toggleChatOptions(): void {
+    this.showChatOptions = !this.showChatOptions;
+    if (this.showChatOptions) {
+      this.showMutePicker = false;
+      this.showThemePicker = false;
+    }
+  }
+
+  canManageChat(): boolean {
+    if (!this.selectedGroup) return false;
+    return this.selectedGroup.type !== 'ANNOUNCEMENT';
+  }
+
+  confirmClear(): void {
+    this.showChatOptions = false;
+    this.showClearConfirm = true;
+  }
+
+  confirmDelete(): void {
+    this.showChatOptions = false;
+    this.showDeleteConfirm = true;
+  }
+
+  executeClear(): void {
+    if (!this.selectedGroup) return;
+    this.showClearConfirm = false;
+    this.chatService.clearMessages(this.selectedGroup.id).subscribe({
+      next: () => {
+        this.messages = [];
+        this.chatService.refreshGroups();
+        this.notificationService.showToast('success', this.translate.instant('CHAT.CLEAR_SUCCESS'), '');
+      },
+      error: () => this.notificationService.showToast('error', this.translate.instant('CHAT.ERROR'), this.translate.instant('CHAT.CLEAR_ERROR'))
+    });
+  }
+
+  executeDelete(): void {
+    if (!this.selectedGroup) return;
+    const groupName = this.getGroupDisplayName(this.selectedGroup);
+    this.showDeleteConfirm = false;
+    this.chatService.deleteGroup(this.selectedGroup.id).subscribe({
+      next: () => {
+        this.selectedGroup = null;
+        this.messages = [];
+        this.sidebarVisible = true;
+        this.chatService.stopPolling();
+        this.chatService.refreshGroups();
+        this.notificationService.showToast('success', this.translate.instant('CHAT.DELETE_SUCCESS'), groupName);
+      },
+      error: () => this.notificationService.showToast('error', this.translate.instant('CHAT.ERROR'), this.translate.instant('CHAT.DELETE_ERROR'))
+    });
   }
 
   shareYoutubeCardToCurrentGroup(msg: ChatMessageDto): void {

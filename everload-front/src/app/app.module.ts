@@ -37,6 +37,9 @@ import { NotificationCenterComponent } from './components/notification-center/no
 import { ChatComponent } from './components/chat/chat.component';
 import { CreateGroupModalComponent } from './components/chat/create-group-modal/create-group-modal.component';
 
+// Audio Tools
+import { AudioToolsComponent } from './components/audio-tools/audio-tools.component';
+
 // Interceptor JWT
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 
@@ -65,7 +68,8 @@ export function HttpLoaderFactory(http: HttpClient) {
     NotificationToastComponent,
     NotificationCenterComponent,
     ChatComponent,
-    CreateGroupModalComponent
+    CreateGroupModalComponent,
+    AudioToolsComponent
   ],
   imports: [
     BrowserModule,
