@@ -22,4 +22,7 @@ public class ChatGroupDto {
     private LocalDateTime lastMessageTime;
     private String imageFilename;
     private String createdByUsername;
+    private String lastSenderAvatarUrl;
+    private String privatePartnerUsername;
+    private String privatePartnerAvatarUrl;
 }

@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ChatService, ChatGroupDto, ChatMessageDto, ActiveUser, YoutubeSharePayload } from '../../services/chat.service';
 import { NotificationService } from '../../services/notification.service';
 import { AuthService } from '../../services/auth.service';
@@ -38,22 +38,51 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     '🍕','☕','🍺','🎂','🌮','🍔','🍦','🐶','🐱','🦊'
   ];
 
+  // ── Themes ─────────────────────────────────────────────────────────────────
+  currentTheme = 'everload';
+  showThemePicker = false;
+  readonly themes = [
+    { id: 'everload', label: 'EverLoad', color: '#e94560' },
+    { id: 'whatsapp', label: 'WhatsApp', color: '#25d366' },
+    { id: 'telegram', label: 'Telegram', color: '#2aabee' },
+    { id: 'discord', label: 'Discord', color: '#5865f2' }
+  ];
+
+  // ── Mute UI ─────────────────────────────────────────────────────────────────
+  showMutePicker = false;
+
+  // ── Reply ──────────────────────────────────────────────────────────────────
+  replyTo: ChatMessageDto | null = null;
+
+  // ── Search ─────────────────────────────────────────────────────────────────
+  searchMode = false;
+  searchQuery = '';
+  searchResults: ChatMessageDto[] | null = null;
+
+  // ── Message actions (hover) ────────────────────────────────────────────────
+  hoveredMessageId: number | null = null;
+
   @ViewChild('messageTextarea') messageTextarea!: ElementRef<HTMLTextAreaElement>;
   @ViewChild('emojiPickerRef') emojiPickerRef!: ElementRef;
   @ViewChild('emojiBtnRef') emojiBtnRef!: ElementRef;
 
   private groupsSub!: Subscription;
   private shouldScrollToBottom = false;
+  private userScrolledUp = false;  // true when user has scrolled above the bottom
 
   constructor(
     private chatService: ChatService,
     private notificationService: NotificationService,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private translate: TranslateService
   ) {}
 
   ngOnInit(): void {
+    const savedTheme = localStorage.getItem('chat_theme');
+    if (savedTheme) this.currentTheme = savedTheme;
+
     const user = this.authService.getCurrentUser();
     this.currentUsername = user?.username || '';
     this.isAdmin = user?.role === 'ADMIN';
@@ -64,6 +93,25 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatService.refreshGroups();
     this.chatService.startGroupsPolling();
+
+    // Auto-open group from notification action
+    this.route.queryParamMap.subscribe(params => {
+      const groupId = params.get('group');
+      if (groupId) {
+        const id = parseInt(groupId, 10);
+        const found = this.groups.find(g => g.id === id);
+        if (found) {
+          this.selectGroup(found);
+        } else {
+          // groups may not be loaded yet; store pending and open after refresh
+          this.chatService.refreshGroups();
+          const sub = this.chatService.groups$.subscribe(groups => {
+            const g = groups.find(gr => gr.id === id);
+            if (g) { this.selectGroup(g); sub.unsubscribe(); }
+          });
+        }
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -84,8 +132,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       if (this.messagesContainer) {
         const el = this.messagesContainer.nativeElement;
         el.scrollTop = el.scrollHeight;
+        this.userScrolledUp = false;
       }
     } catch {}
+  }
+
+  /** Called from (scroll) event on the messages container */
+  onMessagesScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    // If more than 100px from bottom, consider the user scrolled up
+    this.userScrolledUp = (el.scrollHeight - el.scrollTop - el.clientHeight) > 100;
   }
 
   get filteredGroups(): ChatGroupDto[] {
@@ -99,7 +155,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.selectedGroup = group;
     this.messages = [];
     this.sidebarVisible = false;
+    this.userScrolledUp = false;
+    this.replyTo = null;
+    this.searchMode = false;
+    this.searchQuery = '';
+    this.searchResults = null;
     this.chatService.stopPolling();
+
+    // Mark group as read immediately when selected
+    this.chatService.markGroupRead(group.id);
 
     this.chatService.getMessages(group.id).subscribe({
       next: msgs => {
@@ -118,7 +182,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       const lastNew   = msgs.length > 0 ? msgs[msgs.length - 1].id : -1;
       if (lastNew !== lastKnown || msgs.length !== this.messages.length) {
         this.messages = msgs;
-        this.shouldScrollToBottom = true;
+        // Only auto-scroll to bottom if user hasn't scrolled up to read older messages
+        if (!this.userScrolledUp) {
+          this.shouldScrollToBottom = true;
+        }
       }
     });
   }
@@ -128,8 +195,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     const content = this.messageInput.trim();
     this.messageInput = '';
+    const replyId = this.replyTo?.id;
+    this.replyTo = null;
 
-    this.chatService.sendMessage(this.selectedGroup.id, content).subscribe({
+    this.chatService.sendMessage(this.selectedGroup.id, content, replyId).subscribe({
       next: msg => {
         this.messages = [...this.messages, msg];
         this.shouldScrollToBottom = true;
@@ -296,6 +365,127 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.translate.instant('CHAT.ERROR_START_CHAT')
       )
     });
+  }
+
+  // ── Reply ──────────────────────────────────────────────────────────────────
+
+  setReply(msg: ChatMessageDto): void {
+    this.replyTo = msg;
+    // When the reply preview appears the input area grows, shrinking the messages area.
+    // Scroll to bottom so the latest message stays visible instead of scrolling off.
+    this.shouldScrollToBottom = true;
+    this.messageTextarea?.nativeElement.focus();
+  }
+
+  cancelReply(): void {
+    this.replyTo = null;
+  }
+
+  replyPreview(msg: ChatMessageDto): string {
+    if (msg.messageType === 'YOUTUBE_SHARE') return '🎬 ' + (msg.videoTitle || 'YouTube');
+    return msg.content.length > 80 ? msg.content.slice(0, 80) + '…' : msg.content;
+  }
+
+  // ── Search ─────────────────────────────────────────────────────────────────
+
+  toggleSearch(): void {
+    this.searchMode = !this.searchMode;
+    if (!this.searchMode) {
+      this.searchQuery = '';
+      this.searchResults = null;
+    }
+  }
+
+  runSearch(): void {
+    if (!this.searchQuery.trim() || !this.selectedGroup) return;
+    const q = this.searchQuery.toLowerCase();
+    this.searchResults = this.messages.filter(m =>
+      m.content.toLowerCase().includes(q) ||
+      m.senderUsername.toLowerCase().includes(q) ||
+      (m.videoTitle || '').toLowerCase().includes(q)
+    );
+  }
+
+  clearSearch(): void {
+    this.searchQuery = '';
+    this.searchResults = null;
+  }
+
+  get displayMessages(): ChatMessageDto[] {
+    return this.searchResults !== null ? this.searchResults : this.messages;
+  }
+
+  // ── Copy message ───────────────────────────────────────────────────────────
+
+  copyMessage(msg: ChatMessageDto): void {
+    const text = msg.messageType === 'YOUTUBE_SHARE'
+      ? `${msg.videoTitle || ''} — https://www.youtube.com/watch?v=${msg.videoId}`
+      : msg.content;
+
+    navigator.clipboard.writeText(text).then(() => {
+      this.notificationService.showToast(
+        'success',
+        this.translate.instant('CHAT.COPIED'),
+        '',
+        2000
+      );
+    }).catch(() => {});
+  }
+
+  // ── Theme methods ─────────────────────────────────────────────────────────
+
+  applyTheme(themeId: string): void {
+    this.currentTheme = themeId;
+    localStorage.setItem('chat_theme', themeId);
+    this.showThemePicker = false;
+  }
+
+  toggleThemePicker(): void {
+    this.showThemePicker = !this.showThemePicker;
+    if (this.showThemePicker) this.showMutePicker = false;
+  }
+
+  // ── Display name and avatar helpers ──────────────────────────────────────
+
+  getGroupDisplayName(group: ChatGroupDto): string {
+    if (group.type === 'PRIVATE' && group.privatePartnerUsername) {
+      return group.privatePartnerUsername;
+    }
+    return group.name;
+  }
+
+  getGroupAvatarUrl(group: ChatGroupDto): string | null {
+    if (group.type === 'PRIVATE' && group.privatePartnerAvatarUrl) {
+      return this.resolveAvatarUrl(group.privatePartnerAvatarUrl);
+    }
+    return null;
+  }
+
+  // ── Mute helpers ─────────────────────────────────────────────────────────
+
+  isGroupMuted(group: ChatGroupDto): boolean {
+    return this.chatService.isGroupMuted(group.id);
+  }
+
+  getMuteLabel(group: ChatGroupDto): string {
+    return this.chatService.getMuteLabel(group.id);
+  }
+
+  muteGroup(durationMs: number | 'forever'): void {
+    if (!this.selectedGroup) return;
+    this.chatService.muteGroup(this.selectedGroup.id, durationMs);
+    this.showMutePicker = false;
+  }
+
+  unmuteGroup(): void {
+    if (!this.selectedGroup) return;
+    this.chatService.unmuteGroup(this.selectedGroup.id);
+    this.showMutePicker = false;
+  }
+
+  toggleMutePicker(): void {
+    this.showMutePicker = !this.showMutePicker;
+    if (this.showMutePicker) this.showThemePicker = false;
   }
 
   trackByMessageId(index: number, msg: ChatMessageDto): number {

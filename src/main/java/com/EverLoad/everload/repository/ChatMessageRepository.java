@@ -15,4 +15,6 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     long countByGroup(ChatGroup group);
 
     void deleteByGroup(ChatGroup group);
+
+    List<ChatMessage> findByGroupAndContentContainingIgnoreCaseOrderBySentAtDesc(ChatGroup group, String query);
 }

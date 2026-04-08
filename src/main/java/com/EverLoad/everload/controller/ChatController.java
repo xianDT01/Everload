@@ -85,6 +85,14 @@ public class ChatController {
         return ResponseEntity.ok(chatService.getOrCreatePrivateChat(user, target));
     }
 
+    @GetMapping("/groups/{id}/messages/search")
+    public ResponseEntity<List<ChatMessageDto>> searchMessages(@PathVariable Long id,
+                                                                @RequestParam String q,
+                                                                @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        return ResponseEntity.ok(chatService.searchMessages(id, q, user));
+    }
+
     @GetMapping("/users")
     public ResponseEntity<List<Map<String, String>>> getActiveUsers(@AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = getCurrentUser(userDetails);
