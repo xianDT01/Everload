@@ -96,21 +96,21 @@
     <div class="queue-panel" [class.expanded]="showQueue">
       <div class="queue-header" (click)="showQueue = !showQueue">
         <span class="queue-toggle-icon">{{ showQueue ? '▲' : '▼' }}</span>
-        <span class="queue-title">📋 Cola ({{ getQueueCount() }})</span>
+        <span class="queue-title">📋 {{ 'QUEUE.TITLE' | translate }} ({{ getQueueCount() }})</span>
         <span class="queue-badges">
-          <span class="q-badge q-pending" *ngIf="getQueueCount('pending') > 0">{{ getQueueCount('pending') }} pendiente</span>
-          <span class="q-badge q-downloading" *ngIf="getQueueCount('downloading') > 0">{{ getQueueCount('downloading') }} descargando</span>
-          <span class="q-badge q-done" *ngIf="getQueueCount('completed') > 0">{{ getQueueCount('completed') }} listo</span>
+          <span class="q-badge q-pending" *ngIf="getQueueCount('pending') > 0">{{ getQueueCount('pending') }} {{ 'QUEUE.STATUS_PENDING' | translate }}</span>
+          <span class="q-badge q-downloading" *ngIf="getQueueCount('downloading') > 0">{{ getQueueCount('downloading') }} {{ 'QUEUE.STATUS_DOWNLOADING' | translate }}</span>
+          <span class="q-badge q-done" *ngIf="getQueueCount('completed') > 0">{{ getQueueCount('completed') }} {{ 'QUEUE.STATUS_DONE' | translate }}</span>
         </span>
       </div>
 
       <div class="queue-body" *ngIf="showQueue">
         <div class="queue-actions-bar" *ngIf="queue.length > 0">
-          <button class="btn-clear-done" (click)="clearCompleted()">🗑 Limpiar completados</button>
+          <button class="btn-clear-done" (click)="clearCompleted()">🗑 {{ 'QUEUE.CLEAR_COMPLETED' | translate }}</button>
         </div>
 
         <div class="queue-empty" *ngIf="queue.length === 0">
-          <span>No hay elementos en la cola</span>
+          <span>{{ 'QUEUE.EMPTY' | translate }}</span>
         </div>
 
         <div class="queue-list">
@@ -125,7 +125,7 @@
               <div class="queue-item-title">{{ item.title || item.videoId }}</div>
               <div class="queue-item-meta">
                 <span class="type-badge" [class]="'type-' + item.type">
-                  {{ item.type === 'video' ? '🎬 Video' : '🎵 Música' }}
+                  {{ item.type === 'video' ? ('🎬 ' + ('QUEUE.TYPE_VIDEO' | translate)) : ('🎵 ' + ('QUEUE.TYPE_MUSIC' | translate)) }}
                 </span>
                 <span *ngIf="item.resolution" class="res-badge">{{ item.resolution }}p</span>
                 <span class="time-info" *ngIf="item.startedAt">{{ formatTime(item.startedAt) }}</span>
@@ -141,9 +141,9 @@
 
             <div class="queue-item-actions">
               <button *ngIf="item.status === 'pending' || item.status === 'downloading'"
-                class="btn-cancel" (click)="cancelItem(item.id)" title="Cancelar">✕</button>
+                class="btn-cancel" (click)="cancelItem(item.id)" [title]="'QUEUE.CANCEL' | translate">✕</button>
               <button *ngIf="item.status === 'failed'"
-                class="btn-retry" (click)="retryItem(item.id)" title="Reintentar">↺</button>
+                class="btn-retry" (click)="retryItem(item.id)" [title]="'QUEUE.RETRY' | translate">↺</button>
             </div>
           </div>
         </div>

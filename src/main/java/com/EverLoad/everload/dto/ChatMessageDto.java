@@ -24,4 +24,7 @@ public class ChatMessageDto {
     private String channelTitle;
     private LocalDateTime sentAt;
     private boolean edited;
+    private Long replyToId;
+    private String replyToContent;
+    private String replyToSender;
 }

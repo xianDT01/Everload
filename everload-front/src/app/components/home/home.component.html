@@ -63,6 +63,7 @@
         <a routerLink="/chat" class="menu-link" (click)="closeMenu()">
           <span class="menu-icon">💬</span>
           <span>{{ 'HOME.MENU_CHAT' | translate }}</span>
+          <span class="chat-unread-badge" *ngIf="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
         </a>
       </li>
       <li *ngIf="isAdmin">

@@ -16,4 +16,5 @@ public class SendMessageRequest {
     private String videoTitle;
     private String thumbnailUrl;
     private String channelTitle;
+    private Long replyToMessageId;
 }

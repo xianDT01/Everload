@@ -25,8 +25,22 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ChatGroupDto> getGroupsForUser(User user) {
+        // Auto-add user to any announcement channels they're not yet a member of.
+        // This covers users approved after the initial DataInitializer run.
+        List<ChatGroup> announcements = chatGroupRepository.findAllByType(GroupType.ANNOUNCEMENT);
+        for (ChatGroup g : announcements) {
+            if (!groupMemberRepository.existsByGroupAndUser(g, user)) {
+                MemberRole role = user.getRole() == Role.ADMIN ? MemberRole.ADMIN : MemberRole.READONLY;
+                groupMemberRepository.save(GroupMember.builder()
+                        .group(g)
+                        .user(user)
+                        .role(role)
+                        .build());
+            }
+        }
+
         List<ChatGroup> groups = chatGroupRepository.findGroupsByUserId(user.getId());
         return groups.stream()
                 .map(g -> toGroupDto(g, user))
@@ -138,6 +152,11 @@ public class ChatService {
             msgType = MessageType.YOUTUBE_SHARE;
         }
 
+        ChatMessage replyTo = null;
+        if (request.getReplyToMessageId() != null) {
+            replyTo = chatMessageRepository.findById(request.getReplyToMessageId()).orElse(null);
+        }
+
         ChatMessage message = ChatMessage.builder()
                 .group(group)
                 .sender(sender)
@@ -147,6 +166,7 @@ public class ChatService {
                 .videoTitle(request.getVideoTitle())
                 .thumbnailUrl(request.getThumbnailUrl())
                 .channelTitle(request.getChannelTitle())
+                .replyTo(replyTo)
                 .edited(false)
                 .build();
         message = chatMessageRepository.save(message);
@@ -199,6 +219,27 @@ public class ChatService {
                     .build();
             groupMemberRepository.save(member);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChatMessageDto> searchMessages(Long groupId, String query, User user) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+
+        return chatMessageRepository
+                .findByGroupAndContentContainingIgnoreCaseOrderBySentAtDesc(group, query.trim())
+                .stream()
+                .limit(50)
+                .map(this::toMessageDto)
+                .collect(Collectors.toList());
     }
 
     // ── Admin moderation ──────────────────────────────────────────────────────
@@ -310,6 +351,7 @@ public class ChatService {
         List<ChatMessage> lastMessages = chatMessageRepository.findTop100ByGroupOrderBySentAtDesc(g);
         String lastMessage = null;
         LocalDateTime lastMessageTime = null;
+        String lastSenderAvatarUrl = null;
         if (!lastMessages.isEmpty()) {
             ChatMessage lm = lastMessages.get(0);
             String preview = lm.getMessageType() == MessageType.YOUTUBE_SHARE
@@ -317,6 +359,20 @@ public class ChatService {
                     : truncate(lm.getContent(), 50);
             lastMessage = lm.getSender().getUsername() + ": " + preview;
             lastMessageTime = lm.getSentAt();
+            lastSenderAvatarUrl = buildAvatarUrl(lm.getSender());
+        }
+
+        String privatePartnerUsername = null;
+        String privatePartnerAvatarUrl = null;
+        if (g.getType() == GroupType.PRIVATE) {
+            List<GroupMember> members = groupMemberRepository.findByGroup(g);
+            for (GroupMember m : members) {
+                if (!m.getUser().getId().equals(currentUser.getId())) {
+                    privatePartnerUsername = m.getUser().getUsername();
+                    privatePartnerAvatarUrl = buildAvatarUrl(m.getUser());
+                    break;
+                }
+            }
         }
 
         return ChatGroupDto.builder()
@@ -330,11 +386,14 @@ public class ChatService {
                 .lastMessageTime(lastMessageTime)
                 .imageFilename(g.getImageFilename())
                 .createdByUsername(g.getCreatedBy() != null ? g.getCreatedBy().getUsername() : null)
+                .lastSenderAvatarUrl(lastSenderAvatarUrl)
+                .privatePartnerUsername(privatePartnerUsername)
+                .privatePartnerAvatarUrl(privatePartnerAvatarUrl)
                 .build();
     }
 
     private ChatMessageDto toMessageDto(ChatMessage m) {
-        return ChatMessageDto.builder()
+        ChatMessageDto.ChatMessageDtoBuilder builder = ChatMessageDto.builder()
                 .id(m.getId())
                 .groupId(m.getGroup().getId())
                 .senderUsername(m.getSender().getUsername())
@@ -346,8 +405,21 @@ public class ChatService {
                 .thumbnailUrl(m.getThumbnailUrl())
                 .channelTitle(m.getChannelTitle())
                 .sentAt(m.getSentAt())
-                .edited(m.isEdited())
-                .build();
+                .edited(m.isEdited());
+
+        if (m.getReplyTo() != null) {
+            ChatMessage rt = m.getReplyTo();
+            builder.replyToId(rt.getId())
+                   .replyToSender(rt.getSender().getUsername())
+                   .replyToContent(truncate(
+                       rt.getMessageType() == MessageType.YOUTUBE_SHARE
+                           ? "🎬 " + (rt.getVideoTitle() != null ? rt.getVideoTitle() : "Vídeo")
+                           : rt.getContent(),
+                       120
+                   ));
+        }
+
+        return builder.build();
     }
 
     private String buildAvatarUrl(User user) {

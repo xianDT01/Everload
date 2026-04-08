@@ -4,11 +4,17 @@
     class="toast"
     [class]="'toast-' + toast.type"
     [class.toast-hiding]="toast.progress <= 0">
-    <div class="toast-icon">{{ getIcon(toast.type) }}</div>
+    <div class="toast-icon">
+      <img *ngIf="toast.avatarUrl" [src]="toast.avatarUrl" class="toast-avatar" [alt]="toast.title" />
+      <span *ngIf="!toast.avatarUrl">{{ getIcon(toast.type) }}</span>
+    </div>
     <div class="toast-content">
       <div class="toast-title">{{ toast.title }}</div>
       <div class="toast-message" *ngIf="toast.message">{{ toast.message }}</div>
     </div>
+    <button *ngIf="toast.chatGroupId" class="toast-reply-btn" (click)="replyToChat(toast.chatGroupId!, toast.id)">
+      ↩ {{ 'CHAT.REPLY_NOTIF' | translate }}
+    </button>
     <button class="toast-close" (click)="dismiss(toast.id)">✕</button>
     <div class="toast-progress">
       <div class="toast-progress-bar" [style.width.%]="toast.progress"></div>

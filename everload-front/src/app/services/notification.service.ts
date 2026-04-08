@@ -20,6 +20,8 @@ export interface ToastNotification {
   duration: number;
   progress: number;
   intervalRef?: any;
+  avatarUrl?: string;
+  chatGroupId?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -51,9 +53,9 @@ export class NotificationService {
     return this.http.post<void>(`${this.BASE}/api/notifications/${id}/read`, {});
   }
 
-  showToast(type: 'success' | 'error' | 'info' | 'warning', title: string, message: string, duration: number = 4000): void {
+  showToast(type: 'success' | 'error' | 'info' | 'warning', title: string, message: string, duration: number = 4000, avatarUrl?: string, chatGroupId?: number): void {
     const id = Math.random().toString(36).substring(2) + Date.now().toString(36);
-    const toast: ToastNotification = { id, type, title, message, duration, progress: 100 };
+    const toast: ToastNotification = { id, type, title, message, duration, progress: 100, avatarUrl, chatGroupId };
 
     const current = this.toastsSubject.value;
     const updated = [...current.slice(-3), toast]; // max 4

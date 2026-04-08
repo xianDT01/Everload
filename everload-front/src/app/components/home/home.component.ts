@@ -1,14 +1,16 @@
-import { Component, ElementRef, HostListener, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import { Subscription } from 'rxjs';
 import { AuthService, AuthResponse } from '../../services/auth.service';
+import { ChatService } from '../../services/chat.service';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit, OnDestroy {
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
@@ -18,20 +20,36 @@ export class HomeComponent {
   avatarError = '';
   avatarLoading = false;
 
+  unreadCount = 0;
+
+  private subs: Subscription[] = [];
+
   constructor(
     private translate: TranslateService,
     public authService: AuthService,
-    private router: Router
+    private router: Router,
+    public chatService: ChatService
   ) {
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
     if (savedLang) translate.use(savedLang);
 
-    // Suscribirse para reflejar cambios de avatar en tiempo real
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       this.avatarUrl = this.authService.getAvatarUrl();
     });
+  }
+
+  ngOnInit(): void {
+    this.subs.push(
+      this.chatService.unreadCount$.subscribe(count => {
+        this.unreadCount = count;
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.subs.forEach(s => s.unsubscribe());
   }
 
   get isAdmin(): boolean { return this.authService.isAdmin(); }
@@ -66,11 +84,11 @@ export class HomeComponent {
 
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowed.includes(file.type)) {
-      this.avatarError = 'Solo se permiten JPG, PNG, WebP o GIF';
+      this.avatarError = this.translate.instant('HOME.AVATAR_ERROR_TYPE');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      this.avatarError = 'El archivo no puede superar 5 MB';
+      this.avatarError = this.translate.instant('HOME.AVATAR_ERROR_SIZE');
       return;
     }
 
@@ -80,15 +98,14 @@ export class HomeComponent {
       next: () => { this.avatarLoading = false; },
       error: (err) => {
         this.avatarLoading = false;
-        this.avatarError = err.error?.error || 'Error al subir el avatar';
+        this.avatarError = err.error?.error || this.translate.instant('HOME.AVATAR_ERROR_UPLOAD');
       }
     });
-    // Limpiar el input para que se pueda reseleccionar el mismo fichero
     input.value = '';
   }
 
   removeAvatar(): void {
-    if (!confirm('¿Eliminar tu foto de perfil?')) return;
+    if (!confirm(this.translate.instant('HOME.AVATAR_REMOVE_CONFIRM'))) return;
     this.avatarLoading = true;
     this.authService.removeAvatar().subscribe({
       next: () => { this.avatarLoading = false; },
