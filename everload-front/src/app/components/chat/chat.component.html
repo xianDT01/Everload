@@ -1,10 +1,22 @@
-<div class="chat-container">
+<div class="chat-container" [ngClass]="'theme-' + currentTheme">
 
   <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════ -->
   <aside class="chat-sidebar" [class.hidden]="!sidebarVisible">
     <div class="sidebar-header">
       <button class="back-btn" (click)="goHome()" [title]="'CHAT.BACK_TO_HOME' | translate">←</button>
       <span class="sidebar-title">💬 Chat</span>
+      <div class="theme-picker-wrap">
+        <button class="theme-toggle-btn" (click)="toggleThemePicker()" title="Cambiar tema">🎨</button>
+        <div class="theme-picker-panel" *ngIf="showThemePicker">
+          <div *ngFor="let t of themes"
+               class="theme-dot"
+               [class.active]="currentTheme === t.id"
+               [style.background]="t.color"
+               (click)="applyTheme(t.id)"
+               [title]="t.label">
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="sidebar-search">
@@ -25,11 +37,12 @@
         [class.announcement]="isAnnouncementGroup(group)"
         (click)="selectGroup(group)">
         <div class="group-avatar" [class.announcement-avatar]="isAnnouncementGroup(group)">
-          {{ getGroupIcon(group) }}
+          <img *ngIf="getGroupAvatarUrl(group)" [src]="getGroupAvatarUrl(group)!" class="group-avatar-img" [alt]="getGroupDisplayName(group)" />
+          <span *ngIf="!getGroupAvatarUrl(group)">{{ getGroupIcon(group) }}</span>
         </div>
         <div class="group-info">
           <div class="group-name-row">
-            <span class="group-name">{{ group.name }}</span>
+            <span class="group-name">{{ getGroupDisplayName(group) }}</span>
             <span class="group-time" *ngIf="group.lastMessageTime">{{ formatTime(group.lastMessageTime) }}</span>
           </div>
           <div class="group-preview">
@@ -37,6 +50,7 @@
             <span class="no-messages" *ngIf="!group.lastMessage">{{ 'CHAT.NO_MESSAGES_YET' | translate }}</span>
           </div>
           <span *ngIf="isAnnouncementGroup(group)" class="official-badge">{{ 'CHAT.OFFICIAL' | translate }}</span>
+          <span *ngIf="isGroupMuted(group)" class="muted-badge" title="Silenciado">🔕</span>
         </div>
       </div>
     </div>
@@ -67,30 +81,70 @@
       <div class="chat-header">
         <button class="mobile-back" (click)="backToSidebar()">←</button>
         <div class="chat-header-avatar" [class.announcement-avatar]="isAnnouncementGroup(selectedGroup)">
-          {{ getGroupIcon(selectedGroup) }}
+          <img *ngIf="getGroupAvatarUrl(selectedGroup)" [src]="getGroupAvatarUrl(selectedGroup)!" class="header-avatar-img" [alt]="getGroupDisplayName(selectedGroup)" />
+          <span *ngIf="!getGroupAvatarUrl(selectedGroup)">{{ getGroupIcon(selectedGroup) }}</span>
         </div>
         <div class="chat-header-info">
-          <span class="chat-header-name">{{ selectedGroup.name }}</span>
+          <span class="chat-header-name">{{ getGroupDisplayName(selectedGroup) }}</span>
           <span class="chat-header-sub">
             {{ 'CHAT.MEMBERS_COUNT' | translate:{count: selectedGroup.memberCount} }}
             <span *ngIf="isAnnouncementGroup(selectedGroup)" class="official-badge-sm">{{ 'CHAT.OFFICIAL_CHANNEL' | translate }}</span>
           </span>
         </div>
+        <div class="mute-wrap" *ngIf="selectedGroup && selectedGroup.type !== 'ANNOUNCEMENT'">
+          <button class="chat-mute-btn"
+                  (click)="toggleMutePicker()"
+                  [class.muted]="selectedGroup && isGroupMuted(selectedGroup)"
+                  [title]="selectedGroup && isGroupMuted(selectedGroup) ? ('CHAT.UNMUTE' | translate) : ('CHAT.MUTE_TITLE' | translate)">
+            {{ selectedGroup && isGroupMuted(selectedGroup) ? '🔕' : '🔔' }}
+          </button>
+          <div class="mute-picker" *ngIf="showMutePicker">
+            <div class="mute-option" *ngIf="selectedGroup && isGroupMuted(selectedGroup)" (click)="unmuteGroup()">
+              ✅ {{ 'CHAT.UNMUTE' | translate }}
+            </div>
+            <div class="mute-option" (click)="muteGroup(3600000)">{{ 'CHAT.MUTE_1H' | translate }}</div>
+            <div class="mute-option" (click)="muteGroup(28800000)">{{ 'CHAT.MUTE_8H' | translate }}</div>
+            <div class="mute-option" (click)="muteGroup(86400000)">{{ 'CHAT.MUTE_24H' | translate }}</div>
+            <div class="mute-option" (click)="muteGroup('forever')">{{ 'CHAT.MUTE_FOREVER' | translate }}</div>
+          </div>
+        </div>
+        <button class="chat-search-toggle-btn"
+                (click)="toggleSearch()"
+                [class.active]="searchMode"
+                [title]="'CHAT.SEARCH_TOGGLE' | translate">🔍</button>
+      </div>
+
+      <!-- Search bar -->
+      <div class="chat-search-bar" *ngIf="searchMode">
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          (input)="runSearch()"
+          [placeholder]="'CHAT.SEARCH_MESSAGES' | translate"
+          class="chat-search-input" />
+        <span class="search-count" *ngIf="searchResults !== null">{{ searchResults.length }}</span>
+        <button class="search-clear-btn" *ngIf="searchQuery" (click)="clearSearch()">✕</button>
       </div>
 
       <!-- Messages -->
-      <div class="messages-area" #messagesContainer>
+      <div class="messages-area" #messagesContainer (scroll)="onMessagesScroll($event)">
         <div class="messages-inner">
-          <div *ngIf="messages.length === 0" class="no-messages-state">
+          <div *ngIf="displayMessages.length === 0 && !searchMode" class="no-messages-state">
             <span>💬</span>
             <p>{{ 'CHAT.BE_FIRST_TO_WRITE' | translate }}</p>
           </div>
+          <div *ngIf="displayMessages.length === 0 && searchMode" class="no-messages-state">
+            <span>🔍</span>
+            <p>{{ 'CHAT.SEARCH_NO_RESULTS' | translate }}</p>
+          </div>
 
           <div
-            *ngFor="let msg of messages; trackBy: trackByMessageId"
+            *ngFor="let msg of displayMessages; trackBy: trackByMessageId"
             class="message-wrapper"
             [class.own]="isOwnMessage(msg)"
-            [class.other]="!isOwnMessage(msg)">
+            [class.other]="!isOwnMessage(msg)"
+            (mouseenter)="hoveredMessageId = msg.id"
+            (mouseleave)="hoveredMessageId = null">
 
             <!-- Avatar for others -->
             <div class="msg-avatar" *ngIf="!isOwnMessage(msg)">
@@ -101,6 +155,12 @@
             <div class="message-content-col">
               <span class="msg-sender" *ngIf="!isOwnMessage(msg)">{{ msg.senderUsername }}</span>
 
+              <!-- Quoted reply (only shown on messages that ARE a reply) -->
+              <div class="reply-quote" *ngIf="msg.replyToId">
+                <span class="reply-quote-sender">{{ msg.replyToSender }}</span>
+                <span class="reply-quote-content">{{ msg.replyToContent }}</span>
+              </div>
+
               <!-- Mensaje de texto normal -->
               <div *ngIf="!isYoutubeShare(msg)"
                 class="message-bubble"
@@ -110,6 +170,11 @@
                 <div class="msg-footer">
                   <span class="msg-time">{{ formatMessageTime(msg.sentAt) }}</span>
                   <span class="msg-edited" *ngIf="msg.edited"> · {{ 'CHAT.EDITED' | translate }}</span>
+                  <!-- Inline action buttons — appear in the footer on hover, always clickable -->
+                  <span class="msg-inline-actions" *ngIf="hoveredMessageId === msg.id && canSendMessage()">
+                    <button class="msg-inline-btn" (click)="setReply(msg)" [title]="'CHAT.REPLY' | translate">↩</button>
+                    <button class="msg-inline-btn" (click)="copyMessage(msg)" [title]="'CHAT.COPY_MESSAGE' | translate">⎘</button>
+                  </span>
                 </div>
               </div>
 
@@ -130,9 +195,13 @@
                     <button class="yt-btn yt-btn-music" (click)="downloadFromChat(msg.videoId!, 'music')" title="Descargar audio">
                       🎵 Audio
                     </button>
-                    <button class="yt-btn yt-btn-yt" (click)="openInYoutube(msg.videoId!)" title="Abrir en YouTube">
+                    <button class="yt-btn yt-btn-yt" (click)="openInYoutube(msg.videoId!)" [title]="'OPEN_IN_YOUTUBE' | translate">
                       🔗
                     </button>
+                    <span class="msg-inline-actions yt-inline-actions" *ngIf="hoveredMessageId === msg.id && canSendMessage()">
+                      <button class="msg-inline-btn" (click)="setReply(msg)" [title]="'CHAT.REPLY' | translate">↩</button>
+                      <button class="msg-inline-btn" (click)="copyMessage(msg)" [title]="'CHAT.COPY_MESSAGE' | translate">⎘</button>
+                    </span>
                   </div>
                 </div>
                 <div class="yt-card-footer">
@@ -151,6 +220,16 @@
           🔇 {{ 'CHAT.ANNOUNCEMENT_READONLY' | translate }}
         </div>
         <div *ngIf="canSendMessage()" class="input-wrapper">
+          <!-- Reply preview -->
+          <div class="reply-preview" *ngIf="replyTo">
+            <div class="reply-preview-body">
+              <span class="reply-preview-label">{{ 'CHAT.REPLY_TO' | translate }}</span>
+              <span class="reply-preview-sender">{{ replyTo.senderUsername }}</span>
+              <span class="reply-preview-content">{{ replyPreview(replyTo) }}</span>
+            </div>
+            <button class="reply-cancel-btn" (click)="cancelReply()" [title]="'CHAT.CANCEL_REPLY' | translate">✕</button>
+          </div>
+
           <!-- Emoji picker popup -->
           <div class="emoji-picker" *ngIf="emojiPickerOpen" #emojiPickerRef>
             <button
