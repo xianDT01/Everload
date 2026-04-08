@@ -73,6 +73,12 @@
         </a>
       </li>
       <li>
+        <a routerLink="/audio-tools" class="menu-link" (click)="closeMenu()">
+          <span class="menu-icon">🎙</span>
+          <span>{{ 'HOME.MENU_AUDIO' | translate }}</span>
+        </a>
+      </li>
+      <li>
         <a routerLink="/about-app" class="menu-link" (click)="closeMenu()">
           <span class="menu-icon">ℹ️</span>
           <span>{{ 'HOME.MENU_ABOUT' | translate }}</span>

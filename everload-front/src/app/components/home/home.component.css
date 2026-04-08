@@ -107,7 +107,8 @@ html, body {
 .facebook-button { background: linear-gradient(135deg, #1d86ff 0%, #1877f2 50%, #0e5ad6 100%); }
 .instagram-button{ background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); }
 .spotify-button  { background: linear-gradient(135deg, #23e36a 0%, #1db954 50%, #159b41 100%); }
-.tiktok-button   { background: linear-gradient(45deg, #69c9d0, #ee1d52); }
+.tiktok-button       { background: linear-gradient(45deg, #69c9d0, #ee1d52); }
+.audio-tools-button  { background: linear-gradient(135deg, #6c3de6 0%, #9b27d3 50%, #c920a7 100%); }
 
 /* ══ SELECTOR DE IDIOMA (principal) ════════════════════════════════════════ */
 .language-selector {

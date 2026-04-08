@@ -155,6 +155,14 @@ export class ChatService implements OnDestroy {
     });
   }
 
+  clearMessages(groupId: number): Observable<void> {
+    return this.http.delete<void>(`${this.BASE}/api/chat/groups/${groupId}/messages`);
+  }
+
+  deleteGroup(groupId: number): Observable<void> {
+    return this.http.delete<void>(`${this.BASE}/api/chat/groups/${groupId}`);
+  }
+
   // ── Groups refresh ────────────────────────────────────────────────────────
 
   refreshGroups(): void {

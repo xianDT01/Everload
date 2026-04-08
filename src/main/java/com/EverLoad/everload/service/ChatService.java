@@ -242,6 +242,48 @@ public class ChatService {
                 .collect(Collectors.toList());
     }
 
+    // ── User chat management ──────────────────────────────────────────────────
+
+    @Transactional
+    public void clearGroupMessages(Long groupId, User user) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        if (group.getType() == GroupType.ANNOUNCEMENT) {
+            throw new RuntimeException("Cannot clear announcement channel");
+        }
+
+        GroupMember member = groupMemberRepository.findByGroupAndUser(group, user)
+                .orElseThrow(() -> new RuntimeException("Not a member"));
+
+        if (group.getType() != GroupType.PRIVATE && member.getRole() != MemberRole.ADMIN) {
+            throw new RuntimeException("Only group admins can clear messages");
+        }
+
+        chatMessageRepository.deleteByGroup(group);
+    }
+
+    @Transactional
+    public void deleteGroupByUser(Long groupId, User user) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        if (group.getType() == GroupType.ANNOUNCEMENT) {
+            throw new RuntimeException("Cannot delete announcement channel");
+        }
+
+        GroupMember member = groupMemberRepository.findByGroupAndUser(group, user)
+                .orElseThrow(() -> new RuntimeException("Not a member"));
+
+        if (group.getType() != GroupType.PRIVATE && member.getRole() != MemberRole.ADMIN) {
+            throw new RuntimeException("Only group admins can delete the group");
+        }
+
+        chatMessageRepository.deleteByGroup(group);
+        groupMemberRepository.deleteByGroup(group);
+        chatGroupRepository.delete(group);
+    }
+
     // ── Admin moderation ──────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
