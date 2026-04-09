@@ -13,6 +13,7 @@ export class LoginComponent {
   password = '';
   error = '';
   loading = false;
+  showPassword = false;
 
   constructor(private authService: AuthService, private router: Router, private translate: TranslateService) {
     if (this.authService.isLoggedIn() && !this.authService.isPending()) {

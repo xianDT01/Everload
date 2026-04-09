@@ -1,10 +1,11 @@
-import { NgModule, LOCALE_ID } from '@angular/core';
+import { NgModule, LOCALE_ID, APP_INITIALIZER } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule, HttpClient, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
+import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { firstValueFrom } from 'rxjs';
 
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
@@ -47,6 +48,19 @@ export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
 }
 
+/**
+ * Pre-loads translations before Angular renders any component.
+ * This eliminates the intermittent "missing text" bug caused by the race
+ * between Angular's first render and the async HTTP load of the i18n JSON.
+ */
+export function initTranslations(translate: TranslateService): () => Promise<void> {
+  return (): Promise<void> => {
+    translate.setDefaultLang('es');
+    const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'es';
+    return firstValueFrom(translate.use(lang)).then(() => undefined);
+  };
+}
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -78,6 +92,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     ReactiveFormsModule,
     HttpClientModule,
     TranslateModule.forRoot({
+      defaultLanguage: 'es',
       loader: {
         provide: TranslateLoader,
         useFactory: HttpLoaderFactory,
@@ -87,7 +102,13 @@ export function HttpLoaderFactory(http: HttpClient) {
   ],
   providers: [
     { provide: LOCALE_ID, useValue: 'es-ES' },
-    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initTranslations,
+      deps: [TranslateService],
+      multi: true
+    }
   ],
   bootstrap: [AppComponent]
 })

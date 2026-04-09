@@ -57,4 +57,10 @@ RUN echo '{"clientId":"","clientSecret":"","apiKey":""}' > /app/config.json && \
 COPY --from=backend-build /app/target/*.jar app.jar
 
 EXPOSE 8080
+
+# Healthcheck: Spring Boot is up when /actuator/health returns 200.
+# start-period gives the JVM + yt-dlp install time to finish before checks count.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+  CMD wget -qO- http://localhost:8080/actuator/health || exit 1
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

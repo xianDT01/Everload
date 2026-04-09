@@ -1,48 +1,171 @@
 <div class="auth-container">
+  <!-- Background orbs -->
+  <div class="auth-orb auth-orb-1"></div>
+  <div class="auth-orb auth-orb-2"></div>
+  <div class="auth-orb auth-orb-3"></div>
+
   <div class="auth-card">
+
+    <!-- Logo -->
     <div class="auth-logo">
+      <div class="logo-icon-wrap">
+        <img src="/assets/EverLoad.png" alt="EverLoad" class="logo-img"
+             onerror="this.style.display='none'">
+      </div>
       <h1 class="app-title">EverLoad</h1>
     </div>
 
-    <h2 class="auth-subtitle">{{ 'REGISTER.TITLE' | translate }}</h2>
+    <!-- Heading -->
+    <div class="auth-heading">
+      <h2>{{ 'REGISTER.TITLE' | translate }}</h2>
+      <p>{{ 'REGISTER.SUBTITLE' | translate }}</p>
+    </div>
 
-    <div class="success-msg" *ngIf="success">{{ success }}</div>
+    <!-- Success state -->
+    <div class="success-msg" *ngIf="success" role="status">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           style="flex-shrink:0;margin-top:1px">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+      <span>{{ success }}</span>
+    </div>
 
-    <form (ngSubmit)="register()" class="auth-form" *ngIf="!success">
+    <!-- Form -->
+    <form (ngSubmit)="register()" class="auth-form" autocomplete="on" novalidate *ngIf="!success">
+
+      <!-- Username -->
       <div class="form-group">
         <label for="username">{{ 'REGISTER.USERNAME_LABEL' | translate }}</label>
-        <input id="username" type="text" [(ngModel)]="username" name="username"
-               [placeholder]="'REGISTER.USERNAME_PLACEHOLDER' | translate" required />
+        <div class="input-wrapper">
+          <span class="input-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span>
+          <input id="username" type="text" [(ngModel)]="username" name="username"
+                 [placeholder]="'REGISTER.USERNAME_PLACEHOLDER' | translate"
+                 required autocomplete="username" />
+        </div>
       </div>
 
+      <!-- Email -->
       <div class="form-group">
         <label for="email">{{ 'REGISTER.EMAIL_LABEL' | translate }}</label>
-        <input id="email" type="email" [(ngModel)]="email" name="email"
-               [placeholder]="'REGISTER.EMAIL_PLACEHOLDER' | translate" required />
+        <div class="input-wrapper">
+          <span class="input-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </span>
+          <input id="email" type="email" [(ngModel)]="email" name="email"
+                 [placeholder]="'REGISTER.EMAIL_PLACEHOLDER' | translate"
+                 required autocomplete="email" />
+        </div>
       </div>
 
+      <!-- Password -->
       <div class="form-group">
         <label for="password">{{ 'REGISTER.PASSWORD_LABEL' | translate }}</label>
-        <input id="password" type="password" [(ngModel)]="password" name="password"
-               [placeholder]="'REGISTER.PASSWORD_PLACEHOLDER' | translate" required />
+        <div class="input-wrapper has-toggle">
+          <span class="input-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input id="password" [type]="showPassword ? 'text' : 'password'"
+                 [(ngModel)]="password" name="password"
+                 [placeholder]="'REGISTER.PASSWORD_PLACEHOLDER' | translate"
+                 required autocomplete="new-password" />
+          <button type="button" class="toggle-password"
+                  [title]="(showPassword ? 'REGISTER.HIDE_PASSWORD' : 'REGISTER.SHOW_PASSWORD') | translate"
+                  (click)="showPassword = !showPassword">
+            <svg *ngIf="!showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg *ngIf="showPassword" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
+      <!-- Confirm password -->
       <div class="form-group">
         <label for="confirmPassword">{{ 'REGISTER.CONFIRM_PASSWORD_LABEL' | translate }}</label>
-        <input id="confirmPassword" type="password" [(ngModel)]="confirmPassword" name="confirmPassword"
-               [placeholder]="'REGISTER.CONFIRM_PASSWORD_PLACEHOLDER' | translate" required />
+        <div class="input-wrapper has-toggle">
+          <span class="input-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input id="confirmPassword" [type]="showConfirmPassword ? 'text' : 'password'"
+                 [(ngModel)]="confirmPassword" name="confirmPassword"
+                 [placeholder]="'REGISTER.CONFIRM_PASSWORD_PLACEHOLDER' | translate"
+                 required autocomplete="new-password" />
+          <button type="button" class="toggle-password"
+                  [title]="(showConfirmPassword ? 'REGISTER.HIDE_PASSWORD' : 'REGISTER.SHOW_PASSWORD') | translate"
+                  (click)="showConfirmPassword = !showConfirmPassword">
+            <svg *ngIf="!showConfirmPassword" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg *ngIf="showConfirmPassword" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div class="error-msg" *ngIf="error">{{ error }}</div>
+      <!-- Error -->
+      <div class="error-msg" *ngIf="error" role="alert">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             style="flex-shrink:0;margin-top:1px">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>{{ error }}</span>
+      </div>
 
-      <button type="submit" class="btn-primary" [disabled]="loading">
-        <span *ngIf="loading">{{ 'REGISTER.LOADING' | translate }}</span>
-        <span *ngIf="!loading">{{ 'REGISTER.SUBMIT' | translate }}</span>
+      <!-- Submit -->
+      <button type="submit" class="btn-primary"
+              [disabled]="loading || !username || !email || !password || !confirmPassword">
+        <span class="btn-content" *ngIf="!loading">
+          {{ 'REGISTER.SUBMIT' | translate }}
+        </span>
+        <span class="btn-loading" *ngIf="loading">
+          <span class="spinner-sm"></span>
+          {{ 'REGISTER.LOADING' | translate }}
+        </span>
       </button>
+
     </form>
 
-    <p class="auth-link">
-      {{ 'REGISTER.HAS_ACCOUNT' | translate }} <a routerLink="/login">{{ 'REGISTER.LOGIN_LINK' | translate }}</a>
+    <!-- Footer link -->
+    <p class="auth-footer">
+      {{ 'REGISTER.HAS_ACCOUNT' | translate }}&nbsp;
+      <a routerLink="/login">{{ 'REGISTER.LOGIN_LINK' | translate }}</a>
     </p>
+
   </div>
 </div>
