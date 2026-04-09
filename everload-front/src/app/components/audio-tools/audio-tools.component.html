@@ -1,0 +1,255 @@
+<div class="at-container">
+
+  <!-- ═══ HEADER ══════════════════════════════════════════════════════════ -->
+  <header class="at-header">
+    <button class="at-back-btn" (click)="goHome()" [title]="'AUDIO.BACK' | translate">←</button>
+    <div class="at-header-text">
+      <h1 class="at-title">🎙 {{ 'AUDIO.TITLE' | translate }}</h1>
+      <p class="at-subtitle">{{ 'AUDIO.SUBTITLE' | translate }}</p>
+    </div>
+  </header>
+
+  <!-- ═══ TABS ════════════════════════════════════════════════════════════ -->
+  <div class="at-tabs">
+    <button class="at-tab" [class.active]="activeTab === 'convert'" (click)="setTab('convert')">
+      🔄 {{ 'AUDIO.TAB_CONVERT' | translate }}
+    </button>
+    <button class="at-tab" [class.active]="activeTab === 'trim'" (click)="setTab('trim')">
+      ✂ {{ 'AUDIO.TAB_TRIM' | translate }}
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TAB: CONVERTIR / COMPRIMIR
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="at-panel" *ngIf="activeTab === 'convert'">
+
+    <!-- Drop zone -->
+    <div class="at-dropzone"
+         [class.drag-over]="convertDragOver"
+         [class.has-file]="!!convertFile"
+         (dragover)="onConvertDragOver($event)"
+         (dragleave)="onConvertDragLeave()"
+         (drop)="onConvertDrop($event)"
+         (click)="convertFileInput.click()">
+      <input #convertFileInput type="file"
+             accept=".mp3,.m4a,.wav,.ogg,.aac,.flac,.opus,.wma"
+             (change)="onConvertFileSelected($event)" hidden />
+      <ng-container *ngIf="!convertFile">
+        <div class="dropzone-icon">🎵</div>
+        <p class="dropzone-main">{{ 'AUDIO.DROP_FILE' | translate }}</p>
+        <p class="dropzone-hint">{{ 'AUDIO.DROP_FILE_OR' | translate }}</p>
+        <p class="dropzone-formats">MP3 · M4A · WAV · OGG · AAC · FLAC · OPUS · WMA</p>
+      </ng-container>
+      <ng-container *ngIf="convertFile">
+        <div class="dropzone-icon">📂</div>
+        <p class="dropzone-main file-name">{{ convertFile.name }}</p>
+        <p class="dropzone-hint">{{ formatBytes(convertFile.size) }} · {{ 'AUDIO.CLICK_CHANGE' | translate }}</p>
+      </ng-container>
+    </div>
+
+    <!-- File info card -->
+    <div class="at-info-card" *ngIf="convertInfo && !loadingInfo">
+      <div class="info-item">
+        <span class="info-label">{{ 'AUDIO.FORMAT' | translate }}</span>
+        <span class="info-value">{{ (convertInfo.formatName || convertInfo.extension || '—') | uppercase }}</span>
+      </div>
+      <div class="info-item" *ngIf="convertInfo.durationSeconds > 0">
+        <span class="info-label">{{ 'AUDIO.DURATION' | translate }}</span>
+        <span class="info-value">{{ formatTime(convertInfo.durationSeconds) }}</span>
+      </div>
+      <div class="info-item" *ngIf="convertInfo.bitrateKbps > 0">
+        <span class="info-label">{{ 'AUDIO.BITRATE' | translate }}</span>
+        <span class="info-value">{{ convertInfo.bitrateKbps }} kbps</span>
+      </div>
+      <div class="info-item" *ngIf="convertInfo.sampleRate > 0">
+        <span class="info-label">{{ 'AUDIO.SAMPLE_RATE' | translate }}</span>
+        <span class="info-value">{{ convertInfo.sampleRate / 1000 | number:'1.0-1' }} kHz</span>
+      </div>
+    </div>
+    <div class="at-loading" *ngIf="loadingInfo">
+      <span class="spinner"></span> {{ 'AUDIO.LOADING_INFO' | translate }}
+    </div>
+
+    <!-- Format grid -->
+    <div class="at-section" *ngIf="convertFile">
+      <p class="at-section-label">{{ 'AUDIO.TARGET_FORMAT' | translate }}</p>
+      <div class="format-grid">
+        <button *ngFor="let f of formats"
+                class="format-card"
+                [class.selected]="targetFormat === f.id"
+                [class.lossless]="!f.lossy"
+                (click)="targetFormat = f.id">
+          <span class="format-name">{{ f.label }}</span>
+          <span class="format-desc">{{ f.desc }}</span>
+          <span class="format-badge" *ngIf="!f.lossy">{{ 'AUDIO.LOSSLESS' | translate }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Bitrate selector -->
+    <div class="at-section" *ngIf="convertFile && bitrateEnabled">
+      <p class="at-section-label">{{ 'AUDIO.BITRATE_LABEL' | translate }}</p>
+      <div class="bitrate-row">
+        <button *ngFor="let b of bitrates"
+                class="bitrate-btn"
+                [class.selected]="bitrate === b"
+                (click)="bitrate = b">{{ b }}</button>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div class="at-error" *ngIf="convertError">⚠ {{ convertError }}</div>
+
+    <!-- Action button -->
+    <button class="at-action-btn"
+            *ngIf="convertFile"
+            [disabled]="converting || loadingInfo"
+            (click)="convertAudio()">
+      <span *ngIf="!converting">🔄 {{ 'AUDIO.CONVERT_BTN' | translate }}</span>
+      <span *ngIf="converting" class="btn-loading">
+        <span class="spinner"></span> {{ 'AUDIO.CONVERTING' | translate }}
+      </span>
+    </button>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TAB: RECORTAR
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div class="at-panel" *ngIf="activeTab === 'trim'">
+
+    <!-- Drop zone -->
+    <div class="at-dropzone"
+         [class.drag-over]="trimDragOver"
+         [class.has-file]="!!trimFile"
+         (dragover)="onTrimDragOver($event)"
+         (dragleave)="onTrimDragLeave()"
+         (drop)="onTrimDrop($event)"
+         (click)="trimFileInput.click()">
+      <input #trimFileInput type="file"
+             accept=".mp3,.m4a,.wav,.ogg,.aac,.flac,.opus,.wma"
+             (change)="onTrimFileSelected($event)" hidden />
+      <ng-container *ngIf="!trimFile">
+        <div class="dropzone-icon">✂</div>
+        <p class="dropzone-main">{{ 'AUDIO.DROP_FILE' | translate }}</p>
+        <p class="dropzone-hint">{{ 'AUDIO.DROP_FILE_OR' | translate }}</p>
+        <p class="dropzone-formats">MP3 · M4A · WAV · OGG · AAC · FLAC · OPUS · WMA</p>
+      </ng-container>
+      <ng-container *ngIf="trimFile">
+        <div class="dropzone-icon">📂</div>
+        <p class="dropzone-main file-name">{{ trimFile.name }}</p>
+        <p class="dropzone-hint">{{ formatBytes(trimFile.size) }} · {{ 'AUDIO.CLICK_CHANGE' | translate }}</p>
+      </ng-container>
+    </div>
+
+    <div class="at-loading" *ngIf="trimLoading">
+      <span class="spinner"></span> {{ 'AUDIO.LOADING_AUDIO' | translate }}
+    </div>
+
+    <!-- Hidden audio element for metadata + playback -->
+    <audio #audioPlayer
+           [src]="audioBlobUrl"
+           (loadedmetadata)="onAudioLoaded()"
+           (timeupdate)="onTimeUpdate()"
+           (ended)="isPlaying = false"
+           style="display:none">
+    </audio>
+
+    <!-- Trim controls (shown once audio is loaded) -->
+    <ng-container *ngIf="trimFile && audioDuration > 0">
+
+      <!-- ── Player bar ──────────────────────────────────────────────────── -->
+      <div class="trim-player">
+        <button class="trim-play-btn" (click)="togglePlay()">
+          {{ isPlaying ? '⏸' : '▶' }}
+        </button>
+        <div class="trim-progress-wrap" (click)="seekFromProgress($event)">
+          <div class="trim-progress-bg"></div>
+          <div class="trim-progress-selected"
+               [style.left.%]="trimStartPct"
+               [style.width.%]="trimWidthPct"></div>
+          <div class="trim-playhead" [style.left.%]="currentTimePct"></div>
+        </div>
+        <span class="trim-current-time">{{ formatTime(currentTime) }}</span>
+        <button class="trim-preview-btn" (click)="previewFromStart()" [title]="'AUDIO.PREVIEW_SELECTION' | translate">
+          ↩
+        </button>
+      </div>
+
+      <!-- ── Range sliders ──────────────────────────────────────────────── -->
+      <div class="trim-range-section">
+        <p class="at-section-label">{{ 'AUDIO.TRIM_SELECT_RANGE' | translate }}</p>
+        <div class="trim-slider-wrap">
+          <div class="trim-slider-bg"></div>
+          <div class="trim-slider-selected"
+               [style.left.%]="trimStartPct"
+               [style.width.%]="trimWidthPct"></div>
+          <!-- Start handle -->
+          <input type="range" class="trim-range trim-range-start"
+                 [min]="0" [max]="audioDuration" step="0.1"
+                 [value]="trimStart"
+                 (input)="onTrimStartRange($event)" />
+          <!-- End handle -->
+          <input type="range" class="trim-range trim-range-end"
+                 [min]="0" [max]="audioDuration" step="0.1"
+                 [value]="trimEnd"
+                 (input)="onTrimEndRange($event)" />
+        </div>
+        <div class="trim-slider-labels">
+          <span>0:00</span>
+          <span>{{ formatTime(audioDuration) }}</span>
+        </div>
+      </div>
+
+      <!-- ── Time inputs ────────────────────────────────────────────────── -->
+      <div class="trim-inputs-row">
+        <div class="trim-input-group">
+          <label class="trim-input-label">✂ {{ 'AUDIO.TRIM_START' | translate }}</label>
+          <input type="text" class="trim-time-input"
+                 [value]="trimStartDisplay"
+                 (change)="onTrimStartInput($event)"
+                 placeholder="0:00" />
+        </div>
+        <div class="trim-arrow">→</div>
+        <div class="trim-input-group">
+          <label class="trim-input-label">✂ {{ 'AUDIO.TRIM_END' | translate }}</label>
+          <input type="text" class="trim-time-input"
+                 [value]="trimEndDisplay"
+                 (change)="onTrimEndInput($event)"
+                 placeholder="0:00" />
+        </div>
+      </div>
+
+      <!-- ── Duration summary ───────────────────────────────────────────── -->
+      <div class="trim-summary">
+        <span class="trim-summary-item">
+          <span class="summary-label">{{ 'AUDIO.ORIGINAL_DURATION' | translate }}</span>
+          <span class="summary-value">{{ formatTime(audioDuration) }}</span>
+        </span>
+        <span class="trim-summary-sep">→</span>
+        <span class="trim-summary-item result">
+          <span class="summary-label">{{ 'AUDIO.TRIM_RESULT_DURATION' | translate }}</span>
+          <span class="summary-value">{{ formatTime(trimResultDuration) }}</span>
+        </span>
+      </div>
+
+      <!-- Error -->
+      <div class="at-error" *ngIf="trimError">⚠ {{ trimError }}</div>
+
+      <!-- Trim button -->
+      <button class="at-action-btn" [disabled]="trimming" (click)="trimAudio()">
+        <span *ngIf="!trimming">✂ {{ 'AUDIO.TRIM_BTN' | translate }}</span>
+        <span *ngIf="trimming" class="btn-loading">
+          <span class="spinner"></span> {{ 'AUDIO.TRIMMING' | translate }}
+        </span>
+      </button>
+
+    </ng-container>
+
+    <!-- Error (standalone) -->
+    <div class="at-error" *ngIf="trimError && !trimFile">⚠ {{ trimError }}</div>
+
+  </div>
+
+</div>
