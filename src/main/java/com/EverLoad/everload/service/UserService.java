@@ -54,6 +54,12 @@ public class UserService {
         userRepository.save(user);
     }
 
+    public String getUsernameById(Long id) {
+        return userRepository.findById(id)
+                .map(User::getUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+    }
+
     @Transactional
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {

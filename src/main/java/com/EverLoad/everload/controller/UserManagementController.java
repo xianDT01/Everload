@@ -2,6 +2,7 @@ package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.dto.UpdateUserRequest;
 import com.EverLoad.everload.dto.UserDto;
+import com.EverLoad.everload.service.AuditLogService;
 import com.EverLoad.everload.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class UserManagementController {
 
     private final UserService userService;
+    private final AuditLogService auditLogService;
 
     @Operation(summary = "Listar todos los usuarios")
     @GetMapping
@@ -44,7 +46,11 @@ public class UserManagementController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
         try {
-            return ResponseEntity.ok(userService.updateUser(id, request));
+            UserDto updated = userService.updateUser(id, request);
+            String action = deriveUpdateAction(request);
+            String detail = buildUpdateDetail(request);
+            auditLogService.log(action, "User", updated.getUsername(), detail);
+            return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -54,7 +60,9 @@ public class UserManagementController {
     @PostMapping("/{id}/revoke")
     public ResponseEntity<?> revokeAccess(@PathVariable Long id) {
         try {
+            String username = userService.getUsernameById(id);
             userService.revokeAccess(id);
+            auditLogService.log("USER_REVOKED", "User", username, null);
             return ResponseEntity.ok(Map.of("message", "Acceso revocado correctamente"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -65,10 +73,31 @@ public class UserManagementController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
+            String username = userService.getUsernameById(id);
             userService.deleteUser(id);
+            auditLogService.log("USER_DELETED", "User", username, null);
             return ResponseEntity.ok(Map.of("message", "Usuario eliminado"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private String deriveUpdateAction(UpdateUserRequest req) {
+        if (req.getStatus() != null) {
+            return switch (req.getStatus().name()) {
+                case "ACTIVE"    -> "USER_APPROVED";
+                case "REJECTED"  -> "USER_REJECTED";
+                default          -> "USER_STATUS_CHANGED";
+            };
+        }
+        return "USER_ROLE_CHANGED";
+    }
+
+    private String buildUpdateDetail(UpdateUserRequest req) {
+        if (req.getRole() != null && req.getStatus() != null)
+            return "role=" + req.getRole() + ", status=" + req.getStatus();
+        if (req.getRole() != null) return "role=" + req.getRole();
+        if (req.getStatus() != null) return "status=" + req.getStatus();
+        return null;
     }
 }

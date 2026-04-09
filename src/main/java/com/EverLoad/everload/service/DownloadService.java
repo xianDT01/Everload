@@ -1,6 +1,8 @@
 package com.EverLoad.everload.service;
 
 import com.EverLoad.everload.model.Download;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -11,16 +13,39 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class DownloadService {
 
     private static final String DOWNLOADS_DIR = "./downloads/";
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DownloadService.class);
+
+    @Value("${app.downloads.max-concurrent:3}")
+    private int maxConcurrent;
+
+    private Semaphore downloadSemaphore;
+
     private final DownloadHistoryService downloadHistoryService;
 
     public DownloadService(DownloadHistoryService downloadHistoryService) {
         this.downloadHistoryService = downloadHistoryService;
+    }
+
+    @PostConstruct
+    private void init() {
+        downloadSemaphore = new Semaphore(maxConcurrent, true);
+    }
+
+    /** Tries to acquire a download slot. Returns false if all slots are busy. */
+    private boolean acquireSlot() {
+        try {
+            return downloadSemaphore.tryAcquire(30, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
 
@@ -99,6 +124,10 @@ public class DownloadService {
 
 
     private ResponseEntity<FileSystemResource> executeCommand(String command, String tipo, String origen) {
+        if (!acquireSlot()) {
+            logger.warn("Download rejected — max concurrent downloads ({}) reached", maxConcurrent);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
         try {
             System.out.println("🔵 Ejecutando comando: " + command);
             logger.info("🔵 Ejecutando comando: " + command);
@@ -147,6 +176,8 @@ public class DownloadService {
             e.printStackTrace();
             System.out.println("❌ Error al ejecutar yt-dlp.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } finally {
+            downloadSemaphore.release();
         }
     }
 

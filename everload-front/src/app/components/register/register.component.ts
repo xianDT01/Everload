@@ -16,6 +16,8 @@ export class RegisterComponent {
   error = '';
   success = '';
   loading = false;
+  showPassword = false;
+  showConfirmPassword = false;
 
   constructor(private authService: AuthService, private router: Router, private translate: TranslateService) {}
 

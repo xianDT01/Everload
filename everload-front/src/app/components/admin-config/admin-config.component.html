@@ -24,6 +24,7 @@
     <button [class.active]="activeTab === 'logs'" (click)="activeTab = 'logs'; cargarLogs()">📋 {{ 'ADMIN.TAB_LOGS' | translate }}</button>
     <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'; cargarHistorial()">📜 {{ 'ADMIN.TAB_HISTORY' | translate }}</button>
     <button [class.active]="activeTab === 'chat'" (click)="activeTab = 'chat'; loadChatGroups()">💬 {{ 'ADMIN.TAB_CHAT' | translate }}</button>
+    <button [class.active]="activeTab === 'audit'" (click)="activeTab = 'audit'; loadAuditLogs(0)">🔍 {{ 'ADMIN.TAB_AUDIT' | translate }}</button>
   </div>
 
   <!-- ══ TAB: CONFIG ══════════════════════════════════════════════════════════ -->
@@ -404,6 +405,54 @@
         </div>
 
       </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: AUDIT LOG ════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'audit'" class="tab-content">
+    <div class="audit-header">
+      <h2>{{ 'ADMIN.AUDIT_TITLE' | translate }}</h2>
+      <div class="audit-controls">
+        <input type="text" class="audit-search-input" [(ngModel)]="auditSearch"
+               (input)="onAuditSearchChange()"
+               [placeholder]="'ADMIN.AUDIT_SEARCH' | translate" />
+        <button class="btn small" (click)="loadAuditLogs(auditPage)">🔄 {{ 'ADMIN.REFRESH' | translate }}</button>
+      </div>
+    </div>
+
+    <div *ngIf="auditLoading" class="audit-loading">⏳ {{ 'ADMIN.LOADING' | translate }}</div>
+
+    <div *ngIf="!auditLoading && auditLogs.length === 0" class="audit-empty">
+      {{ 'ADMIN.AUDIT_EMPTY' | translate }}
+    </div>
+
+    <table *ngIf="!auditLoading && auditLogs.length > 0" class="audit-table">
+      <thead>
+        <tr>
+          <th>{{ 'ADMIN.AUDIT_COL_TIME' | translate }}</th>
+          <th>{{ 'ADMIN.AUDIT_COL_ADMIN' | translate }}</th>
+          <th>{{ 'ADMIN.AUDIT_COL_ACTION' | translate }}</th>
+          <th>{{ 'ADMIN.AUDIT_COL_ENTITY' | translate }}</th>
+          <th>{{ 'ADMIN.AUDIT_COL_TARGET' | translate }}</th>
+          <th>{{ 'ADMIN.AUDIT_COL_DETAIL' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of auditLogs">
+          <td class="audit-time">{{ entry.timestamp | date:'dd/MM/yy HH:mm:ss' }}</td>
+          <td class="audit-admin">{{ entry.adminUsername }}</td>
+          <td><span class="audit-action-badge">{{ entry.action }}</span></td>
+          <td>{{ entry.targetEntity }}</td>
+          <td>{{ entry.targetId }}</td>
+          <td class="audit-detail">{{ entry.detail || '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="auditTotalPages > 1" class="audit-pagination">
+      <button class="btn small" [disabled]="auditPage === 0" (click)="auditPrevPage()">← {{ 'ADMIN.PREV' | translate }}</button>
+      <span>{{ auditPage + 1 }} / {{ auditTotalPages }} ({{ auditTotalElements }} {{ 'ADMIN.AUDIT_ENTRIES' | translate }})</span>
+      <button class="btn small" [disabled]="auditPage >= auditTotalPages - 1" (click)="auditNextPage()">{{ 'ADMIN.NEXT' | translate }} →</button>
     </div>
   </div>
 

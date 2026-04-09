@@ -1,5 +1,6 @@
 package com.EverLoad.everload.security;
 
+import com.EverLoad.everload.service.TokenRevocationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +21,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final TokenRevocationService tokenRevocationService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -37,6 +39,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             final String username = jwtUtil.extractUsername(jwt);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                // Reject explicitly revoked tokens (logged-out sessions)
+                String jti = jwtUtil.extractJti(jwt);
+                if (tokenRevocationService.isRevoked(jti)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 if (jwtUtil.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken =
@@ -46,7 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception ignored) {
-            // Token inválido o expirado - continúa sin autenticación
+            // Invalid or expired token — proceed unauthenticated
         }
 
         filterChain.doFilter(request, response);

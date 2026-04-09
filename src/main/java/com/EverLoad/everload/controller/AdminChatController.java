@@ -2,6 +2,7 @@ package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.dto.AdminChatGroupDto;
 import com.EverLoad.everload.dto.ChatMessageDto;
+import com.EverLoad.everload.service.AuditLogService;
 import com.EverLoad.everload.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class AdminChatController {
 
     private final ChatService chatService;
+    private final AuditLogService auditLogService;
 
     @Operation(summary = "Listar todos los grupos de chat")
     @GetMapping("/groups")
@@ -44,6 +46,7 @@ public class AdminChatController {
     @DeleteMapping("/groups/{id}")
     public ResponseEntity<Void> deleteGroup(@PathVariable Long id) {
         chatService.adminDeleteGroup(id);
+        auditLogService.log("GROUP_DELETED", "ChatGroup", id.toString(), null);
         return ResponseEntity.ok().build();
     }
 
@@ -51,6 +54,7 @@ public class AdminChatController {
     @DeleteMapping("/messages/{id}")
     public ResponseEntity<Void> deleteMessage(@PathVariable Long id) {
         chatService.adminDeleteMessage(id);
+        auditLogService.log("MESSAGE_DELETED", "ChatMessage", id.toString(), null);
         return ResponseEntity.ok().build();
     }
 
@@ -58,6 +62,7 @@ public class AdminChatController {
     @DeleteMapping("/groups/{id}/members/{username}")
     public ResponseEntity<Void> removeMember(@PathVariable Long id, @PathVariable String username) {
         chatService.adminRemoveMember(id, username);
+        auditLogService.log("MEMBER_KICKED", "ChatGroup", id.toString(), "kicked=" + username);
         return ResponseEntity.ok().build();
     }
 }

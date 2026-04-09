@@ -3,9 +3,12 @@ package com.EverLoad.everload.controller;
 import com.EverLoad.everload.dto.AuthResponse;
 import com.EverLoad.everload.dto.LoginRequest;
 import com.EverLoad.everload.dto.RegisterRequest;
+import com.EverLoad.everload.security.JwtUtil;
 import com.EverLoad.everload.service.AuthService;
+import com.EverLoad.everload.service.TokenRevocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +23,8 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtUtil jwtUtil;
+    private final TokenRevocationService tokenRevocationService;
 
     @Operation(summary = "Registrar nuevo usuario")
     @PostMapping("/register")
@@ -43,5 +48,22 @@ public class AuthController {
         } catch (IllegalStateException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @Operation(summary = "Cerrar sesión — invalida el token actual")
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            try {
+                String jti = jwtUtil.extractJti(token);
+                java.time.Instant expiresAt = jwtUtil.extractExpiration(token).toInstant();
+                tokenRevocationService.revoke(jti, expiresAt);
+            } catch (Exception ignored) {
+                // Invalid token — logout is idempotent, just return OK
+            }
+        }
+        return ResponseEntity.ok(Map.of("message", "Sesión cerrada correctamente"));
     }
 }

@@ -1,6 +1,7 @@
 package com.EverLoad.everload.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,11 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
+    private final RateLimitFilter rateLimitFilter;
+
+    /** Comma-separated allowed CORS origins. Set via CORS_ALLOWED_ORIGINS env var. */
+    @Value("${cors.allowed-origins:http://localhost:4200,http://localhost:8080,http://localhost}")
+    private String corsAllowedOrigins;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -31,7 +37,12 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(request -> {
                 org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
-                config.setAllowedOriginPatterns(java.util.List.of("http://localhost:4200", "http://localhost:*", "http://127.0.0.1:*"));
+                // Parse comma-separated origins from application property / CORS_ALLOWED_ORIGINS env var
+                java.util.List<String> origins = java.util.Arrays.stream(corsAllowedOrigins.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(java.util.stream.Collectors.toList());
+                config.setAllowedOriginPatterns(origins);
                 config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
                 config.setExposedHeaders(java.util.List.of("Content-Disposition"));
@@ -43,6 +54,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Auth endpoints (public)
                 .requestMatchers("/api/auth/**").permitAll()
+                // Health check (used by Docker + Caddy depends_on)
+                .requestMatchers("/actuator/health").permitAll()
                 // Avatar images (served publicly for chat/profile display)
                 .requestMatchers("/api/user/avatar/img/**").permitAll()
                 // Swagger (dev tools)
@@ -58,6 +71,7 @@ public class SecurityConfig {
                 .anyRequest().permitAll()
             )
             .authenticationProvider(authenticationProvider())
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

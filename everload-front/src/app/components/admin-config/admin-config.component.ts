@@ -69,7 +69,7 @@ interface AdminChatMember {
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
 
-  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' | 'chat' = 'config';
+  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' = 'config';
 
   private readonly BASE: string = (() => {
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
@@ -440,6 +440,44 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       m.senderUsername.toLowerCase().includes(q) ||
       m.content.toLowerCase().includes(q)
     );
+  }
+
+  // ── Audit Log ─────────────────────────────────────────────────────────────
+
+  auditLogs: any[] = [];
+  auditPage = 0;
+  auditTotalPages = 0;
+  auditTotalElements = 0;
+  auditSearch = '';
+  auditLoading = false;
+  readonly AUDIT_PAGE_SIZE = 50;
+
+  loadAuditLogs(page = 0): void {
+    this.auditLoading = true;
+    let url = `${this.BASE}/api/admin/audit?page=${page}&size=${this.AUDIT_PAGE_SIZE}`;
+    if (this.auditSearch.trim()) url += `&search=${encodeURIComponent(this.auditSearch.trim())}`;
+    this.http.get<any>(url).subscribe({
+      next: data => {
+        this.auditLogs = data.content || [];
+        this.auditPage = data.number ?? 0;
+        this.auditTotalPages = data.totalPages ?? 0;
+        this.auditTotalElements = data.totalElements ?? 0;
+        this.auditLoading = false;
+      },
+      error: () => { this.auditLoading = false; }
+    });
+  }
+
+  auditNextPage(): void {
+    if (this.auditPage < this.auditTotalPages - 1) this.loadAuditLogs(this.auditPage + 1);
+  }
+
+  auditPrevPage(): void {
+    if (this.auditPage > 0) this.loadAuditLogs(this.auditPage - 1);
+  }
+
+  onAuditSearchChange(): void {
+    this.loadAuditLogs(0);
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
