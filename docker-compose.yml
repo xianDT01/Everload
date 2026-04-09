@@ -23,7 +23,7 @@ services:
       CADDY_EMAIL: ${CADDY_EMAIL:-admin@example.com}
     depends_on:
       everload:
-        condition: service_healthy   # wait until Spring Boot passes HEALTHCHECK
+        condition: service_started
     networks:
       - everload-net
 
