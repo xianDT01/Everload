@@ -176,10 +176,10 @@
 
       <!-- Preview del vídeo a compartir -->
       <div class="share-video-preview" *ngIf="sharingPayload">
-        <img [src]="sharingPayload.thumbnailUrl" alt="miniatura" class="share-thumb" />
+        <img [src]="sharingPayload!.thumbnailUrl" alt="miniatura" class="share-thumb" />
         <div class="share-video-info">
-          <span class="share-video-title">{{ sharingPayload.videoTitle || sharingPayload.videoId }}</span>
-          <span class="share-video-channel" *ngIf="sharingPayload.channelTitle">{{ sharingPayload.channelTitle }}</span>
+          <span class="share-video-title">{{ sharingPayload!.videoTitle || sharingPayload!.videoId }}</span>
+          <span class="share-video-channel" *ngIf="sharingPayload!.channelTitle">{{ sharingPayload!.channelTitle }}</span>
           <span class="share-video-platform">YouTube</span>
         </div>
       </div>
