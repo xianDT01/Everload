@@ -36,3 +36,9 @@ build/
 # Keystore autofirmado (no subir nunca)
 *.p12
 
+# Variables de entorno — contienen secretos, NUNCA comitear
+.env
+
+# Logs locales
+everload.log
+

@@ -1,25 +1,72 @@
 services:
+
+  # ── Caddy: reverse proxy + HTTPS ────────────────────────────────────────
+  # Handles TLS automatically:
+  #   CADDY_DOMAIN=localhost        → self-signed cert (Caddy local CA)
+  #   CADDY_DOMAIN=yourdomain.com   → Let's Encrypt (ports 80+443 must be open)
+  caddy:
+    image: caddy:2-alpine
+    container_name: everload-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"       # HTTP (redirected to HTTPS automatically by Caddy)
+      - "443:443"     # HTTPS
+      - "443:443/udp" # HTTP/3 QUIC
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and Let's Encrypt account keys — BACK UP THIS VOLUME
+      - caddy-data:/data
+      # Caddy runtime config cache
+      - caddy-config:/config
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-localhost}
+      CADDY_EMAIL: ${CADDY_EMAIL:-admin@example.com}
+    depends_on:
+      everload:
+        condition: service_healthy   # wait until Spring Boot passes HEALTHCHECK
+    networks:
+      - everload-net
+
+  # ── EverLoad: Spring Boot backend + Angular frontend ────────────────────
+  # Not exposed externally — all traffic goes through Caddy
   everload:
     build: .
     image: everload:latest
     container_name: everload
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     environment:
-      # Cambia este valor en producción
-      JWT_SECRET: "EverloadSecretKey2024!SuperSeguro_CambiarEnProduccion_32chars+"
-      # BD H2 en el volumen persistente
+      # --- Security: CHANGE JWT_SECRET IN PRODUCTION ---
+      JWT_SECRET: ${JWT_SECRET:-EverloadSecretKey2024!SuperSeguro_CambiarEnProduccion_32chars+}
+
+      # H2 database on persistent volume
       SPRING_DATASOURCE_URL: "jdbc:h2:file:/app/data/everload-db;DB_CLOSE_ON_EXIT=FALSE"
+
+      # CORS allowed origins (comma-separated).
+      # In production with a real domain, set to: https://yourdomain.com
+      # Leave default for local dev with Angular dev server on :4200
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4200,http://localhost:8080,http://localhost}
+
+      # Trust X-Forwarded-* headers from Caddy
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+
     volumes:
-      # Base de datos H2 persistente
       - everload-db:/app/data
-      # Avatares de usuarios
       - everload-avatars:/app/avatars
-      # Almacenamiento NAS (monta aquí tu disco)
       - everload-nas:/app/nas_storage
     restart: unless-stopped
+    networks:
+      - everload-net
 
+# ── Internal network: Caddy ↔ EverLoad only ─────────────────────────────
+networks:
+  everload-net:
+    driver: bridge
+
+# ── Persistent volumes ────────────────────────────────────────────────────
 volumes:
-  everload-db:
-  everload-avatars:
-  everload-nas:
+  everload-db:      # H2 database files
+  everload-avatars: # User avatar images
+  everload-nas:     # NAS storage (mount your disk here in production)
+  caddy-data:       # TLS certificates — back up in production
+  caddy-config:     # Caddy runtime config cache
