@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { ChatService } from './services/chat.service';
@@ -14,11 +15,13 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private authSub?: Subscription;
   private alertSub?: Subscription;
+  private heartbeatRef: any = null;
 
   constructor(
     private authService: AuthService,
     private chatService: ChatService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -26,6 +29,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.authSub = this.authService.currentUser$.subscribe(user => {
       if (user) {
         this.chatService.startGlobalPolling();
+        this.startHeartbeat();
 
         // Subscribe to new message alerts for toast notifications (global)
         this.alertSub?.unsubscribe();
@@ -51,6 +55,7 @@ export class AppComponent implements OnInit, OnDestroy {
       } else {
         // User logged out: stop global polling and clear notifications
         this.chatService.stopGlobalPolling();
+        this.stopHeartbeat();
         this.alertSub?.unsubscribe();
       }
     });
@@ -59,5 +64,38 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.authSub?.unsubscribe();
     this.alertSub?.unsubscribe();
+    this.stopHeartbeat();
+  }
+
+  @HostListener('window:beforeunload')
+  onBeforeUnload(): void {
+    const token = this.authService.getToken();
+    const base = this.chatService.BASE;
+    if (token) {
+      // keepalive ensures the request completes even after the page starts unloading
+      fetch(`${base}/api/presence/offline`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        keepalive: true
+      }).catch(() => {});
+    }
+  }
+
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.sendHeartbeat(); // immediate
+    this.heartbeatRef = setInterval(() => this.sendHeartbeat(), 30_000);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatRef) {
+      clearInterval(this.heartbeatRef);
+      this.heartbeatRef = null;
+    }
+  }
+
+  private sendHeartbeat(): void {
+    this.http.post(`${this.chatService.BASE}/api/presence/heartbeat`, {})
+      .subscribe({ error: () => {} });
   }
 }

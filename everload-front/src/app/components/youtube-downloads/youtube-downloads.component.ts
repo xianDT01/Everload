@@ -88,6 +88,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       if (v) {
         this.videoUrl = `https://www.youtube.com/watch?v=${v}`;
         this.onVideoUrlChange();
+        this.updateEmbedUrl();
       }
     });
   }
@@ -299,6 +300,15 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
     window.URL.revokeObjectURL(url);
   }
 
+  embedUrl: SafeResourceUrl | null = null;
+
+  private updateEmbedUrl(): void {
+    const videoId = this.extractVideoId(this.videoUrl);
+    this.embedUrl = videoId
+      ? this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${videoId}`)
+      : null;
+  }
+
   noResults: boolean = false;
   searchVideos() {
     if (!this.searchQuery.trim()) {
@@ -382,6 +392,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   }
 
   onVideoUrlChange() {
+    this.updateEmbedUrl();
     const playlistRegex = /[?&]list=([a-zA-Z0-9_-]+)/;
     if (playlistRegex.test(this.videoUrl)) {
       this.loadPlaylistVideos();

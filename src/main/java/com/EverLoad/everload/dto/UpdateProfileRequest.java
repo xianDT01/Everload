@@ -12,4 +12,7 @@ public class UpdateProfileRequest {
 
     @Email
     private String email;
+
+    /** null means "don't change". */
+    private Boolean showLastSeen;
 }

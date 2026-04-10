@@ -24,6 +24,7 @@ public class ChatService {
     private final GroupMemberRepository groupMemberRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
+    private final PresenceService presenceService;
 
     @Transactional
     public List<ChatGroupDto> getGroupsForUser(User user) {
@@ -44,6 +45,11 @@ public class ChatService {
         List<ChatGroup> groups = chatGroupRepository.findGroupsByUserId(user.getId());
         return groups.stream()
                 .map(g -> toGroupDto(g, user))
+                // Sort: groups with recent messages first; groups with no messages at the end
+                .sorted(Comparator.comparing(
+                        dto -> dto.getLastMessageTime() != null ? dto.getLastMessageTime() : LocalDateTime.MIN,
+                        Comparator.reverseOrder()
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -387,7 +393,14 @@ public class ChatService {
     }
 
     private ChatGroupDto toGroupDto(ChatGroup g, User currentUser) {
-        long memberCount = groupMemberRepository.countByGroup(g);
+        // Load all members once — used for memberCount, onlineCount, and partner detection
+        List<GroupMember> members = groupMemberRepository.findByGroup(g);
+        long memberCount = members.size();
+
+        // Count online members
+        int onlineCount = (int) members.stream()
+                .filter(m -> presenceService.isOnline(m.getUser().getUsername()))
+                .count();
 
         // Get last message
         List<ChatMessage> lastMessages = chatMessageRepository.findTop100ByGroupOrderBySentAtDesc(g);
@@ -406,12 +419,20 @@ public class ChatService {
 
         String privatePartnerUsername = null;
         String privatePartnerAvatarUrl = null;
+        Boolean partnerOnline = null;
+        LocalDateTime partnerLastSeen = null;
+
         if (g.getType() == GroupType.PRIVATE) {
-            List<GroupMember> members = groupMemberRepository.findByGroup(g);
             for (GroupMember m : members) {
                 if (!m.getUser().getId().equals(currentUser.getId())) {
-                    privatePartnerUsername = m.getUser().getUsername();
-                    privatePartnerAvatarUrl = buildAvatarUrl(m.getUser());
+                    User partner = m.getUser();
+                    privatePartnerUsername = partner.getUsername();
+                    privatePartnerAvatarUrl = buildAvatarUrl(partner);
+                    partnerOnline = presenceService.isOnline(partner.getUsername());
+                    // Only expose lastSeen if the partner allows it and is not currently online
+                    if (!partnerOnline && partner.isShowLastSeen()) {
+                        partnerLastSeen = partner.getLastSeen();
+                    }
                     break;
                 }
             }
@@ -431,6 +452,9 @@ public class ChatService {
                 .lastSenderAvatarUrl(lastSenderAvatarUrl)
                 .privatePartnerUsername(privatePartnerUsername)
                 .privatePartnerAvatarUrl(privatePartnerAvatarUrl)
+                .partnerOnline(partnerOnline)
+                .partnerLastSeen(partnerLastSeen)
+                .onlineCount(onlineCount)
                 .build();
     }
 

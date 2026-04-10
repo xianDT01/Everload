@@ -1365,3 +1365,26 @@ hr {
   color: #a0aec0;
   font-size: 0.82rem;
 }
+
+/* ── Presence indicators (admin panel) ─────────────────────────────────── */
+
+.presence-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.admin-presence-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.admin-presence-dot.admin-online  { background: #22c55e; }
+.admin-presence-dot.admin-offline { background: #6b7280; }
+
+.admin-presence-label { color: #9ca3af; }
+.admin-presence-label.admin-online-label { color: #22c55e; font-weight: 600; }

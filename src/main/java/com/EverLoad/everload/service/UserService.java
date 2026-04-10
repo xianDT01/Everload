@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PresenceService presenceService;
 
     public List<UserDto> getPendingUsers() {
         return userRepository.findByStatus(UserStatus.PENDING)
@@ -79,6 +80,10 @@ public class UserService {
                 .avatarUrl(buildAvatarUrl(user.getAvatarFilename()))
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .online(presenceService.isOnline(user.getUsername()))
+                // Admin view: always include lastSeen for full visibility
+                .lastSeen(user.getLastSeen())
+                .showLastSeen(user.isShowLastSeen())
                 .build();
     }
 

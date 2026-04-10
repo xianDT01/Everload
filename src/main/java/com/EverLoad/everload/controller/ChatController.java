@@ -8,6 +8,7 @@ import com.EverLoad.everload.model.User;
 import com.EverLoad.everload.model.UserStatus;
 import com.EverLoad.everload.repository.UserRepository;
 import com.EverLoad.everload.service.ChatService;
+import com.EverLoad.everload.service.PresenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,6 +27,7 @@ public class ChatController {
 
     private final ChatService chatService;
     private final UserRepository userRepository;
+    private final PresenceService presenceService;
 
     private User getCurrentUser(UserDetails userDetails) {
         return userRepository.findByUsername(userDetails.getUsername())
@@ -110,19 +112,25 @@ public class ChatController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<Map<String, String>>> getActiveUsers(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<Map<String, Object>>> getActiveUsers(@AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = getCurrentUser(userDetails);
         List<User> users = userRepository.findAll().stream()
                 .filter(u -> u.getStatus() == UserStatus.ACTIVE && !u.getId().equals(currentUser.getId()))
                 .collect(Collectors.toList());
 
-        List<Map<String, String>> result = users.stream().map(u -> {
-            Map<String, String> info = new HashMap<>();
+        List<Map<String, Object>> result = users.stream().map(u -> {
+            Map<String, Object> info = new HashMap<>();
             info.put("username", u.getUsername());
-            if (u.getAvatarFilename() != null && !u.getAvatarFilename().isBlank()) {
-                info.put("avatarUrl", "/api/user/avatar/img/" + u.getAvatarFilename());
+            info.put("avatarUrl", (u.getAvatarFilename() != null && !u.getAvatarFilename().isBlank())
+                    ? "/api/user/avatar/img/" + u.getAvatarFilename()
+                    : null);
+            boolean online = presenceService.isOnline(u.getUsername());
+            info.put("online", online);
+            // Only expose lastSeen if the user allows it and is not online
+            if (!online && u.isShowLastSeen() && u.getLastSeen() != null) {
+                info.put("lastSeen", u.getLastSeen().toString());
             } else {
-                info.put("avatarUrl", null);
+                info.put("lastSeen", null);
             }
             return info;
         }).collect(Collectors.toList());

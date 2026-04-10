@@ -25,4 +25,10 @@ public class ChatGroupDto {
     private String lastSenderAvatarUrl;
     private String privatePartnerUsername;
     private String privatePartnerAvatarUrl;
+    /** For PRIVATE chats: whether the partner is currently online. */
+    private Boolean partnerOnline;
+    /** For PRIVATE chats: partner's last seen (null if partner disabled showLastSeen or is online). */
+    private LocalDateTime partnerLastSeen;
+    /** For GROUP/ANNOUNCEMENT: number of members currently online. */
+    private int onlineCount;
 }
