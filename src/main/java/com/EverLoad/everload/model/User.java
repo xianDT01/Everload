@@ -40,6 +40,13 @@ public class User {
     // Nombre del fichero del avatar (null = sin avatar)
     private String avatarFilename;
 
+    /** Last time the user was seen (updated on heartbeat / login / logout). */
+    private LocalDateTime lastSeen;
+
+    /** Whether other users can see this user's "last seen" timestamp. */
+    @Column(nullable = false)
+    private boolean showLastSeen = true;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

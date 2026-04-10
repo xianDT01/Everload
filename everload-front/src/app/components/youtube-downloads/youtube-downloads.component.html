@@ -34,7 +34,7 @@
     <!-- Previsualización del vídeo -->
     <div class="video-preview" *ngIf="getVideoId(videoUrl)">
       <p style="color: white; margin-top: 15px;">{{ 'VIDEO_PREVIEW' | translate }}</p>
-      <iframe [src]="getEmbedUrl(videoUrl)" width="560" height="315" frameborder="0" allowfullscreen></iframe>
+      <iframe [src]="embedUrl" width="560" height="315" frameborder="0" allowfullscreen></iframe>
       <p style="font-size: 12px; color: #ccc;">* {{ 'VIDEO_NOT_LOADING_WARNING' | translate }}</p>
       <div class="preview-actions">
         <a [href]="videoUrl" target="_blank" class="preview-link">

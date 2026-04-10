@@ -49,6 +49,10 @@ public class ProfileService {
             }
         }
 
+        if (request.getShowLastSeen() != null) {
+            user.setShowLastSeen(request.getShowLastSeen());
+        }
+
         return toDto(userRepository.save(user));
     }
 
@@ -76,6 +80,8 @@ public class ProfileService {
                         : null)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .lastSeen(user.getLastSeen())
+                .showLastSeen(user.isShowLastSeen())
                 .build();
     }
 }

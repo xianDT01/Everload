@@ -53,6 +53,28 @@
       </button>
     </section>
 
+    <!-- ══ PRIVACIDAD ════════════════════════════════════════════════════════════ -->
+    <section class="profile-section">
+      <h3 class="section-title">Privacidad</h3>
+
+      <div class="privacy-row">
+        <div class="privacy-label">
+          <span class="privacy-label-title">Mostrar última vez conectado</span>
+          <span class="privacy-label-desc">Otros usuarios podrán ver cuándo fue tu última actividad</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" [(ngModel)]="showLastSeen" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <p *ngIf="privacyMsg" class="msg-success">✅ {{ privacyMsg }}</p>
+
+      <button class="btn-save" (click)="savePrivacy()" [disabled]="savingPrivacy">
+        {{ savingPrivacy ? 'Guardando...' : 'Guardar privacidad' }}
+      </button>
+    </section>
+
     <!-- ══ CAMBIAR CONTRASEÑA ══════════════════════════════════════════════════ -->
     <section class="profile-section">
       <h3 class="section-title">Cambiar contraseña</h3>

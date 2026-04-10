@@ -125,6 +125,12 @@
           <div class="user-card-info">
             <span class="user-card-name">{{ u.username }}</span>
             <span class="user-card-email">{{ u.email }}</span>
+            <span class="presence-cell">
+              <span class="admin-presence-dot" [class.admin-online]="u.online" [class.admin-offline]="!u.online"></span>
+              <span class="admin-presence-label" [class.admin-online-label]="u.online">
+                {{ u.online ? 'En línea' : formatLastSeen(u.lastSeen) }}
+              </span>
+            </span>
           </div>
         </div>
         <div class="user-card-footer">
@@ -147,6 +153,7 @@
             <th></th>
             <th>{{ 'ADMIN.COL_USER' | translate }}</th>
             <th>{{ 'ADMIN.COL_EMAIL' | translate }}</th>
+            <th>Estado</th>
             <th>{{ 'ADMIN.COL_ROLE' | translate }}</th>
             <th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
           </tr>
@@ -161,6 +168,12 @@
             </td>
             <td>{{ u.username }}</td>
             <td>{{ u.email }}</td>
+            <td class="presence-cell">
+              <span class="admin-presence-dot" [class.admin-online]="u.online" [class.admin-offline]="!u.online"></span>
+              <span class="admin-presence-label" [class.admin-online-label]="u.online">
+                {{ u.online ? 'En línea' : formatLastSeen(u.lastSeen) }}
+              </span>
+            </td>
             <td>
               <select [ngModel]="u.role" (ngModelChange)="changeRole(u, $event)" class="role-select">
                 <option *ngFor="let r of roles" [value]="r">{{ r }}</option>

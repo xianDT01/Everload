@@ -5,6 +5,7 @@ import com.EverLoad.everload.dto.LoginRequest;
 import com.EverLoad.everload.dto.RegisterRequest;
 import com.EverLoad.everload.security.JwtUtil;
 import com.EverLoad.everload.service.AuthService;
+import com.EverLoad.everload.service.PresenceService;
 import com.EverLoad.everload.service.TokenRevocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +26,7 @@ public class AuthController {
     private final AuthService authService;
     private final JwtUtil jwtUtil;
     private final TokenRevocationService tokenRevocationService;
+    private final PresenceService presenceService;
 
     @Operation(summary = "Registrar nuevo usuario")
     @PostMapping("/register")
@@ -60,6 +62,9 @@ public class AuthController {
                 String jti = jwtUtil.extractJti(token);
                 java.time.Instant expiresAt = jwtUtil.extractExpiration(token).toInstant();
                 tokenRevocationService.revoke(jti, expiresAt);
+                // Mark user offline immediately on logout
+                String username = jwtUtil.extractUsername(token);
+                presenceService.setOffline(username);
             } catch (Exception ignored) {
                 // Invalid token — logout is idempotent, just return OK
             }

@@ -152,9 +152,14 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   get filteredGroups(): ChatGroupDto[] {
-    if (!this.groupSearch.trim()) return this.groups;
-    const q = this.groupSearch.toLowerCase();
-    return this.groups.filter(g => g.name.toLowerCase().includes(q));
+    const base = this.groupSearch.trim()
+      ? this.groups.filter(g =>
+          g.name.toLowerCase().includes(this.groupSearch.toLowerCase()) ||
+          (g.privatePartnerUsername || '').toLowerCase().includes(this.groupSearch.toLowerCase())
+        )
+      : this.groups;
+    // Keep server-side order (already sorted by lastMessageTime desc)
+    return base;
   }
 
   selectGroup(group: ChatGroupDto): void {
@@ -210,11 +215,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.messages = [...this.messages, msg];
         this.shouldScrollToBottom = true;
 
-        // Update last message in group list
+        // Update last message in group list and re-sort
         const g = this.groups.find(gr => gr.id === this.selectedGroup!.id);
         if (g) {
           g.lastMessage = this.currentUsername + ': ' + content.substring(0, 50);
           g.lastMessageTime = msg.sentAt;
+          // Move this group to the top
+          this.groups = [g, ...this.groups.filter(gr => gr.id !== g.id)];
         }
       },
       error: () => {
@@ -462,6 +469,40 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   toggleThemePicker(): void {
     this.showThemePicker = !this.showThemePicker;
     if (this.showThemePicker) this.showMutePicker = false;
+  }
+
+  // ── Presence helpers ─────────────────────────────────────────────────────
+
+  /** Returns the online status line shown below the group name in the header. */
+  getPresenceSubtitle(group: ChatGroupDto): string {
+    if (group.type === 'PRIVATE') {
+      if (group.partnerOnline) return 'En línea';
+      if (group.partnerLastSeen) return 'Visto ' + this.formatLastSeen(group.partnerLastSeen);
+      return 'Desconectado';
+    }
+    // GROUP or ANNOUNCEMENT
+    const total = group.memberCount;
+    const online = group.onlineCount ?? 0;
+    if (online > 0) {
+      return `${total} miembros · ${online} en línea`;
+    }
+    return `${total} miembros`;
+  }
+
+  /** Human-readable "hace X min" from an ISO date string. */
+  formatLastSeen(dateStr?: string): string {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 60) return 'hace un momento';
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+    return `el ${date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`;
+  }
+
+  /** Whether to show the green online dot on a group item in the sidebar. */
+  isPartnerOnline(group: ChatGroupDto): boolean {
+    return group.type === 'PRIVATE' && group.partnerOnline === true;
   }
 
   // ── Display name and avatar helpers ──────────────────────────────────────

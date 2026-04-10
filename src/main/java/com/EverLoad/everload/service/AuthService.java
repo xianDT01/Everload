@@ -6,6 +6,7 @@ import com.EverLoad.everload.dto.RegisterRequest;
 import com.EverLoad.everload.model.Role;
 import com.EverLoad.everload.model.User;
 import com.EverLoad.everload.model.UserStatus;
+import java.time.LocalDateTime;
 import java.util.List;
 import com.EverLoad.everload.repository.UserRepository;
 import com.EverLoad.everload.security.JwtUtil;
@@ -75,6 +76,10 @@ public class AuthService {
         if (user.getStatus() == UserStatus.REJECTED) {
             throw new IllegalStateException("Tu solicitud de acceso fue rechazada");
         }
+
+        // Record login time as lastSeen
+        user.setLastSeen(LocalDateTime.now());
+        userRepository.save(user);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
         String token = jwtUtil.generateToken(userDetails);

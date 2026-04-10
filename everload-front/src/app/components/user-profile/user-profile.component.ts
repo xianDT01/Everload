@@ -10,6 +10,8 @@ interface ProfileData {
   role: string;
   status: string;
   avatarUrl?: string;
+  showLastSeen?: boolean;
+  lastSeen?: string;
 }
 
 interface UpdateProfileResponse {
@@ -48,6 +50,11 @@ export class UserProfileComponent implements OnInit {
   passwordError = '';
   savingPassword = false;
 
+  // Privacy
+  showLastSeen = true;
+  privacyMsg = '';
+  savingPrivacy = false;
+
   // Avatar
   avatarLoading = false;
   avatarError = '';
@@ -68,6 +75,7 @@ export class UserProfileComponent implements OnInit {
         this.profile = data;
         this.editUsername = data.username;
         this.editEmail = data.email;
+        this.showLastSeen = data.showLastSeen !== false; // default true
       },
       error: () => this.profileError = 'Error al cargar el perfil'
     });
@@ -179,6 +187,24 @@ export class UserProfileComponent implements OnInit {
       error: () => {
         this.avatarError = 'Error al eliminar el avatar';
         this.avatarLoading = false;
+      }
+    });
+  }
+
+  savePrivacy(): void {
+    this.savingPrivacy = true;
+    this.privacyMsg = '';
+    this.http.put<any>(`${this.BASE}/api/user/profile`, {
+      showLastSeen: this.showLastSeen
+    }).subscribe({
+      next: () => {
+        this.privacyMsg = 'Privacidad actualizada correctamente';
+        this.savingPrivacy = false;
+        if (this.profile) this.profile.showLastSeen = this.showLastSeen;
+      },
+      error: () => {
+        this.privacyMsg = 'Error al guardar la configuración';
+        this.savingPrivacy = false;
       }
     });
   }

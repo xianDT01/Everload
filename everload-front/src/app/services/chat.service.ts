@@ -16,6 +16,11 @@ export interface ChatGroupDto {
   lastSenderAvatarUrl?: string;
   privatePartnerUsername?: string;
   privatePartnerAvatarUrl?: string;
+  /** Presence: for PRIVATE chats */
+  partnerOnline?: boolean;
+  partnerLastSeen?: string;
+  /** Presence: for GROUP/ANNOUNCEMENT */
+  onlineCount?: number;
 }
 
 export interface ChatMessageDto {
@@ -60,6 +65,8 @@ export interface CreateGroupRequest {
 export interface ActiveUser {
   username: string;
   avatarUrl?: string;
+  online?: boolean;
+  lastSeen?: string;
 }
 
 export interface NewMessageAlert {

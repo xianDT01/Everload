@@ -205,7 +205,9 @@ public class DownloadService {
         // Elimina el directorio temporal completo después de 5 segundos
         new Thread(() -> {
             try {
-                Thread.sleep(5000);
+                // Wait long enough for the file to finish streaming to the client.
+                // 5s was too short for large video files — using 2 hours as a safe upper bound.
+                Thread.sleep(7_200_000);
                 File parentDir = file.getParentFile();
                 Files.walk(parentDir.toPath())
                         .sorted(Comparator.reverseOrder())
