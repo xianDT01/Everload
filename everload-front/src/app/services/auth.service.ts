@@ -50,6 +50,11 @@ export class AuthService {
   }
 
   logout(): void {
+    const token = this.getToken();
+    if (token) {
+      // Revoke JWT + mark offline — fire-and-forget
+      this.http.post(`${this.BASE}/api/auth/logout`, {}).subscribe({ error: () => {} });
+    }
     localStorage.removeItem('auth_user');
     localStorage.removeItem('auth_token');
     this.currentUserSubject.next(null);

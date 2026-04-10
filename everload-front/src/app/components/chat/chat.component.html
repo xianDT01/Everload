@@ -36,9 +36,18 @@
         [class.active]="selectedGroup?.id === group.id"
         [class.announcement]="isAnnouncementGroup(group)"
         (click)="selectGroup(group)">
-        <div class="group-avatar" [class.announcement-avatar]="isAnnouncementGroup(group)">
-          <img *ngIf="getGroupAvatarUrl(group)" [src]="getGroupAvatarUrl(group)!" class="group-avatar-img" [alt]="getGroupDisplayName(group)" />
-          <span *ngIf="!getGroupAvatarUrl(group)">{{ getGroupIcon(group) }}</span>
+        <div class="group-avatar-wrap">
+          <div class="group-avatar" [class.announcement-avatar]="isAnnouncementGroup(group)">
+            <img *ngIf="getGroupAvatarUrl(group)" [src]="getGroupAvatarUrl(group)!" class="group-avatar-img" [alt]="getGroupDisplayName(group)" />
+            <span *ngIf="!getGroupAvatarUrl(group)">{{ getGroupIcon(group) }}</span>
+          </div>
+          <!-- Online dot for private chats -->
+          <span *ngIf="group.type === 'PRIVATE'"
+                class="presence-dot"
+                [class.presence-dot--online]="isPartnerOnline(group)"
+                [class.presence-dot--offline]="!isPartnerOnline(group)"
+                [title]="isPartnerOnline(group) ? 'En línea' : 'Desconectado'">
+          </span>
         </div>
         <div class="group-info">
           <div class="group-name-row">
@@ -80,14 +89,22 @@
       <!-- Header -->
       <div class="chat-header">
         <button class="mobile-back" (click)="backToSidebar()">←</button>
-        <div class="chat-header-avatar" [class.announcement-avatar]="isAnnouncementGroup(selectedGroup)">
-          <img *ngIf="getGroupAvatarUrl(selectedGroup)" [src]="getGroupAvatarUrl(selectedGroup)!" class="header-avatar-img" [alt]="getGroupDisplayName(selectedGroup)" />
-          <span *ngIf="!getGroupAvatarUrl(selectedGroup)">{{ getGroupIcon(selectedGroup) }}</span>
+        <div class="chat-header-avatar-wrap">
+          <div class="chat-header-avatar" [class.announcement-avatar]="isAnnouncementGroup(selectedGroup)">
+            <img *ngIf="getGroupAvatarUrl(selectedGroup)" [src]="getGroupAvatarUrl(selectedGroup)!" class="header-avatar-img" [alt]="getGroupDisplayName(selectedGroup)" />
+            <span *ngIf="!getGroupAvatarUrl(selectedGroup)">{{ getGroupIcon(selectedGroup) }}</span>
+          </div>
+          <!-- Online dot in header for private chats -->
+          <span *ngIf="selectedGroup.type === 'PRIVATE'"
+                class="presence-dot presence-dot--header"
+                [class.presence-dot--online]="isPartnerOnline(selectedGroup)"
+                [class.presence-dot--offline]="!isPartnerOnline(selectedGroup)">
+          </span>
         </div>
         <div class="chat-header-info">
           <span class="chat-header-name">{{ getGroupDisplayName(selectedGroup) }}</span>
           <span class="chat-header-sub">
-            {{ 'CHAT.MEMBERS_COUNT' | translate:{count: selectedGroup.memberCount} }}
+            <span class="chat-header-presence">{{ getPresenceSubtitle(selectedGroup) }}</span>
             <span *ngIf="isAnnouncementGroup(selectedGroup)" class="official-badge-sm">{{ 'CHAT.OFFICIAL_CHANNEL' | translate }}</span>
           </span>
         </div>
@@ -329,11 +346,22 @@
         <div class="private-user-list">
           <div *ngIf="filteredActiveUsers.length === 0" class="no-users-msg">{{ 'CHAT.NO_USERS_AVAILABLE' | translate }}</div>
           <div *ngFor="let user of filteredActiveUsers" class="private-user-item" (click)="startPrivateChat(user.username)">
-            <div class="private-user-avatar">
-              <img *ngIf="user.avatarUrl" [src]="resolveAvatarUrl(user.avatarUrl)" [alt]="user.username" />
-              <span *ngIf="!user.avatarUrl">{{ getInitials(user.username) }}</span>
+            <div class="private-user-avatar-wrap">
+              <div class="private-user-avatar">
+                <img *ngIf="user.avatarUrl" [src]="resolveAvatarUrl(user.avatarUrl)" [alt]="user.username" />
+                <span *ngIf="!user.avatarUrl">{{ getInitials(user.username) }}</span>
+              </div>
+              <span class="presence-dot presence-dot--sm"
+                    [class.presence-dot--online]="user.online"
+                    [class.presence-dot--offline]="!user.online">
+              </span>
             </div>
-            <span class="private-user-name">{{ user.username }}</span>
+            <div class="private-user-info">
+              <span class="private-user-name">{{ user.username }}</span>
+              <span class="private-user-status" [class.status-online]="user.online">
+                {{ user.online ? 'En línea' : (user.lastSeen ? 'Visto ' + formatLastSeen(user.lastSeen) : 'Desconectado') }}
+              </span>
+            </div>
             <span class="start-chat-icon">→</span>
           </div>
         </div>

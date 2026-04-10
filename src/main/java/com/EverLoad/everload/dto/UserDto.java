@@ -22,4 +22,7 @@ public class UserDto {
     private String avatarUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean online;
+    private LocalDateTime lastSeen;
+    private boolean showLastSeen;
 }

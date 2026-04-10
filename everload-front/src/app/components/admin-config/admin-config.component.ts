@@ -31,6 +31,9 @@ interface UserDto {
   status: string;
   avatarUrl?: string;
   createdAt: string;
+  online?: boolean;
+  lastSeen?: string;
+  showLastSeen?: boolean;
 }
 
 interface AdminChatGroup {
@@ -485,6 +488,16 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   getFullAvatarUrl(url: string | null): string {
     if (!url) return '';
     return url.startsWith('http') ? url : `${this.BASE}${url}`;
+  }
+
+  formatLastSeen(dateStr?: string): string {
+    if (!dateStr) return '—';
+    const date = new Date(dateStr);
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 60) return 'hace un momento';
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' });
   }
 
   getIconPath(plataforma: string): string {

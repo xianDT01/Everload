@@ -192,6 +192,57 @@
   border-color: rgba(255, 193, 7, 0.4);
 }
 
+/* ── Presence wrapper ────────────────────────────────────────────────────── */
+
+.group-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* Online / offline dot — works on any background, uses hard colours */
+.presence-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--cc-sidebar-bg, #16213e);
+  transition: background 0.3s ease;
+}
+
+.presence-dot--online  { background: #22c55e; } /* green — universal */
+.presence-dot--offline { background: #6b7280; } /* gray  — universal */
+
+/* Smaller variant (private chat modal) */
+.presence-dot--sm {
+  width: 9px;
+  height: 9px;
+  border-width: 2px;
+}
+
+/* Header variant — relative to .chat-header-avatar-wrap */
+.chat-header-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.presence-dot--header {
+  width: 13px;
+  height: 13px;
+  bottom: 2px;
+  right: 2px;
+  border-color: var(--cc-header-bg, rgba(0,0,0,0.2));
+  border-width: 2px;
+}
+
+/* Presence subtitle in the header */
+.chat-header-presence {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  transition: color 0.3s ease;
+}
+
 .group-info {
   flex: 1;
   min-width: 0;
@@ -873,8 +924,28 @@
   object-fit: cover;
 }
 
-.private-user-name {
+.private-user-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.private-user-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.private-user-status {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+}
+
+.private-user-status.status-online {
+  color: #22c55e;
+}
+
+.private-user-name {
   font-size: 14px;
   color: #fff;
   font-weight: 500;
