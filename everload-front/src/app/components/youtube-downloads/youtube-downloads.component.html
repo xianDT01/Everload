@@ -257,7 +257,7 @@
           <h3 class="title">{{ video.snippet.title }}</h3>
           <p class="channel">{{ video.snippet.channelTitle }}</p>
           <div class="video-card-actions">
-            <button (click)="videoUrl = 'https://youtube.com/watch?v=' + video.id.videoId">
+            <button (click)="videoUrl = 'https://youtube.com/watch?v=' + video.id.videoId; onVideoUrlChange()">
               {{ 'USE_THIS_VIDEO' | translate }}
             </button>
             <button class="btn-share-card" (click)="openShareModalFromSearch(video)">
