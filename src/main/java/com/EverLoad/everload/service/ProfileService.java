@@ -81,7 +81,7 @@ public class ProfileService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .lastSeen(user.getLastSeen())
-                .showLastSeen(user.isShowLastSeen())
+                .showLastSeen(!Boolean.FALSE.equals(user.getShowLastSeen()))
                 .build();
     }
 }

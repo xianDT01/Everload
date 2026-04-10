@@ -430,7 +430,7 @@ public class ChatService {
                     privatePartnerAvatarUrl = buildAvatarUrl(partner);
                     partnerOnline = presenceService.isOnline(partner.getUsername());
                     // Only expose lastSeen if the partner allows it and is not currently online
-                    if (!partnerOnline && partner.isShowLastSeen()) {
+                    if (!partnerOnline && !Boolean.FALSE.equals(partner.getShowLastSeen())) {
                         partnerLastSeen = partner.getLastSeen();
                     }
                     break;

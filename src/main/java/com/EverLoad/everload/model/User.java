@@ -43,9 +43,8 @@ public class User {
     /** Last time the user was seen (updated on heartbeat / login / logout). */
     private LocalDateTime lastSeen;
 
-    /** Whether other users can see this user's "last seen" timestamp. */
-    @Column(nullable = false)
-    private boolean showLastSeen = true;
+    /** Whether other users can see this user's "last seen" timestamp. Null treated as true. */
+    private Boolean showLastSeen;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -56,6 +55,7 @@ public class User {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (showLastSeen == null) showLastSeen = Boolean.TRUE;
     }
 
     @PreUpdate

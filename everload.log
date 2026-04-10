@@ -1,11 +1,5 @@
-2026-04-10 23:06:59 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
-2026-04-10 23:07:00 WARN  o.h.e.jdbc.spi.SqlExceptionHelper - SQL Error: 42122, SQLState: 42S22
-2026-04-10 23:07:00 ERROR o.h.e.jdbc.spi.SqlExceptionHelper - Columna "U1_0.SHOW_LAST_SEEN" no encontrada
-Column "U1_0.SHOW_LAST_SEEN" not found; SQL statement:
-select u1_0.id,u1_0.avatar_filename,u1_0.created_at,u1_0.email,u1_0.last_seen,u1_0.password,u1_0.role,u1_0.show_last_seen,u1_0.status,u1_0.updated_at,u1_0.username from users u1_0 [42122-232]
-2026-04-10 23:07:00 WARN  c.E.everload.config.DataInitializer - No se pudo inicializar el canal de anuncios: could not prepare statement [Columna "U1_0.SHOW_LAST_SEEN" no encontrada
-Column "U1_0.SHOW_LAST_SEEN" not found; SQL statement:
-select u1_0.id,u1_0.avatar_filename,u1_0.created_at,u1_0.email,u1_0.last_seen,u1_0.password,u1_0.role,u1_0.show_last_seen,u1_0.status,u1_0.updated_at,u1_0.username from users u1_0 [42122-232]] [select u1_0.id,u1_0.avatar_filename,u1_0.created_at,u1_0.email,u1_0.last_seen,u1_0.password,u1_0.role,u1_0.show_last_seen,u1_0.status,u1_0.updated_at,u1_0.username from users u1_0]; SQL [select u1_0.id,u1_0.avatar_filename,u1_0.created_at,u1_0.email,u1_0.last_seen,u1_0.password,u1_0.role,u1_0.show_last_seen,u1_0.status,u1_0.updated_at,u1_0.username from users u1_0]
-2026-04-10 23:07:05 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-04-10 23:07:05 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-04-10 23:07:05 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2026-04-10 23:24:54 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
+2026-04-10 23:24:54 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-10 23:25:02 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-10 23:25:02 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-04-10 23:25:02 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
