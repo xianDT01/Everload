@@ -83,7 +83,7 @@ public class UserService {
                 .online(presenceService.isOnline(user.getUsername()))
                 // Admin view: always include lastSeen for full visibility
                 .lastSeen(user.getLastSeen())
-                .showLastSeen(user.isShowLastSeen())
+                .showLastSeen(!Boolean.FALSE.equals(user.getShowLastSeen()))
                 .build();
     }
 

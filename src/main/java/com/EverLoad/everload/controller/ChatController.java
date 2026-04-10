@@ -127,7 +127,7 @@ public class ChatController {
             boolean online = presenceService.isOnline(u.getUsername());
             info.put("online", online);
             // Only expose lastSeen if the user allows it and is not online
-            if (!online && u.isShowLastSeen() && u.getLastSeen() != null) {
+            if (!online && !Boolean.FALSE.equals(u.getShowLastSeen()) && u.getLastSeen() != null) {
                 info.put("lastSeen", u.getLastSeen().toString());
             } else {
                 info.put("lastSeen", null);
