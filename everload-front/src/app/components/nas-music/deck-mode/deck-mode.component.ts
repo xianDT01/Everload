@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { NasPath, NasService } from '../../../services/nas.service';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/music.service';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../../../services/auth.service';
+import { NasPath, NasService } from '../../../services/nas.service';
 
 @Component({
   selector: 'app-deck-mode',
@@ -22,9 +24,20 @@ export class DeckModeComponent implements OnInit, OnDestroy {
   volA = 1;
   volB = 1;
 
+  browserTab: 'nas' | 'youtube' = 'nas';
+  ytSearchQuery = '';
+  ytSearchResults: any[] = [];
+  ytSearching = false;
+  ytDirectUrl = '';
+
   private subs: Subscription[] = [];
 
-  constructor(public musicService: MusicService, private nasService: NasService) {}
+  constructor(
+    public musicService: MusicService, 
+    private nasService: NasService,
+    private http: HttpClient,
+    private auth: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.musicService.crossfade(0);
@@ -81,10 +94,85 @@ export class DeckModeComponent implements OnInit, OnDestroy {
 
   // ── Deck controls ─────────────────────────────────────────────────────────
 
-  load(deck: 'A' | 'B', track: MusicMetadataDto) {
+  loadNas(deck: 'A' | 'B', track: MusicMetadataDto) {
     if (!this.selectedPathId) return;
+    track.source = 'nas';
     const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
     player.load(track, this.selectedPathId);
+  }
+
+  loadYoutube(deck: 'A' | 'B', video: any) {
+    const videoId = video.id?.videoId || video.id;
+    const title = video.snippet?.title || videoId;
+    const channel = video.snippet?.channelTitle || 'YouTube';
+
+    const track: MusicMetadataDto = {
+      name: videoId,
+      path: videoId,
+      source: 'youtube',
+      directory: false,
+      size: 0,
+      lastModified: '',
+      title: title,
+      artist: channel,
+      album: 'YouTube Audio',
+      duration: 0,
+      format: 'mp3',
+      hasCover: true,
+      bpm: 0
+    };
+
+    const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+    player.load(track, -1);
+  }
+
+  // ── YouTube Browser ───────────────────────────────────────────────────────
+
+  searchYouTube() {
+    if (!this.ytSearchQuery.trim()) return;
+    this.ytSearching = true;
+
+    const base = (() => {
+      const host = typeof window !== 'undefined' ? window.location.hostname : '';
+      return (host === 'localhost' || host === '127.0.0.1') ? 'http://localhost:8080' : '';
+    })();
+
+    this.http.get<any>(`${base}/api/youtube/search`, {
+      params: { query: this.ytSearchQuery }
+    }).subscribe({
+      next: (response) => {
+        this.ytSearchResults = response.items || [];
+        this.ytSearching = false;
+      },
+      error: () => {
+        this.ytSearching = false;
+      }
+    });
+  }
+
+  getYtThumbnail(video: any): string {
+    return video.snippet?.thumbnails?.high?.url || video.snippet?.thumbnails?.default?.url;
+  }
+
+  loadDirectUrl(deck: 'A' | 'B') {
+    if (!this.ytDirectUrl.trim()) return;
+    const videoId = this.extractVideoId(this.ytDirectUrl);
+    if (!videoId) return;
+    const track: MusicMetadataDto = {
+      name: videoId, path: videoId, source: 'youtube',
+      directory: false, size: 0, lastModified: '',
+      title: this.ytDirectUrl, artist: 'YouTube',
+      album: 'YouTube', duration: 0, format: 'mp3',
+      hasCover: true, bpm: 0
+    };
+    const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+    player.load(track, -1);
+    this.ytDirectUrl = '';
+  }
+
+  private extractVideoId(url: string): string | null {
+    const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:[&?]|$)/);
+    return match ? match[1] : null;
   }
 
   togglePlay(deck: 'A' | 'B') {
@@ -120,8 +208,14 @@ export class DeckModeComponent implements OnInit, OnDestroy {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   coverUrl(state: PlayerState | null): string {
-    if (!state?.currentTrack?.hasCover || !state.pathId) return '';
-    return this.musicService.getCoverUrl(state.pathId, state.currentTrack.path);
+    if (!state?.currentTrack) return '';
+    const track = state.currentTrack;
+    if (track.source === 'youtube') {
+      // Use YouTube thumbnail directly (no auth needed)
+      return `https://img.youtube.com/vi/${track.path}/hqdefault.jpg`;
+    }
+    if (!track.hasCover || !state.pathId) return '';
+    return this.musicService.getCoverUrl(state.pathId, track.path, track.source);
   }
 
   progressPct(state: PlayerState | null): number {

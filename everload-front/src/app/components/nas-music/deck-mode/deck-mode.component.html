@@ -21,8 +21,10 @@
         </div>
 
         <div class="deck-info">
-          <div class="deck-title">{{ stateA?.currentTrack?.title || stateA?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate) }}</div>
-          <div class="deck-artist">{{ stateA?.currentTrack?.artist || '' }}</div>
+          <div *ngIf="stateA?.loading" class="deck-title loading-pulse">Descargando...</div>
+          <div *ngIf="stateA?.error && !stateA?.loading" class="deck-error">⚠ {{ stateA?.error }}</div>
+          <div *ngIf="!stateA?.loading && !stateA?.error" class="deck-title" [innerHTML]="stateA?.currentTrack?.title || stateA?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate)"></div>
+          <div *ngIf="!stateA?.loading && !stateA?.error" class="deck-artist">{{ stateA?.currentTrack?.artist || '' }}</div>
         </div>
 
         <div class="deck-time deck-a-time">
@@ -117,8 +119,10 @@
         </div>
 
         <div class="deck-info">
-          <div class="deck-title">{{ stateB?.currentTrack?.title || stateB?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate) }}</div>
-          <div class="deck-artist">{{ stateB?.currentTrack?.artist || '' }}</div>
+          <div *ngIf="stateB?.loading" class="deck-title loading-pulse">Descargando...</div>
+          <div *ngIf="stateB?.error && !stateB?.loading" class="deck-error">⚠ {{ stateB?.error }}</div>
+          <div *ngIf="!stateB?.loading && !stateB?.error" class="deck-title" [innerHTML]="stateB?.currentTrack?.title || stateB?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate)"></div>
+          <div *ngIf="!stateB?.loading && !stateB?.error" class="deck-artist">{{ stateB?.currentTrack?.artist || '' }}</div>
         </div>
 
         <div class="deck-time deck-b-time">
@@ -149,60 +153,117 @@
   </div>
 
   <!-- ══ BROWSER ════════════════════════════════════════════════════════════ -->
-  <div class="browser-section">
-
-    <nav class="browser-sidebar">
-      <div class="bs-title">{{ 'MUSIC.DECK_FILES' | translate }}</div>
-      <ul>
-        <li *ngFor="let p of paths" [class.active]="p.id === selectedPathId" (click)="selectPath(p.id)">
-          📚 {{ p.name }}
-        </li>
-      </ul>
-    </nav>
-
-    <div class="browser-main">
-      <div class="browser-toolbar">
-        <button class="brow-btn" (click)="goUp()" [disabled]="isRoot">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-        </button>
-        <span class="brow-path">/ {{ currentSubPath || ('MUSIC.DECK_ROOT' | translate) }}</span>
-      </div>
-
-      <div class="browser-list">
-        <table>
-          <thead>
-            <tr>
-              <th class="bc-icon"></th>
-              <th class="bc-name">{{ 'MUSIC.DECK_COL_NAME' | translate }}</th>
-              <th class="bc-artist">{{ 'MUSIC.DECK_COL_ARTIST' | translate }}</th>
-              <th class="bc-dur">{{ 'MUSIC.DECK_COL_DUR' | translate }}</th>
-              <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of folders" class="brow-folder" (dblclick)="navigate(item)">
-              <td class="bc-icon">📁</td>
-              <td class="bc-name" colspan="3">{{ item.name }}</td>
-              <td></td>
-            </tr>
-            <tr *ngFor="let item of tracks" class="brow-track">
-              <td class="bc-icon">🎵</td>
-              <td class="bc-name">{{ item.title || item.name }}</td>
-              <td class="bc-artist">{{ item.artist || '—' }}</td>
-              <td class="bc-dur">{{ fmt(item.duration) }}</td>
-              <td class="bc-load">
-                <button class="load-a" (click)="load('A', item)">▲ A</button>
-                <button class="load-b" (click)="load('B', item)">▲ B</button>
-              </td>
-            </tr>
-            <tr *ngIf="items.length === 0">
-              <td colspan="5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <div class="browser-section-wrapper">
+    <div class="browser-tabs">
+      <button class="b-tab" [class.active]="browserTab === 'nas'" (click)="browserTab = 'nas'">📚 NAS Library</button>
+      <button class="b-tab" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">🔴 YouTube</button>
     </div>
 
-  </div>
+    <!-- NAS Browser -->
+    <div class="browser-section" *ngIf="browserTab === 'nas'">
+
+      <nav class="browser-sidebar">
+        <div class="bs-title">{{ 'MUSIC.DECK_FILES' | translate }}</div>
+        <ul>
+          <li *ngFor="let p of paths" [class.active]="p.id === selectedPathId" (click)="selectPath(p.id)">
+            📚 {{ p.name }}
+          </li>
+        </ul>
+      </nav>
+
+      <div class="browser-main">
+        <div class="browser-toolbar">
+          <button class="brow-btn" (click)="goUp()" [disabled]="isRoot">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          </button>
+          <span class="brow-path">/ {{ currentSubPath || ('MUSIC.DECK_ROOT' | translate) }}</span>
+        </div>
+
+        <div class="browser-list">
+          <table>
+            <thead>
+              <tr>
+                <th class="bc-icon"></th>
+                <th class="bc-name">{{ 'MUSIC.DECK_COL_NAME' | translate }}</th>
+                <th class="bc-artist">{{ 'MUSIC.DECK_COL_ARTIST' | translate }}</th>
+                <th class="bc-dur">{{ 'MUSIC.DECK_COL_DUR' | translate }}</th>
+                <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of folders" class="brow-folder" (dblclick)="navigate(item)">
+                <td class="bc-icon">📁</td>
+                <td class="bc-name" colspan="3">{{ item.name }}</td>
+                <td></td>
+              </tr>
+              <tr *ngFor="let item of tracks" class="brow-track">
+                <td class="bc-icon">🎵</td>
+                <td class="bc-name">{{ item.title || item.name }}</td>
+                <td class="bc-artist">{{ item.artist || '—' }}</td>
+                <td class="bc-dur">{{ fmt(item.duration) }}</td>
+                <td class="bc-load">
+                  <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
+                  <button class="load-b" (click)="loadNas('B', item)">▲ B</button>
+                </td>
+              </tr>
+              <tr *ngIf="items.length === 0">
+                <td colspan="5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /NAS browser-section -->
+
+    <!-- YouTube Browser -->
+    <div class="browser-section yt" *ngIf="browserTab === 'youtube'">
+      <div class="browser-main">
+        <div class="browser-toolbar">
+          <input type="text" class="yt-search-input" placeholder="Buscar música en YouTube..."
+                 [(ngModel)]="ytSearchQuery" (keyup.enter)="searchYouTube()" />
+          <button class="yt-search-btn" (click)="searchYouTube()">
+             <span *ngIf="ytSearching">...</span>
+             <span *ngIf="!ytSearching">Buscar</span>
+          </button>
+        </div>
+        <div class="browser-toolbar yt-url-bar">
+          <span class="yt-url-icon">🔗</span>
+          <input type="text" class="yt-search-input" placeholder="Pegar enlace de YouTube..."
+                 [(ngModel)]="ytDirectUrl" (keyup.enter)="loadDirectUrl('A')" />
+          <button class="load-a" (click)="loadDirectUrl('A')">▲ A</button>
+          <button class="load-b" (click)="loadDirectUrl('B')">▲ B</button>
+        </div>
+
+        <div class="browser-list">
+          <table>
+            <thead>
+              <tr>
+                <th class="bc-icon">🖼</th>
+                <th class="bc-name">Video</th>
+                <th class="bc-artist">Channel</th>
+                <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of ytSearchResults" class="brow-track">
+                <td class="bc-icon yt-icon"><img [src]="getYtThumbnail(item)" class="yt-thumb-mini"></td>
+                <td class="bc-name yt-title" [innerHTML]="item.snippet?.title"></td>
+                <td class="bc-artist">{{ item.snippet?.channelTitle }}</td>
+                <td class="bc-load">
+                  <button class="load-a" (click)="loadYoutube('A', item)">▲ A</button>
+                  <button class="load-b" (click)="loadYoutube('B', item)">▲ B</button>
+                </td>
+              </tr>
+              <tr *ngIf="ytSearchResults.length === 0">
+                <td colspan="4" class="brow-empty">Busca una canción o sesión</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /YouTube browser-section -->
+
+  </div><!-- /browser-section-wrapper -->
 
 </div>

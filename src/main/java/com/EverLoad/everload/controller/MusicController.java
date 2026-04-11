@@ -112,4 +112,57 @@ public class MusicController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    // ── YouTube DJ Cache ──────────────────────────────────────────────────────
+
+    @Operation(summary = "Preparar y cachear audio de youtube para la cabina DJ")
+    @PostMapping("/youtube/prepare")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> prepareYoutubeTrack(@RequestParam String videoId) {
+        try {
+            musicService.prepareYoutubeTrack(videoId);
+            return ResponseEntity.ok(Map.of("message", "Ready", "videoId", videoId));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Streaming de audio cacheado de youtube con soporte Accept-Ranges")
+    @GetMapping("/youtube/stream")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> streamYoutubeAudio(@RequestParam String videoId,
+                                                @RequestHeader HttpHeaders requestHeaders) {
+        try {
+            Resource resource = musicService.getYoutubeAudioResource(videoId);
+            MediaType mediaType = MediaTypeFactory.getMediaType(resource)
+                    .orElse(MediaType.APPLICATION_OCTET_STREAM);
+
+            List<HttpRange> ranges = requestHeaders.getRange();
+
+            if (ranges.isEmpty()) {
+                return ResponseEntity.ok()
+                        .contentType(mediaType)
+                        .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                        .body(resource);
+            }
+
+            ResourceRegion region = musicService.streamYoutubeAudio(videoId, requestHeaders);
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                    .contentType(mediaType)
+                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
+                    .body(region);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    @Operation(summary = "Obtener miniatura de youtube redireccionada")
+    @GetMapping("/youtube/cover")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> getYoutubeCover(@RequestParam String videoId) {
+        // Redirect to high quality youtube thumbnail
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(java.net.URI.create("https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg"));
+        return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
 }
