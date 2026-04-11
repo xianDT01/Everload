@@ -1,6 +1,30 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/music.service';
+
+interface QueueItem {
+  track: MusicMetadataDto;
+  pathId: number; // -1 para local/youtube
+}
+
+interface TreeNode {
+  key: string;
+  name: string;
+  depth: number;
+  expanded: boolean;
+  loading: boolean;
+  childrenLoaded: boolean;
+  children: TreeNode[];
+  source: 'nas' | 'local';
+  isRoot: boolean;
+  // NAS-specific
+  pathId?: number;
+  subPath?: string;
+  // Local-specific
+  localHandle?: any;        // FileSystemDirectoryHandle (FS API) | string (fallback root name)
+  localVirtualPath?: string; // Only in fallback mode
+  localFallbackMode?: boolean;
+}
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { NasPath, NasService } from '../../../services/nas.service';
@@ -22,6 +46,20 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedPathId: number | null = null;
   currentSubPath = '';
   items: MusicMetadataDto[] = [];
+
+  // ── Queue ─────────────────────────────────────────────────────────────────
+  queueA: QueueItem[] = [];
+  queueB: QueueItem[] = [];
+  showQueueA = false;
+  showQueueB = false;
+  private prevPlayingA = false;
+  private prevPlayingB = false;
+
+  // ── Folder Tree ───────────────────────────────────────────────────────────
+  treeRoots: TreeNode[] = [];
+  visibleTreeNodes: TreeNode[] = [];
+  treeSelectedKey: string | null = null;
+  treeWidth = 210;
 
   stateA: PlayerState | null = null;
   stateB: PlayerState | null = null;
@@ -50,6 +88,8 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   localCurrentPathStr = '';
   localFsApiSupported = typeof (window as any) !== 'undefined' && typeof (window as any).showDirectoryPicker === 'function';
   localFallbackMode = false;
+  private localFallbackAllFiles: File[] = [];
+  private localFallbackCurrentPath = '';
 
   @ViewChild('localFileInput') localFileInputRef?: ElementRef<HTMLInputElement>;
   
@@ -104,11 +144,18 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.nasService.getPaths().subscribe(paths => {
       this.paths = paths;
       if (paths.length > 0) this.selectPath(paths[0].id);
+      this.buildNasTree();
     });
 
     this.subs.push(
-      this.musicService.deckAPlayer.state$.subscribe(s => this.stateA = s),
-      this.musicService.deckBPlayer.state$.subscribe(s => this.stateB = s),
+      this.musicService.deckAPlayer.state$.subscribe(s => {
+        this.stateA = s;
+        this.checkQueueAdvance('A', s);
+      }),
+      this.musicService.deckBPlayer.state$.subscribe(s => {
+        this.stateB = s;
+        this.checkQueueAdvance('B', s);
+      }),
       this.midiService.devices$.subscribe(d => this.midiDevices = d),
       this.midiService.activeDeviceId$.subscribe(id => this.activeMidiDeviceId = id),
       this.midiService.isLearning$.subscribe(l => this.isMidiLearning = l),
@@ -469,6 +516,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
         this.localDirStack = [handle];
         this.localCurrentPathStr = handle.name;
         await this.loadLocalDir(handle);
+        this.addLocalRootToTree(handle.name, handle, false);
       } catch (e: any) {
         if (e?.name !== 'AbortError') console.warn('Error accediendo a carpeta:', e);
       }
@@ -483,57 +531,54 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!input.files?.length) return;
 
     const audioRe = /\.(mp3|wav|flac|ogg|m4a|aac|opus|wma)$/i;
-    const files = Array.from(input.files).filter(f => audioRe.test(f.name));
+    // Guardamos TODOS los ficheros de audio para el árbol virtual
+    this.localFallbackAllFiles = Array.from(input.files).filter(f => audioRe.test(f.name));
+    if (this.localFallbackAllFiles.length === 0) { input.value = ''; return; }
 
-    const items: MusicMetadataDto[] = files.map(f => ({
-      name: f.name,
-      path: URL.createObjectURL(f),
-      directory: false, size: f.size,
-      lastModified: new Date(f.lastModified).toISOString(),
-      title: f.name.replace(/\.[^.]+$/, ''),
-      artist: '', album: '',
-      duration: 0,
-      format: (f.name.split('.').pop() || '').toLowerCase(),
-      hasCover: false, bpm: 0,
-      source: 'local' as const,
-      localHandle: null
-    }));
+    const rootName = ((this.localFallbackAllFiles[0] as any).webkitRelativePath as string)
+      .split('/')[0] || 'Archivos locales';
 
-    items.sort((a, b) => a.name.localeCompare(b.name));
-
-    const rootName = (files[0] as any)?.webkitRelativePath?.split('/')[0] || 'Archivos locales';
     this.localFallbackMode = true;
     this.localRootHandle = rootName;
-    this.localDirStack = [];
+    this.localFallbackCurrentPath = rootName;
+    this.localDirStack = [rootName];
     this.localCurrentPathStr = rootName;
-    this.localItems = items;
-    this.selectedIndex = -1;
 
-    input.value = ''; // Permite reseleccionar la misma carpeta
+    this.renderFallbackDir(rootName);
+    this.addLocalRootToTree(rootName, rootName, true);
+    input.value = '';
   }
+
+  // ── File System Access API (Chrome/Edge) ─────────────────────────────────
 
   async loadLocalDir(dirHandle: any) {
     const items: MusicMetadataDto[] = [];
-    for await (const entry of dirHandle.values()) {
-      if (entry.kind === 'file') {
-         if (entry.name.match(/\.(mp3|wav|flac|ogg|m4a|aac)$/i)) {
-           items.push({
-             name: entry.name, path: '', directory: false, size: 0,
-             lastModified: '', title: entry.name, artist: '', album: '',
-             duration: 0, format: 'local', hasCover: false, bpm: 0,
-             source: 'local', localHandle: entry
-           });
-         }
-      } else if (entry.kind === 'directory') {
-         items.push({
-             name: entry.name, path: '', directory: true, size: 0,
-             lastModified: '', title: entry.name, artist: '', album: '',
-             duration: 0, format: 'dir', hasCover: false, bpm: 0,
-             source: 'local', localHandle: entry
-         });
+    const audioRe = /\.(mp3|wav|flac|ogg|m4a|aac|opus|wma)$/i;
+    try {
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === 'file') {
+          if (audioRe.test(entry.name)) {
+            items.push({
+              name: entry.name, path: '', directory: false, size: 0,
+              lastModified: '', title: entry.name.replace(/\.[^.]+$/, ''),
+              artist: '', album: '',
+              duration: 0, format: 'local', hasCover: false, bpm: 0,
+              source: 'local', localHandle: entry
+            });
+          }
+        } else if (entry.kind === 'directory') {
+          items.push({
+            name: entry.name, path: '', directory: true, size: 0,
+            lastModified: '', title: entry.name, artist: '', album: '',
+            duration: 0, format: 'dir', hasCover: false, bpm: 0,
+            source: 'local', localHandle: entry
+          });
+        }
       }
+    } catch (e) {
+      console.error('Error leyendo directorio:', e);
     }
-    items.sort((a,b) => {
+    items.sort((a, b) => {
       if (a.directory && !b.directory) return -1;
       if (!a.directory && b.directory) return 1;
       return a.name.localeCompare(b.name);
@@ -544,19 +589,133 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   async navigateLocal(item: MusicMetadataDto) {
     if (!item.directory) return;
-    this.localDirStack.push(item.localHandle);
-    this.localCurrentPathStr += '/' + item.name;
-    await this.loadLocalDir(item.localHandle);
+    if (this.localFallbackMode) {
+      // Fallback: item.path = ruta virtual ("Musica/SubCarpeta")
+      this.localFallbackCurrentPath = item.path;
+      this.localDirStack.push(item.path);
+      this.localCurrentPathStr = item.path;
+      this.renderFallbackDir(item.path);
+    } else {
+      this.localDirStack.push(item.localHandle);
+      this.localCurrentPathStr += '/' + item.name;
+      await this.loadLocalDir(item.localHandle);
+    }
   }
 
   async goUpLocal() {
     if (this.localDirStack.length <= 1) return;
     this.localDirStack.pop();
-    const handle = this.localDirStack[this.localDirStack.length - 1];
-    const parts = this.localCurrentPathStr.split('/');
-    parts.pop();
-    this.localCurrentPathStr = parts.join('/');
-    await this.loadLocalDir(handle);
+    if (this.localFallbackMode) {
+      const parentPath = this.localDirStack[this.localDirStack.length - 1] as string;
+      this.localFallbackCurrentPath = parentPath;
+      this.localCurrentPathStr = parentPath;
+      this.renderFallbackDir(parentPath);
+    } else {
+      const handle = this.localDirStack[this.localDirStack.length - 1];
+      const parts = this.localCurrentPathStr.split('/');
+      parts.pop();
+      this.localCurrentPathStr = parts.join('/');
+      await this.loadLocalDir(handle);
+    }
+  }
+
+  // ── Fallback: árbol virtual desde webkitRelativePath ─────────────────────
+
+  private renderFallbackDir(currentPath: string) {
+    const audioRe = /\.(mp3|wav|flac|ogg|m4a|aac|opus|wma)$/i;
+    const subdirs = new Map<string, string>(); // name → fullPath
+    const files: MusicMetadataDto[] = [];
+
+    for (const f of this.localFallbackAllFiles) {
+      const rel = (f as any).webkitRelativePath as string; // "Root/SubDir/file.mp3"
+      if (!rel.startsWith(currentPath + '/')) continue;
+      const remainder = rel.slice(currentPath.length + 1); // "SubDir/file.mp3" or "file.mp3"
+      const parts = remainder.split('/');
+
+      if (parts.length === 1 && audioRe.test(parts[0])) {
+        // Archivo directo en este nivel
+        files.push({
+          name: f.name, path: URL.createObjectURL(f),
+          directory: false, size: f.size,
+          lastModified: new Date(f.lastModified).toISOString(),
+          title: f.name.replace(/\.[^.]+$/, ''),
+          artist: '', album: '', duration: 0,
+          format: (f.name.split('.').pop() || '').toLowerCase(),
+          hasCover: false, bpm: 0,
+          source: 'local' as const, localHandle: null
+        });
+      } else if (parts.length > 1) {
+        // Subdirectorio
+        const subdirName = parts[0];
+        const fullSubPath = currentPath + '/' + subdirName;
+        subdirs.set(subdirName, fullSubPath);
+      }
+    }
+
+    const dirItems: MusicMetadataDto[] = Array.from(subdirs.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, fullPath]) => ({
+        name, path: fullPath, directory: true, size: 0,
+        lastModified: '', title: name, artist: '', album: '',
+        duration: 0, format: 'dir', hasCover: false, bpm: 0,
+        source: 'local' as const, localHandle: null
+      }));
+
+    files.sort((a, b) => a.name.localeCompare(b.name));
+    this.localItems = [...dirItems, ...files];
+    this.selectedIndex = -1;
+  }
+
+  // ── Carga recursiva de carpeta completa ───────────────────────────────────
+
+  async loadAllFromDir(deck: 'A' | 'B', item: MusicMetadataDto) {
+    const tracks: MusicMetadataDto[] = [];
+
+    if (this.localFallbackMode) {
+      // Fallback: filtrar todos los ficheros bajo ese path
+      const audioRe = /\.(mp3|wav|flac|ogg|m4a|aac|opus|wma)$/i;
+      const prefix = item.path + '/';
+      for (const f of this.localFallbackAllFiles) {
+        const rel = (f as any).webkitRelativePath as string;
+        if (rel.startsWith(prefix) && audioRe.test(f.name)) {
+          tracks.push({
+            name: f.name, path: URL.createObjectURL(f),
+            directory: false, size: f.size,
+            lastModified: new Date(f.lastModified).toISOString(),
+            title: f.name.replace(/\.[^.]+$/, ''),
+            artist: '', album: '', duration: 0,
+            format: (f.name.split('.').pop() || '').toLowerCase(),
+            hasCover: false, bpm: 0,
+            source: 'local' as const, localHandle: null
+          });
+        }
+      }
+    } else {
+      // File System Access API: recoger tracks recursivamente
+      await this.collectDirTracks(item.localHandle, tracks);
+    }
+
+    if (tracks.length === 0) return;
+    tracks.sort((a, b) => a.name.localeCompare(b.name));
+    await this.loadLocalTrack(deck, tracks[0]);
+  }
+
+  private async collectDirTracks(dirHandle: any, result: MusicMetadataDto[]) {
+    const audioRe = /\.(mp3|wav|flac|ogg|m4a|aac|opus|wma)$/i;
+    try {
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === 'file' && audioRe.test(entry.name)) {
+          result.push({
+            name: entry.name, path: '', directory: false, size: 0,
+            lastModified: '', title: entry.name.replace(/\.[^.]+$/, ''),
+            artist: '', album: '', duration: 0, format: 'local',
+            hasCover: false, bpm: 0, source: 'local' as const, localHandle: entry
+          });
+        } else if (entry.kind === 'directory') {
+          await this.collectDirTracks(entry, result);
+        }
+      }
+    } catch (e) { console.error('Error leyendo subdirectorio:', e); }
   }
 
   get isLocalRoot() { return this.localDirStack.length <= 1; }
@@ -731,6 +890,288 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
   crossPctB(): number {
     return Math.round(Math.cos((1 - (this.crossValue + 1) / 2) * Math.PI / 2) * 100);
+  }
+
+  // ── Queue ─────────────────────────────────────────────────────────────────
+
+  addToQueue(deck: 'A' | 'B', track: MusicMetadataDto, pathId: number = -1) {
+    const item: QueueItem = { track: { ...track }, pathId };
+    if (deck === 'A') this.queueA.push(item);
+    else              this.queueB.push(item);
+  }
+
+  removeFromQueue(deck: 'A' | 'B', index: number) {
+    if (deck === 'A') this.queueA.splice(index, 1);
+    else              this.queueB.splice(index, 1);
+  }
+
+  clearQueue(deck: 'A' | 'B') {
+    if (deck === 'A') this.queueA = [];
+    else              this.queueB = [];
+  }
+
+  private checkQueueAdvance(deck: 'A' | 'B', state: PlayerState | null) {
+    const prevPlaying = deck === 'A' ? this.prevPlayingA : this.prevPlayingB;
+    const queue       = deck === 'A' ? this.queueA       : this.queueB;
+
+    // Detect natural end: was playing, now stopped, at least 95% through
+    if (prevPlaying && state && !state.playing
+        && state.duration > 0
+        && state.currentTime / state.duration > 0.95
+        && queue.length > 0) {
+      const next = queue.shift()!;
+      this.loadQueueItem(deck, next);
+    }
+
+    if (deck === 'A') this.prevPlayingA = state?.playing ?? false;
+    else              this.prevPlayingB = state?.playing ?? false;
+  }
+
+  private loadQueueItem(deck: 'A' | 'B', item: QueueItem) {
+    const track = item.track;
+    if (track.source === 'youtube') {
+      this.loadYoutube(deck, { id: track.path, snippet: { title: track.title, channelTitle: track.artist } });
+    } else if (track.source === 'local') {
+      this.loadLocalTrack(deck, track);
+    } else {
+      this.loadNas(deck, track);
+    }
+  }
+
+  queueTrackLabel(item: QueueItem): string {
+    return item.track.title || item.track.name || '—';
+  }
+
+  // ── Folder Tree ──────────────────────────────────────────────────────────
+
+  private buildNasTree() {
+    // Keep any existing local roots in the tree
+    const localRoots = this.treeRoots.filter(r => r.source === 'local');
+    const nasRoots: TreeNode[] = this.paths.map(p => ({
+      key: `nas:${p.id}:`,
+      name: p.name,
+      depth: 0,
+      expanded: false,
+      loading: false,
+      childrenLoaded: false,
+      children: [],
+      source: 'nas' as const,
+      pathId: p.id,
+      subPath: '',
+      isRoot: true
+    }));
+    this.treeRoots = [...nasRoots, ...localRoots];
+    this.buildVisibleTree();
+  }
+
+  addLocalRootToTree(name: string, handle: any, fallbackMode: boolean) {
+    const key = `local:${name}`;
+    // Remove any existing root with the same name
+    this.treeRoots = this.treeRoots.filter(r => r.key !== key);
+    const root: TreeNode = {
+      key,
+      name,
+      depth: 0,
+      expanded: false,
+      loading: false,
+      childrenLoaded: false,
+      children: [],
+      source: 'local',
+      isRoot: true,
+      localHandle: handle,
+      localVirtualPath: fallbackMode ? name : undefined,
+      localFallbackMode: fallbackMode
+    };
+    this.treeRoots.push(root);
+    this.buildVisibleTree();
+  }
+
+  buildVisibleTree() {
+    this.visibleTreeNodes = [];
+    this.flattenVisible(this.treeRoots);
+  }
+
+  private flattenVisible(nodes: TreeNode[]) {
+    for (const n of nodes) {
+      this.visibleTreeNodes.push(n);
+      if (n.expanded) this.flattenVisible(n.children);
+    }
+  }
+
+  toggleTreeNode(node: TreeNode) {
+    if (node.expanded) {
+      node.expanded = false;
+      this.buildVisibleTree();
+      return;
+    }
+    if (!node.childrenLoaded) {
+      if (node.source === 'nas') {
+        node.loading = true;
+        this.musicService.browse(node.pathId!, node.subPath!).subscribe(items => {
+          node.children = items
+            .filter(i => i.directory)
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(i => {
+              const sub = node.subPath ? `${node.subPath}/${i.name}` : i.name;
+              return {
+                key: `nas:${node.pathId}:${sub}`,
+                name: i.name,
+                depth: node.depth + 1,
+                expanded: false,
+                loading: false,
+                childrenLoaded: false,
+                children: [],
+                source: 'nas' as const,
+                pathId: node.pathId,
+                subPath: sub,
+                isRoot: false
+              };
+            });
+          node.childrenLoaded = true;
+          node.loading = false;
+          node.expanded = true;
+          this.buildVisibleTree();
+        });
+      } else {
+        // Local source
+        node.loading = true;
+        this.loadLocalTreeChildren(node).then(() => {
+          node.childrenLoaded = true;
+          node.loading = false;
+          node.expanded = true;
+          this.ngZone.run(() => this.buildVisibleTree());
+        });
+      }
+    } else {
+      node.expanded = true;
+      this.buildVisibleTree();
+    }
+  }
+
+  private async loadLocalTreeChildren(node: TreeNode): Promise<void> {
+    if (node.localFallbackMode) {
+      // Build children from virtual path using localFallbackAllFiles
+      const currentPath = node.localVirtualPath!;
+      const subdirs = new Map<string, string>();
+      for (const f of this.localFallbackAllFiles) {
+        const rel = (f as any).webkitRelativePath as string;
+        if (!rel.startsWith(currentPath + '/')) continue;
+        const remainder = rel.slice(currentPath.length + 1);
+        const parts = remainder.split('/');
+        if (parts.length > 1) {
+          subdirs.set(parts[0], currentPath + '/' + parts[0]);
+        }
+      }
+      node.children = Array.from(subdirs.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, vPath]) => ({
+          key: `local:${vPath}`,
+          name,
+          depth: node.depth + 1,
+          expanded: false,
+          loading: false,
+          childrenLoaded: false,
+          children: [],
+          source: 'local' as const,
+          isRoot: false,
+          localHandle: null,
+          localVirtualPath: vPath,
+          localFallbackMode: true
+        }));
+    } else {
+      // File System Access API
+      const children: TreeNode[] = [];
+      try {
+        for await (const entry of node.localHandle.values()) {
+          if (entry.kind === 'directory') {
+            const childKey = node.key + '/' + entry.name;
+            children.push({
+              key: childKey,
+              name: entry.name,
+              depth: node.depth + 1,
+              expanded: false,
+              loading: false,
+              childrenLoaded: false,
+              children: [],
+              source: 'local' as const,
+              isRoot: false,
+              localHandle: entry,
+              localFallbackMode: false
+            });
+          }
+        }
+      } catch (e) { console.error('Error reading directory tree:', e); }
+      children.sort((a, b) => a.name.localeCompare(b.name));
+      node.children = children;
+    }
+  }
+
+  selectTreeFolder(node: TreeNode) {
+    this.treeSelectedKey = node.key;
+    if (node.source === 'nas') {
+      this.selectedPathId = node.pathId!;
+      this.currentSubPath = node.subPath!;
+      this.browserTab = 'nas';
+      this.loadDir();
+    } else {
+      // Local node: switch to local tab and navigate into this folder
+      this.browserTab = 'local';
+      if (node.localFallbackMode) {
+        const vPath = node.localVirtualPath!;
+        this.localFallbackCurrentPath = vPath;
+        // Reconstruct dirStack from path segments
+        const parts = vPath.split('/');
+        this.localDirStack = parts.reduce((acc: string[], _, i) => {
+          acc.push(parts.slice(0, i + 1).join('/'));
+          return acc;
+        }, []);
+        this.localCurrentPathStr = vPath;
+        this.renderFallbackDir(vPath);
+      } else {
+        // FS API: navigate to this handle
+        this.localRootHandle = node.isRoot ? node.localHandle : this.localRootHandle;
+        this.localDirStack = [node.localHandle];
+        this.localCurrentPathStr = node.name;
+        this.loadLocalDir(node.localHandle);
+      }
+    }
+  }
+
+  get breadcrumbs(): { label: string; subPath: string }[] {
+    const rootName = this.paths.find(p => p.id === this.selectedPathId)?.name ?? '';
+    const crumbs: { label: string; subPath: string }[] = [{ label: rootName, subPath: '' }];
+    if (!this.currentSubPath) return crumbs;
+    let acc = '';
+    for (const part of this.currentSubPath.split('/').filter(Boolean)) {
+      acc = acc ? `${acc}/${part}` : part;
+      crumbs.push({ label: part, subPath: acc });
+    }
+    return crumbs;
+  }
+
+  navigateToBreadcrumb(crumb: { label: string; subPath: string }) {
+    this.currentSubPath = crumb.subPath;
+    this.loadDir();
+    // sync tree selection
+    if (this.selectedPathId !== null) {
+      const key = `nas:${this.selectedPathId}:${crumb.subPath}`;
+      this.treeSelectedKey = crumb.subPath === '' ? `nas:${this.selectedPathId}:` : key;
+    }
+  }
+
+  startTreeResize(e: MouseEvent) {
+    const startX = e.clientX;
+    const startW = this.treeWidth;
+    const move = (ev: MouseEvent) => {
+      this.treeWidth = Math.max(150, Math.min(420, startW + ev.clientX - startX));
+    };
+    const up = () => {
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.preventDefault();
   }
 
   // ── MIDI Handling ─────────────────────────────────────────────────────────
