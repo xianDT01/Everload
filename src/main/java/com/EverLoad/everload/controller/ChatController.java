@@ -15,6 +15,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -126,9 +128,11 @@ public class ChatController {
                     : null);
             boolean online = presenceService.isOnline(u.getUsername());
             info.put("online", online);
-            // Only expose lastSeen if the user allows it and is not online
+            // Only expose lastSeen if the user allows it and is not online.
+            // Serialize with explicit UTC offset (+00:00) so the browser parses it unambiguously.
             if (!online && !Boolean.FALSE.equals(u.getShowLastSeen()) && u.getLastSeen() != null) {
-                info.put("lastSeen", u.getLastSeen().toString());
+                info.put("lastSeen", u.getLastSeen().atOffset(ZoneOffset.UTC)
+                        .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
             } else {
                 info.put("lastSeen", null);
             }

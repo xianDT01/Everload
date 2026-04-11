@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -34,7 +35,7 @@ public class PresenceService {
     /** Called on explicit logout or tab-close beacon. Persists lastSeen to DB. */
     public void setOffline(String username) {
         onlineMap.remove(username);
-        persistLastSeenToDb(username, LocalDateTime.now());
+        persistLastSeenToDb(username, LocalDateTime.now(ZoneOffset.UTC));
     }
 
     public boolean isOnline(String username) {
@@ -58,10 +59,10 @@ public class PresenceService {
             if (lastHeartbeat.isBefore(staleThreshold)) {
                 // User went stale — remove and persist
                 onlineMap.remove(username, lastHeartbeat);
-                persistLastSeenToDb(username, LocalDateTime.now());
+                persistLastSeenToDb(username, LocalDateTime.now(ZoneOffset.UTC));
             } else {
                 // Still online — refresh lastSeen in DB so it stays current
-                persistLastSeenToDb(username, LocalDateTime.now());
+                persistLastSeenToDb(username, LocalDateTime.now(ZoneOffset.UTC));
             }
         });
     }

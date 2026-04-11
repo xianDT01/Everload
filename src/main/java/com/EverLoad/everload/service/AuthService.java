@@ -7,6 +7,7 @@ import com.EverLoad.everload.model.Role;
 import com.EverLoad.everload.model.User;
 import com.EverLoad.everload.model.UserStatus;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import com.EverLoad.everload.repository.UserRepository;
 import com.EverLoad.everload.security.JwtUtil;
@@ -77,8 +78,8 @@ public class AuthService {
             throw new IllegalStateException("Tu solicitud de acceso fue rechazada");
         }
 
-        // Record login time as lastSeen
-        user.setLastSeen(LocalDateTime.now());
+        // Record login time as lastSeen (always UTC so serialization is unambiguous)
+        user.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         userRepository.save(user);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
