@@ -16,6 +16,7 @@ export interface MusicMetadataDto {
   format: string;
   hasCover: boolean;
   bpm: number;
+  source?: 'nas' | 'youtube';
 }
 
 export interface PlayerState {
@@ -25,31 +26,67 @@ export interface PlayerState {
   volume: number;
   currentTrack: MusicMetadataDto | null;
   pathId: number | null;
+  loading: boolean;
+  error: string | null;
 }
 
-// ── AudioPlayer ───────────────────────────────────────────────────────────────
+// ── YouTube IFrame API loader ─────────────────────────────────────────────────
 
-export class AudioPlayer {
+let ytApiReady: Promise<void> | null = null;
+
+function ensureYouTubeAPI(): Promise<void> {
+  if (ytApiReady) return ytApiReady;
+  ytApiReady = new Promise<void>((resolve) => {
+    if (typeof window === 'undefined') { resolve(); return; }
+    if ((window as any).YT && (window as any).YT.Player) { resolve(); return; }
+    const existing = (window as any).onYouTubeIframeAPIReady;
+    (window as any).onYouTubeIframeAPIReady = () => {
+      if (existing) existing();
+      resolve();
+    };
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
+    }
+  });
+  return ytApiReady;
+}
+
+// ── DeckPlayer (unified NAS + YouTube) ────────────────────────────────────────
+
+export class DeckPlayer {
   private audio: HTMLAudioElement;
+  private ytPlayer: any = null;
+  private ytContainerId: string;
+  private ytReady = false;
+  private ytInterval: any = null;
+  private activeSource: 'nas' | 'youtube' | null = null;
+
   private stateSubj = new BehaviorSubject<PlayerState>({
     playing: false, currentTime: 0, duration: 0,
-    volume: 1, currentTrack: null, pathId: null
+    volume: 1, currentTrack: null, pathId: null, loading: false, error: null
   });
 
   public state$ = this.stateSubj.asObservable();
-  /** Called when the track finishes naturally (not on explicit stop). */
   public onTrackEnded?: () => void;
 
-  constructor(private musicService: MusicService) {
+  constructor(private musicService: MusicService, private deckId: string) {
+    this.ytContainerId = 'yt-player-' + deckId;
     this.audio = new Audio();
-    this.audio.addEventListener('timeupdate',    () => this.patch({ currentTime: this.audio.currentTime }));
-    this.audio.addEventListener('play',          () => this.patch({ playing: true }));
-    this.audio.addEventListener('pause',         () => this.patch({ playing: false }));
-    this.audio.addEventListener('loadedmetadata',() => this.patch({ duration: this.audio.duration }));
-    this.audio.addEventListener('volumechange',  () => this.patch({ volume: this.audio.volume }));
-    this.audio.addEventListener('ended',         () => {
+    this.audio.addEventListener('timeupdate',     () => this.patch({ currentTime: this.audio.currentTime }));
+    this.audio.addEventListener('play',           () => this.patch({ playing: true, error: null }));
+    this.audio.addEventListener('pause',          () => this.patch({ playing: false }));
+    this.audio.addEventListener('loadedmetadata', () => this.patch({ duration: this.audio.duration }));
+    this.audio.addEventListener('volumechange',   () => this.patch({ volume: this.audio.volume }));
+    this.audio.addEventListener('ended',          () => {
       this.patch({ playing: false, currentTime: 0 });
       if (this.onTrackEnded) this.onTrackEnded();
+    });
+    this.audio.addEventListener('error', () => {
+      const e = this.audio.error;
+      const msg = e ? `Audio error (code ${e.code}): ${e.message || 'stream no disponible'}` : 'Error de reproduccion';
+      this.patch({ playing: false, loading: false, error: msg });
     });
   }
 
@@ -59,26 +96,175 @@ export class AudioPlayer {
 
   get state(): PlayerState { return this.stateSubj.value; }
 
-  load(track: MusicMetadataDto, pathId: number) {
-    this.audio.src = this.musicService.getStreamUrl(pathId, track.path);
-    this.audio.load();
-    this.patch({ currentTrack: track, pathId, currentTime: 0, playing: false, duration: 0 });
+  // ── Load ──────────────────────────────────────────────────────────────────
+
+  async load(track: MusicMetadataDto, pathId: number) {
+    this.stopAll();
+    this.patch({ currentTrack: track, pathId, currentTime: 0, playing: false, duration: 0, loading: true, error: null });
+
+    if (track.source === 'youtube') {
+      this.activeSource = 'youtube';
+      await this.loadYoutube(track.path);
+    } else {
+      this.activeSource = 'nas';
+      this.loadNas(track, pathId);
+    }
   }
 
-  play()  { if (this.audio.src) this.audio.play(); }
-  pause() { this.audio.pause(); }
+  private loadNas(track: MusicMetadataDto, pathId: number) {
+    const url = this.musicService.getStreamUrl(pathId, track.path);
+    this.audio.src = url;
+    this.audio.load();
+    this.patch({ loading: false });
+  }
+
+  private async loadYoutube(videoId: string) {
+    await ensureYouTubeAPI();
+    this.ensureYtContainer();
+
+    if (this.ytPlayer && this.ytReady) {
+      this.ytPlayer.loadVideoById(videoId);
+      this.patch({ loading: false });
+    } else {
+      // Destroy old broken player if exists
+      if (this.ytPlayer) {
+        try { this.ytPlayer.destroy(); } catch (_) {}
+        this.ytPlayer = null;
+        this.ytReady = false;
+        // Re-create container since destroy removes the DOM element
+        const old = document.getElementById(this.ytContainerId);
+        if (old) old.remove();
+        this.ensureYtContainer();
+      }
+
+      this.ytPlayer = new (window as any).YT.Player(this.ytContainerId, {
+        height: '1', width: '1',
+        videoId: videoId,
+        playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1 },
+        events: {
+          onReady: () => {
+            this.ytReady = true;
+            this.ytPlayer.setVolume(this.state.volume * 100);
+            this.patch({ loading: false, duration: this.ytPlayer.getDuration() || 0 });
+          },
+          onStateChange: (event: any) => this.onYtStateChange(event),
+          onError: (event: any) => {
+            const codes: Record<number, string> = {
+              2: 'ID de video invalido', 5: 'Error del reproductor HTML5',
+              100: 'Video no encontrado', 101: 'Reproduccion restringida', 150: 'Reproduccion restringida'
+            };
+            this.patch({ playing: false, loading: false, error: codes[event.data] || 'Error de YouTube (' + event.data + ')' });
+          }
+        }
+      });
+    }
+
+    this.startYtPolling();
+  }
+
+  private ensureYtContainer() {
+    if (!document.getElementById(this.ytContainerId)) {
+      const div = document.createElement('div');
+      div.id = this.ytContainerId;
+      div.style.position = 'absolute';
+      div.style.left = '-9999px';
+      div.style.width = '1px';
+      div.style.height = '1px';
+      document.body.appendChild(div);
+    }
+  }
+
+  private onYtStateChange(event: any) {
+    const YT = (window as any).YT?.PlayerState;
+    if (!YT) return;
+    switch (event.data) {
+      case YT.PLAYING:
+        this.patch({ playing: true, error: null, loading: false, duration: this.ytPlayer.getDuration() || 0 });
+        break;
+      case YT.PAUSED:
+        this.patch({ playing: false });
+        break;
+      case YT.ENDED:
+        this.patch({ playing: false, currentTime: 0 });
+        if (this.onTrackEnded) this.onTrackEnded();
+        break;
+      case YT.BUFFERING:
+        this.patch({ loading: true });
+        break;
+      case YT.CUED:
+        this.patch({ loading: false });
+        break;
+    }
+  }
+
+  private startYtPolling() {
+    this.stopYtPolling();
+    this.ytInterval = setInterval(() => {
+      if (this.ytPlayer && this.ytReady && this.activeSource === 'youtube') {
+        const t = this.ytPlayer.getCurrentTime?.() || 0;
+        const d = this.ytPlayer.getDuration?.() || 0;
+        this.patch({ currentTime: t, duration: d });
+      }
+    }, 250);
+  }
+
+  private stopYtPolling() {
+    if (this.ytInterval) { clearInterval(this.ytInterval); this.ytInterval = null; }
+  }
+
+  // ── Controls ──────────────────────────────────────────────────────────────
+
+  play() {
+    if (this.activeSource === 'youtube') {
+      if (this.ytPlayer && this.ytReady) this.ytPlayer.playVideo();
+    } else {
+      if (!this.audio.src) return;
+      this.audio.play().catch(err => {
+        this.patch({ playing: false, error: 'No se pudo reproducir: ' + (err.message || err) });
+      });
+    }
+  }
+
+  pause() {
+    if (this.activeSource === 'youtube') {
+      if (this.ytPlayer && this.ytReady) this.ytPlayer.pauseVideo();
+    } else {
+      this.audio.pause();
+    }
+  }
+
   togglePlay() { this.state.playing ? this.pause() : this.play(); }
 
-  seek(time: number) { this.audio.currentTime = time; }
+  seek(time: number) {
+    if (this.activeSource === 'youtube') {
+      if (this.ytPlayer && this.ytReady) this.ytPlayer.seekTo(time, true);
+    } else {
+      this.audio.currentTime = time;
+    }
+  }
 
   setVolume(vol: number) {
-    this.audio.volume = Math.max(0, Math.min(1, vol));
-    this.patch({ volume: this.audio.volume });
+    vol = Math.max(0, Math.min(1, vol));
+    if (this.activeSource === 'youtube') {
+      if (this.ytPlayer && this.ytReady) this.ytPlayer.setVolume(vol * 100);
+    } else {
+      this.audio.volume = vol;
+    }
+    this.patch({ volume: vol });
   }
 
   cue() {
-    this.audio.currentTime = 0;
+    this.seek(0);
     if (this.state.playing) this.pause();
+  }
+
+  private stopAll() {
+    this.audio.pause();
+    this.audio.src = '';
+    this.stopYtPolling();
+    if (this.ytPlayer && this.ytReady) {
+      try { this.ytPlayer.stopVideo(); } catch (_) {}
+    }
   }
 }
 
@@ -94,11 +280,11 @@ export class MusicService {
 
   private readonly api = `${this.BASE}/api/music`;
 
-  // Library main player (one track at a time)
-  public mainPlayer: AudioPlayer;
-  // Deck players (two simultaneous)
-  public deckAPlayer: AudioPlayer;
-  public deckBPlayer: AudioPlayer;
+  // Library main player
+  public mainPlayer: DeckPlayer;
+  // Deck players (two simultaneous, NAS + YouTube)
+  public deckAPlayer: DeckPlayer;
+  public deckBPlayer: DeckPlayer;
 
   // Library queue
   private queueSubj = new BehaviorSubject<{ tracks: MusicMetadataDto[]; pathId: number; index: number }>({
@@ -107,9 +293,9 @@ export class MusicService {
   public queue$ = this.queueSubj.asObservable();
 
   constructor(private http: HttpClient, private auth: AuthService) {
-    this.mainPlayer  = new AudioPlayer(this);
-    this.deckAPlayer = new AudioPlayer(this);
-    this.deckBPlayer = new AudioPlayer(this);
+    this.mainPlayer  = new DeckPlayer(this, 'main');
+    this.deckAPlayer = new DeckPlayer(this, 'deckA');
+    this.deckBPlayer = new DeckPlayer(this, 'deckB');
 
     // Auto-advance queue when main player track ends naturally
     this.mainPlayer.onTrackEnded = () => this.playNextMain();
@@ -128,8 +314,11 @@ export class MusicService {
     return `${this.api}/stream?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}`;
   }
 
-  getCoverUrl(pathId: number, trackPath: string): string {
+  getCoverUrl(pathId: number, trackPath: string, source?: string): string {
     const token = this.auth.getToken();
+    if (source === 'youtube') {
+      return `https://img.youtube.com/vi/${trackPath}/hqdefault.jpg`;
+    }
     return `${this.api}/cover?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}`;
   }
 
@@ -138,8 +327,9 @@ export class MusicService {
   setQueue(pathId: number, tracks: MusicMetadataDto[], index: number) {
     this.queueSubj.next({ tracks, pathId, index });
     if (tracks[index]) {
-      this.mainPlayer.load(tracks[index], pathId);
-      this.mainPlayer.play();
+      this.mainPlayer.load(tracks[index], pathId).then(() => {
+        this.mainPlayer.play();
+      });
     }
   }
 
@@ -152,7 +342,6 @@ export class MusicService {
 
   playPrevMain() {
     const q = this.queueSubj.value;
-    // If more than 3s in: restart current track; otherwise go to previous
     if (this.mainPlayer.state.currentTime > 3) {
       this.mainPlayer.seek(0);
     } else if (q.index > 0) {
@@ -164,10 +353,10 @@ export class MusicService {
 
   /**
    * Equal-power crossfade.
-   * value: -1 (full Deck A) … 0 (equal) … +1 (full Deck B)
+   * value: -1 (full Deck A) ... 0 (equal) ... +1 (full Deck B)
    */
   crossfade(value: number) {
-    const t = (value + 1) / 2; // normalise to [0, 1]
+    const t = (value + 1) / 2;
     const volA = Math.cos(t * Math.PI / 2);
     const volB = Math.cos((1 - t) * Math.PI / 2);
     this.deckAPlayer.setVolume(volA);
