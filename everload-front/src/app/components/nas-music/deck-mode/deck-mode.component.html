@@ -92,6 +92,23 @@
                   [disabled]="!canSync('A')"
                   title="Sync A → posición de B">SYNC</button>
           <button class="btn-ctrl" (click)="nextTrack('A')" title="Siguiente">⏭</button>
+          <button class="btn-queue-toggle btn-queue-a" (click)="showQueueA = !showQueueA" title="Cola Deck A">
+            ☰<span class="queue-badge" *ngIf="queueA.length > 0">{{ queueA.length }}</span>
+          </button>
+        </div>
+
+        <!-- Queue panel A -->
+        <div class="queue-panel" *ngIf="showQueueA">
+          <div class="queue-header">
+            <span>Cola — {{ queueA.length }} pista{{ queueA.length !== 1 ? 's' : '' }}</span>
+            <button class="queue-clear" (click)="clearQueue('A')" *ngIf="queueA.length > 0" title="Vaciar cola">✕</button>
+          </div>
+          <div class="queue-empty" *ngIf="queueA.length === 0">Sin pistas en cola</div>
+          <div class="queue-item" *ngFor="let item of queueA; let i = index">
+            <span class="queue-pos">{{ i + 1 }}</span>
+            <span class="queue-title">{{ queueTrackLabel(item) }}</span>
+            <button class="queue-remove" (click)="removeFromQueue('A', i)" title="Quitar">✕</button>
+          </div>
         </div>
 
       </div>
@@ -268,6 +285,9 @@
 
         <!-- Controls: PREV · SYNC · PLAY · RESET · CUE · NEXT -->
         <div class="deck-controls">
+          <button class="btn-queue-toggle btn-queue-b" (click)="showQueueB = !showQueueB" title="Cola Deck B">
+            ☰<span class="queue-badge" *ngIf="queueB.length > 0">{{ queueB.length }}</span>
+          </button>
           <button class="btn-ctrl" (click)="prevTrack('B')" title="Anterior">⏮</button>
           <button class="btn-sync btn-sync-b"
                   [class.sync-ready]="canSync('B')"
@@ -283,6 +303,20 @@
           <button class="btn-ctrl" (click)="nextTrack('B')" title="Siguiente">⏭</button>
         </div>
 
+        <!-- Queue panel B -->
+        <div class="queue-panel" *ngIf="showQueueB">
+          <div class="queue-header">
+            <span>Cola — {{ queueB.length }} pista{{ queueB.length !== 1 ? 's' : '' }}</span>
+            <button class="queue-clear" (click)="clearQueue('B')" *ngIf="queueB.length > 0" title="Vaciar cola">✕</button>
+          </div>
+          <div class="queue-empty" *ngIf="queueB.length === 0">Sin pistas en cola</div>
+          <div class="queue-item" *ngFor="let item of queueB; let i = index">
+            <span class="queue-pos">{{ i + 1 }}</span>
+            <span class="queue-title">{{ queueTrackLabel(item) }}</span>
+            <button class="queue-remove" (click)="removeFromQueue('B', i)" title="Quitar">✕</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -291,79 +325,143 @@
   <!-- ══ BROWSER ════════════════════════════════════════════════════════════ -->
   <div class="browser-section-wrapper">
 
-    <div class="browser-tabs">
-      <button class="b-tab" [class.active]="browserTab === 'nas'" (click)="browserTab = 'nas'">
-        📁 {{ 'MUSIC.DECK_FILES' | translate }}
-      </button>
-      <button class="b-tab" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">
-        ▶ YouTube
-      </button>
-      <button class="b-tab" [class.active]="browserTab === 'midi'" (click)="browserTab = 'midi'">
-        🎛️ MIDI
-      </button>
-      <button class="b-tab" [class.active]="browserTab === 'local'" (click)="browserTab = 'local'">
-        💻 Local
-      </button>
-    </div>
+    <!-- ── Folder Tree Panel ──────────────────────────────────────────────── -->
+    <div class="folder-tree-panel" [style.width.px]="treeWidth">
 
-    <!-- ── NAS browser ── -->
-    <div class="browser-section" *ngIf="browserTab === 'nas'">
-      <nav class="browser-sidebar">
-        <div class="bs-title">{{ 'MUSIC.DECK_FILES' | translate }}</div>
-        <ul>
-          <li *ngFor="let p of paths"
-              [class.active]="p.id === selectedPathId"
-              (click)="selectPath(p.id)">
-            📚 {{ p.name }}
-          </li>
-        </ul>
-      </nav>
+      <div class="tree-header">
+        <span class="tree-header-icon">📚</span>
+        <span class="tree-header-title">Library</span>
+      </div>
 
-      <div class="browser-main">
-        <div class="browser-toolbar">
-          <button class="brow-btn" (click)="goUp()" [disabled]="isRoot">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-            </svg>
-          </button>
-          <span class="brow-path">/ {{ currentSubPath || ('MUSIC.DECK_ROOT' | translate) }}</span>
+      <div class="tree-body">
+
+        <!-- NAS section label -->
+        <div class="tree-section-label" *ngIf="treeRoots.length > 0">
+          <span>📡 NAS</span>
         </div>
 
-        <div class="browser-list">
-          <table>
-            <thead>
-              <tr>
-                <th class="bc-icon"></th>
-                <th class="bc-name">{{ 'MUSIC.DECK_COL_NAME' | translate }}</th>
-                <th class="bc-artist">{{ 'MUSIC.DECK_COL_ARTIST' | translate }}</th>
-                <th class="bc-dur">{{ 'MUSIC.DECK_COL_DUR' | translate }}</th>
-                <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of folders" class="brow-folder" (dblclick)="navigate(item)">
-                <td class="bc-icon">📁</td>
-                <td class="bc-name" colspan="3">{{ item.name }}</td>
-                <td></td>
-              </tr>
-              <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i">
-                <td class="bc-icon">🎵</td>
-                <td class="bc-name">{{ item.title || item.name }}</td>
-                <td class="bc-artist">{{ item.artist || '—' }}</td>
-                <td class="bc-dur">{{ fmt(item.duration) }}</td>
-                <td class="bc-load">
-                  <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
-                  <button class="load-b" (click)="loadNas('B', item)">▲ B</button>
-                </td>
-              </tr>
-              <tr *ngIf="items.length === 0">
-                <td colspan="5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <ng-container *ngFor="let node of visibleTreeNodes; let i = index">
+          <!-- Separator before first local root -->
+          <div class="tree-section-label"
+               *ngIf="node.source === 'local' && node.isRoot &&
+                      (i === 0 || visibleTreeNodes[i-1].source === 'nas')">
+            <span>💻 Local</span>
+          </div>
+
+          <div class="tree-node"
+               [class.tree-node-selected]="treeSelectedKey === node.key"
+               [class.tree-node-root]="node.isRoot"
+               [class.tree-node-local]="node.source === 'local'"
+               [style.padding-left.px]="10 + node.depth * 18">
+
+            <!-- Toggle arrow -->
+            <span class="tree-toggle" (click)="toggleTreeNode(node)">
+              <span *ngIf="node.loading" class="tree-spin">↻</span>
+              <ng-container *ngIf="!node.loading">
+                <span *ngIf="!node.childrenLoaded || node.children.length > 0"
+                      class="tree-arrow"
+                      [class.tree-arrow-open]="node.expanded">▶</span>
+                <span *ngIf="node.childrenLoaded && node.children.length === 0"
+                      class="tree-leaf">·</span>
+              </ng-container>
+            </span>
+
+            <!-- Folder icon: PC icon for local roots, regular folder otherwise -->
+            <span class="tree-icon">
+              <ng-container *ngIf="node.source === 'local' && node.isRoot">💻</ng-container>
+              <ng-container *ngIf="node.source === 'local' && !node.isRoot">{{ node.expanded ? '📂' : '📁' }}</ng-container>
+              <ng-container *ngIf="node.source === 'nas'">{{ node.expanded ? '📂' : '📁' }}</ng-container>
+            </span>
+            <span class="tree-label" (click)="selectTreeFolder(node)">{{ node.name }}</span>
+          </div>
+        </ng-container>
+
+        <div *ngIf="visibleTreeNodes.length === 0" class="tree-empty">
+          Sin rutas NAS configuradas
         </div>
       </div>
+
     </div>
+
+    <!-- Resize handle -->
+    <div class="tree-resize-handle" (mousedown)="startTreeResize($event)"></div>
+
+    <!-- ── Right: browser content ─────────────────────────────────────────── -->
+    <div class="browser-content">
+
+      <div class="browser-tabs">
+        <button class="b-tab" [class.active]="browserTab === 'nas'" (click)="browserTab = 'nas'">
+          📁 {{ 'MUSIC.DECK_FILES' | translate }}
+        </button>
+        <button class="b-tab" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">
+          ▶ YouTube
+        </button>
+        <button class="b-tab" [class.active]="browserTab === 'midi'" (click)="browserTab = 'midi'">
+          🎛️ MIDI
+        </button>
+        <button class="b-tab" [class.active]="browserTab === 'local'" (click)="browserTab = 'local'">
+          💻 Local
+        </button>
+      </div>
+
+      <!-- ── NAS browser ── -->
+      <div class="browser-section" *ngIf="browserTab === 'nas'">
+        <div class="browser-main">
+
+          <!-- Breadcrumb toolbar -->
+          <div class="browser-toolbar breadcrumb-bar">
+            <button class="brow-btn" (click)="goUp()" [disabled]="isRoot" title="Subir nivel">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+              </svg>
+            </button>
+            <nav class="breadcrumbs">
+              <ng-container *ngFor="let crumb of breadcrumbs; let last = last; let i = index">
+                <span *ngIf="i > 0" class="crumb-sep">/</span>
+                <span class="crumb"
+                      [class.crumb-last]="last"
+                      (click)="!last && navigateToBreadcrumb(crumb)">{{ crumb.label }}</span>
+              </ng-container>
+            </nav>
+          </div>
+
+          <div class="browser-list">
+            <table>
+              <thead>
+                <tr>
+                  <th class="bc-icon"></th>
+                  <th class="bc-name">{{ 'MUSIC.DECK_COL_NAME' | translate }}</th>
+                  <th class="bc-artist">{{ 'MUSIC.DECK_COL_ARTIST' | translate }}</th>
+                  <th class="bc-dur">{{ 'MUSIC.DECK_COL_DUR' | translate }}</th>
+                  <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of folders" class="brow-folder" (click)="navigate(item)">
+                  <td class="bc-icon">📁</td>
+                  <td class="bc-name" colspan="3">{{ item.name }}</td>
+                  <td></td>
+                </tr>
+                <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i">
+                  <td class="bc-icon">🎵</td>
+                  <td class="bc-name">{{ item.title || item.name }}</td>
+                  <td class="bc-artist">{{ item.artist || '—' }}</td>
+                  <td class="bc-dur">{{ fmt(item.duration) }}</td>
+                  <td class="bc-load">
+                    <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
+                    <button class="load-b" (click)="loadNas('B', item)">▲ B</button>
+                    <button class="queue-a" (click)="addToQueue('A', item, selectedPathId!)" title="Añadir a cola A">+A</button>
+                    <button class="queue-b" (click)="addToQueue('B', item, selectedPathId!)" title="Añadir a cola B">+B</button>
+                  </td>
+                </tr>
+                <tr *ngIf="items.length === 0">
+                  <td colspan="5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
     <!-- ── YouTube browser ── -->
     <div class="browser-section" *ngIf="browserTab === 'youtube'">
@@ -410,6 +508,8 @@
                 <td class="bc-load">
                   <button class="load-a" (click)="loadYoutube('A', video)">▲ A</button>
                   <button class="load-b" (click)="loadYoutube('B', video)">▲ B</button>
+                  <button class="queue-a" (click)="addToQueue('A', {name: video.id?.videoId||video.id, path: video.id?.videoId||video.id, source:'youtube', directory:false, size:0, lastModified:'', title: video.snippet?.title, artist: video.snippet?.channelTitle, album:'YouTube', duration:0, format:'mp3', hasCover:true, bpm:0})" title="Añadir a cola A">+A</button>
+                  <button class="queue-b" (click)="addToQueue('B', {name: video.id?.videoId||video.id, path: video.id?.videoId||video.id, source:'youtube', directory:false, size:0, lastModified:'', title: video.snippet?.title, artist: video.snippet?.channelTitle, album:'YouTube', duration:0, format:'mp3', hasCover:true, bpm:0})" title="Añadir a cola B">+B</button>
                 </td>
               </tr>
             </tbody>
@@ -541,10 +641,18 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of localFolders" class="brow-folder" (dblclick)="navigateLocal(item)">
+              <!-- Carpetas: clic simple para entrar, botones para cargar todo -->
+              <tr *ngFor="let item of localFolders"
+                  class="brow-folder local-folder-row"
+                  (click)="navigateLocal(item)">
                 <td class="bc-icon">📁</td>
-                <td class="bc-name" colspan="2">{{ item.name }}</td>
+                <td class="bc-name local-folder-name">{{ item.name }}</td>
+                <td class="bc-load">
+                  <button class="load-a local-all-btn" (click)="$event.stopPropagation(); loadAllFromDir('A', item)" title="Cargar primera pista de esta carpeta en Deck A">→ A</button>
+                  <button class="load-b local-all-btn" (click)="$event.stopPropagation(); loadAllFromDir('B', item)" title="Cargar primera pista de esta carpeta en Deck B">→ B</button>
+                </td>
               </tr>
+              <!-- Pistas -->
               <tr *ngFor="let item of localTracks; let i = index"
                   class="brow-track"
                   [class.selected]="i === selectedIndex"
@@ -554,6 +662,8 @@
                 <td class="bc-load">
                   <button class="load-a" (click)="loadLocalTrack('A', item)">▲ A</button>
                   <button class="load-b" (click)="loadLocalTrack('B', item)">▲ B</button>
+                  <button class="queue-a" (click)="addToQueue('A', item)" title="Añadir a cola A">+A</button>
+                  <button class="queue-b" (click)="addToQueue('B', item)" title="Añadir a cola B">+B</button>
                 </td>
               </tr>
               <tr *ngIf="localItems.length === 0">
@@ -566,6 +676,8 @@
 
     </div>
 
-  </div>
+    </div><!-- /browser-content -->
 
-</div>
+  </div><!-- /browser-section-wrapper -->
+
+</div><!-- /vdj-layout -->
