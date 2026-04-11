@@ -13,8 +13,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRange;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -35,6 +37,7 @@ public class MusicService {
 
     /** 1 MB streaming chunks */
     private static final long CHUNK_SIZE = 1_000_000L;
+    private static final String DJ_CACHE_DIR = "./downloads/dj_cache/";
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -107,6 +110,107 @@ public class MusicService {
             }
         } catch (Exception ignored) { /* file may have no tags */ }
         return null;
+    }
+
+    // ── YouTube DJ Cache API ──────────────────────────────────────────────────
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MusicService.class);
+
+    public void prepareYoutubeTrack(String videoId) {
+        // Sanitize videoId — only allow alphanumeric, hyphens, underscores
+        if (!videoId.matches("[a-zA-Z0-9_-]+")) {
+            throw new IllegalArgumentException("videoId inválido: " + videoId);
+        }
+
+        File cacheDir = new File(DJ_CACHE_DIR);
+        if (!cacheDir.exists()) cacheDir.mkdirs();
+
+        File outputFile = new File(DJ_CACHE_DIR + videoId + ".mp3");
+        if (outputFile.exists() && outputFile.length() > 0) {
+            log.info("[DJ Cache] Ya cacheado: {}", videoId);
+            return;
+        }
+
+        // Use Runtime.exec with single string — same pattern as DownloadService
+        String command = String.format(
+                "yt-dlp --ignore-errors -x --audio-format mp3 -o %s%%(id)s.%%(ext)s https://www.youtube.com/watch?v=%s",
+                DJ_CACHE_DIR, videoId
+        );
+
+        log.info("[DJ Cache] Ejecutando: {}", command);
+
+        try {
+            Process process = Runtime.getRuntime().exec(command);
+
+            // Consume stdout in a separate thread (same pattern as DownloadService)
+            BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            new Thread(() -> {
+                String line;
+                try {
+                    while ((line = errorReader.readLine()) != null) {
+                        log.info("[yt-dlp DJ stderr] {}", line);
+                    }
+                } catch (IOException e) { /* ignore */ }
+            }).start();
+
+            String line;
+            while ((line = outputReader.readLine()) != null) {
+                log.info("[yt-dlp DJ stdout] {}", line);
+            }
+
+            int exitCode = process.waitFor();
+            outputReader.close();
+            errorReader.close();
+
+            log.info("[DJ Cache] yt-dlp exit code: {} para videoId={}", exitCode, videoId);
+
+            if (exitCode != 0) {
+                throw new RuntimeException("yt-dlp terminó con código " + exitCode + " para videoId=" + videoId);
+            }
+            if (!outputFile.exists() || outputFile.length() == 0) {
+                throw new RuntimeException("El archivo mp3 no se generó para videoId=" + videoId);
+            }
+
+            log.info("[DJ Cache] ✅ Listo: {} ({} bytes)", outputFile.getName(), outputFile.length());
+
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException("Fallo al ejecutar yt-dlp para DJ Cache", e);
+        }
+    }
+
+    public ResourceRegion streamYoutubeAudio(String videoId, HttpHeaders requestHeaders) {
+        File file = new File(DJ_CACHE_DIR + videoId + ".mp3");
+        if (!file.exists()) {
+            throw new IllegalArgumentException("El archivo de YouTube no está en caché: " + videoId);
+        }
+        Resource resource = new FileSystemResource(file);
+
+        try {
+            long contentLength = resource.contentLength();
+            List<HttpRange> ranges = requestHeaders.getRange();
+
+            if (ranges.isEmpty()) {
+                long length = Math.min(CHUNK_SIZE, contentLength);
+                return new ResourceRegion(resource, 0, length);
+            }
+
+            HttpRange range = ranges.get(0);
+            long start  = range.getRangeStart(contentLength);
+            long end    = range.getRangeEnd(contentLength);
+            long length = Math.min(CHUNK_SIZE, end - start + 1);
+            return new ResourceRegion(resource, start, length);
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error leyendo archivo de audio desde caché YouTube", e);
+        }
+    }
+
+    public Resource getYoutubeAudioResource(String videoId) {
+        File file = new File(DJ_CACHE_DIR + videoId + ".mp3");
+        if (!file.exists()) throw new IllegalArgumentException("Archivo no encontrado en cache");
+        return new FileSystemResource(file);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
