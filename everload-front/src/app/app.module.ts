@@ -43,6 +43,9 @@ import { AudioToolsComponent } from './components/audio-tools/audio-tools.compon
 
 // Interceptor JWT
 import { AuthInterceptor } from './interceptors/auth.interceptor';
+import { NasMusicComponent } from './components/nas-music/nas-music.component';
+import { LibraryModeComponent } from './components/nas-music/library-mode/library-mode.component';
+import { DeckModeComponent } from './components/nas-music/deck-mode/deck-mode.component';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -83,7 +86,10 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
     NotificationCenterComponent,
     ChatComponent,
     CreateGroupModalComponent,
-    AudioToolsComponent
+    AudioToolsComponent,
+    NasMusicComponent,
+    LibraryModeComponent,
+    DeckModeComponent
   ],
   imports: [
     BrowserModule,

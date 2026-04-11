@@ -1,0 +1,37 @@
+<div class="music-root">
+
+  <!-- Toggle / nav bar -->
+  <div class="mode-bar">
+    <button class="back-btn" (click)="goBack()" [title]="'MUSIC.BACK' | translate">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span>{{ 'MUSIC.BACK' | translate }}</span>
+    </button>
+
+    <div class="mode-pills">
+      <button class="pill" [class.pill-active]="mode === 'library'" (click)="mode = 'library'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+        </svg>
+        {{ 'MUSIC.MODE_LIBRARY' | translate }}
+      </button>
+      <button class="pill" [class.pill-active]="mode === 'deck'" (click)="mode = 'deck'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 3v9.28a4 4 0 1 0 2 0V5h3V3h-5zm-1 14a2 2 0 1 1 4 0 2 2 0 0 1-4 0z"/>
+        </svg>
+        {{ 'MUSIC.MODE_DECK' | translate }}
+      </button>
+    </div>
+
+    <!-- spacer to keep pills centered -->
+    <div class="bar-spacer"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="music-body">
+    <app-library-mode *ngIf="mode === 'library'"></app-library-mode>
+    <app-deck-mode    *ngIf="mode === 'deck'"></app-deck-mode>
+  </div>
+
+</div>

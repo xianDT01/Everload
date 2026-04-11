@@ -1,0 +1,208 @@
+<div class="vdj-layout">
+
+  <!-- ══ DECK A + MIXER + DECK B ═══════════════════════════════════════════ -->
+  <div class="decks-section">
+
+    <!-- DECK A -->
+    <div class="deck deck-a">
+      <div class="deck-topbar deck-a-bar">
+        <span class="deck-label">{{ 'MUSIC.DECK_A' | translate }}</span>
+        <span class="deck-bpm" *ngIf="stateA?.currentTrack?.bpm">{{ stateA?.currentTrack?.bpm }} BPM</span>
+      </div>
+
+      <div class="deck-body">
+        <div class="vinyl-wrapper">
+          <div class="vinyl" [class.spinning]="stateA?.playing">
+            <div class="vinyl-grooves"></div>
+            <img *ngIf="stateA?.currentTrack?.hasCover" class="vinyl-art" [src]="coverUrl(stateA)" />
+            <div *ngIf="!stateA?.currentTrack?.hasCover" class="vinyl-art vinyl-no-art"><span>♫</span></div>
+            <div class="vinyl-center"></div>
+          </div>
+        </div>
+
+        <div class="deck-info">
+          <div class="deck-title">{{ stateA?.currentTrack?.title || stateA?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate) }}</div>
+          <div class="deck-artist">{{ stateA?.currentTrack?.artist || '' }}</div>
+        </div>
+
+        <div class="deck-time deck-a-time">
+          <span class="time-elapsed">{{ fmt(stateA?.currentTime) }}</span>
+          <span class="time-sep">/</span>
+          <span class="time-remain">-{{ remaining(stateA) }}</span>
+        </div>
+
+        <div class="waveform-wrap">
+          <div class="waveform-bg deck-a-wave">
+            <div class="waveform-pos" [style.left.%]="progressPct(stateA)"></div>
+          </div>
+          <input type="range" class="waveform-seek deck-a-seek"
+                 [max]="stateA?.duration || 0" [value]="stateA?.currentTime || 0"
+                 (input)="onSeek('A', $event)" />
+        </div>
+
+        <div class="deck-controls">
+          <button class="btn-cue btn-cue-a" (click)="cue('A')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
+          <button class="btn-play btn-play-a" [class.playing]="stateA?.playing" (click)="togglePlay('A')">
+            <svg *ngIf="!stateA?.playing" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg *ngIf="stateA?.playing"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIXER -->
+    <div class="mixer">
+      <div class="mixer-title">{{ 'MUSIC.DECK_MIXER' | translate }}</div>
+
+      <div class="channel-faders">
+        <div class="ch-fader">
+          <span class="ch-label a-label">A</span>
+          <div class="fader-track">
+            <input type="range" class="fader fader-a" orient="vertical"
+                   min="0" max="1" step="0.01" [value]="volA" (input)="onVolA($event)" />
+            <div class="fader-fill-a" [style.height.%]="volA * 100"></div>
+          </div>
+          <span class="ch-vol-pct">{{ (volA * 100) | number:'1.0-0' }}%</span>
+        </div>
+
+        <div class="vu-meters">
+          <div class="vu a" [style.height.%]="stateA?.playing ? 70 : 0"></div>
+          <div class="vu b" [style.height.%]="stateB?.playing ? 70 : 0"></div>
+        </div>
+
+        <div class="ch-fader">
+          <span class="ch-label b-label">B</span>
+          <div class="fader-track">
+            <input type="range" class="fader fader-b" orient="vertical"
+                   min="0" max="1" step="0.01" [value]="volB" (input)="onVolB($event)" />
+            <div class="fader-fill-b" [style.height.%]="volB * 100"></div>
+          </div>
+          <span class="ch-vol-pct">{{ (volB * 100) | number:'1.0-0' }}%</span>
+        </div>
+      </div>
+
+      <div class="crossfader-section">
+        <div class="xfade-labels">
+          <span class="xfade-pct a-label">{{ crossPctA() }}%</span>
+          <span class="xfade-title">{{ 'MUSIC.DECK_CROSSFADER' | translate }}</span>
+          <span class="xfade-pct b-label">{{ crossPctB() }}%</span>
+        </div>
+        <div class="xfade-track">
+          <input type="range" class="xfader" min="-1" max="1" step="0.01"
+                 [value]="crossValue" (input)="onCrossfade($event)" />
+          <div class="xfade-cursor" [style.left.%]="(crossValue + 1) / 2 * 100"></div>
+        </div>
+        <div class="xfade-end-labels">
+          <span class="a-label">A</span>
+          <span class="b-label">B</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DECK B -->
+    <div class="deck deck-b">
+      <div class="deck-topbar deck-b-bar">
+        <span class="deck-bpm" *ngIf="stateB?.currentTrack?.bpm">{{ stateB?.currentTrack?.bpm }} BPM</span>
+        <span class="deck-label">{{ 'MUSIC.DECK_B' | translate }}</span>
+      </div>
+
+      <div class="deck-body">
+        <div class="vinyl-wrapper">
+          <div class="vinyl" [class.spinning]="stateB?.playing">
+            <div class="vinyl-grooves"></div>
+            <img *ngIf="stateB?.currentTrack?.hasCover" class="vinyl-art" [src]="coverUrl(stateB)" />
+            <div *ngIf="!stateB?.currentTrack?.hasCover" class="vinyl-art vinyl-no-art"><span>♫</span></div>
+            <div class="vinyl-center"></div>
+          </div>
+        </div>
+
+        <div class="deck-info">
+          <div class="deck-title">{{ stateB?.currentTrack?.title || stateB?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate) }}</div>
+          <div class="deck-artist">{{ stateB?.currentTrack?.artist || '' }}</div>
+        </div>
+
+        <div class="deck-time deck-b-time">
+          <span class="time-elapsed">{{ fmt(stateB?.currentTime) }}</span>
+          <span class="time-sep">/</span>
+          <span class="time-remain">-{{ remaining(stateB) }}</span>
+        </div>
+
+        <div class="waveform-wrap">
+          <div class="waveform-bg deck-b-wave">
+            <div class="waveform-pos" [style.left.%]="progressPct(stateB)"></div>
+          </div>
+          <input type="range" class="waveform-seek deck-b-seek"
+                 [max]="stateB?.duration || 0" [value]="stateB?.currentTime || 0"
+                 (input)="onSeek('B', $event)" />
+        </div>
+
+        <div class="deck-controls">
+          <button class="btn-cue btn-cue-b" (click)="cue('B')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
+          <button class="btn-play btn-play-b" [class.playing]="stateB?.playing" (click)="togglePlay('B')">
+            <svg *ngIf="!stateB?.playing" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg *ngIf="stateB?.playing"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ BROWSER ════════════════════════════════════════════════════════════ -->
+  <div class="browser-section">
+
+    <nav class="browser-sidebar">
+      <div class="bs-title">{{ 'MUSIC.DECK_FILES' | translate }}</div>
+      <ul>
+        <li *ngFor="let p of paths" [class.active]="p.id === selectedPathId" (click)="selectPath(p.id)">
+          📚 {{ p.name }}
+        </li>
+      </ul>
+    </nav>
+
+    <div class="browser-main">
+      <div class="browser-toolbar">
+        <button class="brow-btn" (click)="goUp()" [disabled]="isRoot">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+        <span class="brow-path">/ {{ currentSubPath || ('MUSIC.DECK_ROOT' | translate) }}</span>
+      </div>
+
+      <div class="browser-list">
+        <table>
+          <thead>
+            <tr>
+              <th class="bc-icon"></th>
+              <th class="bc-name">{{ 'MUSIC.DECK_COL_NAME' | translate }}</th>
+              <th class="bc-artist">{{ 'MUSIC.DECK_COL_ARTIST' | translate }}</th>
+              <th class="bc-dur">{{ 'MUSIC.DECK_COL_DUR' | translate }}</th>
+              <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of folders" class="brow-folder" (dblclick)="navigate(item)">
+              <td class="bc-icon">📁</td>
+              <td class="bc-name" colspan="3">{{ item.name }}</td>
+              <td></td>
+            </tr>
+            <tr *ngFor="let item of tracks" class="brow-track">
+              <td class="bc-icon">🎵</td>
+              <td class="bc-name">{{ item.title || item.name }}</td>
+              <td class="bc-artist">{{ item.artist || '—' }}</td>
+              <td class="bc-dur">{{ fmt(item.duration) }}</td>
+              <td class="bc-load">
+                <button class="load-a" (click)="load('A', item)">▲ A</button>
+                <button class="load-b" (click)="load('B', item)">▲ B</button>
+              </td>
+            </tr>
+            <tr *ngIf="items.length === 0">
+              <td colspan="5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
