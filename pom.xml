@@ -114,7 +114,13 @@
 			<version>5.2.0</version>
 			<scope>test</scope>
 		</dependency>
-
+		
+		<!-- Audio metadata extraction -->
+		<dependency>
+			<groupId>net.jthink</groupId>
+			<artifactId>jaudiotagger</artifactId>
+			<version>3.0.1</version>
+		</dependency>
 
 	</dependencies>
 
