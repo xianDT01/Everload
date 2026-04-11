@@ -16,7 +16,8 @@ export interface MusicMetadataDto {
   format: string;
   hasCover: boolean;
   bpm: number;
-  source?: 'nas' | 'youtube';
+  source?: 'nas' | 'youtube' | 'local';
+  localHandle?: any;
 }
 
 export interface PlayerState {
@@ -28,6 +29,7 @@ export interface PlayerState {
   pathId: number | null;
   loading: boolean;
   error: string | null;
+  playbackRate: number;
 }
 
 // ── YouTube IFrame API loader ─────────────────────────────────────────────────
@@ -61,11 +63,19 @@ export class DeckPlayer {
   private ytContainerId: string;
   private ytReady = false;
   private ytInterval: any = null;
-  private activeSource: 'nas' | 'youtube' | null = null;
+  private activeSource: 'nas' | 'youtube' | 'local' | null = null;
+
+  private audioCtx: AudioContext | null = null;
+  private filterLow: BiquadFilterNode | null = null;
+  private filterMid: BiquadFilterNode | null = null;
+  private filterHigh: BiquadFilterNode | null = null;
+  private analyserNode: AnalyserNode | null = null;
+  private analyserData: Uint8Array | null = null;
 
   private stateSubj = new BehaviorSubject<PlayerState>({
     playing: false, currentTime: 0, duration: 0,
-    volume: 1, currentTrack: null, pathId: null, loading: false, error: null
+    volume: 1, currentTrack: null, pathId: null, loading: false, error: null,
+    playbackRate: 1
   });
 
   public state$ = this.stateSubj.asObservable();
@@ -74,6 +84,9 @@ export class DeckPlayer {
   constructor(private musicService: MusicService, private deckId: string) {
     this.ytContainerId = 'yt-player-' + deckId;
     this.audio = new Audio();
+    this.audio.crossOrigin = 'anonymous'; // Important for CORS Web Audio
+    this.setupAudioNodes();
+
     this.audio.addEventListener('timeupdate',     () => this.patch({ currentTime: this.audio.currentTime }));
     this.audio.addEventListener('play',           () => this.patch({ playing: true, error: null }));
     this.audio.addEventListener('pause',          () => this.patch({ playing: false }));
@@ -96,6 +109,43 @@ export class DeckPlayer {
 
   get state(): PlayerState { return this.stateSubj.value; }
 
+  private setupAudioNodes() {
+    if (typeof window === 'undefined') return;
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    try {
+      this.audioCtx = new AudioCtx();
+      const source = this.audioCtx.createMediaElementSource(this.audio);
+
+      this.filterLow = this.audioCtx.createBiquadFilter();
+      this.filterLow.type = 'lowshelf';
+      this.filterLow.frequency.value = 320;
+
+      this.filterMid = this.audioCtx.createBiquadFilter();
+      this.filterMid.type = 'peaking';
+      this.filterMid.frequency.value = 1000;
+      this.filterMid.Q.value = 0.5;
+
+      this.filterHigh = this.audioCtx.createBiquadFilter();
+      this.filterHigh.type = 'highshelf';
+      this.filterHigh.frequency.value = 3200;
+
+      this.analyserNode = this.audioCtx.createAnalyser();
+      this.analyserNode.fftSize = 128;
+      this.analyserNode.smoothingTimeConstant = 0.8;
+
+      source.connect(this.filterLow);
+      this.filterLow.connect(this.filterMid);
+      this.filterMid.connect(this.filterHigh);
+      this.filterHigh.connect(this.analyserNode);
+      this.analyserNode.connect(this.audioCtx.destination);
+    } catch (e) {
+      console.error('[DeckPlayer ' + this.deckId + '] Web Audio API setup failed — EQ will not work:', e);
+      this.audioCtx = null;
+    }
+  }
+
   // ── Load ──────────────────────────────────────────────────────────────────
 
   async load(track: MusicMetadataDto, pathId: number) {
@@ -105,10 +155,20 @@ export class DeckPlayer {
     if (track.source === 'youtube') {
       this.activeSource = 'youtube';
       await this.loadYoutube(track.path);
+    } else if (track.source === 'local') {
+      this.activeSource = 'local';
+      this.loadLocal(track);
     } else {
       this.activeSource = 'nas';
       this.loadNas(track, pathId);
     }
+  }
+
+  private loadLocal(track: MusicMetadataDto) {
+    // Para local, track.path contiene directamente la URL de blob: generada
+    this.audio.src = track.path;
+    this.audio.load();
+    this.patch({ loading: false });
   }
 
   private loadNas(track: MusicMetadataDto, pathId: number) {
@@ -215,13 +275,21 @@ export class DeckPlayer {
   // ── Controls ──────────────────────────────────────────────────────────────
 
   play() {
-    if (this.activeSource === 'youtube') {
-      if (this.ytPlayer && this.ytReady) this.ytPlayer.playVideo();
+    const doPlay = () => {
+      if (this.activeSource === 'youtube') {
+        if (this.ytPlayer && this.ytReady) this.ytPlayer.playVideo();
+      } else {
+        if (!this.audio.src) return;
+        this.audio.play().catch(err => {
+          this.patch({ playing: false, error: 'No se pudo reproducir: ' + (err.message || err) });
+        });
+      }
+    };
+
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume().then(doPlay).catch(() => doPlay());
     } else {
-      if (!this.audio.src) return;
-      this.audio.play().catch(err => {
-        this.patch({ playing: false, error: 'No se pudo reproducir: ' + (err.message || err) });
-      });
+      doPlay();
     }
   }
 
@@ -256,6 +324,41 @@ export class DeckPlayer {
   cue() {
     this.seek(0);
     if (this.state.playing) this.pause();
+  }
+
+  getFrequencyData(): Uint8Array | null {
+    if (!this.analyserNode) return null;
+    if (!this.analyserData) {
+      this.analyserData = new Uint8Array(this.analyserNode.frequencyBinCount);
+    }
+    this.analyserNode.getByteFrequencyData(this.analyserData);
+    return this.analyserData;
+  }
+
+  setEq(band: 'low' | 'mid' | 'high', dB: number) {
+    if (!this.audioCtx) return;
+    if (band === 'low' && this.filterLow) this.filterLow.gain.value = dB;
+    if (band === 'mid' && this.filterMid) this.filterMid.gain.value = dB;
+    if (band === 'high' && this.filterHigh) this.filterHigh.gain.value = dB;
+  }
+
+  setPlaybackRate(rate: number) {
+    rate = Math.max(0.1, Math.min(4, rate));
+    if (this.activeSource === 'youtube') {
+      if (this.ytPlayer && this.ytReady) {
+        // YouTube supports fixed rates: 0.25, 0.5, 1, 1.5, 2
+        // We find the closest supported one
+        const supported = this.ytPlayer.getAvailablePlaybackRates?.() || [0.25, 0.5, 1, 1.5, 2];
+        const closest = supported.reduce((prev: number, curr: number) => 
+          Math.abs(curr - rate) < Math.abs(prev - rate) ? curr : prev
+        );
+        this.ytPlayer.setPlaybackRate(closest);
+        this.patch({ playbackRate: closest });
+      }
+    } else {
+      this.audio.playbackRate = rate;
+      this.patch({ playbackRate: rate });
+    }
   }
 
   private stopAll() {

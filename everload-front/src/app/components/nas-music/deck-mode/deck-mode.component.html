@@ -3,62 +3,129 @@
   <!-- ══ DECK A + MIXER + DECK B ═══════════════════════════════════════════ -->
   <div class="decks-section">
 
-    <!-- DECK A -->
-    <div class="deck deck-a">
+    <!-- ── DECK A ─────────────────────────────────────────────────────────── -->
+    <div class="deck deck-a" [class.is-playing]="stateA?.playing">
       <div class="deck-topbar deck-a-bar">
         <span class="deck-label">{{ 'MUSIC.DECK_A' | translate }}</span>
-        <span class="deck-bpm" *ngIf="stateA?.currentTrack?.bpm">{{ stateA?.currentTrack?.bpm }} BPM</span>
+        <span class="topbar-status">
+          <span class="loading-pulse" *ngIf="stateA?.loading">●</span>
+          <span class="deck-error-dot" *ngIf="stateA?.error && !stateA?.loading" [title]="stateA?.error ?? ''">⚠</span>
+        </span>
       </div>
 
       <div class="deck-body">
+
+        <!-- Vinyl disc -->
         <div class="vinyl-wrapper">
-          <div class="vinyl" [class.spinning]="stateA?.playing">
+          <div class="vinyl" [class.spinning]="stateA?.playing"
+               [style.animation-duration]="stateA?.playing ? (2.5 / (1 + pitchA)) + 's' : ''">
             <div class="vinyl-grooves"></div>
             <img *ngIf="stateA?.currentTrack?.hasCover" class="vinyl-art" [src]="coverUrl(stateA)" />
             <div *ngIf="!stateA?.currentTrack?.hasCover" class="vinyl-art vinyl-no-art"><span>♫</span></div>
             <div class="vinyl-center"></div>
           </div>
-        </div>
 
-        <div class="deck-info">
-          <div *ngIf="stateA?.loading" class="deck-title loading-pulse">Descargando...</div>
-          <div *ngIf="stateA?.error && !stateA?.loading" class="deck-error">⚠ {{ stateA?.error }}</div>
-          <div *ngIf="!stateA?.loading && !stateA?.error" class="deck-title" [innerHTML]="stateA?.currentTrack?.title || stateA?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate)"></div>
-          <div *ngIf="!stateA?.loading && !stateA?.error" class="deck-artist">{{ stateA?.currentTrack?.artist || '' }}</div>
-        </div>
-
-        <div class="deck-time deck-a-time">
-          <span class="time-elapsed">{{ fmt(stateA?.currentTime) }}</span>
-          <span class="time-sep">/</span>
-          <span class="time-remain">-{{ remaining(stateA) }}</span>
-        </div>
-
-        <div class="waveform-wrap">
-          <div class="waveform-bg deck-a-wave">
-            <div class="waveform-pos" [style.left.%]="progressPct(stateA)"></div>
+          <!-- Pitch Slider A -->
+          <div class="pitch-container">
+            <span class="pitch-label" (dblclick)="resetPitch('A')">PITCH</span>
+            <input type="range" class="pitch-slider" orient="vertical" min="-0.1" max="0.1" step="0.001" [value]="pitchA" (input)="onPitchChange('A', $event)" />
           </div>
-          <input type="range" class="waveform-seek deck-a-seek"
-                 [max]="stateA?.duration || 0" [value]="stateA?.currentTime || 0"
-                 (input)="onSeek('A', $event)" />
         </div>
 
+        <!-- Now playing info -->
+        <div class="deck-info">
+          <div class="deck-meta-row" *ngIf="stateA?.currentTrack; else noTrackA">
+            <span class="source-badge" [class.source-yt]="stateA?.currentTrack?.source === 'youtube'">
+              {{ stateA?.currentTrack?.source === 'youtube' ? '▶ YT' : '💾 NAS' }}
+            </span>
+            <span class="bpm-badge" *ngIf="stateA?.currentTrack?.bpm; else pitchOnlyA">
+              {{ getCurrentBpm('A') | number:'1.1-1' }} <small>({{ stateA?.currentTrack?.bpm }})</small> BPM
+            </span>
+            <ng-template #pitchOnlyA>
+              <span class="bpm-badge bpm-rate" title="Velocidad de reproducción">
+                {{ (1 + pitchA) | number:'1.2-2' }}x
+              </span>
+            </ng-template>
+            <span class="pitch-badge" [class.pitch-active]="pitchA !== 0" (dblclick)="resetPitch('A')">
+              {{ getPitchPct('A') }}
+            </span>
+          </div>
+          <ng-template #noTrackA><div class="deck-meta-row"></div></ng-template>
+          <div class="deck-title">
+            {{ stateA?.currentTrack?.title || stateA?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate) }}
+          </div>
+          <div class="deck-artist">{{ stateA?.currentTrack?.artist || '' }}</div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill fill-a" [style.width.%]="progressPct(stateA)"></div>
+            <div class="progress-head head-a"  [style.left.%]="progressPct(stateA)"></div>
+          </div>
+          <input type="range" class="progress-seek"
+                 [max]="stateA?.duration || 0"
+                 [value]="stateA?.currentTime || 0"
+                 (input)="onSeek('A', $event)" />
+          <div class="progress-times">
+            <span class="pt-elapsed col-a">{{ fmt(stateA?.currentTime) }}</span>
+            <span class="pt-dur">{{ fmt(stateA?.duration) }}</span>
+            <span class="pt-remain">-{{ remaining(stateA) }}</span>
+          </div>
+        </div>
+
+        <!-- Spectrum Analyzer A -->
+        <canvas #spectrumA class="spectrum-canvas"></canvas>
+
+        <!-- Controls: PREV · CUE · PLAY · RESET · SYNC · NEXT -->
         <div class="deck-controls">
-          <button class="btn-cue btn-cue-a" (click)="cue('A')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
+          <button class="btn-ctrl" (click)="prevTrack('A')" title="Anterior">⏮</button>
+          <button class="btn-cue btn-cue-a" [class.active-cue]="!stateA?.playing && (stateA?.currentTime || 0) > 0" (click)="cue('A')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
           <button class="btn-play btn-play-a" [class.playing]="stateA?.playing" (click)="togglePlay('A')">
             <svg *ngIf="!stateA?.playing" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             <svg *ngIf="stateA?.playing"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
+          <button class="btn-ctrl btn-reset" (click)="resetTrack('A')" title="Reset a inicio">⏮</button>
+          <button class="btn-sync btn-sync-a"
+                  [class.sync-ready]="canSync('A')"
+                  (click)="sync('A')"
+                  [disabled]="!canSync('A')"
+                  title="Sync A → posición de B">SYNC</button>
+          <button class="btn-ctrl" (click)="nextTrack('A')" title="Siguiente">⏭</button>
         </div>
+
       </div>
     </div>
 
-    <!-- MIXER -->
+    <!-- ── MIXER ──────────────────────────────────────────────────────────── -->
     <div class="mixer">
       <div class="mixer-title">{{ 'MUSIC.DECK_MIXER' | translate }}</div>
 
       <div class="channel-faders">
+
+        <!-- Channel A fader + mute -->
         <div class="ch-fader">
-          <span class="ch-label a-label">A</span>
+          <div class="ch-header">
+            <span class="ch-label a-label">A</span>
+            <button class="mute-btn mute-a" [class.muted]="muteA" (click)="toggleMute('A')" title="Mute A">M</button>
+          </div>
+          
+          <!-- EQ Rack A -->
+          <div class="eq-rack">
+            <div class="eq-band">
+              <span class="eq-label" (dblclick)="resetEq('A','high')">HI</span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqA.high" (input)="onEqChange('A','high', $event)" />
+            </div>
+            <div class="eq-band">
+              <span class="eq-label" (dblclick)="resetEq('A','mid')">MID</span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqA.mid" (input)="onEqChange('A','mid', $event)" />
+            </div>
+            <div class="eq-band">
+              <span class="eq-label" (dblclick)="resetEq('A','low')">LOW</span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqA.low" (input)="onEqChange('A','low', $event)" />
+            </div>
+          </div>
+
           <div class="fader-track">
             <input type="range" class="fader fader-a" orient="vertical"
                    min="0" max="1" step="0.01" [value]="volA" (input)="onVolA($event)" />
@@ -67,13 +134,35 @@
           <span class="ch-vol-pct">{{ (volA * 100) | number:'1.0-0' }}%</span>
         </div>
 
+        <!-- VU meters (animated, reflect mute state) -->
         <div class="vu-meters">
-          <div class="vu a" [style.height.%]="stateA?.playing ? 70 : 0"></div>
-          <div class="vu b" [style.height.%]="stateB?.playing ? 70 : 0"></div>
+          <div class="vu a" [class.vu-active]="stateA?.playing && !muteA"></div>
+          <div class="vu b" [class.vu-active]="stateB?.playing && !muteB"></div>
         </div>
 
+        <!-- Channel B fader + mute -->
         <div class="ch-fader">
-          <span class="ch-label b-label">B</span>
+          <div class="ch-header ch-header-b">
+            <button class="mute-btn mute-b" [class.muted]="muteB" (click)="toggleMute('B')" title="Mute B">M</button>
+            <span class="ch-label b-label">B</span>
+          </div>
+          
+          <!-- EQ Rack B -->
+          <div class="eq-rack">
+            <div class="eq-band">
+              <span class="eq-label" (dblclick)="resetEq('B','high')">HI</span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqB.high" (input)="onEqChange('B','high', $event)" />
+            </div>
+            <div class="eq-band">
+              <span class="eq-label" (dblclick)="resetEq('B','mid')">MID</span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqB.mid" (input)="onEqChange('B','mid', $event)" />
+            </div>
+            <div class="eq-band">
+              <span class="eq-label" (dblclick)="resetEq('B','low')">LOW</span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqB.low" (input)="onEqChange('B','low', $event)" />
+            </div>
+          </div>
+
           <div class="fader-track">
             <input type="range" class="fader fader-b" orient="vertical"
                    min="0" max="1" step="0.01" [value]="volB" (input)="onVolB($event)" />
@@ -81,8 +170,10 @@
           </div>
           <span class="ch-vol-pct">{{ (volB * 100) | number:'1.0-0' }}%</span>
         </div>
+
       </div>
 
+      <!-- Crossfader -->
       <div class="crossfader-section">
         <div class="xfade-labels">
           <span class="xfade-pct a-label">{{ crossPctA() }}%</span>
@@ -101,52 +192,97 @@
       </div>
     </div>
 
-    <!-- DECK B -->
-    <div class="deck deck-b">
+    <!-- ── DECK B ─────────────────────────────────────────────────────────── -->
+    <div class="deck deck-b" [class.is-playing]="stateB?.playing">
       <div class="deck-topbar deck-b-bar">
-        <span class="deck-bpm" *ngIf="stateB?.currentTrack?.bpm">{{ stateB?.currentTrack?.bpm }} BPM</span>
+        <span class="topbar-status">
+          <span class="loading-pulse" *ngIf="stateB?.loading">●</span>
+          <span class="deck-error-dot" *ngIf="stateB?.error && !stateB?.loading" [title]="stateB?.error ?? ''">⚠</span>
+        </span>
         <span class="deck-label">{{ 'MUSIC.DECK_B' | translate }}</span>
       </div>
 
       <div class="deck-body">
+
+        <!-- Vinyl disc -->
         <div class="vinyl-wrapper">
-          <div class="vinyl" [class.spinning]="stateB?.playing">
+          <div class="vinyl" [class.spinning]="stateB?.playing"
+               [style.animation-duration]="stateB?.playing ? (2.5 / (1 + pitchB)) + 's' : ''">
             <div class="vinyl-grooves"></div>
             <img *ngIf="stateB?.currentTrack?.hasCover" class="vinyl-art" [src]="coverUrl(stateB)" />
             <div *ngIf="!stateB?.currentTrack?.hasCover" class="vinyl-art vinyl-no-art"><span>♫</span></div>
             <div class="vinyl-center"></div>
           </div>
-        </div>
 
-        <div class="deck-info">
-          <div *ngIf="stateB?.loading" class="deck-title loading-pulse">Descargando...</div>
-          <div *ngIf="stateB?.error && !stateB?.loading" class="deck-error">⚠ {{ stateB?.error }}</div>
-          <div *ngIf="!stateB?.loading && !stateB?.error" class="deck-title" [innerHTML]="stateB?.currentTrack?.title || stateB?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate)"></div>
-          <div *ngIf="!stateB?.loading && !stateB?.error" class="deck-artist">{{ stateB?.currentTrack?.artist || '' }}</div>
-        </div>
-
-        <div class="deck-time deck-b-time">
-          <span class="time-elapsed">{{ fmt(stateB?.currentTime) }}</span>
-          <span class="time-sep">/</span>
-          <span class="time-remain">-{{ remaining(stateB) }}</span>
-        </div>
-
-        <div class="waveform-wrap">
-          <div class="waveform-bg deck-b-wave">
-            <div class="waveform-pos" [style.left.%]="progressPct(stateB)"></div>
+          <!-- Pitch Slider B -->
+          <div class="pitch-container">
+            <span class="pitch-label" (dblclick)="resetPitch('B')">PITCH</span>
+            <input type="range" class="pitch-slider" orient="vertical" min="-0.1" max="0.1" step="0.001" [value]="pitchB" (input)="onPitchChange('B', $event)" />
           </div>
-          <input type="range" class="waveform-seek deck-b-seek"
-                 [max]="stateB?.duration || 0" [value]="stateB?.currentTime || 0"
-                 (input)="onSeek('B', $event)" />
         </div>
 
+        <!-- Now playing info -->
+        <div class="deck-info">
+          <div class="deck-meta-row deck-meta-b" *ngIf="stateB?.currentTrack; else noTrackB">
+            <span class="bpm-badge" *ngIf="stateB?.currentTrack?.bpm; else pitchOnlyB">
+              {{ getCurrentBpm('B') | number:'1.1-1' }} <small>({{ stateB?.currentTrack?.bpm }})</small> BPM
+            </span>
+            <ng-template #pitchOnlyB>
+              <span class="bpm-badge bpm-rate" title="Velocidad de reproducción">
+                {{ (1 + pitchB) | number:'1.2-2' }}x
+              </span>
+            </ng-template>
+            <span class="pitch-badge" [class.pitch-active]="pitchB !== 0" (dblclick)="resetPitch('B')">
+              {{ getPitchPct('B') }}
+            </span>
+            <span class="source-badge" [class.source-yt]="stateB?.currentTrack?.source === 'youtube'">
+              {{ stateB?.currentTrack?.source === 'youtube' ? '▶ YT' : '💾 NAS' }}
+            </span>
+          </div>
+          <ng-template #noTrackB><div class="deck-meta-row"></div></ng-template>
+          <div class="deck-title">
+            {{ stateB?.currentTrack?.title || stateB?.currentTrack?.name || ('MUSIC.DECK_NO_TRACK' | translate) }}
+          </div>
+          <div class="deck-artist">{{ stateB?.currentTrack?.artist || '' }}</div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="progress-wrap">
+          <div class="progress-bar">
+            <div class="progress-fill fill-b" [style.width.%]="progressPct(stateB)"></div>
+            <div class="progress-head head-b"  [style.left.%]="progressPct(stateB)"></div>
+          </div>
+          <input type="range" class="progress-seek"
+                 [max]="stateB?.duration || 0"
+                 [value]="stateB?.currentTime || 0"
+                 (input)="onSeek('B', $event)" />
+          <div class="progress-times">
+            <span class="pt-elapsed col-b">{{ fmt(stateB?.currentTime) }}</span>
+            <span class="pt-dur">{{ fmt(stateB?.duration) }}</span>
+            <span class="pt-remain">-{{ remaining(stateB) }}</span>
+          </div>
+        </div>
+
+        <!-- Spectrum Analyzer B -->
+        <canvas #spectrumB class="spectrum-canvas"></canvas>
+
+        <!-- Controls: PREV · SYNC · PLAY · RESET · CUE · NEXT -->
         <div class="deck-controls">
-          <button class="btn-cue btn-cue-b" (click)="cue('B')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
+          <button class="btn-ctrl" (click)="prevTrack('B')" title="Anterior">⏮</button>
+          <button class="btn-sync btn-sync-b"
+                  [class.sync-ready]="canSync('B')"
+                  (click)="sync('B')"
+                  [disabled]="!canSync('B')"
+                  title="Sync B → posición de A">SYNC</button>
           <button class="btn-play btn-play-b" [class.playing]="stateB?.playing" (click)="togglePlay('B')">
             <svg *ngIf="!stateB?.playing" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             <svg *ngIf="stateB?.playing"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
+          <button class="btn-ctrl btn-reset" (click)="resetTrack('B')" title="Reset a inicio">⏮</button>
+          <button class="btn-cue btn-cue-b" [class.active-cue]="!stateB?.playing && (stateB?.currentTime || 0) > 0" (click)="cue('B')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
+          <button class="btn-ctrl" (click)="nextTrack('B')" title="Siguiente">⏭</button>
         </div>
+
       </div>
     </div>
 
@@ -154,18 +290,30 @@
 
   <!-- ══ BROWSER ════════════════════════════════════════════════════════════ -->
   <div class="browser-section-wrapper">
+
     <div class="browser-tabs">
-      <button class="b-tab" [class.active]="browserTab === 'nas'" (click)="browserTab = 'nas'">📚 NAS Library</button>
-      <button class="b-tab" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">🔴 YouTube</button>
+      <button class="b-tab" [class.active]="browserTab === 'nas'" (click)="browserTab = 'nas'">
+        📁 {{ 'MUSIC.DECK_FILES' | translate }}
+      </button>
+      <button class="b-tab" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">
+        ▶ YouTube
+      </button>
+      <button class="b-tab" [class.active]="browserTab === 'midi'" (click)="browserTab = 'midi'">
+        🎛️ MIDI
+      </button>
+      <button class="b-tab" [class.active]="browserTab === 'local'" (click)="browserTab = 'local'">
+        💻 Local
+      </button>
     </div>
 
-    <!-- NAS Browser -->
+    <!-- ── NAS browser ── -->
     <div class="browser-section" *ngIf="browserTab === 'nas'">
-
       <nav class="browser-sidebar">
         <div class="bs-title">{{ 'MUSIC.DECK_FILES' | translate }}</div>
         <ul>
-          <li *ngFor="let p of paths" [class.active]="p.id === selectedPathId" (click)="selectPath(p.id)">
+          <li *ngFor="let p of paths"
+              [class.active]="p.id === selectedPathId"
+              (click)="selectPath(p.id)">
             📚 {{ p.name }}
           </li>
         </ul>
@@ -174,7 +322,9 @@
       <div class="browser-main">
         <div class="browser-toolbar">
           <button class="brow-btn" (click)="goUp()" [disabled]="isRoot">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
           </button>
           <span class="brow-path">/ {{ currentSubPath || ('MUSIC.DECK_ROOT' | translate) }}</span>
         </div>
@@ -196,7 +346,7 @@
                 <td class="bc-name" colspan="3">{{ item.name }}</td>
                 <td></td>
               </tr>
-              <tr *ngFor="let item of tracks" class="brow-track">
+              <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i">
                 <td class="bc-icon">🎵</td>
                 <td class="bc-name">{{ item.title || item.name }}</td>
                 <td class="bc-artist">{{ item.artist || '—' }}</td>
@@ -213,57 +363,209 @@
           </table>
         </div>
       </div>
+    </div>
 
-    </div><!-- /NAS browser-section -->
-
-    <!-- YouTube Browser -->
-    <div class="browser-section yt" *ngIf="browserTab === 'youtube'">
+    <!-- ── YouTube browser ── -->
+    <div class="browser-section" *ngIf="browserTab === 'youtube'">
       <div class="browser-main">
-        <div class="browser-toolbar">
-          <input type="text" class="yt-search-input" placeholder="Buscar música en YouTube..."
-                 [(ngModel)]="ytSearchQuery" (keyup.enter)="searchYouTube()" />
-          <button class="yt-search-btn" (click)="searchYouTube()">
-             <span *ngIf="ytSearching">...</span>
-             <span *ngIf="!ytSearching">Buscar</span>
+
+        <div class="browser-toolbar yt-search-row">
+          <input class="yt-search-input" type="text" placeholder="Buscar en YouTube..."
+                 [value]="ytSearchQuery"
+                 (input)="ytSearchQuery = $any($event.target).value"
+                 (keydown.enter)="searchYouTube()" />
+          <button class="yt-search-btn" (click)="searchYouTube()" [disabled]="ytSearching">
+            {{ ytSearching ? '…' : '🔍' }}
           </button>
         </div>
+
         <div class="browser-toolbar yt-url-bar">
           <span class="yt-url-icon">🔗</span>
-          <input type="text" class="yt-search-input" placeholder="Pegar enlace de YouTube..."
-                 [(ngModel)]="ytDirectUrl" (keyup.enter)="loadDirectUrl('A')" />
+          <input class="yt-search-input" type="text" placeholder="Pegar URL de YouTube..."
+                 [value]="ytDirectUrl"
+                 (input)="ytDirectUrl = $any($event.target).value"
+                 (keydown.enter)="loadDirectUrl('A')" />
           <button class="load-a" (click)="loadDirectUrl('A')">▲ A</button>
           <button class="load-b" (click)="loadDirectUrl('B')">▲ B</button>
+        </div>
+
+        <div class="browser-list">
+          <table *ngIf="ytSearchResults.length > 0">
+            <thead>
+              <tr>
+                <th class="yt-icon"></th>
+                <th class="bc-name">Título</th>
+                <th class="bc-load">Cargar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let video of ytSearchResults; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i">
+                <td class="yt-icon">
+                  <img [src]="getYtThumbnail(video)" class="yt-thumb-mini" />
+                </td>
+                <td class="bc-name">
+                  <div class="yt-title">{{ video.snippet?.title }}</div>
+                  <div class="yt-channel">{{ video.snippet?.channelTitle }}</div>
+                </td>
+                <td class="bc-load">
+                  <button class="load-a" (click)="loadYoutube('A', video)">▲ A</button>
+                  <button class="load-b" (click)="loadYoutube('B', video)">▲ B</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="ytSearchResults.length === 0 && !ytSearching" class="brow-empty">
+            Busca vídeos de YouTube para cargarlos en una cabina
+          </div>
+          <div *ngIf="ytSearching" class="brow-empty loading-pulse">Buscando…</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── MIDI Config ── -->
+    <div class="browser-section" *ngIf="browserTab === 'midi'">
+      <div class="browser-main midi-section">
+        
+        <div *ngIf="!midiService.isSupported" class="brow-empty midi-unsupported">
+          ⚠️ Tu navegador no soporta Web MIDI API. Por favor, usa Chrome, Edge o Opera.
+        </div>
+
+        <div *ngIf="midiService.isSupported" class="midi-config-inner">
+          <div class="browser-toolbar midi-device-selector">
+            <span class="md-label">Dispositivo MIDI:</span>
+            <select class="md-select yt-search-input" [value]="activeMidiDeviceId || ''" (change)="selectMidiDevice($event)">
+              <option value="">(Ninguno)</option>
+              <option *ngFor="let d of midiDevices" [value]="d.id">{{ d.name }}</option>
+            </select>
+          </div>
+
+          <div *ngIf="!activeMidiDeviceId" class="brow-empty">
+            Selecciona una controladora MIDI para asignarle botones y faders.
+          </div>
+
+          <div *ngIf="activeMidiDeviceId" class="browser-list">
+            <table>
+              <thead>
+                <tr>
+                  <th class="bc-name">Acción</th>
+                  <th>Mapeo</th>
+                  <th class="bc-load">Asignar</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let action of midiActions" class="brow-track">
+                  <td class="bc-name">{{ action.label }}</td>
+                  <td>
+                    <div class="midi-mapping-cell">
+                      <span class="map-val" *ngIf="midiService.getMappingForAction(action.id) as mapping">
+                        [ {{ mapping }} ]
+                        <button class="clr-map-btn" (click)="clearMidiMapping(action.id)" title="Borrar mapeo">✖</button>
+                      </span>
+                      <span class="map-none" *ngIf="!midiService.getMappingForAction(action.id)">
+                        —
+                      </span>
+                    </div>
+                  </td>
+                  <td class="bc-load">
+                    <button *ngIf="midiService.learningActionId !== action.id" class="load-a learn-btn" (click)="learnMidi(action.id)">Learn</button>
+                    <button *ngIf="midiService.learningActionId === action.id" class="load-b learn-btn pulse-learn" (click)="cancelLearnMidi()">
+                      ...Mueve un control...
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Local File System browser ── -->
+    <div class="browser-section" *ngIf="browserTab === 'local'">
+
+      <!-- Input oculto para el fallback (Firefox, Safari) -->
+      <input #localFileInput type="file"
+             [attr.webkitdirectory]="''"
+             multiple
+             accept=".mp3,.wav,.flac,.ogg,.m4a,.aac,.opus,.wma,audio/*"
+             style="display:none"
+             (change)="onLocalFilesSelected($event)" />
+
+      <!-- No folder selected yet -->
+      <div class="browser-main" *ngIf="!localRootHandle">
+        <div class="local-welcome">
+          <div class="local-welcome-icon">💻</div>
+          <div class="local-welcome-title">Archivos del PC</div>
+          <div class="local-welcome-desc">
+            Lee música directamente desde tu disco duro.<br>
+            No se sube nada al servidor.
+          </div>
+          <button class="local-open-btn" (click)="openLocalFolder()">
+            📂 Abrir Carpeta del PC…
+          </button>
+          <div class="local-compat-note" *ngIf="localFsApiSupported">
+            Chrome · Edge · Opera — navegación de subcarpetas disponible.<br>
+            Tendrás que autorizar el acceso cada vez que recargues.
+          </div>
+          <div class="local-compat-note local-compat-fallback" *ngIf="!localFsApiSupported">
+            Firefox · Safari — se cargarán todos los archivos de audio<br>
+            de la carpeta seleccionada (sin navegación de subcarpetas).
+          </div>
+        </div>
+      </div>
+
+      <!-- Folder granted — file browser -->
+      <div class="browser-main" *ngIf="localRootHandle">
+        <div class="browser-toolbar">
+          <button class="brow-btn" (click)="goUpLocal()" [disabled]="isLocalRoot || localFallbackMode" title="Subir nivel">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+          </button>
+          <span class="brow-path local-path">💻 {{ localCurrentPathStr || 'PC' }}</span>
+          <span *ngIf="localFallbackMode" class="local-fallback-badge" title="Firefox/Safari: lista plana sin navegación de subcarpetas">sin nav.</span>
+          <button class="local-change-btn" (click)="openLocalFolder()" title="Cambiar carpeta">
+            ⇄
+          </button>
         </div>
 
         <div class="browser-list">
           <table>
             <thead>
               <tr>
-                <th class="bc-icon">🖼</th>
-                <th class="bc-name">Video</th>
-                <th class="bc-artist">Channel</th>
-                <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
+                <th class="bc-icon"></th>
+                <th class="bc-name">Nombre</th>
+                <th class="bc-load">Cargar</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let item of ytSearchResults" class="brow-track">
-                <td class="bc-icon yt-icon"><img [src]="getYtThumbnail(item)" class="yt-thumb-mini"></td>
-                <td class="bc-name yt-title" [innerHTML]="item.snippet?.title"></td>
-                <td class="bc-artist">{{ item.snippet?.channelTitle }}</td>
+              <tr *ngFor="let item of localFolders" class="brow-folder" (dblclick)="navigateLocal(item)">
+                <td class="bc-icon">📁</td>
+                <td class="bc-name" colspan="2">{{ item.name }}</td>
+              </tr>
+              <tr *ngFor="let item of localTracks; let i = index"
+                  class="brow-track"
+                  [class.selected]="i === selectedIndex"
+                  (click)="selectedIndex = i">
+                <td class="bc-icon">🎵</td>
+                <td class="bc-name">{{ item.title || item.name }}</td>
                 <td class="bc-load">
-                  <button class="load-a" (click)="loadYoutube('A', item)">▲ A</button>
-                  <button class="load-b" (click)="loadYoutube('B', item)">▲ B</button>
+                  <button class="load-a" (click)="loadLocalTrack('A', item)">▲ A</button>
+                  <button class="load-b" (click)="loadLocalTrack('B', item)">▲ B</button>
                 </td>
               </tr>
-              <tr *ngIf="ytSearchResults.length === 0">
-                <td colspan="4" class="brow-empty">Busca una canción o sesión</td>
+              <tr *ngIf="localItems.length === 0">
+                <td colspan="3" class="brow-empty">Carpeta vacía o sin archivos de audio</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-    </div><!-- /YouTube browser-section -->
 
-  </div><!-- /browser-section-wrapper -->
+    </div>
+
+  </div>
 
 </div>
