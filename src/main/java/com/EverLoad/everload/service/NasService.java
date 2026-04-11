@@ -178,6 +178,32 @@ public class NasService {
         }
     }
 
+    // ── Shared path helpers (used by MusicService and others) ────────────────
+
+    /**
+     * Resolves pathId + optional subPath to an absolute Path, validating no traversal.
+     * Returns the base path when subPath is blank/null.
+     */
+    public Path resolveValidatedPath(Long pathId, String subPath) {
+        NasPath nasPath = nasPathRepository.findById(pathId)
+                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada: " + pathId));
+        Path basePath = Path.of(nasPath.getPath()).normalize();
+        Path target = (subPath != null && !subPath.isBlank())
+                ? basePath.resolve(subPath).normalize()
+                : basePath;
+        if (!target.startsWith(basePath)) {
+            throw new SecurityException("Acceso denegado: path traversal detectado");
+        }
+        return target;
+    }
+
+    /** Returns the configured base path for a NAS entry. */
+    public Path getBasePath(Long pathId) {
+        NasPath nasPath = nasPathRepository.findById(pathId)
+                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada: " + pathId));
+        return Path.of(nasPath.getPath()).normalize();
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private NasPathDto toDto(NasPath nasPath) {
