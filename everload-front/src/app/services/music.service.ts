@@ -485,7 +485,13 @@ export class MusicService {
 
   private readonly BASE: string = (() => {
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
-    return (host === 'localhost' || host === '127.0.0.1') ? 'http://localhost:8080' : '';
+    const port = typeof window !== 'undefined' ? window.location.port : '';
+    // Use absolute URL only when running the Angular dev server (port 4200).
+    // In Docker/Caddy (https://localhost) or any other host, use relative URLs
+    // so the browser stays same-origin and CORS / mixed-content issues are avoided.
+    return (host === 'localhost' || host === '127.0.0.1') && port === '4200'
+      ? 'http://localhost:8080'
+      : '';
   })();
 
   private readonly api = `${this.BASE}/api/music`;
