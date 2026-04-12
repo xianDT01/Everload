@@ -149,6 +149,11 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   }
 
   private processItem(item: QueueItem): Promise<void> {
+    // NAS save: send to server, no browser download
+    if (item.nasPathId) {
+      return this.processItemToNas(item);
+    }
+    // Normal: download to browser
     return new Promise<void>((resolve) => {
       this.ngZone.run(() => {
         item.status = 'downloading';
@@ -204,7 +209,6 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         }
       });
 
-      // Almacena el cancel: desuscribe el HTTP y resuelve la promesa
       this.cancelActiveDownload = () => {
         sub.unsubscribe();
         this.cancelActiveDownload = null;
@@ -214,6 +218,56 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         });
         resolve();
       };
+    });
+  }
+
+  private processItemToNas(item: QueueItem): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.ngZone.run(() => {
+        item.status = 'downloading';
+        item.startedAt = new Date();
+        item.progress = 10;
+      });
+
+      // Simulate progress while yt-dlp runs on the server
+      const progressInterval = setInterval(() => {
+        this.ngZone.run(() => {
+          if (item.progress < 85) item.progress += 5;
+        });
+      }, 3000);
+
+      const params: any = {
+        videoId: item.videoId,
+        format: 'mp3',
+        nasPathId: item.nasPathId,
+        subPath: item.nasSubPath || ''
+      };
+
+      this.http.post<{ filename: string; path: string; error?: string }>(
+        `${this.backendUrl}/saveMusicToNas`, null, { params }
+      ).subscribe({
+        next: (result) => {
+          clearInterval(progressInterval);
+          this.ngZone.run(() => {
+            item.filename = result.filename;
+            item.status = 'completed';
+            item.progress = 100;
+            item.completedAt = new Date();
+            this.notificationService.showToast('success', '💾 Guardado en NAS', result.filename);
+          });
+          resolve();
+        },
+        error: (err) => {
+          clearInterval(progressInterval);
+          this.ngZone.run(() => {
+            item.status = 'failed';
+            item.error = err.error?.error || 'Error al guardar en NAS';
+            item.completedAt = new Date();
+            this.notificationService.showToast('error', 'Error NAS', item.error!);
+          });
+          resolve();
+        }
+      });
     });
   }
 

@@ -53,7 +53,7 @@ services:
     volumes:
       - everload-db:/app/data
       - everload-avatars:/app/avatars
-      - C:/Users/Xian/Music/Everload/musica:/app/nas_storage:ro
+      - C:/Users/Xian/Music/Everload/musica:/app/nas_storage
     restart: unless-stopped
     networks:
       - everload-net

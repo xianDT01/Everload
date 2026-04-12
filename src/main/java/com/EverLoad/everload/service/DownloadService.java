@@ -28,9 +28,11 @@ public class DownloadService {
     private Semaphore downloadSemaphore;
 
     private final DownloadHistoryService downloadHistoryService;
+    private final NasService nasService;
 
-    public DownloadService(DownloadHistoryService downloadHistoryService) {
+    public DownloadService(DownloadHistoryService downloadHistoryService, NasService nasService) {
         this.downloadHistoryService = downloadHistoryService;
+        this.nasService = nasService;
     }
 
     @PostConstruct
@@ -237,6 +239,68 @@ public class DownloadService {
                 .replaceAll("[\\\\/:*?\"<>|｜]", "_");
     }
 
+    // ── Save directly to NAS ─────────────────────────────────────────────────
+
+    public Map<String, String> saveMusicToNas(String videoId, String format, Long nasPathId, String subPath) {
+        if (!acquireSlot()) {
+            throw new IllegalStateException("Demasiadas descargas simultáneas, inténtalo de nuevo");
+        }
+        String tempDirPath = createTempDownloadDir();
+        try {
+            String command = String.format(
+                    "yt-dlp --ignore-errors --print after_move:filepath " +
+                    "-x --audio-format %s " +
+                    "-o %s%%(title)s.%%(ext)s " +
+                    "https://www.youtube.com/watch?v=%s",
+                    format, tempDirPath, videoId
+            );
+            logger.info("🔵 [NAS] Ejecutando: {}", command);
+            Process process = Runtime.getRuntime().exec(command);
+
+            // Log stderr without blocking
+            BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+            new Thread(() -> {
+                String line;
+                try { while ((line = errReader.readLine()) != null) {
+                    if (!line.contains("nsig extraction failed")) logger.warn("⚠️ yt-dlp: {}", line);
+                }} catch (IOException ignored) {}
+            }).start();
+
+            BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            int exit = process.waitFor();
+            String finalPath = outReader.readLine();
+            outReader.close();
+
+            if (exit != 0 || finalPath == null || finalPath.isBlank()) {
+                throw new RuntimeException("yt-dlp falló o no devolvió la ruta del archivo");
+            }
+
+            File tmpFile = new File(finalPath);
+            if (!tmpFile.exists()) throw new RuntimeException("Archivo temporal no encontrado: " + finalPath);
+
+            String fileName = tmpFile.getName();
+            String savedPath = nasService.saveToNas(nasPathId, subPath, tmpFile.toPath(), fileName);
+            downloadHistoryService.recordDownload(new Download(fileName, "music (NAS)", "YouTube"));
+            logger.info("✅ [NAS] Guardado en: {}", savedPath);
+
+            return Map.of("filename", fileName, "path", savedPath);
+
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException("Error al ejecutar yt-dlp: " + e.getMessage(), e);
+        } finally {
+            downloadSemaphore.release();
+            // Clean up temp dir
+            File tempDir = new File(tempDirPath).getParentFile();
+            try {
+                if (tempDir != null && tempDir.exists()) {
+                    Files.walk(tempDir.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+                }
+            } catch (IOException ignored) {}
+        }
+    }
 
     public ResponseEntity<FileSystemResource> downloadTwitterVideo(String tweetUrl) {
         try {

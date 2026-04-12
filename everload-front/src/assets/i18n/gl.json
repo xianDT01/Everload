@@ -220,7 +220,7 @@
   "ADMIN.REVOKE": "Revogar",
   "ADMIN.NEW_NAS_TITLE": "Nova ruta NAS",
   "ADMIN.NAS_NAME_PLACEHOLDER": "Nome (ex: Música)",
-  "ADMIN.NAS_PATH_PLACEHOLDER": "Ruta dentro de /app/nas_storage (ex: musica)",
+  "ADMIN.NAS_PATH_PLACEHOLDER": "Subcartafol dentro de /app/nas_storage (opcional, baleiro = raíz)",
   "ADMIN.NAS_DESC_PLACEHOLDER": "Descrición (opcional)",
   "ADMIN.NAS_ADD": "Engadir",
   "ADMIN.NAS_HINT": "As rutas resolven dentro de /app/nas_storage. Monta o volume Docker:",
