@@ -18,6 +18,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   shuffle = false;
   repeat: 'none' | 'one' | 'all' = 'none';
   queueIndex = -1;
+  searchQuery = '';
 
   // iTunes cover cache: trackPath → url
   private coverOverrideMap = new Map<string, string>();
@@ -85,6 +86,44 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   get folders(): MusicMetadataDto[] { return this.items.filter(i => i.directory); }
   get tracks():  MusicMetadataDto[] { return this.items.filter(i => !i.directory); }
 
+  get filteredFolders(): MusicMetadataDto[] {
+    if (!this.searchQuery.trim()) return this.folders;
+    const q = this.searchQuery.trim().toLowerCase();
+    return this.folders.filter(f => f.name.toLowerCase().includes(q));
+  }
+
+  get filteredTracks(): MusicMetadataDto[] {
+    if (!this.searchQuery.trim()) return this.tracks;
+    const q = this.searchQuery.trim().toLowerCase();
+    return this.tracks.filter(t =>
+      (t.title  || t.name  || '').toLowerCase().includes(q) ||
+      (t.artist || '').toLowerCase().includes(q) ||
+      (t.album  || '').toLowerCase().includes(q)
+    );
+  }
+
+  get breadcrumbs(): string[] {
+    if (!this.currentSubPath) return [];
+    return this.currentSubPath.split(/[/\\]/).filter(Boolean);
+  }
+
+  get headerGradient(): string {
+    // Rotate through a few Spotify-like accent gradients based on selected path
+    const palettes = [
+      'linear-gradient(180deg, #1a3a2a 0%, #121212 100%)',
+      'linear-gradient(180deg, #2d1b69 0%, #121212 100%)',
+      'linear-gradient(180deg, #4a1942 0%, #121212 100%)',
+      'linear-gradient(180deg, #1a2a4a 0%, #121212 100%)',
+      'linear-gradient(180deg, #3a2a10 0%, #121212 100%)',
+    ];
+    const idx = (this.selectedPathId ?? 0) % palettes.length;
+    return palettes[idx];
+  }
+
+  getPathName(pathId: number | null): string {
+    return this.paths.find(p => p.id === pathId)?.name ?? 'Biblioteca';
+  }
+
   get currentFolderName(): string {
     if (!this.currentSubPath) {
       return this.paths.find(p => p.id === this.selectedPathId)?.name ?? 'Biblioteca';
@@ -113,6 +152,14 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
 
   onSeek(e: Event)   { this.musicService.mainPlayer.seek(+(e.target as HTMLInputElement).value); }
   onVolume(e: Event) { this.musicService.mainPlayer.setVolume(+(e.target as HTMLInputElement).value); }
+
+  onSeekClick(e: MouseEvent) {
+    const bar = (e.currentTarget as HTMLElement);
+    const rect = bar.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    const duration = this.state?.duration ?? 0;
+    if (duration > 0) this.musicService.mainPlayer.seek(pct * duration);
+  }
 
   // ── Cover art ─────────────────────────────────────────────────────────────
 
