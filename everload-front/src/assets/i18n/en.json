@@ -220,7 +220,7 @@
   "ADMIN.REVOKE": "Revoke",
   "ADMIN.NEW_NAS_TITLE": "New NAS path",
   "ADMIN.NAS_NAME_PLACEHOLDER": "Name (e.g.: Music)",
-  "ADMIN.NAS_PATH_PLACEHOLDER": "Path inside /app/nas_storage (e.g.: music)",
+  "ADMIN.NAS_PATH_PLACEHOLDER": "Subfolder inside /app/nas_storage (optional, empty = root)",
   "ADMIN.NAS_DESC_PLACEHOLDER": "Description (optional)",
   "ADMIN.NAS_ADD": "Add",
   "ADMIN.NAS_HINT": "Paths are resolved inside /app/nas_storage. Mount the Docker volume:",

@@ -312,13 +312,13 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   }
 
   addNasPath(): void {
-    if (!this.newNasName || !this.newNasPath) {
-      this.nasMsg = '❌ Nombre y ruta son obligatorios';
+    if (!this.newNasName) {
+      this.nasMsg = '❌ El nombre es obligatorio';
       return;
     }
     this.nasService.createPath({
       name: this.newNasName,
-      path: this.newNasPath,
+      path: this.newNasPath || '.',
       description: this.newNasDesc
     }).subscribe({
       next: () => {
