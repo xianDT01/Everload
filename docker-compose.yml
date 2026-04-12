@@ -53,7 +53,7 @@ services:
     volumes:
       - everload-db:/app/data
       - everload-avatars:/app/avatars
-      - everload-nas:/app/nas_storage
+      - C:/Users/Xian/Music/Everload/musica:/app/nas_storage:ro
     restart: unless-stopped
     networks:
       - everload-net
@@ -67,6 +67,5 @@ networks:
 volumes:
   everload-db:      # H2 database files
   everload-avatars: # User avatar images
-  everload-nas:     # NAS storage (mount your disk here in production)
   caddy-data:       # TLS certificates — back up in production
   caddy-config:     # Caddy runtime config cache
