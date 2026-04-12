@@ -18,9 +18,12 @@
     </ul>
 
     <div class="sidebar-section-label" style="margin-top:24px">{{ 'MUSIC.SIDEBAR_NOW_PLAYING' | translate }}</div>
-    <div class="sidebar-status" *ngIf="state?.currentTrack">
-      <img *ngIf="state?.currentTrack?.hasCover" [src]="playerCoverUrl()" class="status-art" />
-      <div *ngIf="!state?.currentTrack?.hasCover" class="status-art no-art">♪</div>
+    <div class="sidebar-now-playing" *ngIf="state?.currentTrack">
+      <div class="now-art-wrap" [class.spinning]="state?.playing">
+        <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" class="now-art" />
+        <div *ngIf="!playerHasCover()" class="now-art no-art">♪</div>
+        <div class="vinyl-ring"></div>
+      </div>
       <div class="status-info">
         <span class="status-title">{{ state?.currentTrack?.title || state?.currentTrack?.name }}</span>
         <span class="status-artist">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
@@ -32,7 +35,16 @@
   <div class="lib-main">
 
     <!-- Gradient header -->
-    <div class="lib-header">
+    <div class="lib-header" [class.has-cover]="playerHasCover() && !!state?.currentTrack">
+      <!-- Big animated album art -->
+      <div class="header-cover" *ngIf="playerHasCover() && state?.currentTrack" [class.spinning]="state?.playing">
+        <img [src]="playerCoverUrl()" alt="cover" />
+        <div class="cover-glow"></div>
+      </div>
+      <div class="header-cover no-art-hero" *ngIf="!playerHasCover() || !state?.currentTrack">
+        <span>🎵</span>
+      </div>
+
       <div class="header-nav">
         <button class="nav-btn" (click)="goUp()" [disabled]="isRoot" [title]="'MUSIC.GO_UP' | translate">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -47,6 +59,16 @@
           <ng-container *ngIf="folders.length > 0">{{ folders.length }} {{ 'MUSIC.COUNT_FOLDERS' | translate }} · </ng-container>
           {{ tracks.length }} {{ 'MUSIC.COUNT_SONGS' | translate }}
         </span>
+        <div class="header-actions" *ngIf="tracks.length > 0">
+          <button class="action-play-btn" (click)="playTrack(tracks[0])" title="Reproducir">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="action-shuffle-btn" [class.active]="shuffle" (click)="toggleShuffle()" title="Aleatorio">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -102,9 +124,9 @@
 
         <!-- Title + artist + cover -->
         <div class="r-title-cell">
-          <div class="r-art" [class.no-art]="!item.hasCover">
-            <img *ngIf="item.hasCover" [src]="coverUrl(item)" loading="lazy" />
-            <span *ngIf="!item.hasCover" class="no-art-icon">♪</span>
+          <div class="r-art" [class.no-art]="!hasCoverToShow(item)" [class.track-playing]="isCurrentTrack(item)">
+            <img *ngIf="hasCoverToShow(item)" [src]="coverUrl(item)" loading="lazy" />
+            <span *ngIf="!hasCoverToShow(item)" class="no-art-icon">♪</span>
           </div>
           <div class="r-info">
             <span class="r-name" [class.green-text]="isCurrentTrack(item)">{{ item.title || item.name }}</span>
@@ -135,9 +157,11 @@
 
   <!-- Now playing -->
   <div class="bar-left">
-    <div class="bar-art" [class.no-art]="!state?.currentTrack?.hasCover">
-      <img *ngIf="state?.currentTrack?.hasCover" [src]="playerCoverUrl()" />
-      <span *ngIf="!state?.currentTrack?.hasCover" class="no-art-icon">♪</span>
+    <div class="bar-art-wrap" [class.spinning]="state?.playing">
+      <div class="bar-art" [class.no-art]="!playerHasCover()">
+        <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" />
+        <span *ngIf="!playerHasCover()" class="no-art-icon">♪</span>
+      </div>
     </div>
     <div class="bar-track-info">
       <span class="bar-title">{{ state?.currentTrack?.title || state?.currentTrack?.name }}</span>
@@ -153,6 +177,13 @@
   <!-- Controls -->
   <div class="bar-center">
     <div class="bar-btns">
+      <!-- Shuffle -->
+      <button class="ctrl-btn ctrl-small" [class.ctrl-active]="shuffle" (click)="toggleShuffle()" title="Aleatorio">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+        </svg>
+      </button>
+
       <button class="ctrl-btn" (click)="prev()" [title]="'MUSIC.PREV' | translate">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
@@ -170,6 +201,19 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/>
         </svg>
+      </button>
+
+      <!-- Repeat -->
+      <button class="ctrl-btn ctrl-small" [class.ctrl-active]="repeat !== 'none'" (click)="toggleRepeat()" title="Repetir">
+        <!-- repeat all -->
+        <svg *ngIf="repeat !== 'one'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+        </svg>
+        <!-- repeat one -->
+        <svg *ngIf="repeat === 'one'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z"/>
+        </svg>
+        <span class="repeat-badge" *ngIf="repeat === 'one'">1</span>
       </button>
     </div>
 

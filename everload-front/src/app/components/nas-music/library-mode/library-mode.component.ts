@@ -15,8 +15,16 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   currentSubPath = '';
   items: MusicMetadataDto[] = [];
   state: PlayerState | null = null;
+  shuffle = false;
+  repeat: 'none' | 'one' | 'all' = 'none';
+  queueIndex = -1;
 
-  private sub!: Subscription;
+  // iTunes cover cache: trackPath → url
+  private coverOverrideMap = new Map<string, string>();
+  // Keys already fetched from iTunes (artist+album term)
+  private itunesFetchedTerms = new Set<string>();
+
+  private subs: Subscription[] = [];
 
   constructor(public musicService: MusicService, private nasService: NasService) {}
 
@@ -25,10 +33,21 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
       this.paths = paths;
       if (paths.length > 0) this.selectPath(paths[0].id);
     });
-    this.sub = this.musicService.mainPlayer.state$.subscribe(s => this.state = s);
+
+    this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => {
+      const prev = this.state?.currentTrack?.path;
+      this.state = s;
+      if (s.currentTrack && s.currentTrack.path !== prev) {
+        this.fetchCoverIfNeeded(s.currentTrack);
+      }
+    }));
+
+    this.subs.push(this.musicService.shuffle$.subscribe(v => this.shuffle = v));
+    this.subs.push(this.musicService.repeat$.subscribe(v => this.repeat = v));
+    this.subs.push(this.musicService.queue$.subscribe(q => this.queueIndex = q.index));
   }
 
-  ngOnDestroy(): void { this.sub?.unsubscribe(); }
+  ngOnDestroy(): void { this.subs.forEach(s => s.unsubscribe()); }
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
@@ -42,6 +61,8 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     if (this.selectedPathId === null) return;
     this.musicService.browse(this.selectedPathId, this.currentSubPath).subscribe(items => {
       this.items = items;
+      // Fetch iTunes covers for tracks without embedded art (throttled)
+      this.fetchCoversForVisible();
     });
   }
 
@@ -87,25 +108,73 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   togglePlay()  { this.musicService.mainPlayer.togglePlay(); }
   next()        { this.musicService.playNextMain(); }
   prev()        { this.musicService.playPrevMain(); }
+  toggleShuffle() { this.musicService.toggleShuffle(); }
+  toggleRepeat()  { this.musicService.toggleRepeat(); }
+
   onSeek(e: Event)   { this.musicService.mainPlayer.seek(+(e.target as HTMLInputElement).value); }
   onVolume(e: Event) { this.musicService.mainPlayer.setVolume(+(e.target as HTMLInputElement).value); }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Cover art ─────────────────────────────────────────────────────────────
 
   coverUrl(track: MusicMetadataDto): string {
+    if (this.coverOverrideMap.has(track.path)) return this.coverOverrideMap.get(track.path)!;
     if (!track.hasCover || !this.selectedPathId) return '';
-    // Use pathId from player state for the currently-playing track
     const pid = (this.state?.currentTrack?.path === track.path && this.state?.pathId)
                 ? this.state.pathId
                 : this.selectedPathId;
     return this.musicService.getCoverUrl(pid, track.path);
   }
 
+  hasCoverToShow(track: MusicMetadataDto): boolean {
+    return track.hasCover || this.coverOverrideMap.has(track.path);
+  }
+
   playerCoverUrl(): string {
     const t = this.state?.currentTrack;
-    if (!t?.hasCover || !this.state?.pathId) return '';
+    if (!t) return '';
+    if (this.coverOverrideMap.has(t.path)) return this.coverOverrideMap.get(t.path)!;
+    if (!t.hasCover || !this.state?.pathId) return '';
     return this.musicService.getCoverUrl(this.state.pathId, t.path);
   }
+
+  playerHasCover(): boolean {
+    const t = this.state?.currentTrack;
+    return !!t && (t.hasCover || this.coverOverrideMap.has(t.path));
+  }
+
+  private fetchCoversForVisible() {
+    // Fetch iTunes covers for first 30 tracks without embedded art
+    this.tracks.filter(t => !t.hasCover).slice(0, 30).forEach(t => this.fetchCoverIfNeeded(t));
+  }
+
+  private fetchCoverIfNeeded(track: MusicMetadataDto) {
+    if (!track || track.hasCover || this.coverOverrideMap.has(track.path)) return;
+    const term = `${track.artist || ''} ${track.album || track.title || ''}`.trim();
+    if (!term) return;
+    if (this.itunesFetchedTerms.has(term)) {
+      // If we already fetched this term, maybe it matched a different track — apply if available
+      return;
+    }
+    this.itunesFetchedTerms.add(term);
+    const encoded = encodeURIComponent(term);
+    fetch(`https://itunes.apple.com/search?term=${encoded}&entity=album&limit=1`)
+      .then(r => r.json())
+      .then(data => {
+        const result = data.results?.[0];
+        if (result?.artworkUrl100) {
+          const hq = result.artworkUrl100.replace('100x100bb', '600x600bb');
+          // Apply to all tracks in current list with same artist+album
+          this.tracks
+            .filter(t => !t.hasCover && `${t.artist || ''} ${t.album || t.title || ''}`.trim() === term)
+            .forEach(t => this.coverOverrideMap.set(t.path, hq));
+          // Also apply to the specific track
+          this.coverOverrideMap.set(track.path, hq);
+        }
+      })
+      .catch(() => {});
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   fmt(seconds: number): string {
     if (!seconds || seconds <= 0) return '—';
@@ -121,5 +190,11 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   progressPct(): number {
     if (!this.state?.duration) return 0;
     return (this.state.currentTime / this.state.duration) * 100;
+  }
+
+  repeatIcon(): string {
+    if (this.repeat === 'one') return 'repeat1';
+    if (this.repeat === 'all') return 'repeatAll';
+    return 'none';
   }
 }
