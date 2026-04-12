@@ -1,244 +1,312 @@
-<div class="lib-layout">
+<div class="lib-root">
 
   <!-- ══ SIDEBAR ════════════════════════════════════════════════════════════ -->
   <nav class="lib-sidebar">
-    <div class="sidebar-brand">
-      <span class="brand-icon">🎵</span>
-      <span class="brand-label">NAS Library</span>
+
+    <div class="sidebar-logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="#1db954">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+      </svg>
+      <span>{{ 'MUSIC.NAS_LIBRARY_LOGO' | translate }}</span>
     </div>
 
-    <div class="sidebar-section-label">{{ 'MUSIC.SIDEBAR_COLLECTIONS' | translate }}</div>
-    <ul class="path-list">
-      <li *ngFor="let p of paths"
-          [class.active]="p.id === selectedPathId"
-          (click)="selectPath(p.id)">
-        <span class="path-icon">📚</span>
-        <span class="path-name">{{ p.name }}</span>
-      </li>
-    </ul>
+    <div class="sidebar-section">
+      <p class="sidebar-label">{{ 'MUSIC.SIDEBAR_COLLECTIONS' | translate }}</p>
+      <ul class="collections-list">
+        <li *ngFor="let p of paths"
+            class="collection-item"
+            [class.active]="p.id === selectedPathId"
+            (click)="selectPath(p.id)">
+          <div class="collection-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+            </svg>
+          </div>
+          <div class="collection-info">
+            <span class="collection-name">{{ p.name }}</span>
+            <span class="collection-type">{{ 'MUSIC.SIDEBAR_LIBRARY' | translate }}</span>
+          </div>
+        </li>
+      </ul>
+    </div>
 
-    <div class="sidebar-section-label" style="margin-top:24px">{{ 'MUSIC.SIDEBAR_NOW_PLAYING' | translate }}</div>
+    <!-- Now playing mini widget -->
     <div class="sidebar-now-playing" *ngIf="state?.currentTrack">
-      <div class="now-art-wrap" [class.spinning]="state?.playing">
-        <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" class="now-art" />
-        <div *ngIf="!playerHasCover()" class="now-art no-art">♪</div>
-        <div class="vinyl-ring"></div>
+      <div class="snp-art" [class.spinning]="state?.playing">
+        <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" />
+        <div *ngIf="!playerHasCover()" class="snp-art-placeholder">♪</div>
       </div>
-      <div class="status-info">
-        <span class="status-title">{{ state?.currentTrack?.title || state?.currentTrack?.name }}</span>
-        <span class="status-artist">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
+      <div class="snp-info">
+        <span class="snp-title">{{ state?.currentTrack?.title || state?.currentTrack?.name }}</span>
+        <span class="snp-artist">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
       </div>
+      <button class="snp-play" (click)="togglePlay()">
+        <svg *ngIf="state?.playing" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        <svg *ngIf="!state?.playing" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
     </div>
+
   </nav>
 
   <!-- ══ MAIN ════════════════════════════════════════════════════════════════ -->
   <div class="lib-main">
 
-    <!-- Gradient header -->
-    <div class="lib-header" [class.has-cover]="playerHasCover() && !!state?.currentTrack">
-      <!-- Big animated album art -->
-      <div class="header-cover" *ngIf="playerHasCover() && state?.currentTrack" [class.spinning]="state?.playing">
-        <img [src]="playerCoverUrl()" alt="cover" />
-        <div class="cover-glow"></div>
-      </div>
-      <div class="header-cover no-art-hero" *ngIf="!playerHasCover() || !state?.currentTrack">
-        <span>🎵</span>
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-nav">
+        <button class="nav-btn" (click)="goUp()" [disabled]="isRoot" [title]="'MUSIC.BACK_TITLE' | translate">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
+        </button>
+        <!-- Breadcrumbs -->
+        <div class="breadcrumbs" *ngIf="!isRoot">
+          <span class="bc-item bc-root" (click)="selectPath(selectedPathId!)">{{ getPathName(selectedPathId) }}</span>
+          <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
+            <span class="bc-sep">›</span>
+            <span class="bc-item" [class.bc-current]="last">{{ crumb }}</span>
+          </ng-container>
+        </div>
+        <span class="topbar-title" *ngIf="isRoot">{{ getPathName(selectedPathId) }}</span>
       </div>
 
-      <div class="header-nav">
-        <button class="nav-btn" (click)="goUp()" [disabled]="isRoot" [title]="'MUSIC.GO_UP' | translate">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/>
+      <div class="topbar-search">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <input class="search-input" type="text" [(ngModel)]="searchQuery"
+               placeholder="{{ 'MUSIC.SEARCH_PLACEHOLDER' | translate }}" />
+        <button class="search-clear" *ngIf="searchQuery" (click)="searchQuery = ''">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="content-scroll" #contentScroll>
+
+      <!-- Gradient header -->
+      <div class="content-header" [style.background]="headerGradient">
+        <div class="content-header-bg"></div>
+        <div class="header-art">
+          <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" class="header-cover-img" [class.playing]="state?.playing" />
+          <div *ngIf="!playerHasCover() || !state?.currentTrack" class="header-art-placeholder">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
+              <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="header-meta">
+          <span class="header-type">{{ 'MUSIC.COLLECTION_HEADER' | translate }}</span>
+          <h1 class="header-folder-name">{{ currentFolderName }}</h1>
+          <div class="header-counts">
+            <span *ngIf="folders.length > 0">{{ folders.length }} {{ (folders.length !== 1 ? 'MUSIC.COUNT_FOLDER_PLUR' : 'MUSIC.COUNT_FOLDER_SING') | translate }}</span>
+            <span class="dot" *ngIf="folders.length > 0 && tracks.length > 0">·</span>
+            <span *ngIf="tracks.length > 0">{{ tracks.length }} {{ tracks.length === 1 ? ('MUSIC.COUNT_SONG_SING' | translate) : ('MUSIC.COUNT_SONGS' | translate) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar" *ngIf="filteredTracks.length > 0 || filteredFolders.length > 0">
+        <button class="btn-play-all" (click)="playTrack(filteredTracks[0])" *ngIf="filteredTracks.length > 0">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="btn-action" [class.active]="shuffle" (click)="toggleShuffle()" [title]="'MUSIC.SHUFFLE' | translate">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
           </svg>
         </button>
       </div>
-      <div class="header-info">
-        <span class="header-type">{{ 'MUSIC.FOLDER_TYPE' | translate }}</span>
-        <h1 class="header-title">{{ currentFolderName }}</h1>
-        <span class="header-count">
-          <ng-container *ngIf="folders.length > 0">{{ folders.length }} {{ 'MUSIC.COUNT_FOLDERS' | translate }} · </ng-container>
-          {{ tracks.length }} {{ 'MUSIC.COUNT_SONGS' | translate }}
-        </span>
-        <div class="header-actions" *ngIf="tracks.length > 0">
-          <button class="action-play-btn" (click)="playTrack(tracks[0])" title="Reproducir">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          </button>
-          <button class="action-shuffle-btn" [class.active]="shuffle" (click)="toggleShuffle()" title="Aleatorio">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
 
-    <!-- Track list -->
-    <div class="lib-content">
-
-      <!-- Column headers -->
-      <div class="col-headers">
-        <span class="ch-num">#</span>
-        <span class="ch-title">{{ 'MUSIC.COL_TITLE' | translate }}</span>
-        <span class="ch-album">{{ 'MUSIC.COL_ALBUM' | translate }}</span>
-        <span class="ch-format">{{ 'MUSIC.COL_FORMAT' | translate }}</span>
-        <span class="ch-dur">⏱</span>
-      </div>
-      <div class="col-divider"></div>
-
-      <!-- Folders -->
-      <div *ngFor="let item of folders" class="row folder-row" (dblclick)="navigate(item)">
-        <span class="r-num">📁</span>
-        <div class="r-title-cell">
-          <div class="r-art folder-art">📁</div>
-          <div class="r-info">
-            <span class="r-name">{{ item.name }}</span>
+      <!-- ── Folders section ─────────────────────────────────────────────── -->
+      <ng-container *ngIf="filteredFolders.length > 0">
+        <h2 class="section-title" *ngIf="filteredTracks.length > 0">{{ 'MUSIC.FOLDERS_SECTION' | translate }}</h2>
+        <div class="folder-grid">
+          <div *ngFor="let folder of filteredFolders"
+               class="folder-card"
+               (click)="navigate(folder)"
+               (dblclick)="navigate(folder)">
+            <div class="folder-card-art">
+              <svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(255,255,255,0.7)">
+                <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+              </svg>
+              <div class="folder-card-play">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+            <span class="folder-card-name">{{ folder.name }}</span>
+            <span class="folder-card-type">{{ 'MUSIC.FOLDER_TYPE' | translate }}</span>
           </div>
         </div>
-        <span class="r-album"></span>
-        <span class="r-format"></span>
-        <span class="r-dur"></span>
-      </div>
+      </ng-container>
 
-      <!-- Tracks -->
-      <div *ngFor="let item of tracks; let i = index"
-           class="row track-row"
-           [class.track-playing]="isCurrentTrack(item)"
-           (dblclick)="playTrack(item)">
+      <!-- ── Track list ──────────────────────────────────────────────────── -->
+      <ng-container *ngIf="filteredTracks.length > 0">
+        <h2 class="section-title" *ngIf="filteredFolders.length > 0">{{ 'MUSIC.TRACKS_SECTION' | translate }}</h2>
 
-        <!-- Number / equalizer / play button -->
-        <span class="r-num">
-          <ng-container *ngIf="!isCurrentTrack(item)">
-            <span class="row-num">{{ i + 1 }}</span>
-            <button class="row-play" (click)="playTrack(item)">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-          </ng-container>
-          <span class="equalizer" *ngIf="isCurrentTrack(item) && state?.playing">
-            <span class="eq-bar"></span>
-            <span class="eq-bar"></span>
-            <span class="eq-bar"></span>
-            <span class="eq-bar"></span>
-          </span>
-          <svg *ngIf="isCurrentTrack(item) && !state?.playing" width="14" height="14" viewBox="0 0 24 24" fill="#1db954"><path d="M8 5v14l11-7z"/></svg>
-        </span>
-
-        <!-- Title + artist + cover -->
-        <div class="r-title-cell">
-          <div class="r-art" [class.no-art]="!hasCoverToShow(item)" [class.track-playing]="isCurrentTrack(item)">
-            <img *ngIf="hasCoverToShow(item)" [src]="coverUrl(item)" loading="lazy" />
-            <span *ngIf="!hasCoverToShow(item)" class="no-art-icon">♪</span>
+        <div class="track-list">
+          <!-- Column headers -->
+          <div class="track-header">
+            <span class="th-num">#</span>
+            <span class="th-title">{{ 'MUSIC.COL_TITLE' | translate }}</span>
+            <span class="th-album">{{ 'MUSIC.COL_ALBUM' | translate }}</span>
+            <span class="th-format">{{ 'MUSIC.COL_FORMAT' | translate }}</span>
+            <span class="th-dur">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>
+            </span>
           </div>
-          <div class="r-info">
-            <span class="r-name" [class.green-text]="isCurrentTrack(item)">{{ item.title || item.name }}</span>
-            <span class="r-artist">{{ item.artist || '' }}</span>
+          <div class="track-divider"></div>
+
+          <!-- Track rows -->
+          <div *ngFor="let track of filteredTracks; let i = index"
+               class="track-row"
+               [class.is-playing]="isCurrentTrack(track)"
+               (dblclick)="playTrack(track)">
+
+            <span class="tr-num">
+              <span class="tr-index" *ngIf="!isCurrentTrack(track)">{{ i + 1 }}</span>
+              <button class="tr-play-btn" (click)="playTrack(track)" *ngIf="!isCurrentTrack(track)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              </button>
+              <span class="tr-equalizer" *ngIf="isCurrentTrack(track) && state?.playing">
+                <span></span><span></span><span></span><span></span>
+              </span>
+              <svg *ngIf="isCurrentTrack(track) && !state?.playing" width="14" height="14" viewBox="0 0 24 24" fill="#1db954"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+
+            <div class="tr-title-cell">
+              <div class="tr-art">
+                <img *ngIf="hasCoverToShow(track)" [src]="coverUrl(track)" loading="lazy" />
+                <div *ngIf="!hasCoverToShow(track)" class="tr-art-placeholder">♪</div>
+                <div class="tr-art-overlay" *ngIf="isCurrentTrack(track) && state?.playing">
+                  <span class="tr-equalizer-sm">
+                    <span></span><span></span><span></span>
+                  </span>
+                </div>
+              </div>
+              <div class="tr-info">
+                <span class="tr-name" [class.green]="isCurrentTrack(track)">{{ track.title || track.name }}</span>
+                <span class="tr-artist">{{ track.artist || '' }}</span>
+              </div>
+            </div>
+
+            <span class="tr-album">{{ track.album || '—' }}</span>
+
+            <span class="tr-format">
+              <span *ngIf="track.format" class="fmt-pill {{ track.format.toLowerCase() }}">{{ track.format.toUpperCase() }}</span>
+            </span>
+
+            <span class="tr-dur">{{ fmt(track.duration) }}</span>
           </div>
         </div>
-
-        <span class="r-album">{{ item.album || '—' }}</span>
-        <span class="r-format">
-          <span *ngIf="item.format" class="fmt-badge {{ fmtClass(item.format) }}">{{ item.format.toUpperCase() }}</span>
-        </span>
-        <span class="r-dur">{{ fmt(item.duration) }}</span>
-      </div>
+      </ng-container>
 
       <!-- Empty state -->
-      <div *ngIf="items.length === 0" class="empty-state">
-        <span class="empty-icon">🎵</span>
-        <p>{{ 'MUSIC.NO_AUDIO_FOLDER' | translate }}</p>
+      <div *ngIf="items.length === 0 && !searchQuery" class="empty-state">
+        <svg width="72" height="72" viewBox="0 0 24 24" fill="rgba(255,255,255,0.15)">
+          <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+        </svg>
+        <p class="empty-title">{{ 'MUSIC.NO_AUDIO_FOLDER' | translate }}</p>
         <p class="empty-hint">{{ 'MUSIC.NO_AUDIO_HINT' | translate }}</p>
       </div>
 
-    </div>
-  </div>
-</div>
+      <div *ngIf="(filteredTracks.length === 0 && filteredFolders.length === 0) && searchQuery" class="empty-state">
+        <svg width="72" height="72" viewBox="0 0 24 24" fill="rgba(255,255,255,0.15)">
+          <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <p class="empty-title">{{ 'MUSIC.SEARCH_NO_RESULTS_FOR' | translate }} "{{ searchQuery }}"</p>
+      </div>
+
+    </div><!-- /content-scroll -->
+  </div><!-- /lib-main -->
+</div><!-- /lib-root -->
 
 <!-- ══ PLAYER BAR ═══════════════════════════════════════════════════════════ -->
-<div class="player-bar" [class.bar-visible]="state?.currentTrack">
+<div class="player-bar" [class.visible]="!!state?.currentTrack">
 
-  <!-- Now playing -->
-  <div class="bar-left">
-    <div class="bar-art-wrap" [class.spinning]="state?.playing">
-      <div class="bar-art" [class.no-art]="!playerHasCover()">
-        <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" />
-        <span *ngIf="!playerHasCover()" class="no-art-icon">♪</span>
-      </div>
+  <!-- Left: Now playing -->
+  <div class="pb-left">
+    <div class="pb-art" [class.spinning]="state?.playing">
+      <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" />
+      <div *ngIf="!playerHasCover()" class="pb-art-placeholder">♪</div>
     </div>
-    <div class="bar-track-info">
-      <span class="bar-title">{{ state?.currentTrack?.title || state?.currentTrack?.name }}</span>
-      <span class="bar-artist" *ngIf="!state?.error">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
-      <span class="bar-error" *ngIf="state?.error" title="{{ state?.error }}">⚠ {{ state?.error }}</span>
+    <div class="pb-track-info">
+      <span class="pb-title">{{ state?.currentTrack?.title || state?.currentTrack?.name }}</span>
+      <span class="pb-artist" *ngIf="!state?.error">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
+      <span class="pb-error" *ngIf="state?.error" [title]="state?.error ?? ''">⚠ {{ state?.error }}</span>
     </div>
-    <button class="heart-btn" [title]="'MUSIC.LIKE' | translate">
+      <button class="pb-like" [title]="'MUSIC.LIKE' | translate">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
       </svg>
     </button>
   </div>
 
-  <!-- Controls -->
-  <div class="bar-center">
-    <div class="bar-btns">
-      <!-- Shuffle -->
-      <button class="ctrl-btn ctrl-small" [class.ctrl-active]="shuffle" (click)="toggleShuffle()" title="Aleatorio">
+  <!-- Center: Controls + progress -->
+  <div class="pb-center">
+    <div class="pb-controls">
+      <button class="pb-ctrl" [class.active]="shuffle" (click)="toggleShuffle()" [title]="'MUSIC.SHUFFLE' | translate">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
         </svg>
+        <span class="ctrl-dot" *ngIf="shuffle"></span>
       </button>
 
-      <button class="ctrl-btn" (click)="prev()" [title]="'MUSIC.PREV' | translate">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-        </svg>
+      <button class="pb-ctrl pb-skip" (click)="prev()" [title]="'MUSIC.PREV' | translate">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
       </button>
-      <button class="play-btn" (click)="togglePlay()" [title]="(state?.playing ? 'MUSIC.PAUSE' : 'MUSIC.PLAY') | translate">
-        <svg *ngIf="state?.playing" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+
+      <button class="pb-play" (click)="togglePlay()">
+        <svg *ngIf="state?.playing" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
           <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
         </svg>
-        <svg *ngIf="!state?.playing" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <svg *ngIf="!state?.playing" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
           <path d="M8 5v14l11-7z"/>
         </svg>
       </button>
-      <button class="ctrl-btn" (click)="next()" [title]="'MUSIC.NEXT' | translate">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/>
-        </svg>
+
+      <button class="pb-ctrl pb-skip" (click)="next()" [title]="'MUSIC.NEXT' | translate">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
       </button>
 
-      <!-- Repeat -->
-      <button class="ctrl-btn ctrl-small" [class.ctrl-active]="repeat !== 'none'" (click)="toggleRepeat()" title="Repetir">
-        <!-- repeat all -->
+      <button class="pb-ctrl" [class.active]="repeat !== 'none'" (click)="toggleRepeat()" [title]="'MUSIC.REPEAT' | translate">
         <svg *ngIf="repeat !== 'one'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
         </svg>
-        <!-- repeat one -->
         <svg *ngIf="repeat === 'one'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z"/>
         </svg>
-        <span class="repeat-badge" *ngIf="repeat === 'one'">1</span>
+        <span class="ctrl-dot" *ngIf="repeat !== 'none'"></span>
       </button>
     </div>
 
-    <div class="bar-progress">
-      <span class="time-label">{{ fmt(state?.currentTime || 0) }}</span>
-      <div class="progress-track">
-        <div class="progress-fill" [style.width.%]="progressPct()"></div>
-        <input type="range" class="progress-input"
+    <div class="pb-progress">
+      <span class="pb-time">{{ fmt(state?.currentTime || 0) }}</span>
+      <div class="pb-track" (click)="onSeekClick($event)">
+        <div class="pb-fill" [style.width.%]="progressPct()"></div>
+        <div class="pb-thumb" [style.left.%]="progressPct()"></div>
+        <input type="range" class="pb-range"
                [max]="state?.duration || 0"
                [value]="state?.currentTime || 0"
                (input)="onSeek($event)" />
       </div>
-      <span class="time-label">{{ fmt(state?.duration || 0) }}</span>
+      <span class="pb-time">{{ fmt(state?.duration || 0) }}</span>
     </div>
   </div>
 
-  <!-- Volume -->
-  <div class="bar-right">
+  <!-- Right: Volume -->
+  <div class="pb-right">
     <svg class="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+      <path *ngIf="(state?.volume ?? 1) > 0.5" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+      <path *ngIf="(state?.volume ?? 1) > 0 && (state?.volume ?? 1) <= 0.5" d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>
+      <path *ngIf="(state?.volume ?? 1) === 0" d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
     </svg>
-    <input type="range" class="vol-slider"
-           min="0" max="1" step="0.02"
-           [value]="state?.volume ?? 1"
-           (input)="onVolume($event)" />
+    <div class="vol-track">
+      <div class="vol-fill" [style.width.%]="(state?.volume ?? 1) * 100"></div>
+      <input type="range" class="vol-range"
+             min="0" max="1" step="0.02"
+             [value]="state?.volume ?? 1"
+             (input)="onVolume($event)" />
+    </div>
   </div>
+
 </div>
