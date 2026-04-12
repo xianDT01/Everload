@@ -517,6 +517,11 @@
   display: block; color: #b3b3b3; font-size: 11px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.bar-error {
+  display: block; color: #ff6b6b; font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: help;
+}
 .heart-btn {
   background: transparent; border: none;
   color: #b3b3b3; cursor: pointer;

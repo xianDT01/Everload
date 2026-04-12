@@ -27,7 +27,10 @@ export class AuthService {
 
   readonly BASE: string = (() => {
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
-    return (host === 'localhost' || host === '127.0.0.1') ? 'http://localhost:8080' : '';
+    const port = typeof window !== 'undefined' ? window.location.port : '';
+    return (host === 'localhost' || host === '127.0.0.1') && port === '4200'
+      ? 'http://localhost:8080'
+      : '';
   })();
 
   private currentUserSubject = new BehaviorSubject<AuthResponse | null>(this.loadFromStorage());
