@@ -502,6 +502,17 @@ export class MusicService {
   });
   public queue$ = this.queueSubj.asObservable();
 
+  // Shuffle & Repeat
+  private _shuffle = false;
+  private _repeat: 'none' | 'one' | 'all' = 'none';
+  private shuffleOrder: number[] = [];
+  private shuffleSubj  = new BehaviorSubject<boolean>(false);
+  private repeatSubj   = new BehaviorSubject<'none' | 'one' | 'all'>('none');
+  public shuffle$ = this.shuffleSubj.asObservable();
+  public repeat$  = this.repeatSubj.asObservable();
+  get shuffle() { return this._shuffle; }
+  get repeat()  { return this._repeat; }
+
   constructor(private http: HttpClient, private auth: AuthService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
     this.deckAPlayer = new DeckPlayer(this, 'deckA');
@@ -509,6 +520,28 @@ export class MusicService {
 
     // Auto-advance queue when main player track ends naturally
     this.mainPlayer.onTrackEnded = () => this.playNextMain();
+  }
+
+  toggleShuffle() {
+    this._shuffle = !this._shuffle;
+    if (this._shuffle) this.buildShuffleOrder();
+    this.shuffleSubj.next(this._shuffle);
+  }
+
+  toggleRepeat() {
+    const modes: ('none' | 'one' | 'all')[] = ['none', 'one', 'all'];
+    this._repeat = modes[(modes.indexOf(this._repeat) + 1) % modes.length];
+    this.repeatSubj.next(this._repeat);
+  }
+
+  private buildShuffleOrder() {
+    const q = this.queueSubj.value;
+    const rest = q.tracks.map((_, i) => i).filter(i => i !== q.index);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+    this.shuffleOrder = [q.index, ...rest];
   }
 
   // ── API calls ─────────────────────────────────────────────────────────────
@@ -536,6 +569,7 @@ export class MusicService {
 
   setQueue(pathId: number, tracks: MusicMetadataDto[], index: number) {
     this.queueSubj.next({ tracks, pathId, index });
+    if (this._shuffle) this.buildShuffleOrder();
     if (tracks[index]) {
       this.mainPlayer.load(tracks[index], pathId).then(() => {
         this.mainPlayer.play();
@@ -545,8 +579,26 @@ export class MusicService {
 
   playNextMain() {
     const q = this.queueSubj.value;
-    if (q.index < q.tracks.length - 1) {
-      this.setQueue(q.pathId, q.tracks, q.index + 1);
+    if (this._repeat === 'one') {
+      this.mainPlayer.seek(0);
+      this.mainPlayer.play();
+      return;
+    }
+    if (this._shuffle) {
+      const pos = this.shuffleOrder.indexOf(q.index);
+      const next = pos + 1;
+      if (next < this.shuffleOrder.length) {
+        this.setQueue(q.pathId, q.tracks, this.shuffleOrder[next]);
+      } else if (this._repeat === 'all') {
+        this.buildShuffleOrder();
+        this.setQueue(q.pathId, q.tracks, this.shuffleOrder[0]);
+      }
+    } else {
+      if (q.index < q.tracks.length - 1) {
+        this.setQueue(q.pathId, q.tracks, q.index + 1);
+      } else if (this._repeat === 'all') {
+        this.setQueue(q.pathId, q.tracks, 0);
+      }
     }
   }
 
@@ -554,8 +606,14 @@ export class MusicService {
     const q = this.queueSubj.value;
     if (this.mainPlayer.state.currentTime > 3) {
       this.mainPlayer.seek(0);
+    } else if (this._shuffle) {
+      const pos = this.shuffleOrder.indexOf(q.index);
+      if (pos > 0) this.setQueue(q.pathId, q.tracks, this.shuffleOrder[pos - 1]);
+      else this.mainPlayer.seek(0);
     } else if (q.index > 0) {
       this.setQueue(q.pathId, q.tracks, q.index - 1);
+    } else {
+      this.mainPlayer.seek(0);
     }
   }
 

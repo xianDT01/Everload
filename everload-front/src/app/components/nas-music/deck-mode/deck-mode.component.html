@@ -42,7 +42,7 @@
               {{ getCurrentBpm('A') | number:'1.1-1' }} <small>({{ stateA?.currentTrack?.bpm }})</small> BPM
             </span>
             <ng-template #pitchOnlyA>
-              <span class="bpm-badge bpm-rate" title="Velocidad de reproducción">
+              <span class="bpm-badge bpm-rate" [title]="'MUSIC.DJ_SPEED_TITLE' | translate">
                 {{ (1 + pitchA) | number:'1.2-2' }}x
               </span>
             </ng-template>
@@ -127,14 +127,14 @@
         <!-- Queue panel A -->
         <div class="queue-panel" *ngIf="showQueueA">
           <div class="queue-header">
-            <span class="qh-title">Cola Deck A</span>
-            <span class="qh-stats">{{ queueA.length }} {{ 'pista' + (queueA.length !== 1 ? 's' : '') }}</span>
-            <button class="queue-clear" (click)="clearQueue('A')" *ngIf="queueA.length > 0" title="Vaciar cola">✕</button>
+            <span class="qh-title">{{ 'MUSIC.DJ_QUEUE_TITLE_A' | translate }}</span>
+            <span class="qh-stats">{{ queueA.length }} {{ (queueA.length !== 1 ? 'MUSIC.DJ_TRACK_PLURAL' : 'MUSIC.DJ_TRACK_SINGULAR') | translate }}</span>
+            <button class="queue-clear" (click)="clearQueue('A')" *ngIf="queueA.length > 0" [title]="'MUSIC.DJ_QUEUE_CLEAR_TITLE' | translate">✕</button>
             <button class="queue-close" (click)="showQueueA = false">▼</button>
           </div>
           <div class="queue-empty" *ngIf="queueA.length === 0">
-            <div class="qe-icon"> vacío </div>
-            <span>Sin pistas en cola</span>
+            <div class="qe-icon">·</div>
+            <span>{{ 'MUSIC.DJ_QUEUE_EMPTY_MSG' | translate }}</span>
           </div>
           <div class="queue-list" *ngIf="queueA.length > 0">
             <div class="queue-item" *ngFor="let item of queueA; let i = index">
@@ -148,7 +148,7 @@
                 <div class="qi-title">{{ item.track.title || item.track.name }}</div>
                 <div class="qi-meta">{{ item.track.artist || '—' }}</div>
               </div>
-              <button class="queue-remove" (click)="removeFromQueue('A', i)" title="Quitar">✕</button>
+              <button class="queue-remove" (click)="removeFromQueue('A', i)" [title]="'MUSIC.DJ_QUEUE_REMOVE_TITLE' | translate">✕</button>
             </div>
           </div>
         </div>
@@ -307,7 +307,7 @@
               {{ getCurrentBpm('B') | number:'1.1-1' }} <small>({{ stateB?.currentTrack?.bpm }})</small> BPM
             </span>
             <ng-template #pitchOnlyB>
-              <span class="bpm-badge bpm-rate" title="Velocidad de reproducción">
+              <span class="bpm-badge bpm-rate" [title]="'MUSIC.DJ_SPEED_TITLE' | translate">
                 {{ (1 + pitchB) | number:'1.2-2' }}x
               </span>
             </ng-template>
@@ -395,14 +395,14 @@
         <!-- Queue panel B -->
         <div class="queue-panel" *ngIf="showQueueB">
           <div class="queue-header">
-            <span class="qh-title">Cola Deck B</span>
-            <span class="qh-stats">{{ queueB.length }} {{ 'pista' + (queueB.length !== 1 ? 's' : '') }}</span>
-            <button class="queue-clear" (click)="clearQueue('B')" *ngIf="queueB.length > 0" title="Vaciar cola">✕</button>
+            <span class="qh-title">{{ 'MUSIC.DJ_QUEUE_TITLE_B' | translate }}</span>
+            <span class="qh-stats">{{ queueB.length }} {{ (queueB.length !== 1 ? 'MUSIC.DJ_TRACK_PLURAL' : 'MUSIC.DJ_TRACK_SINGULAR') | translate }}</span>
+            <button class="queue-clear" (click)="clearQueue('B')" *ngIf="queueB.length > 0" [title]="'MUSIC.DJ_QUEUE_CLEAR_TITLE' | translate">✕</button>
             <button class="queue-close" (click)="showQueueB = false">▼</button>
           </div>
           <div class="queue-empty" *ngIf="queueB.length === 0">
-            <div class="qe-icon"> vacío </div>
-            <span>Sin pistas en cola</span>
+            <div class="qe-icon">·</div>
+            <span>{{ 'MUSIC.DJ_QUEUE_EMPTY_MSG' | translate }}</span>
           </div>
           <div class="queue-list" *ngIf="queueB.length > 0">
             <div class="queue-item" *ngFor="let item of queueB; let i = index">
@@ -416,7 +416,7 @@
                 <div class="qi-title">{{ item.track.title || item.track.name }}</div>
                 <div class="qi-meta">{{ item.track.artist || '—' }}</div>
               </div>
-              <button class="queue-remove" (click)="removeFromQueue('B', i)" title="Quitar">✕</button>
+              <button class="queue-remove" (click)="removeFromQueue('B', i)" [title]="'MUSIC.DJ_QUEUE_REMOVE_TITLE' | translate">✕</button>
             </div>
           </div>
         </div>
@@ -434,7 +434,7 @@
 
       <div class="tree-header">
         <span class="tree-header-icon">📚</span>
-        <span class="tree-header-title">Library</span>
+        <span class="tree-header-title">{{ 'MUSIC.DJ_TREE_TITLE' | translate }}</span>
       </div>
 
       <div class="tree-body">
@@ -481,7 +481,7 @@
         </ng-container>
 
         <div *ngIf="visibleTreeNodes.length === 0" class="tree-empty">
-          Sin rutas NAS configuradas
+          {{ 'MUSIC.DJ_NO_NAS_PATHS' | translate }}
         </div>
       </div>
 
@@ -498,13 +498,13 @@
           📁 {{ 'MUSIC.DECK_FILES' | translate }}
         </button>
         <button class="b-tab" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">
-          ▶ YouTube
+          ▶ {{ 'MUSIC.DJ_TAB_YOUTUBE' | translate }}
         </button>
         <button class="b-tab" [class.active]="browserTab === 'local'" (click)="browserTab = 'local'">
-          💻 Local
+          💻 {{ 'MUSIC.DJ_TAB_LOCAL' | translate }}
         </button>
         <button class="b-tab" [class.active]="browserTab === 'history'" (click)="browserTab = 'history'">
-          🕒 History
+          🕒 {{ 'MUSIC.DJ_TAB_HISTORY' | translate }}
         </button>
       </div>
 
@@ -572,7 +572,7 @@
       <div class="browser-main">
 
         <div class="browser-toolbar yt-search-row">
-          <input class="yt-search-input" type="text" placeholder="Buscar en YouTube..."
+          <input class="yt-search-input" type="text" [placeholder]="'MUSIC.DJ_YT_SEARCH_PH' | translate"
                  [value]="ytSearchQuery"
                  (input)="ytSearchQuery = $any($event.target).value"
                  (keydown.enter)="searchYouTube()" />
@@ -583,7 +583,7 @@
 
         <div class="browser-toolbar yt-url-bar">
           <span class="yt-url-icon">🔗</span>
-          <input class="yt-search-input" type="text" placeholder="Pegar URL de YouTube..."
+          <input class="yt-search-input" type="text" [placeholder]="'MUSIC.DJ_YT_URL_PH' | translate"
                  [value]="ytDirectUrl"
                  (input)="ytDirectUrl = $any($event.target).value"
                  (keydown.enter)="loadDirectUrl('A')" />
@@ -596,8 +596,8 @@
             <thead>
               <tr>
                 <th class="yt-icon"></th>
-                <th class="bc-name">Título</th>
-                <th class="bc-load">Cargar</th>
+                <th class="bc-name">{{ 'MUSIC.DJ_COL_TITLE' | translate }}</th>
+                <th class="bc-load">{{ 'MUSIC.DJ_COL_LOAD' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -619,9 +619,9 @@
             </tbody>
           </table>
           <div *ngIf="ytSearchResults.length === 0 && !ytSearching" class="brow-empty">
-            Busca vídeos de YouTube para cargarlos en una cabina
+            {{ 'MUSIC.DJ_YT_EMPTY' | translate }}
           </div>
-          <div *ngIf="ytSearching" class="brow-empty loading-pulse">Buscando…</div>
+          <div *ngIf="ytSearching" class="brow-empty loading-pulse">{{ 'MUSIC.DJ_YT_SEARCHING' | translate }}</div>
         </div>
 
       </div>
@@ -643,21 +643,17 @@
       <div class="browser-main" *ngIf="!localRootHandle">
         <div class="local-welcome">
           <div class="local-welcome-icon">💻</div>
-          <div class="local-welcome-title">Archivos del PC</div>
-          <div class="local-welcome-desc">
-            Lee música directamente desde tu disco duro.<br>
-            No se sube nada al servidor.
-          </div>
+          <div class="local-welcome-title">{{ 'MUSIC.DJ_LOCAL_TITLE' | translate }}</div>
+          <div class="local-welcome-desc">{{ 'MUSIC.DJ_LOCAL_DESC' | translate }}</div>
           <button class="local-open-btn" (click)="openLocalFolder()">
-            📂 Abrir Carpeta del PC…
+            {{ 'MUSIC.DJ_LOCAL_OPEN' | translate }}
           </button>
           <div class="local-compat-note" *ngIf="localFsApiSupported">
-            Chrome · Edge · Opera — navegación de subcarpetas disponible.<br>
-            Tendrás que autorizar el acceso cada vez que recargues.
+            {{ 'MUSIC.DJ_LOCAL_CHROMIUM_1' | translate }}<br>
+            {{ 'MUSIC.DJ_LOCAL_CHROMIUM_2' | translate }}
           </div>
           <div class="local-compat-note local-compat-fallback" *ngIf="!localFsApiSupported">
-            Firefox · Safari — se cargarán todos los archivos de audio<br>
-            de la carpeta seleccionada (sin navegación de subcarpetas).
+            {{ 'MUSIC.DJ_LOCAL_FF' | translate }}
           </div>
         </div>
       </div>
@@ -671,7 +667,7 @@
             </svg>
           </button>
           <span class="brow-path local-path">💻 {{ localCurrentPathStr || 'PC' }}</span>
-          <span *ngIf="localFallbackMode" class="local-fallback-badge" title="Firefox/Safari: lista plana sin navegación de subcarpetas">sin nav.</span>
+          <span *ngIf="localFallbackMode" class="local-fallback-badge" title="Firefox/Safari">{{ 'MUSIC.DJ_LOCAL_NO_NAV' | translate }}</span>
           <button class="local-change-btn" (click)="openLocalFolder()" title="Cambiar carpeta">
             ⇄
           </button>
@@ -682,8 +678,8 @@
             <thead>
               <tr>
                 <th class="bc-icon"></th>
-                <th class="bc-name">Nombre</th>
-                <th class="bc-load">Cargar</th>
+                <th class="bc-name">{{ 'MUSIC.DJ_COL_NAME' | translate }}</th>
+                <th class="bc-load">{{ 'MUSIC.DJ_COL_LOAD' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -714,7 +710,7 @@
                 </td>
               </tr>
               <tr *ngIf="localItems.length === 0">
-                <td colspan="3" class="brow-empty">Carpeta vacía o sin archivos de audio</td>
+                <td colspan="3" class="brow-empty">{{ 'MUSIC.DJ_LOCAL_EMPTY' | translate }}</td>
               </tr>
             </tbody>
           </table>
@@ -727,8 +723,8 @@
     <div class="browser-section" *ngIf="browserTab === 'history'">
       <div class="browser-main">
         <div class="browser-toolbar">
-          <span class="brow-path">🕒 Historial de Sesión</span>
-          <button class="queue-clear" (click)="clearHistory()" title="Borrar historial">Vaciar</button>
+          <span class="brow-path">🕒 {{ 'MUSIC.DJ_HISTORY_TITLE' | translate }}</span>
+          <button class="queue-clear" (click)="clearHistory()">{{ 'MUSIC.DJ_HISTORY_CLEAR' | translate }}</button>
         </div>
         <div class="browser-list">
           <table>
@@ -749,7 +745,7 @@
                 </td>
               </tr>
               <tr *ngIf="sessionHistory.length === 0">
-                <td colspan="3" class="brow-empty">No has pinchado temas todavía</td>
+                <td colspan="3" class="brow-empty">{{ 'MUSIC.DJ_HISTORY_EMPTY' | translate }}</td>
               </tr>
             </tbody>
           </table>
@@ -765,134 +761,134 @@
   <div class="help-overlay" *ngIf="showHelp" (click)="showHelp = false">
     <div class="help-modal" (click)="$event.stopPropagation()">
       <div class="help-modal-header">
-        <span class="help-title">Guía de controles — Modo DJ</span>
+        <span class="help-title">{{ 'MUSIC.DJ_HELP_TITLE' | translate }}</span>
         <button class="mmh-close" (click)="showHelp = false">✕</button>
       </div>
       <div class="help-modal-body">
 
         <!-- CABINAS -->
         <div class="help-section">
-          <div class="help-section-title">Cabinas (Deck A y Deck B)</div>
+          <div class="help-section-title">{{ 'MUSIC.DJ_HELP_SECTION_DECKS' | translate }}</div>
           <div class="help-grid">
             <div class="help-item">
               <span class="help-key">⏮ / ⏭</span>
-              <span class="help-desc">Pista anterior / siguiente dentro de la cola del deck.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_PREV_NEXT_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">CUE</span>
-              <span class="help-desc">Vuelve al principio y para. Si ya está parado en el inicio, marca ese punto como cue. Útil para preparar la entrada antes de soltar la música.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_CUE_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">▶ / ⏸</span>
-              <span class="help-desc">Play / Pausa. Inicia o detiene la reproducción del deck.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_PLAY_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">⏮ (Reset)</span>
-              <span class="help-desc">Vuelve al segundo 0 sin saltar de pista. Útil para relanzar el tema desde el inicio.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_RESET_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">BPM SYNC</span>
-              <span class="help-desc">Ajusta el PITCH de este deck para que su BPM coincida con el del otro deck. Requiere que ambas pistas tengan BPM detectado.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_BPM_SYNC_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">SYNC</span>
-              <span class="help-desc">Salta a la misma posición relativa (%) que el otro deck. Por ejemplo, si el otro deck lleva el 42% de su pista, este salta también al 42%. Solo activo si ambos decks tienen pistas cargadas.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_SYNC_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">☰ Cola</span>
-              <span class="help-desc">Muestra / oculta la cola de reproducción del deck. Las pistas se reproducirán en orden cuando termine la actual.</span>
+              <span class="help-key">☰ {{ 'MUSIC.DJ_TAB_HISTORY' | translate }}</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_QUEUE_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">PITCH</span>
-              <span class="help-desc">Slider vertical a la derecha del disco. Sube o baja la velocidad de reproducción (±10%). El BPM mostrado se recalcula en tiempo real. Doble clic en "PITCH" para resetear a 0.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_PITCH_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">Pads 1–4</span>
-              <span class="help-desc">Hot Cues: primer clic guarda la posición actual. Clic posterior salta a ese punto guardado. Clic derecho sobre el pad borra el cue.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_HOTCUES_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">4 / 8 / 16</span>
-              <span class="help-desc">Loop automático: activa un bucle de 4, 8 o 16 tiempos (calculados con el BPM de la pista) desde la posición actual. Clic de nuevo para desactivar.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_LOOPS_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">ECHO</span>
-              <span class="help-desc">Efecto de eco/delay. Mueve el slider para añadir reverberación al sonido del deck. A 0% no hay efecto.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_ECHO_DESC' | translate }}</span>
             </div>
           </div>
         </div>
 
         <!-- MIXER -->
         <div class="help-section">
-          <div class="help-section-title">Mezclador (centro)</div>
+          <div class="help-section-title">{{ 'MUSIC.DJ_HELP_SECTION_MIXER' | translate }}</div>
           <div class="help-grid">
             <div class="help-item">
               <span class="help-key">FILTER</span>
-              <span class="help-desc">Filtro de frecuencias. Centro = sin filtro. Izquierda = paso-bajo (quita agudos, sonido apagado). Derecha = paso-alto (quita graves, sonido fino). Doble clic en "FILTER" para resetear.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_FILTER_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">HI / MID / LOW</span>
-              <span class="help-desc">Ecualizador de 3 bandas. Sube o baja agudos, medios y graves de forma independiente (±15 dB). Doble clic en el nombre de la banda para resetearla a 0.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_EQ_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">M (Mute)</span>
-              <span class="help-desc">Silencia completamente el canal A o B sin mover el fader. El LED se enciende cuando está activo.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_MUTE_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">Fader A / B</span>
-              <span class="help-desc">Controla el volumen individual de cada canal (0–100%). Actúa combinado con el crossfader mediante curva de igual potencia.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_FADER_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">Crossfader</span>
-              <span class="help-desc">Mezcla continua entre Deck A (izquierda) y Deck B (derecha). En el centro ambos suenan al 70% (curva de igual potencia). En los extremos solo suena uno.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_CROSSFADER_DESC' | translate }}</span>
             </div>
           </div>
         </div>
 
         <!-- ANALIZADOR -->
         <div class="help-section">
-          <div class="help-section-title">Analizador de espectro</div>
+          <div class="help-section-title">{{ 'MUSIC.DJ_HELP_SECTION_SPECTRUM' | translate }}</div>
           <div class="help-grid">
             <div class="help-item">
-              <span class="help-key">Barras LED</span>
-              <span class="help-desc">Visualiza las frecuencias del audio en tiempo real. Verde = nivel normal, Amarillo = nivel alto, Rojo = pico. Solo activo cuando el deck está reproduciendo.</span>
+              <span class="help-key">LED</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_SPECTRUM_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">Barra de progreso</span>
-              <span class="help-desc">Muestra el tiempo transcurrido y restante. Haz clic o arrastra para saltar a cualquier punto de la pista.</span>
+              <span class="help-key">Progress</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_PROGRESS_DESC' | translate }}</span>
             </div>
           </div>
         </div>
 
         <!-- BIBLIOTECA -->
         <div class="help-section">
-          <div class="help-section-title">Biblioteca (panel inferior)</div>
+          <div class="help-section-title">{{ 'MUSIC.DJ_HELP_SECTION_LIBRARY' | translate }}</div>
           <div class="help-grid">
             <div class="help-item">
               <span class="help-key">NAS</span>
-              <span class="help-desc">Explora carpetas del servidor NAS. Usa el árbol de la izquierda para navegar. Botones "▲ A / ▲ B" cargan la pista directamente. "+A / +B" la añaden a la cola.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_NAS_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">YouTube</span>
-              <span class="help-desc">Busca y carga vídeos de YouTube directamente en los decks. También puedes pegar una URL de YouTube en el campo inferior.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_YT_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">Local</span>
-              <span class="help-desc">Abre una carpeta de tu ordenador para reproducir archivos de audio locales sin subirlos al servidor.</span>
+              <span class="help-key">{{ 'MUSIC.DJ_TAB_LOCAL' | translate }}</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_LOCAL_DESC' | translate }}</span>
             </div>
             <div class="help-item">
               <span class="help-key">MIDI</span>
-              <span class="help-desc">Configura una controladora MIDI. Usa el botón de engranaje ⚙ del mixer, selecciona tu dispositivo y pulsa LEARN para asignar cada control físico a una función.</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_MIDI_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">Historial</span>
-              <span class="help-desc">Registro automático de pistas reproducidas durante la sesión (se añade tras 15 segundos de reproducción continua). Permite recargarlas en cualquier momento.</span>
+              <span class="help-key">{{ 'MUSIC.DJ_TAB_HISTORY' | translate }}</span>
+              <span class="help-desc">{{ 'MUSIC.DJ_HELP_HISTORY_DESC' | translate }}</span>
             </div>
           </div>
         </div>
 
       </div>
       <div class="help-modal-footer">
-        <button class="btn-modal-close" (click)="showHelp = false">Cerrar</button>
+        <button class="btn-modal-close" (click)="showHelp = false">{{ 'MUSIC.DJ_HELP_CLOSE' | translate }}</button>
       </div>
     </div>
   </div>
@@ -901,35 +897,35 @@
   <div class="midi-overlay" *ngIf="showMidiConfig" (click)="showMidiConfig = false">
     <div class="midi-modal" (click)="$event.stopPropagation()">
       <div class="midi-modal-header">
-        <span class="mmh-label">🎛️ Configuración MIDI</span>
+        <span class="mmh-label">🎛️ {{ 'MUSIC.DJ_MIDI_TITLE' | translate }}</span>
         <button class="mmh-close" (click)="showMidiConfig = false">✕</button>
       </div>
 
       <div class="midi-modal-body">
         <div *ngIf="!midiService.isSupported" class="midi-unsupported">
-          ⚠️ Tu navegador no soporta Web MIDI API. Por favor, usa Chrome, Edge o Opera.
+          ⚠️ {{ 'MUSIC.DJ_MIDI_UNSUPPORTED' | translate }}
         </div>
 
         <div *ngIf="midiService.isSupported" class="midi-config-inner">
           <div class="midi-toolbar">
-            <span class="md-label">Dispositivo:</span>
+            <span class="md-label">{{ 'MUSIC.DJ_MIDI_DEVICE' | translate }}</span>
             <select class="md-select" [value]="activeMidiDeviceId || ''" (change)="selectMidiDevice($event)">
-              <option value="">(Ninguno)</option>
+              <option value="">{{ 'MUSIC.DJ_MIDI_NONE' | translate }}</option>
               <option *ngFor="let d of midiDevices" [value]="d.id">{{ d.name }}</option>
             </select>
           </div>
 
           <div *ngIf="!activeMidiDeviceId" class="midi-empty">
-            Selecciona una controladora MIDI para asignarle botones y faders.
+            {{ 'MUSIC.DJ_MIDI_SELECT_HINT' | translate }}
           </div>
 
           <div *ngIf="activeMidiDeviceId" class="midi-actions-list">
             <table>
               <thead>
                 <tr>
-                  <th>Acción</th>
-                  <th>Mapeo</th>
-                  <th>Asignar</th>
+                  <th>{{ 'MUSIC.DJ_MIDI_COL_ACTION' | translate }}</th>
+                  <th>{{ 'MUSIC.DJ_MIDI_COL_MAPPING' | translate }}</th>
+                  <th>{{ 'MUSIC.DJ_MIDI_COL_ASSIGN' | translate }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -947,7 +943,7 @@
                   <td class="ma-btn-cell">
                     <button *ngIf="midiService.learningActionId !== action.id" class="btn-learn" (click)="learnMidi(action.id)">LEARN</button>
                     <button *ngIf="midiService.learningActionId === action.id" class="btn-learning-pulse" (click)="cancelLearnMidi()">
-                      LISTO...
+                      {{ 'MUSIC.DJ_MIDI_LEARNING' | translate }}
                     </button>
                   </td>
                 </tr>
@@ -957,7 +953,7 @@
         </div>
       </div>
       <div class="midi-modal-footer">
-        <button class="btn-modal-close" (click)="showMidiConfig = false">Cerrar</button>
+        <button class="btn-modal-close" (click)="showMidiConfig = false">{{ 'MUSIC.DJ_HELP_CLOSE' | translate }}</button>
       </div>
     </div>
   </div>
