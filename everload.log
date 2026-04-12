@@ -1,5 +1,5 @@
-2026-04-12 14:42:13 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
-2026-04-12 14:42:13 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-04-12 14:42:13 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-04-12 14:42:13 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
-2026-04-12 14:42:13 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-12 15:48:37 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
+2026-04-12 15:48:37 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-12 15:48:41 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-12 15:48:41 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-04-12 15:48:41 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
