@@ -53,9 +53,7 @@ services:
     volumes:
       - everload-db:/app/data
       - everload-avatars:/app/avatars
-      # Bind mount: carpeta de música de Windows → /app/nas_storage dentro del contenedor
-      # Cambia la ruta izquierda si mueves la carpeta
-      - C:/Users/Xian/Music/Everload:/app/nas_storage:ro
+      - everload-nas:/app/nas_storage
     restart: unless-stopped
     networks:
       - everload-net
@@ -69,5 +67,6 @@ networks:
 volumes:
   everload-db:      # H2 database files
   everload-avatars: # User avatar images
+  everload-nas:     # NAS storage (mount your disk here in production)
   caddy-data:       # TLS certificates — back up in production
   caddy-config:     # Caddy runtime config cache
