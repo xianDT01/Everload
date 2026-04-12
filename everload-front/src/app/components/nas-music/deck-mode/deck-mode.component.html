@@ -20,8 +20,8 @@
           <div class="vinyl" [class.spinning]="stateA?.playing"
                [style.animation-duration]="stateA?.playing ? (2.5 / (1 + pitchA)) + 's' : ''">
             <div class="vinyl-grooves"></div>
-            <img *ngIf="stateA?.currentTrack?.hasCover" class="vinyl-art" [src]="coverUrl(stateA)" />
-            <div *ngIf="!stateA?.currentTrack?.hasCover" class="vinyl-art vinyl-no-art"><span>♫</span></div>
+            <img *ngIf="hasCoverToShow(stateA)" class="vinyl-art" [src]="coverUrl(stateA)" />
+            <div *ngIf="!hasCoverToShow(stateA)" class="vinyl-art vinyl-no-art"><span>♫</span></div>
             <div class="vinyl-center"></div>
           </div>
 
@@ -86,6 +86,7 @@
             <svg *ngIf="stateA?.playing"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
           <button class="btn-ctrl btn-reset" (click)="resetTrack('A')" title="Reset a inicio">⏮</button>
+          <button class="btn-sync-bpm" (click)="syncBpm('A')" title="Sync BPM A → B">BPM SYNC</button>
           <button class="btn-sync btn-sync-a"
                   [class.sync-ready]="canSync('A')"
                   (click)="sync('A')"
@@ -97,17 +98,58 @@
           </button>
         </div>
 
+        <!-- Hot Cues & Loops A -->
+        <div class="deck-extra-tools">
+          <div class="hot-cues">
+            <button class="cue-pad" *ngFor="let i of [0,1,2,3]"
+                    [class.has-cue]="hotCuesA[i] !== undefined"
+                    (click)="hotCuesA[i] === undefined ? setHotCue('A', i) : jumpToHotCue('A', i)"
+                    (contextmenu)="$event.preventDefault(); clearHotCue('A', i, $event)">
+              {{ i + 1 }}
+            </button>
+          </div>
+          <div class="loops">
+            <button class="loop-btn" [class.active-loop]="stateA?.loopActive && stateA?.loopStart !== undefined" (click)="toggleLoop('A', 4)">4</button>
+            <button class="loop-btn" [class.active-loop]="stateA?.loopActive" (click)="toggleLoop('A', 8)">8</button>
+            <button class="loop-btn" [class.active-loop]="stateA?.loopActive" (click)="toggleLoop('A', 16)">16</button>
+          </div>
+        </div>
+
+        <!-- FX Panel A -->
+        <div class="fx-panel">
+          <div class="fx-row">
+            <span class="fx-label">ECHO</span>
+            <input type="range" class="fx-slider" min="0" max="1" step="0.01" [value]="fxA.level" (input)="onFxChange('A', 'level', $event)" />
+            <span class="fx-val">{{ (fxA.level * 100) | number:'1.0-0' }}%</span>
+          </div>
+        </div>
+
         <!-- Queue panel A -->
         <div class="queue-panel" *ngIf="showQueueA">
           <div class="queue-header">
-            <span>Cola — {{ queueA.length }} pista{{ queueA.length !== 1 ? 's' : '' }}</span>
+            <span class="qh-title">Cola Deck A</span>
+            <span class="qh-stats">{{ queueA.length }} {{ 'pista' + (queueA.length !== 1 ? 's' : '') }}</span>
             <button class="queue-clear" (click)="clearQueue('A')" *ngIf="queueA.length > 0" title="Vaciar cola">✕</button>
+            <button class="queue-close" (click)="showQueueA = false">▼</button>
           </div>
-          <div class="queue-empty" *ngIf="queueA.length === 0">Sin pistas en cola</div>
-          <div class="queue-item" *ngFor="let item of queueA; let i = index">
-            <span class="queue-pos">{{ i + 1 }}</span>
-            <span class="queue-title">{{ queueTrackLabel(item) }}</span>
-            <button class="queue-remove" (click)="removeFromQueue('A', i)" title="Quitar">✕</button>
+          <div class="queue-empty" *ngIf="queueA.length === 0">
+            <div class="qe-icon"> vacío </div>
+            <span>Sin pistas en cola</span>
+          </div>
+          <div class="queue-list" *ngIf="queueA.length > 0">
+            <div class="queue-item" *ngFor="let item of queueA; let i = index">
+              <span class="queue-pos">{{ i + 1 }}</span>
+              <div class="qi-thumb">
+                <span class="source-icon" [title]="item.track.source">
+                  {{ item.track.source === 'youtube' ? '▶' : '💾' }}
+                </span>
+              </div>
+              <div class="qi-main">
+                <div class="qi-title">{{ item.track.title || item.track.name }}</div>
+                <div class="qi-meta">{{ item.track.artist || '—' }}</div>
+              </div>
+              <button class="queue-remove" (click)="removeFromQueue('A', i)" title="Quitar">✕</button>
+            </div>
           </div>
         </div>
 
@@ -116,7 +158,17 @@
 
     <!-- ── MIXER ──────────────────────────────────────────────────────────── -->
     <div class="mixer">
-      <div class="mixer-title">{{ 'MUSIC.DECK_MIXER' | translate }}</div>
+      <div class="mixer-header">
+        <div class="mixer-title">{{ 'MUSIC.DECK_MIXER' | translate }}</div>
+        <div class="mixer-header-btns">
+          <button class="btn-help" (click)="showHelp = true" title="Ayuda — Guía de controles DJ">?</button>
+          <button class="btn-midi-gear" [class.active]="showMidiConfig" (click)="showMidiConfig = !showMidiConfig" title="Configuración MIDI">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+          </svg>
+        </button>
+        </div>
+      </div>
 
       <div class="channel-faders">
 
@@ -127,7 +179,12 @@
             <button class="mute-btn mute-a" [class.muted]="muteA" (click)="toggleMute('A')" title="Mute A">M</button>
           </div>
           
-          <!-- EQ Rack A -->
+          <!-- Filter strip A (fuera del eq-rack) -->
+          <div class="filter-strip">
+            <span class="filter-lbl" (dblclick)="resetFilter('A')">FILTER</span>
+            <input type="range" class="filter-knob" min="-100" max="100" step="1" [value]="filterA" (input)="onFilterChange('A', $event)" />
+          </div>
+          <!-- EQ Rack A (solo HI / MID / LOW) -->
           <div class="eq-rack">
             <div class="eq-band">
               <span class="eq-label" (dblclick)="resetEq('A','high')">HI</span>
@@ -164,7 +221,12 @@
             <span class="ch-label b-label">B</span>
           </div>
           
-          <!-- EQ Rack B -->
+          <!-- Filter strip B (fuera del eq-rack) -->
+          <div class="filter-strip">
+            <span class="filter-lbl" (dblclick)="resetFilter('B')">FILTER</span>
+            <input type="range" class="filter-knob" min="-100" max="100" step="1" [value]="filterB" (input)="onFilterChange('B', $event)" />
+          </div>
+          <!-- EQ Rack B (solo HI / MID / LOW) -->
           <div class="eq-rack">
             <div class="eq-band">
               <span class="eq-label" (dblclick)="resetEq('B','high')">HI</span>
@@ -226,8 +288,8 @@
           <div class="vinyl" [class.spinning]="stateB?.playing"
                [style.animation-duration]="stateB?.playing ? (2.5 / (1 + pitchB)) + 's' : ''">
             <div class="vinyl-grooves"></div>
-            <img *ngIf="stateB?.currentTrack?.hasCover" class="vinyl-art" [src]="coverUrl(stateB)" />
-            <div *ngIf="!stateB?.currentTrack?.hasCover" class="vinyl-art vinyl-no-art"><span>♫</span></div>
+            <img *ngIf="hasCoverToShow(stateB)" class="vinyl-art" [src]="coverUrl(stateB)" />
+            <div *ngIf="!hasCoverToShow(stateB)" class="vinyl-art vinyl-no-art"><span>♫</span></div>
             <div class="vinyl-center"></div>
           </div>
 
@@ -300,20 +362,62 @@
           </button>
           <button class="btn-ctrl btn-reset" (click)="resetTrack('B')" title="Reset a inicio">⏮</button>
           <button class="btn-cue btn-cue-b" [class.active-cue]="!stateB?.playing && (stateB?.currentTime || 0) > 0" (click)="cue('B')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
+          <button class="btn-sync-bpm" (click)="syncBpm('B')" title="Sync BPM B → A">BPM SYNC</button>
           <button class="btn-ctrl" (click)="nextTrack('B')" title="Siguiente">⏭</button>
+        </div>
+
+        <!-- Hot Cues & Loops B -->
+        <div class="deck-extra-tools">
+          <div class="hot-cues">
+            <button class="cue-pad" *ngFor="let i of [0,1,2,3]"
+                    [class.has-cue]="hotCuesB[i] !== undefined"
+                    (click)="hotCuesB[i] === undefined ? setHotCue('B', i) : jumpToHotCue('B', i)"
+                    (contextmenu)="$event.preventDefault(); clearHotCue('B', i, $event)">
+              {{ i + 1 }}
+            </button>
+          </div>
+          <div class="loops">
+            <button class="loop-btn" [class.active-loop]="stateB?.loopActive" (click)="toggleLoop('B', 4)">4</button>
+            <button class="loop-btn" [class.active-loop]="stateB?.loopActive" (click)="toggleLoop('B', 8)">8</button>
+            <button class="loop-btn" [class.active-loop]="stateB?.loopActive" (click)="toggleLoop('B', 16)">16</button>
+          </div>
+        </div>
+
+        <!-- FX Panel B -->
+        <div class="fx-panel">
+          <div class="fx-row">
+            <span class="fx-label">ECHO</span>
+            <input type="range" class="fx-slider" min="0" max="1" step="0.01" [value]="fxB.level" (input)="onFxChange('B', 'level', $event)" />
+            <span class="fx-val">{{ (fxB.level * 100) | number:'1.0-0' }}%</span>
+          </div>
         </div>
 
         <!-- Queue panel B -->
         <div class="queue-panel" *ngIf="showQueueB">
           <div class="queue-header">
-            <span>Cola — {{ queueB.length }} pista{{ queueB.length !== 1 ? 's' : '' }}</span>
+            <span class="qh-title">Cola Deck B</span>
+            <span class="qh-stats">{{ queueB.length }} {{ 'pista' + (queueB.length !== 1 ? 's' : '') }}</span>
             <button class="queue-clear" (click)="clearQueue('B')" *ngIf="queueB.length > 0" title="Vaciar cola">✕</button>
+            <button class="queue-close" (click)="showQueueB = false">▼</button>
           </div>
-          <div class="queue-empty" *ngIf="queueB.length === 0">Sin pistas en cola</div>
-          <div class="queue-item" *ngFor="let item of queueB; let i = index">
-            <span class="queue-pos">{{ i + 1 }}</span>
-            <span class="queue-title">{{ queueTrackLabel(item) }}</span>
-            <button class="queue-remove" (click)="removeFromQueue('B', i)" title="Quitar">✕</button>
+          <div class="queue-empty" *ngIf="queueB.length === 0">
+            <div class="qe-icon"> vacío </div>
+            <span>Sin pistas en cola</span>
+          </div>
+          <div class="queue-list" *ngIf="queueB.length > 0">
+            <div class="queue-item" *ngFor="let item of queueB; let i = index">
+              <span class="queue-pos">{{ i + 1 }}</span>
+              <div class="qi-thumb">
+                <span class="source-icon" [title]="item.track.source">
+                  {{ item.track.source === 'youtube' ? '▶' : '💾' }}
+                </span>
+              </div>
+              <div class="qi-main">
+                <div class="qi-title">{{ item.track.title || item.track.name }}</div>
+                <div class="qi-meta">{{ item.track.artist || '—' }}</div>
+              </div>
+              <button class="queue-remove" (click)="removeFromQueue('B', i)" title="Quitar">✕</button>
+            </div>
           </div>
         </div>
 
@@ -396,11 +500,11 @@
         <button class="b-tab" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">
           ▶ YouTube
         </button>
-        <button class="b-tab" [class.active]="browserTab === 'midi'" (click)="browserTab = 'midi'">
-          🎛️ MIDI
-        </button>
         <button class="b-tab" [class.active]="browserTab === 'local'" (click)="browserTab = 'local'">
           💻 Local
+        </button>
+        <button class="b-tab" [class.active]="browserTab === 'history'" (click)="browserTab = 'history'">
+          🕒 History
         </button>
       </div>
 
@@ -442,7 +546,7 @@
                   <td class="bc-name" colspan="3">{{ item.name }}</td>
                   <td></td>
                 </tr>
-                <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i">
+                <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i" (dblclick)="loadToIdleDeck(item)">
                   <td class="bc-icon">🎵</td>
                   <td class="bc-name">{{ item.title || item.name }}</td>
                   <td class="bc-artist">{{ item.artist || '—' }}</td>
@@ -497,7 +601,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let video of ytSearchResults; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i">
+              <tr *ngFor="let video of ytSearchResults; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i" (dblclick)="loadYoutubeToIdleDeck(video)">
                 <td class="yt-icon">
                   <img [src]="getYtThumbnail(video)" class="yt-thumb-mini" />
                 </td>
@@ -523,64 +627,6 @@
       </div>
     </div>
 
-    <!-- ── MIDI Config ── -->
-    <div class="browser-section" *ngIf="browserTab === 'midi'">
-      <div class="browser-main midi-section">
-        
-        <div *ngIf="!midiService.isSupported" class="brow-empty midi-unsupported">
-          ⚠️ Tu navegador no soporta Web MIDI API. Por favor, usa Chrome, Edge o Opera.
-        </div>
-
-        <div *ngIf="midiService.isSupported" class="midi-config-inner">
-          <div class="browser-toolbar midi-device-selector">
-            <span class="md-label">Dispositivo MIDI:</span>
-            <select class="md-select yt-search-input" [value]="activeMidiDeviceId || ''" (change)="selectMidiDevice($event)">
-              <option value="">(Ninguno)</option>
-              <option *ngFor="let d of midiDevices" [value]="d.id">{{ d.name }}</option>
-            </select>
-          </div>
-
-          <div *ngIf="!activeMidiDeviceId" class="brow-empty">
-            Selecciona una controladora MIDI para asignarle botones y faders.
-          </div>
-
-          <div *ngIf="activeMidiDeviceId" class="browser-list">
-            <table>
-              <thead>
-                <tr>
-                  <th class="bc-name">Acción</th>
-                  <th>Mapeo</th>
-                  <th class="bc-load">Asignar</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let action of midiActions" class="brow-track">
-                  <td class="bc-name">{{ action.label }}</td>
-                  <td>
-                    <div class="midi-mapping-cell">
-                      <span class="map-val" *ngIf="midiService.getMappingForAction(action.id) as mapping">
-                        [ {{ mapping }} ]
-                        <button class="clr-map-btn" (click)="clearMidiMapping(action.id)" title="Borrar mapeo">✖</button>
-                      </span>
-                      <span class="map-none" *ngIf="!midiService.getMappingForAction(action.id)">
-                        —
-                      </span>
-                    </div>
-                  </td>
-                  <td class="bc-load">
-                    <button *ngIf="midiService.learningActionId !== action.id" class="load-a learn-btn" (click)="learnMidi(action.id)">Learn</button>
-                    <button *ngIf="midiService.learningActionId === action.id" class="load-b learn-btn pulse-learn" (click)="cancelLearnMidi()">
-                      ...Mueve un control...
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-    </div>
 
     <!-- ── Local File System browser ── -->
     <div class="browser-section" *ngIf="browserTab === 'local'">
@@ -656,7 +702,8 @@
               <tr *ngFor="let item of localTracks; let i = index"
                   class="brow-track"
                   [class.selected]="i === selectedIndex"
-                  (click)="selectedIndex = i">
+                  (click)="selectedIndex = i"
+                  (dblclick)="loadToIdleDeck(item)">
                 <td class="bc-icon">🎵</td>
                 <td class="bc-name">{{ item.title || item.name }}</td>
                 <td class="bc-load">
@@ -676,8 +723,243 @@
 
     </div>
 
+    <!-- ── History browser ── -->
+    <div class="browser-section" *ngIf="browserTab === 'history'">
+      <div class="browser-main">
+        <div class="browser-toolbar">
+          <span class="brow-path">🕒 Historial de Sesión</span>
+          <button class="queue-clear" (click)="clearHistory()" title="Borrar historial">Vaciar</button>
+        </div>
+        <div class="browser-list">
+          <table>
+            <thead>
+              <tr>
+                <th class="bc-name">Título</th>
+                <th class="bc-artist">Artista</th>
+                <th class="bc-load">Cargar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of sessionHistory" class="brow-track" (dblclick)="loadToIdleDeck(item)">
+                <td class="bc-name">{{ item.title || item.name }}</td>
+                <td class="bc-artist">{{ item.artist || '—' }}</td>
+                <td class="bc-load">
+                  <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
+                  <button class="load-b" (click)="loadNas('B', item)">▲ B</button>
+                </td>
+              </tr>
+              <tr *ngIf="sessionHistory.length === 0">
+                <td colspan="3" class="brow-empty">No has pinchado temas todavía</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     </div><!-- /browser-content -->
 
   </div><!-- /browser-section-wrapper -->
+
+  <!-- ══ Ayuda DJ Overlay ════════════════════════════════════════════════════ -->
+  <div class="help-overlay" *ngIf="showHelp" (click)="showHelp = false">
+    <div class="help-modal" (click)="$event.stopPropagation()">
+      <div class="help-modal-header">
+        <span class="help-title">Guía de controles — Modo DJ</span>
+        <button class="mmh-close" (click)="showHelp = false">✕</button>
+      </div>
+      <div class="help-modal-body">
+
+        <!-- CABINAS -->
+        <div class="help-section">
+          <div class="help-section-title">Cabinas (Deck A y Deck B)</div>
+          <div class="help-grid">
+            <div class="help-item">
+              <span class="help-key">⏮ / ⏭</span>
+              <span class="help-desc">Pista anterior / siguiente dentro de la cola del deck.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">CUE</span>
+              <span class="help-desc">Vuelve al principio y para. Si ya está parado en el inicio, marca ese punto como cue. Útil para preparar la entrada antes de soltar la música.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">▶ / ⏸</span>
+              <span class="help-desc">Play / Pausa. Inicia o detiene la reproducción del deck.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">⏮ (Reset)</span>
+              <span class="help-desc">Vuelve al segundo 0 sin saltar de pista. Útil para relanzar el tema desde el inicio.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">BPM SYNC</span>
+              <span class="help-desc">Ajusta el PITCH de este deck para que su BPM coincida con el del otro deck. Requiere que ambas pistas tengan BPM detectado.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">SYNC</span>
+              <span class="help-desc">Salta a la misma posición relativa (%) que el otro deck. Por ejemplo, si el otro deck lleva el 42% de su pista, este salta también al 42%. Solo activo si ambos decks tienen pistas cargadas.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">☰ Cola</span>
+              <span class="help-desc">Muestra / oculta la cola de reproducción del deck. Las pistas se reproducirán en orden cuando termine la actual.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">PITCH</span>
+              <span class="help-desc">Slider vertical a la derecha del disco. Sube o baja la velocidad de reproducción (±10%). El BPM mostrado se recalcula en tiempo real. Doble clic en "PITCH" para resetear a 0.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">Pads 1–4</span>
+              <span class="help-desc">Hot Cues: primer clic guarda la posición actual. Clic posterior salta a ese punto guardado. Clic derecho sobre el pad borra el cue.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">4 / 8 / 16</span>
+              <span class="help-desc">Loop automático: activa un bucle de 4, 8 o 16 tiempos (calculados con el BPM de la pista) desde la posición actual. Clic de nuevo para desactivar.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">ECHO</span>
+              <span class="help-desc">Efecto de eco/delay. Mueve el slider para añadir reverberación al sonido del deck. A 0% no hay efecto.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MIXER -->
+        <div class="help-section">
+          <div class="help-section-title">Mezclador (centro)</div>
+          <div class="help-grid">
+            <div class="help-item">
+              <span class="help-key">FILTER</span>
+              <span class="help-desc">Filtro de frecuencias. Centro = sin filtro. Izquierda = paso-bajo (quita agudos, sonido apagado). Derecha = paso-alto (quita graves, sonido fino). Doble clic en "FILTER" para resetear.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">HI / MID / LOW</span>
+              <span class="help-desc">Ecualizador de 3 bandas. Sube o baja agudos, medios y graves de forma independiente (±15 dB). Doble clic en el nombre de la banda para resetearla a 0.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">M (Mute)</span>
+              <span class="help-desc">Silencia completamente el canal A o B sin mover el fader. El LED se enciende cuando está activo.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">Fader A / B</span>
+              <span class="help-desc">Controla el volumen individual de cada canal (0–100%). Actúa combinado con el crossfader mediante curva de igual potencia.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">Crossfader</span>
+              <span class="help-desc">Mezcla continua entre Deck A (izquierda) y Deck B (derecha). En el centro ambos suenan al 70% (curva de igual potencia). En los extremos solo suena uno.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANALIZADOR -->
+        <div class="help-section">
+          <div class="help-section-title">Analizador de espectro</div>
+          <div class="help-grid">
+            <div class="help-item">
+              <span class="help-key">Barras LED</span>
+              <span class="help-desc">Visualiza las frecuencias del audio en tiempo real. Verde = nivel normal, Amarillo = nivel alto, Rojo = pico. Solo activo cuando el deck está reproduciendo.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">Barra de progreso</span>
+              <span class="help-desc">Muestra el tiempo transcurrido y restante. Haz clic o arrastra para saltar a cualquier punto de la pista.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BIBLIOTECA -->
+        <div class="help-section">
+          <div class="help-section-title">Biblioteca (panel inferior)</div>
+          <div class="help-grid">
+            <div class="help-item">
+              <span class="help-key">NAS</span>
+              <span class="help-desc">Explora carpetas del servidor NAS. Usa el árbol de la izquierda para navegar. Botones "▲ A / ▲ B" cargan la pista directamente. "+A / +B" la añaden a la cola.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">YouTube</span>
+              <span class="help-desc">Busca y carga vídeos de YouTube directamente en los decks. También puedes pegar una URL de YouTube en el campo inferior.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">Local</span>
+              <span class="help-desc">Abre una carpeta de tu ordenador para reproducir archivos de audio locales sin subirlos al servidor.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">MIDI</span>
+              <span class="help-desc">Configura una controladora MIDI. Usa el botón de engranaje ⚙ del mixer, selecciona tu dispositivo y pulsa LEARN para asignar cada control físico a una función.</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">Historial</span>
+              <span class="help-desc">Registro automático de pistas reproducidas durante la sesión (se añade tras 15 segundos de reproducción continua). Permite recargarlas en cualquier momento.</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="help-modal-footer">
+        <button class="btn-modal-close" (click)="showHelp = false">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MIDI Config Overlay ══════════════════════════════════════════════════ -->
+  <div class="midi-overlay" *ngIf="showMidiConfig" (click)="showMidiConfig = false">
+    <div class="midi-modal" (click)="$event.stopPropagation()">
+      <div class="midi-modal-header">
+        <span class="mmh-label">🎛️ Configuración MIDI</span>
+        <button class="mmh-close" (click)="showMidiConfig = false">✕</button>
+      </div>
+
+      <div class="midi-modal-body">
+        <div *ngIf="!midiService.isSupported" class="midi-unsupported">
+          ⚠️ Tu navegador no soporta Web MIDI API. Por favor, usa Chrome, Edge o Opera.
+        </div>
+
+        <div *ngIf="midiService.isSupported" class="midi-config-inner">
+          <div class="midi-toolbar">
+            <span class="md-label">Dispositivo:</span>
+            <select class="md-select" [value]="activeMidiDeviceId || ''" (change)="selectMidiDevice($event)">
+              <option value="">(Ninguno)</option>
+              <option *ngFor="let d of midiDevices" [value]="d.id">{{ d.name }}</option>
+            </select>
+          </div>
+
+          <div *ngIf="!activeMidiDeviceId" class="midi-empty">
+            Selecciona una controladora MIDI para asignarle botones y faders.
+          </div>
+
+          <div *ngIf="activeMidiDeviceId" class="midi-actions-list">
+            <table>
+              <thead>
+                <tr>
+                  <th>Acción</th>
+                  <th>Mapeo</th>
+                  <th>Asignar</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let action of midiActions">
+                  <td class="ma-label">{{ action.label }}</td>
+                  <td>
+                    <div class="midi-mapping-cell">
+                      <span class="map-val" *ngIf="midiService.getMappingForAction(action.id) as mapping">
+                        <code>{{ mapping }}</code>
+                        <button class="clr-map-btn" (click)="clearMidiMapping(action.id)" title="Borrar mapeo">✖</button>
+                      </span>
+                      <span class="map-none" *ngIf="!midiService.getMappingForAction(action.id)">—</span>
+                    </div>
+                  </td>
+                  <td class="ma-btn-cell">
+                    <button *ngIf="midiService.learningActionId !== action.id" class="btn-learn" (click)="learnMidi(action.id)">LEARN</button>
+                    <button *ngIf="midiService.learningActionId === action.id" class="btn-learning-pulse" (click)="cancelLearnMidi()">
+                      LISTO...
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="midi-modal-footer">
+        <button class="btn-modal-close" (click)="showMidiConfig = false">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
 </div><!-- /vdj-layout -->
