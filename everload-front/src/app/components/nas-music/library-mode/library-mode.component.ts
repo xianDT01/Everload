@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { NasPath, NasService } from '../../../services/nas.service';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/music.service';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-library-mode',
@@ -13,26 +14,37 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
   currentSubPath = '';
+
+  currentView: 'home' | 'liked' | 'history' | 'folder' = 'folder';
+
   items: MusicMetadataDto[] = [];
+  historyItems: any[] = [];
+  likedItems: any[] = [];
+
   state: PlayerState | null = null;
   shuffle = false;
   repeat: 'none' | 'one' | 'all' = 'none';
   queueIndex = -1;
   searchQuery = '';
+  likedSortBy: 'date' | 'title' | 'artist' = 'date';
 
   // iTunes cover cache: trackPath → url
   private coverOverrideMap = new Map<string, string>();
-  // Keys already fetched from iTunes (artist+album term)
   private itunesFetchedTerms = new Set<string>();
 
   private subs: Subscription[] = [];
 
-  constructor(public musicService: MusicService, private nasService: NasService) {}
+  constructor(
+    public musicService: MusicService,
+    private nasService: NasService,
+    private translate: TranslateService
+  ) {}
 
   ngOnInit(): void {
     this.nasService.getPaths().subscribe(paths => {
       this.paths = paths;
       if (paths.length > 0) this.selectPath(paths[0].id);
+      else this.setView('home');
     });
 
     this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => {
@@ -46,25 +58,94 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     this.subs.push(this.musicService.shuffle$.subscribe(v => this.shuffle = v));
     this.subs.push(this.musicService.repeat$.subscribe(v => this.repeat = v));
     this.subs.push(this.musicService.queue$.subscribe(q => this.queueIndex = q.index));
+
+    this.musicService.getFavorites().subscribe(favs => {
+      this.likedItems = favs;
+    });
   }
 
   ngOnDestroy(): void { this.subs.forEach(s => s.unsubscribe()); }
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
+  setView(view: 'home' | 'liked' | 'history') {
+    this.currentView = view;
+    this.selectedPathId = null;
+    this.currentSubPath = '';
+    this.searchQuery = '';
+    this.items = [];
+    this.load();
+  }
+
   selectPath(id: number) {
+    this.currentView = 'folder';
     this.selectedPathId = id;
     this.currentSubPath = '';
+    this.searchQuery = '';
     this.load();
   }
 
   load() {
-    if (this.selectedPathId === null) return;
-    this.musicService.browse(this.selectedPathId, this.currentSubPath).subscribe(items => {
-      this.items = items;
-      // Fetch iTunes covers for tracks without embedded art (throttled)
-      this.fetchCoversForVisible();
-    });
+    if (this.currentView === 'home') {
+      this.musicService.getHistory(10).subscribe(h => {
+        this.historyItems = h;
+      });
+      // Top folders could be local folders in path 0
+      if (this.paths.length > 0) {
+        this.musicService.browse(this.paths[0].id, '').subscribe(homeItems => {
+          this.items = homeItems.filter(i => i.directory).slice(0, 8);
+        });
+      }
+    } else if (this.currentView === 'liked') {
+      this.musicService.getFavorites().subscribe(favs => {
+        this.likedItems = favs;
+        // Sort liked items
+        const sorted = [...favs];
+        if (this.likedSortBy === 'title') {
+          sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        } else if (this.likedSortBy === 'artist') {
+          sorted.sort((a, b) => (a.artist || '').localeCompare(b.artist || ''));
+        }
+        // 'date' is default sort from backend (DESC createdAt)
+        this.items = sorted.map(f => ({
+          name: f.title,
+          path: f.trackPath,
+          title: f.title,
+          artist: f.artist,
+          album: f.album,
+          hasCover: true,
+          directory: false,
+          nasPathId: f.nasPathId,
+          duration: 0,
+          size: 0,
+          format: '',
+          lastModified: '',
+          bpm: 0
+        } as MusicMetadataDto));
+      });
+    } else if (this.currentView === 'history') {
+      this.musicService.getHistory(50).subscribe(hist => {
+        this.historyItems = hist;
+        this.items = hist.map(h => ({
+           name: h.title,
+           path: h.trackPath,
+           title: h.title,
+           artist: h.artist,
+           album: h.album,
+           hasCover: true,
+           directory: false,
+           nasPathId: h.nasPathId,
+           duration: h.durationSeconds,
+           size: 0,
+           format: ''
+        } as MusicMetadataDto));
+      });
+    } else if (this.currentView === 'folder' && this.selectedPathId !== null) {
+      this.musicService.browse(this.selectedPathId, this.currentSubPath).subscribe(items => {
+        this.items = items;
+        this.fetchCoversForVisible();
+      });
+    }
   }
 
   navigate(item: MusicMetadataDto) {
@@ -74,14 +155,14 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   goUp() {
-    if (!this.currentSubPath) return;
+    if (!this.currentSubPath || this.currentView !== 'folder') return;
     const parts = this.currentSubPath.split(/[/\\]/).filter(Boolean);
     parts.pop();
     this.currentSubPath = parts.join('/');
     this.load();
   }
 
-  get isRoot() { return !this.currentSubPath; }
+  get isRoot() { return !this.currentSubPath || this.currentView !== 'folder'; }
 
   get folders(): MusicMetadataDto[] { return this.items.filter(i => i.directory); }
   get tracks():  MusicMetadataDto[] { return this.items.filter(i => !i.directory); }
@@ -108,7 +189,6 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   get headerGradient(): string {
-    // Rotate through a few Spotify-like accent gradients based on selected path
     const palettes = [
       'linear-gradient(180deg, #1a3a2a 0%, #121212 100%)',
       'linear-gradient(180deg, #2d1b69 0%, #121212 100%)',
@@ -116,7 +196,11 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
       'linear-gradient(180deg, #1a2a4a 0%, #121212 100%)',
       'linear-gradient(180deg, #3a2a10 0%, #121212 100%)',
     ];
-    const idx = (this.selectedPathId ?? 0) % palettes.length;
+    let idx = 0;
+    if (this.currentView === 'liked') idx = 1;
+    else if (this.currentView === 'history') idx = 2;
+    else if (this.currentView === 'folder') idx = (this.selectedPathId ?? 0) % palettes.length;
+
     return palettes[idx];
   }
 
@@ -125,19 +209,29 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   get currentFolderName(): string {
+    if (this.currentView === 'home') return this.translate.instant('MUSIC.VIEW_HOME');
+    if (this.currentView === 'liked') return this.translate.instant('MUSIC.VIEW_LIKED');
+    if (this.currentView === 'history') return this.translate.instant('MUSIC.VIEW_HISTORY');
+    
     if (!this.currentSubPath) {
-      return this.paths.find(p => p.id === this.selectedPathId)?.name ?? 'Biblioteca';
+      return this.paths.find(p => p.id === this.selectedPathId)?.name ?? this.translate.instant('MUSIC.SIDEBAR_LIBRARY');
     }
     const parts = this.currentSubPath.split(/[/\\]/).filter(Boolean);
-    return parts[parts.length - 1] || 'Biblioteca';
+    return parts[parts.length - 1] || this.translate.instant('MUSIC.SIDEBAR_LIBRARY');
+  }
+
+  sortLikedBy(sort: 'date' | 'title' | 'artist') {
+    this.likedSortBy = sort;
+    if (this.currentView === 'liked') this.load();
   }
 
   // ── Playback ──────────────────────────────────────────────────────────────
 
   playTrack(track: MusicMetadataDto) {
-    if (!this.selectedPathId) return;
+    const pid = track.nasPathId ?? this.selectedPathId;
+    if (pid === null || pid === undefined) return;
     const idx = this.tracks.findIndex(t => t.path === track.path);
-    this.musicService.setQueue(this.selectedPathId, this.tracks, idx);
+    this.musicService.setQueue(pid, this.tracks, Math.max(0, idx));
   }
 
   isCurrentTrack(track: MusicMetadataDto): boolean {
@@ -161,19 +255,30 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     if (duration > 0) this.musicService.mainPlayer.seek(pct * duration);
   }
 
-  // ── Cover art ─────────────────────────────────────────────────────────────
+  // ── Cover art & Interactions ──────────────────────────────────────────────
 
   coverUrl(track: MusicMetadataDto): string {
     if (this.coverOverrideMap.has(track.path)) return this.coverOverrideMap.get(track.path)!;
-    if (!track.hasCover || !this.selectedPathId) return '';
-    const pid = (this.state?.currentTrack?.path === track.path && this.state?.pathId)
+    const pid = track.nasPathId ?? ((this.state?.currentTrack?.path === track.path && this.state?.pathId)
                 ? this.state.pathId
-                : this.selectedPathId;
+                : this.selectedPathId);
+    if (pid === null || pid === undefined) return '';
     return this.musicService.getCoverUrl(pid, track.path);
+  }
+  
+  folderCoverUrl(folder: MusicMetadataDto): string {
+    if (this.selectedPathId == null) return '';
+    return this.musicService.getFolderCoverUrl(this.selectedPathId, folder.path);
+  }
+
+  folderCoverError(event: Event) {
+    // On 404, hide the broken image and let CSS fallback show
+    const img = event.target as HTMLImageElement;
+    if (img) img.style.display = 'none';
   }
 
   hasCoverToShow(track: MusicMetadataDto): boolean {
-    return track.hasCover || this.coverOverrideMap.has(track.path);
+    return track.hasCover || this.coverOverrideMap.has(track.path) || this.currentView !== 'folder';
   }
 
   playerCoverUrl(): string {
@@ -189,8 +294,27 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     return !!t && (t.hasCover || this.coverOverrideMap.has(t.path));
   }
 
+  toggleLike(e: Event, track: MusicMetadataDto) {
+    e.stopPropagation();
+    const pid = track.nasPathId ?? this.selectedPathId;
+    if (pid === null || pid === undefined) return;
+    this.musicService.toggleFavorite(track.path, track.title || track.name, track.artist || '', track.album || '', pid)
+      .subscribe((res: any) => {
+         if (res.isFavorite) {
+           this.likedItems.push({ trackPath: track.path, nasPathId: pid });
+         } else {
+           this.likedItems = this.likedItems.filter(f => !(f.trackPath === track.path && f.nasPathId === pid));
+         }
+         if (this.currentView === 'liked') this.load(); // Refresh if in liked view
+      });
+  }
+
+  isLiked(track: MusicMetadataDto): boolean {
+    const pid = track.nasPathId ?? this.selectedPathId;
+    return this.likedItems.some(f => f.trackPath === track.path && f.nasPathId === pid);
+  }
+
   private fetchCoversForVisible() {
-    // Fetch iTunes covers for first 30 tracks without embedded art
     this.tracks.filter(t => !t.hasCover).slice(0, 30).forEach(t => this.fetchCoverIfNeeded(t));
   }
 
@@ -198,10 +322,8 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     if (!track || track.hasCover || this.coverOverrideMap.has(track.path)) return;
     const term = `${track.artist || ''} ${track.album || track.title || ''}`.trim();
     if (!term) return;
-    if (this.itunesFetchedTerms.has(term)) {
-      // If we already fetched this term, maybe it matched a different track — apply if available
-      return;
-    }
+    if (this.itunesFetchedTerms.has(term)) return;
+    
     this.itunesFetchedTerms.add(term);
     const encoded = encodeURIComponent(term);
     fetch(`https://itunes.apple.com/search?term=${encoded}&entity=album&limit=1`)
@@ -210,11 +332,9 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
         const result = data.results?.[0];
         if (result?.artworkUrl100) {
           const hq = result.artworkUrl100.replace('100x100bb', '600x600bb');
-          // Apply to all tracks in current list with same artist+album
           this.tracks
             .filter(t => !t.hasCover && `${t.artist || ''} ${t.album || t.title || ''}`.trim() === term)
             .forEach(t => this.coverOverrideMap.set(t.path, hq));
-          // Also apply to the specific track
           this.coverOverrideMap.set(track.path, hq);
         }
       })
