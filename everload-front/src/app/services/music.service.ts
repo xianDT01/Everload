@@ -30,6 +30,9 @@ export interface PlayerState {
   loading: boolean;
   error: string | null;
   playbackRate: number;
+  loopActive: boolean;
+  loopStart: number;
+  loopEnd: number;
 }
 
 // ── YouTube IFrame API loader ─────────────────────────────────────────────────
@@ -66,16 +69,31 @@ export class DeckPlayer {
   private activeSource: 'nas' | 'youtube' | 'local' | null = null;
 
   private audioCtx: AudioContext | null = null;
+  private analyserNode: AnalyserNode | null = null;
+  private analyserData: Uint8Array | null = null;
+
+  // EQ Filters
   private filterLow: BiquadFilterNode | null = null;
   private filterMid: BiquadFilterNode | null = null;
   private filterHigh: BiquadFilterNode | null = null;
-  private analyserNode: AnalyserNode | null = null;
-  private analyserData: Uint8Array | null = null;
+
+  // Combo Filter
+  private comboFilter: BiquadFilterNode | null = null;
+
+  // Echo/Delay FX
+  private delayNode: DelayNode | null = null;
+  private delayGain: GainNode | null = null; // Feedback
+  private wetGain: GainNode | null = null;
+  private dryGain: GainNode | null = null;
+
+  private loopActive = false;
+  private loopStart = 0;
+  private loopEnd = 0;
 
   private stateSubj = new BehaviorSubject<PlayerState>({
     playing: false, currentTime: 0, duration: 0,
     volume: 1, currentTrack: null, pathId: null, loading: false, error: null,
-    playbackRate: 1
+    playbackRate: 1, loopActive: false, loopStart: 0, loopEnd: 0
   });
 
   public state$ = this.stateSubj.asObservable();
@@ -87,7 +105,10 @@ export class DeckPlayer {
     this.audio.crossOrigin = 'anonymous'; // Important for CORS Web Audio
     this.setupAudioNodes();
 
-    this.audio.addEventListener('timeupdate',     () => this.patch({ currentTime: this.audio.currentTime }));
+    this.audio.addEventListener('timeupdate',     () => {
+      this.patch({ currentTime: this.audio.currentTime });
+      this.checkLoop();
+    });
     this.audio.addEventListener('play',           () => this.patch({ playing: true, error: null }));
     this.audio.addEventListener('pause',          () => this.patch({ playing: false }));
     this.audio.addEventListener('loadedmetadata', () => this.patch({ duration: this.audio.duration }));
@@ -131,14 +152,40 @@ export class DeckPlayer {
       this.filterHigh.type = 'highshelf';
       this.filterHigh.frequency.value = 3200;
 
+      // Combo Filter (HP / LP)
+      this.comboFilter = this.audioCtx.createBiquadFilter();
+      this.comboFilter.type = 'allpass'; // Default flat
+
+      // Delay FX
+      this.dryGain = this.audioCtx.createGain();
+      this.wetGain = this.audioCtx.createGain();
+      this.wetGain.gain.value = 0; // Default dry
+
+      this.delayNode = this.audioCtx.createDelay(2.0); // 2sec max delay
+      this.delayNode.delayTime.value = 0.5; // Default 500ms
+      this.delayGain = this.audioCtx.createGain();
+      this.delayGain.gain.value = 0.5; // Feedback
+
       this.analyserNode = this.audioCtx.createAnalyser();
       this.analyserNode.fftSize = 128;
       this.analyserNode.smoothingTimeConstant = 0.8;
 
+      // Routing: source -> EQ -> ComboFilter -> [Dry / Wet(Delay)] -> Analyser -> Destination
       source.connect(this.filterLow);
       this.filterLow.connect(this.filterMid);
       this.filterMid.connect(this.filterHigh);
-      this.filterHigh.connect(this.analyserNode);
+      this.filterHigh.connect(this.comboFilter);
+      
+      // FX Routing
+      this.comboFilter.connect(this.dryGain);
+      this.comboFilter.connect(this.delayNode);
+      this.delayNode.connect(this.delayGain);
+      this.delayGain.connect(this.delayNode); // Feedback loop
+      this.delayNode.connect(this.wetGain);
+
+      this.dryGain.connect(this.analyserNode);
+      this.wetGain.connect(this.analyserNode);
+
       this.analyserNode.connect(this.audioCtx.destination);
     } catch (e) {
       console.error('[DeckPlayer ' + this.deckId + '] Web Audio API setup failed — EQ will not work:', e);
@@ -264,6 +311,7 @@ export class DeckPlayer {
         const t = this.ytPlayer.getCurrentTime?.() || 0;
         const d = this.ytPlayer.getDuration?.() || 0;
         this.patch({ currentTime: t, duration: d });
+        this.checkLoop();
       }
     }, 250);
   }
@@ -358,6 +406,65 @@ export class DeckPlayer {
     } else {
       this.audio.playbackRate = rate;
       this.patch({ playbackRate: rate });
+    }
+  }
+
+  // ── Advanced FX ───────────────────────────────────────────────────────────
+
+  setComboFilter(value: number) {
+    // value: -100 (LowPass max) to 0 (flat) to +100 (HighPass max)
+    if (!this.comboFilter) return;
+
+    if (Math.abs(value) < 1) {
+      this.comboFilter.type = 'allpass';
+    } else if (value < 0) {
+      // LOW PASS: decrease freq as value goes to -100
+      this.comboFilter.type = 'lowpass';
+      // Map -1 to -100 into 20000 to 200
+      const freq = 20000 * Math.pow(10, (value / 50)); 
+      this.comboFilter.frequency.setTargetAtTime(Math.max(200, freq), this.audioCtx!.currentTime, 0.05);
+    } else {
+      // HIGH PASS: increase freq as value goes to +100
+      this.comboFilter.type = 'highpass';
+      // Map 1 to 100 into 20 to 5000
+      const freq = 20 * Math.pow(10, (value / 40));
+      this.comboFilter.frequency.setTargetAtTime(Math.min(10000, freq), this.audioCtx!.currentTime, 0.05);
+    }
+  }
+
+  setDelayFX(level: number, feedback: number, time: number) {
+    // level: 0 to 1, feedback: 0 to 0.9, time: 0.1 to 2.0
+    if (!this.wetGain || !this.dryGain || !this.delayNode || !this.delayGain) return;
+    this.wetGain.gain.setTargetAtTime(level, this.audioCtx!.currentTime, 0.05);
+    this.dryGain.gain.setTargetAtTime(1 - (level * 0.5), this.audioCtx!.currentTime, 0.05);
+    this.delayGain.gain.value = Math.min(0.9, feedback);
+    this.delayNode.delayTime.setTargetAtTime(Math.max(0.01, time), this.audioCtx!.currentTime, 0.1);
+  }
+
+  // ── Looping ───────────────────────────────────────────────────────────────
+
+  setLoop(start: number, end: number, active: boolean) {
+    this.loopStart = start;
+    this.loopEnd = end;
+    this.loopActive = active;
+    this.patch({ loopActive: active, loopStart: start, loopEnd: end });
+    
+    // If we are currently outside the loop, seek to start
+    if (active && (this.state.currentTime < start || this.state.currentTime > end)) {
+      this.seek(start);
+    }
+  }
+
+  disableLoop() {
+    this.loopActive = false;
+    this.patch({ loopActive: false });
+  }
+
+  private checkLoop() {
+    if (!this.loopActive) return;
+    const t = this.state.currentTime;
+    if (t >= this.loopEnd) {
+      this.seek(this.loopStart);
     }
   }
 
