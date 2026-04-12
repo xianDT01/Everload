@@ -79,9 +79,15 @@
         </a>
       </li>
       <li *ngIf="hasNasAccess || isAdmin">
-        <a routerLink="/nas-music" class="menu-link" (click)="closeMenu()">
+        <a routerLink="/nas-music" [queryParams]="{mode: 'library'}" class="menu-link" (click)="closeMenu()">
           <span class="menu-icon">🎵</span>
-          <span>NAS Music</span>
+          <span>{{ 'HOME.MENU_NAS_MUSIC' | translate }}</span>
+        </a>
+      </li>
+      <li *ngIf="hasNasAccess || isAdmin">
+        <a routerLink="/nas-music" [queryParams]="{mode: 'deck'}" class="menu-link" (click)="closeMenu()">
+          <span class="menu-icon">🎛️</span>
+          <span>{{ 'HOME.MENU_DJ_DECKS' | translate }}</span>
         </a>
       </li>
       <li>

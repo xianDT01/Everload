@@ -73,10 +73,22 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   eqA = { low: 0, mid: 0, high: 0 };
   eqB = { low: 0, mid: 0, high: 0 };
 
-  pitchA = 0; // -0.1 ... 0 ... +0.1 (significa +/- 10%)
+  pitchA = 0;
   pitchB = 0;
+  
+  filterA = 0; // -100 … 0 … 100
+  filterB = 0;
+  
+  fxA = { level: 0, feedback: 0.5, time: 0.5 };
+  fxB = { level: 0, feedback: 0.5, time: 0.5 };
 
-  browserTab: 'nas' | 'youtube' | 'midi' | 'local' = 'nas';
+  hotCuesA: number[] = [];
+  hotCuesB: number[] = [];
+
+  sessionHistory: MusicMetadataDto[] = [];
+  private historyTimers: any = { A: null, B: null };
+
+  browserTab: 'nas' | 'youtube' | 'midi' | 'local' | 'history' = 'nas';
   ytSearchQuery = '';
   ytSearchResults: any[] = [];
   ytSearching = false;
@@ -100,6 +112,12 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   midiDevices: MidiDevice[] = [];
   activeMidiDeviceId: string | null = null;
   isMidiLearning = false;
+  showMidiConfig = false;
+  showHelp = false;
+
+  // Album art fetched from iTunes API (clave = track.path)
+  coverOverrideMap = new Map<string, string>();
+  private lastCoverPath = { A: '', B: '' };
 
   midiActions = [
     { id: 'VOL_A', label: 'Volumen Deck A' },
@@ -151,15 +169,25 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.musicService.deckAPlayer.state$.subscribe(s => {
         this.stateA = s;
         this.checkQueueAdvance('A', s);
+        if (s.currentTrack?.path !== this.lastCoverPath.A) {
+          this.lastCoverPath.A = s.currentTrack?.path ?? '';
+          this.fetchCoverIfNeeded(s.currentTrack);
+        }
       }),
       this.musicService.deckBPlayer.state$.subscribe(s => {
         this.stateB = s;
         this.checkQueueAdvance('B', s);
+        if (s.currentTrack?.path !== this.lastCoverPath.B) {
+          this.lastCoverPath.B = s.currentTrack?.path ?? '';
+          this.fetchCoverIfNeeded(s.currentTrack);
+        }
       }),
-      this.midiService.devices$.subscribe(d => this.midiDevices = d),
-      this.midiService.activeDeviceId$.subscribe(id => this.activeMidiDeviceId = id),
       this.midiService.isLearning$.subscribe(l => this.isMidiLearning = l),
-      this.midiService.action$.subscribe(action => this.handleMidiAction(action))
+      this.midiService.action$.subscribe(action => this.handleMidiAction(action)),
+
+      // Auto-add to history after 15s
+      this.musicService.deckAPlayer.state$.subscribe(s => this.trackHistoryA(s)),
+      this.musicService.deckBPlayer.state$.subscribe(s => this.trackHistoryB(s))
     );
   }
 
@@ -373,6 +401,129 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const p = deck === 'A' ? this.pitchA : this.pitchB;
     const pct = p * 100;
     return (pct > 0 ? '+' : '') + pct.toFixed(1) + '%';
+  }
+
+  // ── Combo Filter & FX ─────────────────────────────────────────────────────
+
+  onFilterChange(deck: 'A' | 'B', e: Event) {
+    const val = +(e.target as HTMLInputElement).value;
+    if (deck === 'A') {
+      this.filterA = val;
+      this.musicService.deckAPlayer.setComboFilter(val);
+    } else {
+      this.filterB = val;
+      this.musicService.deckBPlayer.setComboFilter(val);
+    }
+  }
+
+  resetFilter(deck: 'A' | 'B') {
+    if (deck === 'A') {
+      this.filterA = 0;
+      this.musicService.deckAPlayer.setComboFilter(0);
+    } else {
+      this.filterB = 0;
+      this.musicService.deckBPlayer.setComboFilter(0);
+    }
+  }
+
+  onFxChange(deck: 'A' | 'B', param: 'level' | 'feedback' | 'time', e: Event) {
+    const val = +(e.target as HTMLInputElement).value;
+    const fx = deck === 'A' ? this.fxA : this.fxB;
+    (fx as any)[param] = val;
+    const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+    player.setDelayFX(fx.level, fx.feedback, fx.time);
+  }
+
+  // ── Sync ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Sync targetDeck to match the BMP of the other deck.
+   * If other deck is at 128 BPM and target is at 120, sets pitch to +6.6%.
+   */
+  syncBpm(targetDeck: 'A' | 'B'): void {
+    const refDeck = targetDeck === 'A' ? 'B' : 'A';
+    const refBpm = this.getCurrentBpm(refDeck);
+    const targetState = targetDeck === 'A' ? this.stateA : this.stateB;
+    const originalBpm = targetState?.currentTrack?.bpm || 0;
+
+    if (!refBpm || !originalBpm) return;
+
+    // targetPitch = (refBpm / originalBpm) - 1
+    const newPitch = (refBpm / originalBpm) - 1;
+    this.setPitchValue(targetDeck, newPitch);
+  }
+
+  // ── Hot Cues ─────────────────────────────────────────────────────────────
+
+  setHotCue(deck: 'A' | 'B', index: number) {
+    const state = deck === 'A' ? this.stateA : this.stateB;
+    if (!state) return;
+    const cues = deck === 'A' ? this.hotCuesA : this.hotCuesB;
+    cues[index] = state.currentTime;
+  }
+
+  jumpToHotCue(deck: 'A' | 'B', index: number) {
+    const cues = deck === 'A' ? this.hotCuesA : this.hotCuesB;
+    const time = cues[index];
+    if (time === undefined) return;
+    const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+    player.seek(time);
+  }
+
+  clearHotCue(deck: 'A' | 'B', index: number, e: Event) {
+    e.stopPropagation();
+    const cues = deck === 'A' ? this.hotCuesA : this.hotCuesB;
+    delete cues[index];
+  }
+
+  // ── Looping ──────────────────────────────────────────────────────────────
+
+  toggleLoop(deck: 'A' | 'B', beats: number) {
+    const state = deck === 'A' ? this.stateA : this.stateB;
+    const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+    if (!state?.currentTrack || !state.duration) return;
+
+    if (state.loopActive) {
+      player.disableLoop();
+    } else {
+      const bpm = this.getCurrentBpm(deck) || 120;
+      const beatDuration = 60 / bpm;
+      const loopDuration = beatDuration * beats;
+      const start = state.currentTime;
+      const end = Math.min(state.duration, start + loopDuration);
+      player.setLoop(start, end, true);
+    }
+  }
+
+  // ── History ──────────────────────────────────────────────────────────────
+  
+  private trackHistoryA(s: PlayerState | null) { this.trackHistory(s, 'A'); }
+  private trackHistoryB(s: PlayerState | null) { this.trackHistory(s, 'B'); }
+
+  private trackHistory(s: PlayerState | null, deck: 'A' | 'B') {
+    if (!s?.currentTrack || !s.playing) {
+      if (this.historyTimers[deck]) { clearTimeout(this.historyTimers[deck]); this.historyTimers[deck] = null; }
+      return;
+    }
+    // Only schedule if not already scheduled
+    if (!this.historyTimers[deck]) {
+      this.historyTimers[deck] = setTimeout(() => {
+        if (s.currentTrack) this.addToHistory(s.currentTrack);
+      }, 15000); // 15 seconds
+    }
+  }
+
+  private addToHistory(track: MusicMetadataDto) {
+    // Avoid duplicates (consecutive or same track within session)
+    if (this.sessionHistory.length > 0) {
+      const last = this.sessionHistory[this.sessionHistory.length - 1];
+      if (last.path === track.path && last.source === track.source) return;
+    }
+    this.sessionHistory.push({ ...track });
+  }
+
+  clearHistory() {
+    this.sessionHistory = [];
   }
 
   // ── Sync ─────────────────────────────────────────────────────────────────
@@ -856,6 +1007,68 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  // ── Double-click: carga en el deck inactivo ───────────────────────────────
+
+  /** Elige el deck que NO está sonando (si ambos suenan o ninguno → A). */
+  private idleDeck(): 'A' | 'B' {
+    return (this.stateA?.playing && !this.stateB?.playing) ? 'B' : 'A';
+  }
+
+  loadToIdleDeck(track: MusicMetadataDto) {
+    const deck = this.idleDeck();
+    const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+    if (track.source === 'local' || track.source === 'youtube') {
+      player.load(track, -1);
+    } else {
+      if (!this.selectedPathId) return;
+      track.source = 'nas';
+      player.load(track, this.selectedPathId);
+    }
+  }
+
+  loadYoutubeToIdleDeck(video: any) {
+    this.loadYoutube(this.idleDeck(), video);
+  }
+
+  // ── Album art desde iTunes API ─────────────────────────────────────────────
+
+  private fetchCoverIfNeeded(track: MusicMetadataDto | null) {
+    if (!track || track.source === 'youtube') return; // YT ya tiene miniatura
+    if (track.hasCover) return;                        // el servidor ya la tiene
+    if (this.coverOverrideMap.has(track.path)) return; // ya buscada o en curso
+
+    const query = [track.artist, track.album || track.title].filter(Boolean).join(' ');
+    if (!query.trim()) return;
+
+    // Marcar como "en curso" para no lanzar peticiones duplicadas
+    this.coverOverrideMap.set(track.path, '');
+
+    this.http.get<any>('https://itunes.apple.com/search', {
+      params: { term: query, entity: 'album', limit: '3', media: 'music' }
+    }).subscribe({
+      next: (r) => {
+        const result = r.results?.find((x: any) => x.artworkUrl100);
+        if (result?.artworkUrl100) {
+          // Sustituir resolución 100x100 → 600x600 para mejor calidad
+          const url = result.artworkUrl100.replace('100x100bb', '600x600bb');
+          this.coverOverrideMap.set(track.path, url);
+        } else {
+          this.coverOverrideMap.delete(track.path); // sin resultado, permitir reintento
+        }
+      },
+      error: () => this.coverOverrideMap.delete(track.path)
+    });
+  }
+
+  hasCoverToShow(state: PlayerState | null): boolean {
+    if (!state?.currentTrack) return false;
+    const t = state.currentTrack;
+    if (t.source === 'youtube') return true;
+    const override = this.coverOverrideMap.get(t.path);
+    if (override) return true;
+    return !!t.hasCover && !!state.pathId;
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   coverUrl(state: PlayerState | null): string {
@@ -864,6 +1077,9 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (track.source === 'youtube') {
       return `https://img.youtube.com/vi/${track.path}/hqdefault.jpg`;
     }
+    // Carátula buscada en iTunes API
+    const override = this.coverOverrideMap.get(track.path);
+    if (override) return override;
     if (!track.hasCover || !state.pathId) return '';
     return this.musicService.getCoverUrl(state.pathId, track.path, track.source);
   }

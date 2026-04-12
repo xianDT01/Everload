@@ -193,6 +193,8 @@
   "HOME.AVATAR_ERROR_SIZE": "El archivo no puede superar 5 MB",
   "HOME.AVATAR_ERROR_UPLOAD": "Error al subir el avatar",
   "HOME.AVATAR_REMOVE_CONFIRM": "¿Eliminar tu foto de perfil?",
+  "HOME.MENU_NAS_MUSIC": "NAS Music",
+  "HOME.MENU_DJ_DECKS": "Cabinas DJ",
   "HOME.MENU_AUDIO": "Herramientas de Audio",
   "DOWNLOAD_AUDIO_TOOLS": "🎙 Herramientas de Audio",
 
