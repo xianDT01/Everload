@@ -4,9 +4,8 @@ import com.EverLoad.everload.dto.MusicMetadataDto;
 import com.EverLoad.everload.service.MusicService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.ResourceRegion;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -43,8 +42,8 @@ public class MusicController {
 
     /**
      * Serves audio with proper Range support.
-     * - No Range header  → HTTP 200 with full resource + Accept-Ranges: bytes
-     * - Range header     → HTTP 206 Partial Content with ResourceRegion
+     * Written directly to HttpServletResponse to avoid Spring MVC
+     * ResourceRegion/message-converter issues across different Spring versions.
      *
      * The JWT token can be passed as ?token= query param because HTMLAudioElement
      * cannot set custom request headers.
@@ -52,37 +51,18 @@ public class MusicController {
     @Operation(summary = "Streaming de audio con soporte Accept-Ranges")
     @GetMapping("/stream")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> streamAudio(@RequestParam Long pathId,
-                                         @RequestParam String subPath,
-                                         @RequestHeader HttpHeaders requestHeaders) {
+    public void streamAudio(@RequestParam Long pathId,
+                            @RequestParam String subPath,
+                            @RequestHeader(value = "Range", required = false) String rangeHeader,
+                            HttpServletResponse response) {
         try {
-            Resource resource = musicService.getAudioResource(pathId, subPath);
-            MediaType mediaType = MediaTypeFactory.getMediaType(resource)
-                    .orElse(MediaType.APPLICATION_OCTET_STREAM);
-
-            List<HttpRange> ranges = requestHeaders.getRange();
-
-            if (ranges.isEmpty()) {
-                // Full delivery — tells the browser we support ranges for future seeks
-                return ResponseEntity.ok()
-                        .contentType(mediaType)
-                        .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                        .body(resource);
-            }
-
-            // Partial content
-            ResourceRegion region = musicService.streamAudio(pathId, subPath, requestHeaders);
-            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                    .contentType(mediaType)
-                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                    .body(region);
-
+            musicService.streamAudioToResponse(pathId, subPath, rangeHeader, response);
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).build();
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -130,30 +110,13 @@ public class MusicController {
     @Operation(summary = "Streaming de audio cacheado de youtube con soporte Accept-Ranges")
     @GetMapping("/youtube/stream")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> streamYoutubeAudio(@RequestParam String videoId,
-                                                @RequestHeader HttpHeaders requestHeaders) {
+    public void streamYoutubeAudio(@RequestParam String videoId,
+                                   @RequestHeader(value = "Range", required = false) String rangeHeader,
+                                   HttpServletResponse response) {
         try {
-            Resource resource = musicService.getYoutubeAudioResource(videoId);
-            MediaType mediaType = MediaTypeFactory.getMediaType(resource)
-                    .orElse(MediaType.APPLICATION_OCTET_STREAM);
-
-            List<HttpRange> ranges = requestHeaders.getRange();
-
-            if (ranges.isEmpty()) {
-                return ResponseEntity.ok()
-                        .contentType(mediaType)
-                        .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                        .body(resource);
-            }
-
-            ResourceRegion region = musicService.streamYoutubeAudio(videoId, requestHeaders);
-            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
-                    .contentType(mediaType)
-                    .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                    .body(region);
-
+            musicService.streamYoutubeAudioToResponse(videoId, rangeHeader, response);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
     @Operation(summary = "Obtener miniatura de youtube redireccionada")
