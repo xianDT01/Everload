@@ -10,22 +10,45 @@
       <span>{{ 'MUSIC.NAS_LIBRARY_LOGO' | translate }}</span>
     </div>
 
+    <!-- Personal Collections -->
     <div class="sidebar-section">
-      <p class="sidebar-label">{{ 'MUSIC.SIDEBAR_COLLECTIONS' | translate }}</p>
+      <ul class="collections-list">
+        <li class="collection-item" [class.active]="currentView === 'home'" (click)="setView('home')">
+          <div class="collection-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          </div>
+          <span class="collection-name">{{ 'MUSIC.VIEW_HOME' | translate }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="sidebar-section custom-height">
+      <ul class="collections-list">
+        <li class="collection-item" [class.active]="currentView === 'liked'" (click)="setView('liked')">
+          <div class="collection-icon custom-bg-heart">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </div>
+          <span class="collection-name">{{ 'MUSIC.VIEW_LIKED' | translate }}</span>
+        </li>
+        <li class="collection-item" [class.active]="currentView === 'history'" (click)="setView('history')">
+          <div class="collection-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.25 2.52.75-1.23-3.5-2.06V8h-1.5z"/></svg>
+          </div>
+          <span class="collection-name">{{ 'MUSIC.VIEW_HISTORY' | translate }}</span>
+        </li>
+      </ul>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <!-- Folders -->
+    <div class="sidebar-section scroll-section">
       <ul class="collections-list">
         <li *ngFor="let p of paths"
             class="collection-item"
-            [class.active]="p.id === selectedPathId"
+            [class.active]="currentView === 'folder' && p.id === selectedPathId"
             (click)="selectPath(p.id)">
-          <div class="collection-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
-            </svg>
-          </div>
-          <div class="collection-info">
-            <span class="collection-name">{{ p.name }}</span>
-            <span class="collection-type">{{ 'MUSIC.SIDEBAR_LIBRARY' | translate }}</span>
-          </div>
+          <span class="collection-name-only">{{ p.name }}</span>
         </li>
       </ul>
     </div>
@@ -65,7 +88,6 @@
             <span class="bc-item" [class.bc-current]="last">{{ crumb }}</span>
           </ng-container>
         </div>
-        <span class="topbar-title" *ngIf="isRoot">{{ getPathName(selectedPathId) }}</span>
       </div>
 
       <div class="topbar-search">
@@ -86,17 +108,20 @@
       <!-- Gradient header -->
       <div class="content-header" [style.background]="headerGradient">
         <div class="content-header-bg"></div>
-        <div class="header-art">
+        <div class="header-art" [class.border-radius]="currentView === 'liked'">
           <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" class="header-cover-img" [class.playing]="state?.playing" />
           <div *ngIf="!playerHasCover() || !state?.currentTrack" class="header-art-placeholder">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
+            <svg *ngIf="currentView !== 'liked'" width="64" height="64" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
               <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+            </svg>
+            <svg *ngIf="currentView === 'liked'" width="64" height="64" viewBox="0 0 24 24" fill="white">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           </div>
         </div>
         <div class="header-meta">
-          <span class="header-type">{{ 'MUSIC.COLLECTION_HEADER' | translate }}</span>
-          <h1 class="header-folder-name">{{ currentFolderName }}</h1>
+          <span class="header-type">{{ currentView === 'folder' ? ('MUSIC.COLLECTION_HEADER' | translate) : 'Lista' }}</span>
+          <h1 class="header-folder-name" [style.fontSize]="currentView === 'liked' ? '70px' : ''">{{ currentFolderName }}</h1>
           <div class="header-counts">
             <span *ngIf="folders.length > 0">{{ folders.length }} {{ (folders.length !== 1 ? 'MUSIC.COUNT_FOLDER_PLUR' : 'MUSIC.COUNT_FOLDER_SING') | translate }}</span>
             <span class="dot" *ngIf="folders.length > 0 && tracks.length > 0">·</span>
@@ -115,6 +140,14 @@
             <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
           </svg>
         </button>
+        <!-- Sort buttons for liked view -->
+        <ng-container *ngIf="currentView === 'liked'">
+          <div class="sort-buttons">
+            <button class="btn-sort" [class.active]="likedSortBy === 'date'" (click)="sortLikedBy('date')">{{ 'MUSIC.SORT_DATE' | translate }}</button>
+            <button class="btn-sort" [class.active]="likedSortBy === 'title'" (click)="sortLikedBy('title')">{{ 'MUSIC.SORT_TITLE' | translate }}</button>
+            <button class="btn-sort" [class.active]="likedSortBy === 'artist'" (click)="sortLikedBy('artist')">{{ 'MUSIC.SORT_ARTIST' | translate }}</button>
+          </div>
+        </ng-container>
       </div>
 
       <!-- ── Folders section ─────────────────────────────────────────────── -->
@@ -125,16 +158,24 @@
                class="folder-card"
                (click)="navigate(folder)"
                (dblclick)="navigate(folder)">
+            <!-- Dynamic cover image -->
             <div class="folder-card-art">
-              <svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(255,255,255,0.7)">
-                <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
-              </svg>
+              <img [src]="folderCoverUrl(folder)" class="folder-cover-img" (error)="folderCoverError($event)" loading="lazy" />
+              <div class="folder-card-fallback">
+                <svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+                  <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+                </svg>
+              </div>
+            </div>
+            <div class="folder-card-info">
+              <span class="folder-card-name">{{ folder.name }}</span>
+              <span class="folder-card-type">{{ 'MUSIC.FOLDER_TYPE' | translate }}</span>
+            </div>
+            <div class="folder-card-play-overlay">
               <div class="folder-card-play">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M8 5v14l11-7z"/></svg>
               </div>
             </div>
-            <span class="folder-card-name">{{ folder.name }}</span>
-            <span class="folder-card-type">{{ 'MUSIC.FOLDER_TYPE' | translate }}</span>
           </div>
         </div>
       </ng-container>
@@ -192,7 +233,14 @@
             <span class="tr-album">{{ track.album || '—' }}</span>
 
             <span class="tr-format">
-              <span *ngIf="track.format" class="fmt-pill {{ track.format.toLowerCase() }}">{{ track.format.toUpperCase() }}</span>
+              <button class="btn-like" [class.liked]="isLiked(track)" (click)="toggleLike($event, track)">
+                <svg *ngIf="!isLiked(track)" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+                <svg *ngIf="isLiked(track)" width="16" height="16" viewBox="0 0 24 24" fill="#1db954" stroke="#1db954" stroke-width="1.5">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </button>
             </span>
 
             <span class="tr-dur">{{ fmt(track.duration) }}</span>
@@ -234,8 +282,11 @@
       <span class="pb-artist" *ngIf="!state?.error">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
       <span class="pb-error" *ngIf="state?.error" [title]="state?.error ?? ''">⚠ {{ state?.error }}</span>
     </div>
-      <button class="pb-like" [title]="'MUSIC.LIKE' | translate">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button class="pb-like" *ngIf="state?.currentTrack" [title]="'MUSIC.LIKE' | translate" (click)="toggleLike($event, state!.currentTrack!)">
+      <svg *ngIf="state?.currentTrack && !isLiked(state!.currentTrack!)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+      <svg *ngIf="state?.currentTrack && isLiked(state!.currentTrack!)" width="16" height="16" viewBox="0 0 24 24" fill="#1db954" stroke="#1db954" stroke-width="2">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
       </svg>
     </button>

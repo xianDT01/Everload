@@ -1111,3 +1111,142 @@
   background: var(--sp-faint);
   border-radius: 3px;
 }
+
+/* ── Custom overhaul classes ─────────────────────────────────────────────── */
+
+.custom-height {
+  margin-top: 12px;
+}
+
+.sidebar-divider {
+  border: 0;
+  border-top: 1px solid var(--sp-border);
+  margin: 8px 24px;
+}
+
+.scroll-section {
+  overflow-y: auto;
+}
+
+.collection-name-only {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 0;
+}
+
+.custom-bg-heart {
+  background: linear-gradient(135deg, #450af5, #c4efd9);
+}
+
+.border-radius {
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 4px 60px rgba(0,0,0,0.5);
+}
+
+/* ── Folder card cover image ─────────────────────────────────────────────── */
+
+.folder-card {
+  position: relative;
+}
+
+.folder-card-art {
+  position: relative;
+  background: linear-gradient(135deg, #1a3a2a 0%, #2d1b69 50%, #4a1942 100%);
+}
+
+.folder-cover-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  z-index: 1;
+}
+
+.folder-card-fallback {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 0;
+}
+
+.folder-card-play-overlay {
+  position: absolute;
+  bottom: 64px;
+  right: 24px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.folder-card:hover .folder-card-play-overlay {
+  pointer-events: auto;
+}
+
+/* ── Like button ─────────────────────────────────────────────────────────── */
+
+.btn-like {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  color: var(--sp-muted);
+  transition: transform 150ms ease, color 150ms ease;
+  opacity: 0;
+}
+
+.track-row:hover .btn-like,
+.btn-like.liked {
+  opacity: 1;
+}
+
+.btn-like:hover {
+  transform: scale(1.15);
+  color: #fff;
+}
+
+.btn-like.liked {
+  color: var(--sp-green);
+}
+
+/* ── Sort buttons (liked view) ───────────────────────────────────────────── */
+
+.sort-buttons {
+  display: flex;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.btn-sort {
+  background: rgba(255,255,255,0.07);
+  border: none;
+  color: var(--sp-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 200ms, color 200ms;
+}
+
+.btn-sort:hover {
+  background: rgba(255,255,255,0.12);
+  color: var(--sp-text);
+}
+
+.btn-sort.active {
+  background: var(--sp-text);
+  color: #000;
+}
+

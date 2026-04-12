@@ -18,6 +18,7 @@ export interface MusicMetadataDto {
   bpm: number;
   source?: 'nas' | 'youtube' | 'local';
   localHandle?: any;
+  nasPathId?: number; // Set when track comes from favorites/history
 }
 
 export interface PlayerState {
@@ -525,19 +526,59 @@ export class MusicService {
     this.deckBPlayer = new DeckPlayer(this, 'deckB');
 
     // Auto-advance queue when main player track ends naturally
-    this.mainPlayer.onTrackEnded = () => this.playNextMain();
+    this.mainPlayer.onTrackEnded = () => {
+      // Capture the finished track BEFORE advancing to the next one
+      const finishedTrack = this.mainPlayer.state.currentTrack;
+      const finishedPathId = this.mainPlayer.state.pathId;
+      this.recordHistory(finishedTrack, finishedPathId);
+      this.playNextMain();
+    };
+
+    this.loadPersistedState();
+  }
+
+  private loadPersistedState() {
+    try {
+      const savedQueue = localStorage.getItem('ev_queue');
+      const savedRepeat = localStorage.getItem('ev_repeat');
+      const savedShuffle = localStorage.getItem('ev_shuffle');
+      if (savedQueue) {
+        const q = JSON.parse(savedQueue);
+        if (q && q.tracks && q.tracks.length > 0) {
+          this.queueSubj.next(q);
+        }
+      }
+      if (savedRepeat) this.repeatSubj.next(savedRepeat as any);
+      if (savedShuffle) {
+        this._shuffle = savedShuffle === 'true';
+        this.shuffleSubj.next(this._shuffle);
+        if (this._shuffle) this.buildShuffleOrder();
+      }
+    } catch (e) {
+      console.warn('Could not load player state from localStorage', e);
+    }
+  }
+
+  private persistState() {
+    try {
+      localStorage.setItem('ev_queue', JSON.stringify(this.queueSubj.value));
+      localStorage.setItem('ev_repeat', this._repeat);
+      localStorage.setItem('ev_shuffle', String(this._shuffle));
+    } catch (e) {}
   }
 
   toggleShuffle() {
     this._shuffle = !this._shuffle;
     if (this._shuffle) this.buildShuffleOrder();
     this.shuffleSubj.next(this._shuffle);
+    this.persistState();
   }
 
   toggleRepeat() {
     const modes: ('none' | 'one' | 'all')[] = ['none', 'one', 'all'];
     this._repeat = modes[(modes.indexOf(this._repeat) + 1) % modes.length];
     this.repeatSubj.next(this._repeat);
+    this.persistState();
   }
 
   private buildShuffleOrder() {
@@ -571,11 +612,51 @@ export class MusicService {
     return `${this.api}/cover?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}`;
   }
 
+  getFolderCoverUrl(pathId: number, folderPath: string): string {
+    const token = this.auth.getToken();
+    return `${this.api}/folder-cover?pathId=${pathId}&subPath=${encodeURIComponent(folderPath)}&token=${token}`;
+  }
+
+  // ── Favorites & History API ───────────────────────────────────────────────
+
+  getFavorites(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.api.replace('/music', '/library')}/favorites`);
+  }
+
+  toggleFavorite(trackPath: string, title: string, artist: string, album: string, nasPathId: number): Observable<any> {
+    return this.http.post(`${this.api.replace('/music', '/library')}/favorites/toggle`, {
+      trackPath, title, artist, album, nasPathId
+    });
+  }
+
+  checkFavorite(trackPath: string, nasPathId: number): Observable<any> {
+    return this.http.get(`${this.api.replace('/music', '/library')}/favorites/check?trackPath=${encodeURIComponent(trackPath)}&nasPathId=${nasPathId}`);
+  }
+
+  getHistory(limit: number = 50): Observable<any[]> {
+    return this.http.get<any[]>(`${this.api.replace('/music', '/library')}/history?limit=${limit}`);
+  }
+
+  recordHistory(track: MusicMetadataDto | null, pathId: number | null) {
+    if (!track || pathId == null || pathId < 0) return;
+    this.http.post(`${this.api.replace('/music', '/library')}/history`, {
+      trackPath: track.path,
+      title: track.title || track.name,
+      artist: track.artist || '',
+      album: track.album || '',
+      nasPathId: pathId,
+      durationSeconds: track.duration || 0,
+      completed: true
+    }).subscribe({ error: () => {} });
+  }
+
+
   // ── Queue / Library controls ──────────────────────────────────────────────
 
   setQueue(pathId: number, tracks: MusicMetadataDto[], index: number) {
     this.queueSubj.next({ tracks, pathId, index });
     if (this._shuffle) this.buildShuffleOrder();
+    this.persistState();
     if (tracks[index]) {
       this.mainPlayer.load(tracks[index], pathId).then(() => {
         this.mainPlayer.play();
