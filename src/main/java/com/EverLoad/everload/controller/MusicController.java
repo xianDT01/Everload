@@ -93,6 +93,30 @@ public class MusicController {
         }
     }
 
+    @Operation(summary = "Carátula del primer archivo de audio encontrado en la carpeta")
+    @GetMapping("/folder-cover")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<byte[]> getFolderCoverArt(@RequestParam Long pathId,
+                                                    @RequestParam(required = false, defaultValue = "") String subPath) {
+        try {
+            byte[] cover = musicService.getFolderCoverArt(pathId, subPath);
+            if (cover != null && cover.length > 0) {
+                HttpHeaders headers = new HttpHeaders();
+                if (cover.length > 4 && cover[0] == (byte) 0x89 && cover[1] == 0x50) {
+                    headers.setContentType(MediaType.IMAGE_PNG);
+                } else {
+                    headers.setContentType(MediaType.IMAGE_JPEG);
+                }
+                headers.setContentLength(cover.length);
+                headers.setCacheControl("public, max-age=86400");
+                return new ResponseEntity<>(cover, headers, HttpStatus.OK);
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     // ── YouTube DJ Cache ──────────────────────────────────────────────────────
 
     @Operation(summary = "Preparar y cachear audio de youtube para la cabina DJ")

@@ -83,6 +83,25 @@ public class MusicService {
         return null;
     }
 
+    /** Returns raw bytes of the embedded cover art of the first audio file in a folder. */
+    public byte[] getFolderCoverArt(Long pathId, String relativePath) {
+        Path target = nasService.resolveValidatedPath(pathId, relativePath);
+        File dir = target.toFile();
+        if (!dir.exists() || !dir.isDirectory() || !dir.canRead()) return null;
+
+        File[] files = dir.listFiles();
+        if (files == null) return null;
+
+        for (File f : files) {
+            if (isAudio(f)) {
+                String sub = relativePath != null && !relativePath.isEmpty() ? relativePath + "/" + f.getName() : f.getName();
+                byte[] cover = getCoverArt(pathId, sub);
+                if (cover != null && cover.length > 0) return cover;
+            }
+        }
+        return null;
+    }
+
     // ── YouTube DJ Cache API ──────────────────────────────────────────────────
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MusicService.class);

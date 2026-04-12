@@ -421,6 +421,12 @@
   "MUSIC.REPEAT": "Repetir",
   "MUSIC.COUNT_FOLDER_SING": "carpeta",
   "MUSIC.COUNT_FOLDER_PLUR": "carpetas",
+  "MUSIC.VIEW_HOME": "Inicio",
+  "MUSIC.VIEW_LIKED": "As túas favoritas",
+  "MUSIC.VIEW_HISTORY": "Escoitado recentemente",
+  "MUSIC.SORT_DATE": "Data",
+  "MUSIC.SORT_TITLE": "Título",
+  "MUSIC.SORT_ARTIST": "Artista",
 
   "MUSIC.DECK_A": "CABINA A",
   "MUSIC.DECK_B": "CABINA B",

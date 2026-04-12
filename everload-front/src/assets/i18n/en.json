@@ -421,6 +421,12 @@
   "MUSIC.REPEAT": "Repeat",
   "MUSIC.COUNT_FOLDER_SING": "folder",
   "MUSIC.COUNT_FOLDER_PLUR": "folders",
+  "MUSIC.VIEW_HOME": "Home",
+  "MUSIC.VIEW_LIKED": "Liked Songs",
+  "MUSIC.VIEW_HISTORY": "Recently Played",
+  "MUSIC.SORT_DATE": "Date",
+  "MUSIC.SORT_TITLE": "Title",
+  "MUSIC.SORT_ARTIST": "Artist",
 
   "MUSIC.DECK_A": "DECK A",
   "MUSIC.DECK_B": "DECK B",
