@@ -1,22 +1,18 @@
 package com.EverLoad.everload.service;
 
 import com.EverLoad.everload.dto.MusicMetadataDto;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.ResourceRegion;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpRange;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -35,8 +31,6 @@ public class MusicService {
     private static final List<String> AUDIO_EXTENSIONS =
             Arrays.asList("mp3", "flac", "m4a", "wav", "ogg", "aac", "opus", "wma", "alac");
 
-    /** 1 MB streaming chunks */
-    private static final long CHUNK_SIZE = 1_000_000L;
     private static final String DJ_CACHE_DIR = "./downloads/dj_cache/";
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -66,36 +60,13 @@ public class MusicService {
     }
 
     /**
-     * Returns a {@link ResourceRegion} for the requested byte range, or the full first chunk
-     * when no Range header is present.
+     * Writes audio bytes directly to the HTTP response, supporting Range requests.
+     * Bypasses Spring MVC's ResourceRegion/message-converter to avoid version-specific issues.
      */
-    public ResourceRegion streamAudio(Long pathId, String relativePath, HttpHeaders requestHeaders) {
+    public void streamAudioToResponse(Long pathId, String relativePath,
+                                      String rangeHeader, HttpServletResponse response) throws IOException {
         File file = resolveFile(pathId, relativePath);
-        Resource resource = new FileSystemResource(file);
-
-        try {
-            long contentLength = resource.contentLength();
-            List<HttpRange> ranges = requestHeaders.getRange();
-
-            if (ranges.isEmpty()) {
-                long length = Math.min(CHUNK_SIZE, contentLength);
-                return new ResourceRegion(resource, 0, length);
-            }
-
-            HttpRange range = ranges.get(0);
-            long start  = range.getRangeStart(contentLength);
-            long end    = range.getRangeEnd(contentLength);
-            long length = Math.min(CHUNK_SIZE, end - start + 1);
-            return new ResourceRegion(resource, start, length);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Error leyendo archivo de audio", e);
-        }
-    }
-
-    /** Returns the full Resource (used for content-type detection or full-file delivery). */
-    public Resource getAudioResource(Long pathId, String relativePath) {
-        return new FileSystemResource(resolveFile(pathId, relativePath));
+        streamFileToResponse(file, rangeHeader, response);
     }
 
     /** Returns raw bytes of the embedded cover art, or null if not present. */
@@ -180,37 +151,60 @@ public class MusicService {
         }
     }
 
-    public ResourceRegion streamYoutubeAudio(String videoId, HttpHeaders requestHeaders) {
+    public void streamYoutubeAudioToResponse(String videoId,
+                                              String rangeHeader, HttpServletResponse response) throws IOException {
         File file = new File(DJ_CACHE_DIR + videoId + ".mp3");
-        if (!file.exists()) {
-            throw new IllegalArgumentException("El archivo de YouTube no está en caché: " + videoId);
-        }
-        Resource resource = new FileSystemResource(file);
-
-        try {
-            long contentLength = resource.contentLength();
-            List<HttpRange> ranges = requestHeaders.getRange();
-
-            if (ranges.isEmpty()) {
-                long length = Math.min(CHUNK_SIZE, contentLength);
-                return new ResourceRegion(resource, 0, length);
-            }
-
-            HttpRange range = ranges.get(0);
-            long start  = range.getRangeStart(contentLength);
-            long end    = range.getRangeEnd(contentLength);
-            long length = Math.min(CHUNK_SIZE, end - start + 1);
-            return new ResourceRegion(resource, start, length);
-
-        } catch (IOException e) {
-            throw new RuntimeException("Error leyendo archivo de audio desde caché YouTube", e);
-        }
+        if (!file.exists()) throw new IllegalArgumentException("Archivo no encontrado en caché: " + videoId);
+        streamFileToResponse(file, rangeHeader, response);
     }
 
-    public Resource getYoutubeAudioResource(String videoId) {
-        File file = new File(DJ_CACHE_DIR + videoId + ".mp3");
-        if (!file.exists()) throw new IllegalArgumentException("Archivo no encontrado en cache");
-        return new FileSystemResource(file);
+    // ── Core streaming ────────────────────────────────────────────────────────
+
+    /**
+     * Writes a file (or byte range) directly to the HTTP response.
+     * Supports the Range request header for seeking / progressive streaming.
+     */
+    private void streamFileToResponse(File file, String rangeHeader, HttpServletResponse response) throws IOException {
+        long fileLength = file.length();
+        String contentType = MediaTypeFactory
+                .getMediaType(new FileSystemResource(file))
+                .orElse(MediaType.APPLICATION_OCTET_STREAM)
+                .toString();
+
+        response.setHeader("Accept-Ranges", "bytes");
+        response.setContentType(contentType);
+
+        long start = 0;
+        long end   = fileLength - 1;
+
+        if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
+            String rangeSpec = rangeHeader.substring(6);          // e.g. "0-" or "0-999999"
+            String[] parts   = rangeSpec.split("-", 2);
+            start = parts[0].isEmpty() ? 0 : Long.parseLong(parts[0]);
+            end   = (parts.length > 1 && !parts[1].isEmpty()) ? Long.parseLong(parts[1]) : fileLength - 1;
+            end   = Math.min(end, fileLength - 1);
+
+            response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+            response.setHeader("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
+        } else {
+            response.setStatus(HttpServletResponse.SC_OK);
+        }
+
+        long length = end - start + 1;
+        response.setContentLengthLong(length);
+
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r");
+             OutputStream out     = response.getOutputStream()) {
+            raf.seek(start);
+            byte[] buf       = new byte[65536]; // 64 KB buffer
+            long   remaining = length;
+            int    read;
+            while (remaining > 0 &&
+                   (read = raf.read(buf, 0, (int) Math.min(buf.length, remaining))) != -1) {
+                out.write(buf, 0, read);
+                remaining -= read;
+            }
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
