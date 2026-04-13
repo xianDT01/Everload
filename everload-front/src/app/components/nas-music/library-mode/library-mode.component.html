@@ -75,7 +75,7 @@
   <div class="lib-main">
 
     <!-- Top bar -->
-    <div class="topbar">
+    <div class="topbar" [class.edit-active]="editMode">
       <div class="topbar-nav">
         <button class="nav-btn" (click)="goUp()" [disabled]="isRoot" [title]="'MUSIC.BACK_TITLE' | translate">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
@@ -100,6 +100,16 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
+
+      <!-- Edit mode toggle (admin/nas_user only) -->
+      <button *ngIf="canEdit" class="btn-edit-mode" [class.active]="editMode"
+              (click)="toggleEditMode(); $event.stopPropagation()"
+              [title]="editMode ? 'Salir del modo edición' : 'Modo edición'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+        </svg>
+        <span *ngIf="editMode" class="edit-mode-label">Edición</span>
+      </button>
     </div>
 
     <!-- Scrollable content -->
@@ -131,7 +141,7 @@
       </div>
 
       <!-- Action bar -->
-      <div class="action-bar" *ngIf="filteredTracks.length > 0 || filteredFolders.length > 0">
+      <div class="action-bar" *ngIf="filteredTracks.length > 0 || filteredFolders.length > 0 || (editMode && currentView === 'folder' && selectedPathId !== null)">
         <button class="btn-play-all" (click)="playTrack(filteredTracks[0])" *ngIf="filteredTracks.length > 0">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </button>
@@ -148,6 +158,12 @@
             <button class="btn-sort" [class.active]="likedSortBy === 'artist'" (click)="sortLikedBy('artist')">{{ 'MUSIC.SORT_ARTIST' | translate }}</button>
           </div>
         </ng-container>
+        <!-- Create folder button in edit mode -->
+        <button *ngIf="editMode && currentView === 'folder'" class="btn-new-folder"
+                (click)="openCreateFolder(); $event.stopPropagation()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg>
+          Nueva carpeta
+        </button>
       </div>
 
       <!-- ── Folders section ─────────────────────────────────────────────── -->
@@ -156,8 +172,8 @@
         <div class="folder-grid">
           <div *ngFor="let folder of filteredFolders"
                class="folder-card"
-               (click)="navigate(folder)"
-               (dblclick)="navigate(folder)">
+               (click)="!editMode ? navigate(folder) : null"
+               (dblclick)="!editMode ? navigate(folder) : null">
             <!-- Dynamic cover image -->
             <div class="folder-card-art">
               <img [src]="folderCoverUrl(folder)" class="folder-cover-img" (error)="folderCoverError($event)" loading="lazy" />
@@ -166,12 +182,44 @@
                   <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
                 </svg>
               </div>
+              <!-- Edit mode: ⋮ menu button -->
+              <button *ngIf="editMode" class="card-menu-btn" (click)="toggleMenu($event, folder)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                </svg>
+              </button>
+              <!-- Context menu for folder -->
+              <div *ngIf="editMode && activeMenuPath === folder.path"
+                   class="ctx-menu" (click)="$event.stopPropagation()">
+                <button class="ctx-item" (click)="navigate(folder)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                  Abrir
+                </button>
+                <button class="ctx-item" (click)="openRename($event, folder)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                  Renombrar
+                </button>
+                <button class="ctx-item" (click)="openMove($event, folder)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.5C18 2.01 15.99 0 13.5 0c-1.3 0-2.49.54-3.36 1.36L8 3.5l-2.14-2.14C4.99.54 3.8 0 2.5 0 .01 0-2 2.01-2 4.5c0 .62.11 1.06.18 1.5H-4v13a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6zm0 13H2V8h18v11z"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15 9H9v6h6V9zm-2 4h-2v-2h2v2zm8-2V9h-2V7c0-1.1-.9-2-2-2h-2V3h-2v2h-2V3H9v2H7c-1.1 0-2 .9-2 2v2H3v2h2v2H3v2h2v2c0 1.1.9 2 2 2h2v2h2v-2h2v2h2v-2h2c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2zm-4 6H7V7h10v10z"/></svg>
+                  Mover
+                </button>
+                <button class="ctx-item" (click)="openCover($event, folder)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                  Cambiar portada
+                </button>
+                <div class="ctx-divider"></div>
+                <button class="ctx-item ctx-danger" (click)="openDelete($event, folder)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  Eliminar
+                </button>
+              </div>
             </div>
             <div class="folder-card-info">
               <span class="folder-card-name">{{ folder.name }}</span>
               <span class="folder-card-type">{{ 'MUSIC.FOLDER_TYPE' | translate }}</span>
             </div>
-            <div class="folder-card-play-overlay">
+            <div class="folder-card-play-overlay" *ngIf="!editMode">
               <div class="folder-card-play">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#000"><path d="M8 5v14l11-7z"/></svg>
               </div>
@@ -243,7 +291,37 @@
               </button>
             </span>
 
-            <span class="tr-dur">{{ fmt(track.duration) }}</span>
+            <span class="tr-dur">
+              <span class="tr-dur-text">{{ fmt(track.duration) }}</span>
+              <!-- Edit mode: ⋮ menu for track -->
+              <span *ngIf="editMode" class="tr-menu-wrap" (click)="$event.stopPropagation()">
+                <button class="tr-menu-btn" (click)="toggleMenu($event, track)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                  </svg>
+                </button>
+                <div *ngIf="activeMenuPath === track.path" class="ctx-menu ctx-menu-track"
+                     (click)="$event.stopPropagation()">
+                  <button class="ctx-item" (click)="openRename($event, track)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    Renombrar archivo
+                  </button>
+                  <button class="ctx-item" (click)="openMetadata($event, track)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    Editar metadatos
+                  </button>
+                  <button class="ctx-item" (click)="openMove($event, track)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg>
+                    Mover a carpeta
+                  </button>
+                  <div class="ctx-divider"></div>
+                  <button class="ctx-item ctx-danger" (click)="openDelete($event, track)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    Eliminar
+                  </button>
+                </div>
+              </span>
+            </span>
           </div>
         </div>
       </ng-container>
@@ -267,6 +345,107 @@
     </div><!-- /content-scroll -->
   </div><!-- /lib-main -->
 </div><!-- /lib-root -->
+
+<!-- ══ DIALOGS ════════════════════════════════════════════════════════════════ -->
+<div *ngIf="dialog.type" class="modal-backdrop" (click)="closeDialog()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+
+    <!-- RENAME -->
+    <ng-container *ngIf="dialog.type === 'rename'">
+      <h3 class="modal-title">Renombrar</h3>
+      <p class="modal-sub">{{ dialog.item?.directory ? 'Carpeta' : 'Archivo' }}: <em>{{ dialog.item?.name }}</em></p>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.value" placeholder="Nuevo nombre"
+             (keydown.enter)="confirmRename()" autofocus />
+      <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
+      <div class="modal-actions">
+        <button class="modal-btn" (click)="closeDialog()">Cancelar</button>
+        <button class="modal-btn primary" (click)="confirmRename()" [disabled]="dialog.loading || !dialog.value.trim()">
+          {{ dialog.loading ? '...' : 'Renombrar' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- DELETE -->
+    <ng-container *ngIf="dialog.type === 'delete'">
+      <h3 class="modal-title">Eliminar</h3>
+      <p class="modal-sub">¿Eliminar <strong>{{ dialog.item?.name }}</strong>?
+        <span *ngIf="dialog.item?.directory"> Esta acción eliminará la carpeta y todo su contenido.</span>
+      </p>
+      <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
+      <div class="modal-actions">
+        <button class="modal-btn" (click)="closeDialog()">Cancelar</button>
+        <button class="modal-btn danger" (click)="confirmDelete()" [disabled]="dialog.loading">
+          {{ dialog.loading ? '...' : 'Eliminar' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- MOVE -->
+    <ng-container *ngIf="dialog.type === 'move'">
+      <h3 class="modal-title">Mover</h3>
+      <p class="modal-sub">Mover <em>{{ dialog.item?.name }}</em> a:</p>
+      <label class="modal-label">Ruta de destino (relativa, vacío = raíz)</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.value" placeholder="ej: Artistas/Rock"
+             (keydown.enter)="confirmMove()" autofocus />
+      <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
+      <div class="modal-actions">
+        <button class="modal-btn" (click)="closeDialog()">Cancelar</button>
+        <button class="modal-btn primary" (click)="confirmMove()" [disabled]="dialog.loading">
+          {{ dialog.loading ? '...' : 'Mover' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- METADATA -->
+    <ng-container *ngIf="dialog.type === 'metadata'">
+      <h3 class="modal-title">Editar metadatos</h3>
+      <p class="modal-sub">{{ dialog.item?.name }}</p>
+      <label class="modal-label">Título</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.title" placeholder="Título de la canción" autofocus />
+      <label class="modal-label">Artista</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.artist" placeholder="Nombre del artista"
+             (keydown.enter)="confirmMetadata()" />
+      <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
+      <div class="modal-actions">
+        <button class="modal-btn" (click)="closeDialog()">Cancelar</button>
+        <button class="modal-btn primary" (click)="confirmMetadata()" [disabled]="dialog.loading">
+          {{ dialog.loading ? '...' : 'Guardar' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- CREATE FOLDER -->
+    <ng-container *ngIf="dialog.type === 'createFolder'">
+      <h3 class="modal-title">Nueva carpeta</h3>
+      <p class="modal-sub" *ngIf="currentSubPath">Dentro de: <em>{{ currentSubPath }}</em></p>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.value" placeholder="Nombre de la carpeta"
+             (keydown.enter)="confirmCreateFolder()" autofocus />
+      <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
+      <div class="modal-actions">
+        <button class="modal-btn" (click)="closeDialog()">Cancelar</button>
+        <button class="modal-btn primary" (click)="confirmCreateFolder()" [disabled]="dialog.loading || !dialog.value.trim()">
+          {{ dialog.loading ? '...' : 'Crear' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- COVER -->
+    <ng-container *ngIf="dialog.type === 'cover'">
+      <h3 class="modal-title">Cambiar portada</h3>
+      <p class="modal-sub">Carpeta: <em>{{ dialog.item?.name }}</em></p>
+      <label class="modal-label">Selecciona una imagen (JPG, PNG)</label>
+      <input class="modal-input-file" type="file" accept="image/jpeg,image/png"
+             (change)="onCoverFileSelected($event)" />
+      <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
+      <div class="modal-actions">
+        <button class="modal-btn" (click)="closeDialog()" [disabled]="dialog.loading">
+          {{ dialog.loading ? 'Subiendo...' : 'Cancelar' }}
+        </button>
+      </div>
+    </ng-container>
+
+  </div>
+</div>
 
 <!-- ══ PLAYER BAR ═══════════════════════════════════════════════════════════ -->
 <div class="player-bar" [class.visible]="!!state?.currentTrack">
