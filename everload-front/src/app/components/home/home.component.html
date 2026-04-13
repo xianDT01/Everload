@@ -78,18 +78,7 @@
           <span>{{ 'HOME.MENU_AUDIO' | translate }}</span>
         </a>
       </li>
-      <li *ngIf="hasNasAccess || isAdmin">
-        <a routerLink="/nas-music" [queryParams]="{mode: 'library'}" class="menu-link" (click)="closeMenu()">
-          <span class="menu-icon">🎵</span>
-          <span>{{ 'HOME.MENU_NAS_MUSIC' | translate }}</span>
-        </a>
-      </li>
-      <li *ngIf="hasNasAccess || isAdmin">
-        <a routerLink="/nas-music" [queryParams]="{mode: 'deck'}" class="menu-link" (click)="closeMenu()">
-          <span class="menu-icon">🎛️</span>
-          <span>{{ 'HOME.MENU_DJ_DECKS' | translate }}</span>
-        </a>
-      </li>
+
       <li>
         <a routerLink="/about-app" class="menu-link" (click)="closeMenu()">
           <span class="menu-icon">ℹ️</span>
@@ -136,42 +125,92 @@
     <div class="content">
       <p class="subtitle">{{ 'SUBTITLE' | translate }}</p>
 
-      <section class="options" aria-labelledby="downloads-heading">
-        <h2 id="downloads-heading" class="visuallyhidden">Download Options</h2>
-        <a routerLink="/youtube-downloads" class="button youtube-button" aria-label="Download from YouTube">
-          <img src="/assets/youtube-icon-logo-719479.png" alt="YouTube icon" class="icon"> {{ 'DOWNLOAD_YOUTUBE' | translate }}
+      <section class="main-cards-container" aria-label="Funciones Principales">
+        <!-- NAS Library Card -->
+        <a routerLink="/nas-music" [queryParams]="{mode: 'library'}" class="feature-card">
+          <div class="card-bg nas-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <span class="card-icon">🎵</span>
+            <h2 class="card-title">NAS Library</h2>
+            <p class="card-desc">Explora y gestiona tu biblioteca musical</p>
+          </div>
         </a>
-        <a routerLink="/twitter-downloads" class="button twitter-button" aria-label="Download from Twitter">
-          <img src="/assets/twitter-icon.png" alt="Twitter icon" class="icon"> {{ 'DOWNLOAD_TWITTER' | translate }}
-        </a>
-        <a routerLink="/facebook-downloads" class="button facebook-button" aria-label="Download from Facebook">
-          <img src="/assets/fb sin fondo.png" alt="Facebook icon" class="icon"> {{ 'DOWNLOAD_FACEBOOK' | translate }}
-        </a>
-        <a routerLink="/instagram-downloads" class="button instagram-button" aria-label="Download from Instagram">
-          <img src="/assets/instagram-icon.png" alt="Instagram icon" class="icon"> {{ 'DOWNLOAD_INSTAGRAM' | translate }}
-        </a>
-        <a routerLink="/spotify-downloads" class="button spotify-button" aria-label="Download from Spotify">
-          <img src="assets/Spotify.png" alt="Spotify icon" class="icon"> {{ 'DOWNLOAD_SPOTIFY' | translate }}
-        </a>
-        <a routerLink="/tiktok-downloads" class="button tiktok-button" aria-label="Download from TikTok">
-          <img src="/assets/tiktok_logo.png" alt="TikTok icon" class="icon"> {{ 'DOWNLOAD_TIKTOK' | translate }}
+
+        <!-- Cabina DJ Card -->
+        <a routerLink="/nas-music" [queryParams]="{mode: 'deck'}" class="feature-card">
+          <div class="card-bg dj-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <span class="card-icon">🎛️</span>
+            <h2 class="card-title">Cabina DJ</h2>
+            <p class="card-desc">Mezcla y reproduce con calidad profesional</p>
+          </div>
         </a>
       </section>
 
-      <section class="language-selector" aria-labelledby="language-heading">
-        <h2 id="language-heading" class="visuallyhidden">Select Language</h2>
-        <button (click)="changeLanguage('es')" aria-label="Change language to Spanish">
-          <img src="https://flagcdn.com/w40/es.png" alt="Spanish flag" class="flag" loading="lazy" />
-          Español
-        </button>
-        <button (click)="changeLanguage('en')" aria-label="Change language to English">
-          <img src="https://flagcdn.com/w40/gb.png" alt="English flag" class="flag" loading="lazy" />
-          English
-        </button>
-        <button (click)="changeLanguage('gl')" aria-label="Change language to Galician">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galician flag" class="flag" loading="lazy" />
-          Galego
-        </button>
+      <section class="social-cards-container" aria-labelledby="downloads-heading">
+        <h2 id="downloads-heading" class="visuallyhidden">Download Options</h2>
+        
+        <a routerLink="/youtube-downloads" class="social-card" aria-label="Download from YouTube">
+          <div class="card-bg yt-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <img src="/assets/youtube-icon-logo-719479.png" alt="YouTube icon" class="social-icon">
+            <h2 class="card-title">YouTube</h2>
+            <p class="card-desc">{{ 'DOWNLOAD_YOUTUBE' | translate }}</p>
+          </div>
+        </a>
+
+        <a routerLink="/twitter-downloads" class="social-card" aria-label="Download from Twitter">
+          <div class="card-bg tw-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <img src="/assets/twitter-icon.png" alt="Twitter icon" class="social-icon">
+            <h2 class="card-title">X / Twitter</h2>
+            <p class="card-desc">{{ 'DOWNLOAD_TWITTER' | translate }}</p>
+          </div>
+        </a>
+
+        <a routerLink="/facebook-downloads" class="social-card" aria-label="Download from Facebook">
+          <div class="card-bg fb-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <img src="/assets/fb sin fondo.png" alt="Facebook icon" class="social-icon">
+            <h2 class="card-title">Facebook</h2>
+            <p class="card-desc">{{ 'DOWNLOAD_FACEBOOK' | translate }}</p>
+          </div>
+        </a>
+
+        <a routerLink="/instagram-downloads" class="social-card" aria-label="Download from Instagram">
+          <div class="card-bg ig-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <img src="/assets/instagram-icon.png" alt="Instagram icon" class="social-icon">
+            <h2 class="card-title">Instagram</h2>
+            <p class="card-desc">{{ 'DOWNLOAD_INSTAGRAM' | translate }}</p>
+          </div>
+        </a>
+
+        <a routerLink="/spotify-downloads" class="social-card" aria-label="Download from Spotify">
+          <div class="card-bg sp-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <img src="assets/Spotify.png" alt="Spotify icon" class="social-icon">
+            <h2 class="card-title">Spotify</h2>
+            <p class="card-desc">{{ 'DOWNLOAD_SPOTIFY' | translate }}</p>
+          </div>
+        </a>
+
+        <a routerLink="/tiktok-downloads" class="social-card" aria-label="Download from TikTok">
+          <div class="card-bg tk-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <img src="/assets/tiktok_logo.png" alt="TikTok icon" class="social-icon">
+            <h2 class="card-title">TikTok</h2>
+            <p class="card-desc">{{ 'DOWNLOAD_TIKTOK' | translate }}</p>
+          </div>
+        </a>
       </section>
 
     </div>
