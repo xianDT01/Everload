@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { NasPath, NasService } from '../../../services/nas.service';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/music.service';
+import { AuthService } from '../../../services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
 
 @Component({
@@ -28,6 +29,20 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   searchQuery = '';
   likedSortBy: 'date' | 'title' | 'artist' = 'date';
 
+  // ── Edit mode ─────────────────────────────────────────────────────────────
+  editMode = false;
+  activeMenuPath: string | null = null;
+
+  dialog: {
+    type: 'rename' | 'delete' | 'move' | 'metadata' | 'createFolder' | 'cover' | null;
+    item: MusicMetadataDto | null;
+    value: string;
+    title: string;
+    artist: string;
+    loading: boolean;
+    error: string;
+  } = { type: null, item: null, value: '', title: '', artist: '', loading: false, error: '' };
+
   // iTunes cover cache: trackPath → url
   private coverOverrideMap = new Map<string, string>();
   private itunesFetchedTerms = new Set<string>();
@@ -37,6 +52,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   constructor(
     public musicService: MusicService,
     private nasService: NasService,
+    private authService: AuthService,
     private translate: TranslateService
   ) {}
 
@@ -361,6 +377,128 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
         }
       })
       .catch(() => {});
+  }
+
+  // ── Edit mode ─────────────────────────────────────────────────────────────
+
+  get canEdit(): boolean {
+    return this.authService.hasNasAccess();
+  }
+
+  toggleEditMode(): void {
+    this.editMode = !this.editMode;
+    this.activeMenuPath = null;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.activeMenuPath = null;
+  }
+
+  toggleMenu(e: Event, item: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.activeMenuPath = this.activeMenuPath === item.path ? null : item.path;
+  }
+
+  openRename(e: Event, item: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.activeMenuPath = null;
+    const displayName = item.directory ? item.name : (item.title || item.name);
+    this.dialog = { type: 'rename', item, value: displayName, title: '', artist: '', loading: false, error: '' };
+  }
+
+  openDelete(e: Event, item: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.activeMenuPath = null;
+    this.dialog = { type: 'delete', item, value: '', title: '', artist: '', loading: false, error: '' };
+  }
+
+  openMove(e: Event, item: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.activeMenuPath = null;
+    this.dialog = { type: 'move', item, value: this.currentSubPath, title: '', artist: '', loading: false, error: '' };
+  }
+
+  openMetadata(e: Event, track: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.activeMenuPath = null;
+    this.dialog = { type: 'metadata', item: track, value: '', title: track.title || track.name, artist: track.artist || '', loading: false, error: '' };
+  }
+
+  openCreateFolder(): void {
+    this.dialog = { type: 'createFolder', item: null, value: '', title: '', artist: '', loading: false, error: '' };
+  }
+
+  openCover(e: Event, folder: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.activeMenuPath = null;
+    this.dialog = { type: 'cover', item: folder, value: '', title: '', artist: '', loading: false, error: '' };
+  }
+
+  closeDialog(): void {
+    this.dialog = { type: null, item: null, value: '', title: '', artist: '', loading: false, error: '' };
+  }
+
+  confirmRename(): void {
+    const item = this.dialog.item!;
+    const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;
+    if (!this.dialog.value.trim()) return;
+    this.dialog.loading = true;
+    this.nasService.rename(pid, item.path, this.dialog.value.trim()).subscribe({
+      next: () => { this.closeDialog(); this.load(); },
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al renombrar'; }
+    });
+  }
+
+  confirmDelete(): void {
+    const item = this.dialog.item!;
+    const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;
+    this.dialog.loading = true;
+    this.nasService.deleteFile(pid, item.path).subscribe({
+      next: () => { this.closeDialog(); this.load(); },
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al eliminar'; }
+    });
+  }
+
+  confirmMove(): void {
+    const item = this.dialog.item!;
+    const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;
+    this.dialog.loading = true;
+    this.nasService.move(pid, item.path, this.dialog.value.trim()).subscribe({
+      next: () => { this.closeDialog(); this.load(); },
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al mover'; }
+    });
+  }
+
+  confirmMetadata(): void {
+    const track = this.dialog.item!;
+    const pid = (track.nasPathId != null ? track.nasPathId : this.selectedPathId)!;
+    this.dialog.loading = true;
+    this.nasService.updateMetadata(pid, track.path, this.dialog.title, this.dialog.artist).subscribe({
+      next: () => { this.closeDialog(); this.load(); },
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al actualizar metadatos'; }
+    });
+  }
+
+  confirmCreateFolder(): void {
+    if (!this.selectedPathId || !this.dialog.value.trim()) return;
+    this.dialog.loading = true;
+    this.nasService.mkdir(this.selectedPathId, this.dialog.value.trim(), this.currentSubPath).subscribe({
+      next: () => { this.closeDialog(); this.load(); },
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al crear carpeta'; }
+    });
+  }
+
+  onCoverFileSelected(e: Event): void {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file || !this.dialog.item) return;
+    const pid = (this.dialog.item.nasPathId != null ? this.dialog.item.nasPathId : this.selectedPathId)!;
+    this.dialog.loading = true;
+    this.nasService.uploadFolderCover(pid, this.dialog.item.path, file).subscribe({
+      next: () => { this.closeDialog(); this.load(); },
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al subir portada'; }
+    });
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

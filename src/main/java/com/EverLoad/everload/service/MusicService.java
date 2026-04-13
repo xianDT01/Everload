@@ -226,6 +226,23 @@ public class MusicService {
         }
     }
 
+    // ── Metadata write ────────────────────────────────────────────────────────
+
+    public void updateMetadata(Long pathId, String relativePath, String title, String artist) {
+        File file = resolveFile(pathId, relativePath);
+        if (!isAudio(file)) throw new IllegalArgumentException("No es un archivo de audio");
+        try {
+            AudioFile af = AudioFileIO.read(file);
+            Tag tag = af.getTagOrCreateDefault();
+            if (title  != null) tag.setField(FieldKey.TITLE,  title);
+            if (artist != null) tag.setField(FieldKey.ARTIST, artist);
+            af.setTag(tag);
+            AudioFileIO.write(af);
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudieron actualizar los metadatos: " + e.getMessage());
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private File resolveFile(Long pathId, String relativePath) {

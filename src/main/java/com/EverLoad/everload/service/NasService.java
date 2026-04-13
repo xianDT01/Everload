@@ -123,6 +123,74 @@ public class NasService {
         }
     }
 
+    public String renameFileOrFolder(Long pathId, String relativePath, String newName) {
+        NasPath nasPath = nasPathRepository.findById(pathId)
+                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+        Path basePath = Path.of(nasPath.getPath()).normalize();
+        Path target = basePath.resolve(relativePath).normalize();
+
+        if (!target.startsWith(basePath)) throw new SecurityException("Acceso denegado: path traversal");
+        if (target.equals(basePath)) throw new SecurityException("No se puede renombrar la raíz");
+        if (!target.toFile().exists()) throw new IllegalArgumentException("Archivo/carpeta no encontrado");
+
+        Path destination = target.resolveSibling(sanitizeName(newName)).normalize();
+        if (!destination.startsWith(basePath)) throw new SecurityException("Acceso denegado");
+        if (destination.toFile().exists()) throw new IllegalArgumentException("Ya existe un elemento con ese nombre");
+
+        try {
+            Files.move(target, destination);
+            return basePath.relativize(destination).toString();
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo renombrar: " + e.getMessage());
+        }
+    }
+
+    public void moveFileOrFolder(Long pathId, String sourcePath, String targetFolderPath) {
+        NasPath nasPath = nasPathRepository.findById(pathId)
+                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+        Path basePath = Path.of(nasPath.getPath()).normalize();
+        Path source = basePath.resolve(sourcePath).normalize();
+        Path targetDir = (targetFolderPath != null && !targetFolderPath.isBlank())
+                ? basePath.resolve(targetFolderPath).normalize()
+                : basePath;
+
+        if (!source.startsWith(basePath)) throw new SecurityException("Acceso denegado: origen");
+        if (!targetDir.startsWith(basePath)) throw new SecurityException("Acceso denegado: destino");
+        if (!source.toFile().exists()) throw new IllegalArgumentException("Origen no encontrado");
+        if (!targetDir.toFile().isDirectory()) throw new IllegalArgumentException("El destino no es una carpeta");
+        if (source.equals(targetDir)) throw new IllegalArgumentException("Origen y destino son iguales");
+        if (targetDir.startsWith(source)) throw new IllegalArgumentException("No se puede mover dentro de sí mismo");
+
+        Path destination = targetDir.resolve(source.getFileName()).normalize();
+        if (destination.toFile().exists()) throw new IllegalArgumentException("Ya existe un elemento con ese nombre en el destino");
+
+        try {
+            Files.move(source, destination);
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo mover: " + e.getMessage());
+        }
+    }
+
+    public void saveFolderCover(Long pathId, String folderPath, byte[] imageData, String contentType) {
+        NasPath nasPath = nasPathRepository.findById(pathId)
+                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+        Path basePath = Path.of(nasPath.getPath()).normalize();
+        Path folder = (folderPath != null && !folderPath.isBlank())
+                ? basePath.resolve(folderPath).normalize()
+                : basePath;
+
+        if (!folder.startsWith(basePath)) throw new SecurityException("Acceso denegado");
+        if (!folder.toFile().isDirectory()) throw new IllegalArgumentException("No es una carpeta");
+
+        String ext = (contentType != null && contentType.contains("png")) ? ".png" : ".jpg";
+        Path coverPath = folder.resolve("cover" + ext);
+        try {
+            Files.write(coverPath, imageData);
+        } catch (IOException e) {
+            throw new RuntimeException("No se pudo guardar la portada: " + e.getMessage());
+        }
+    }
+
     public void deleteFileOrFolder(Long pathId, String relativePath) {
         NasPath nasPath = nasPathRepository.findById(pathId)
                 .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));

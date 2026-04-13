@@ -62,4 +62,29 @@ export class NasService {
     const params = new HttpParams().set('relativePath', relativePath);
     return this.http.delete(`${this.BASE}/api/nas/browse/${pathId}/delete`, { params });
   }
+
+  rename(pathId: number, relativePath: string, newName: string): Observable<any> {
+    const params = new HttpParams()
+      .set('relativePath', relativePath)
+      .set('newName', newName);
+    return this.http.put(`${this.BASE}/api/nas/browse/${pathId}/rename`, null, { params });
+  }
+
+  move(pathId: number, sourcePath: string, targetFolderPath: string): Observable<any> {
+    let params = new HttpParams().set('sourcePath', sourcePath);
+    if (targetFolderPath) params = params.set('targetFolderPath', targetFolderPath);
+    return this.http.put(`${this.BASE}/api/nas/browse/${pathId}/move`, null, { params });
+  }
+
+  updateMetadata(pathId: number, relativePath: string, title: string, artist: string): Observable<any> {
+    return this.http.put(`${this.BASE}/api/music/metadata`, { pathId, relativePath, title, artist });
+  }
+
+  uploadFolderCover(pathId: number, folderPath: string, image: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('image', image);
+    let params = new HttpParams();
+    if (folderPath) params = params.set('folderPath', folderPath);
+    return this.http.post(`${this.BASE}/api/nas/browse/${pathId}/cover`, formData, { params });
+  }
 }

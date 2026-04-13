@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -94,6 +95,54 @@ public class NasController {
         try {
             nasService.deleteFileOrFolder(pathId, relativePath);
             return ResponseEntity.ok(Map.of("message", "Eliminado correctamente"));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Renombrar archivo o carpeta")
+    @PutMapping("/browse/{pathId}/rename")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> rename(@PathVariable Long pathId,
+                                    @RequestParam String relativePath,
+                                    @RequestParam String newName) {
+        try {
+            String newPath = nasService.renameFileOrFolder(pathId, relativePath, newName);
+            return ResponseEntity.ok(Map.of("message", "Renombrado correctamente", "newPath", newPath));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Mover archivo o carpeta")
+    @PutMapping("/browse/{pathId}/move")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> move(@PathVariable Long pathId,
+                                  @RequestParam String sourcePath,
+                                  @RequestParam(required = false) String targetFolderPath) {
+        try {
+            nasService.moveFileOrFolder(pathId, sourcePath, targetFolderPath);
+            return ResponseEntity.ok(Map.of("message", "Movido correctamente"));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Cambiar imagen de portada de carpeta")
+    @PostMapping("/browse/{pathId}/cover")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> uploadFolderCover(@PathVariable Long pathId,
+                                               @RequestParam(required = false) String folderPath,
+                                               @RequestPart("image") MultipartFile image) {
+        try {
+            nasService.saveFolderCover(pathId, folderPath, image.getBytes(), image.getContentType());
+            return ResponseEntity.ok(Map.of("message", "Portada actualizada"));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
