@@ -5,6 +5,7 @@ import com.EverLoad.everload.service.MusicService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -36,6 +37,28 @@ public class MusicController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @Operation(summary = "Actualizar metadatos ID3 de un archivo de audio")
+    @PutMapping("/metadata")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> updateMetadata(@RequestBody MetadataUpdateRequest req) {
+        try {
+            musicService.updateMetadata(req.getPathId(), req.getRelativePath(), req.getTitle(), req.getArtist());
+            return ResponseEntity.ok(Map.of("message", "Metadatos actualizados"));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Data
+    static class MetadataUpdateRequest {
+        private Long pathId;
+        private String relativePath;
+        private String title;
+        private String artist;
     }
 
     // ── Streaming ─────────────────────────────────────────────────────────────
