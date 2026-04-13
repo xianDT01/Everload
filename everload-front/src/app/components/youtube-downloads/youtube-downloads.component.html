@@ -88,7 +88,7 @@
       <button (click)="addToQueue('video')" [disabled]="isLoading">{{ 'DOWNLOAD_VIDEO' | translate }}</button>
       <button (click)="addToQueue('music')" [disabled]="isLoading">{{ 'DOWNLOAD_MUSIC' | translate }}</button>
       <button *ngIf="hasNasAccess" (click)="openNasBrowser('video')" [disabled]="isLoading" class="btn-nas">
-        💾 Guardar en NAS
+        💾 {{ 'NAS.SAVE_TO_NAS' | translate }}
       </button>
     </div>
 
@@ -170,7 +170,7 @@
     <div class="share-modal" (click)="$event.stopPropagation()">
 
       <div class="share-modal-header">
-        <span class="share-modal-title">📤 Compartir en chat</span>
+        <span class="share-modal-title">📤 {{ 'CHAT.SHARE_TITLE' | translate }}</span>
         <button class="share-modal-close" (click)="closeShareModal()">✕</button>
       </div>
 
@@ -187,38 +187,38 @@
       <!-- Pestañas -->
       <div class="share-tabs">
         <button class="share-tab" [class.active]="shareTab === 'groups'" (click)="shareTab = 'groups'">
-          👥 Grupos
+          👥 {{ 'CHAT.TABS_GROUPS' | translate }}
         </button>
         <button class="share-tab" [class.active]="shareTab === 'users'" (click)="shareTab = 'users'">
-          💬 Chats privados
+          💬 {{ 'CHAT.TABS_PRIVATES' | translate }}
         </button>
       </div>
 
       <!-- Buscador -->
       <div class="share-search-wrap">
         <input type="text" [(ngModel)]="shareSearch"
-          [placeholder]="shareTab === 'groups' ? 'Buscar grupo...' : 'Buscar usuario...'"
+          [placeholder]="shareTab === 'groups' ? ('CHAT.SEARCH_GROUPS' | translate) : ('CHAT.SEARCH_USERS' | translate)"
           class="share-search-input" />
       </div>
 
       <!-- Estado enviado -->
       <div class="share-sent-state" *ngIf="shareSent">
-        <span>✅ ¡Vídeo compartido!</span>
+        <span>✅ {{ 'CHAT.SUCCESS_SHARED' | translate }}</span>
       </div>
 
       <!-- Loading -->
       <div class="share-loading" *ngIf="shareLoading && !shareSent">
-        <span>Cargando...</span>
+        <span>{{ 'LOADING' | translate }}...</span>
       </div>
 
       <!-- Lista de grupos -->
       <div class="share-list" *ngIf="shareTab === 'groups' && !shareLoading && !shareSent">
-        <div *ngIf="filteredShareGroups.length === 0" class="share-empty">No hay grupos disponibles</div>
+        <div *ngIf="filteredShareGroups.length === 0" class="share-empty">{{ 'CHAT.NO_GROUPS' | translate }}</div>
         <div *ngFor="let group of filteredShareGroups" class="share-item" (click)="shareToGroup(group)">
           <div class="share-item-icon">{{ group.type === 'PRIVATE' ? '👤' : '👥' }}</div>
           <div class="share-item-info">
             <span class="share-item-name">{{ group.name }}</span>
-            <span class="share-item-meta">{{ group.memberCount }} miembros</span>
+            <span class="share-item-meta">{{ group.memberCount }} {{ 'CHAT.MEMBERS' | translate }}</span>
           </div>
           <span class="share-item-arrow">→</span>
         </div>
@@ -226,7 +226,7 @@
 
       <!-- Lista de usuarios -->
       <div class="share-list" *ngIf="shareTab === 'users' && !shareLoading && !shareSent">
-        <div *ngIf="filteredShareUsers.length === 0" class="share-empty">No hay usuarios disponibles</div>
+        <div *ngIf="filteredShareUsers.length === 0" class="share-empty">{{ 'CHAT.NO_USERS' | translate }}</div>
         <div *ngFor="let user of filteredShareUsers" class="share-item" (click)="shareToUser(user)">
           <div class="share-item-avatar">
             <img *ngIf="user.avatarUrl" [src]="user.avatarUrl" [alt]="user.username" />
@@ -261,7 +261,7 @@
               {{ 'USE_THIS_VIDEO' | translate }}
             </button>
             <button class="btn-share-card" (click)="openShareModalFromSearch(video)">
-              📤 Compartir
+              📤 {{ 'CHAT.SHARE_ACTION' | translate }}
             </button>
           </div>
         </div>

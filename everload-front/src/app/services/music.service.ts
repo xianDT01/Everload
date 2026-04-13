@@ -520,6 +520,10 @@ export class MusicService {
   get shuffle() { return this._shuffle; }
   get repeat()  { return this._repeat; }
 
+  // iTunes cover cache
+  private coverOverrideMap = new Map<string, string>();
+  private itunesFetchedTerms = new Set<string>();
+
   constructor(private http: HttpClient, private auth: AuthService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
     this.deckAPlayer = new DeckPlayer(this, 'deckA');
@@ -615,6 +619,37 @@ export class MusicService {
   getFolderCoverUrl(pathId: number, folderPath: string): string {
     const token = this.auth.getToken();
     return `${this.api}/folder-cover?pathId=${pathId}&subPath=${encodeURIComponent(folderPath)}&token=${token}`;
+  }
+
+  // ── Cover fetching logic (universal) ──────────────────────────────────────
+
+  getCoverUrlWithCache(pathId: number, trackPath: string, source?: string): string {
+    if (this.coverOverrideMap.has(trackPath)) return this.coverOverrideMap.get(trackPath)!;
+    return this.getCoverUrl(pathId, trackPath, source);
+  }
+
+  hasCoverToShow(track: MusicMetadataDto): boolean {
+    return track.hasCover || this.coverOverrideMap.has(track.path);
+  }
+
+  fetchCoverIfNeeded(track: MusicMetadataDto) {
+    if (!track || track.hasCover || this.coverOverrideMap.has(track.path)) return;
+    const term = `${track.artist || ''} ${track.album || track.title || ''}`.trim();
+    if (!term) return;
+    if (this.itunesFetchedTerms.has(term)) return;
+
+    this.itunesFetchedTerms.add(term);
+    const encoded = encodeURIComponent(term);
+    fetch(`https://itunes.apple.com/search?term=${encoded}&entity=album&limit=1`)
+      .then(r => r.json())
+      .then(data => {
+        const result = data.results?.[0];
+        if (result?.artworkUrl100) {
+          const hq = result.artworkUrl100.replace('100x100bb', '600x600bb');
+          this.coverOverrideMap.set(track.path, hq);
+        }
+      })
+      .catch(() => {});
   }
 
   // ── Favorites & History API ───────────────────────────────────────────────

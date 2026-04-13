@@ -46,6 +46,7 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { NasMusicComponent } from './components/nas-music/nas-music.component';
 import { LibraryModeComponent } from './components/nas-music/library-mode/library-mode.component';
 import { DeckModeComponent } from './components/nas-music/deck-mode/deck-mode.component';
+import { GlobalPlayerComponent } from './components/global-player/global-player.component';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -89,7 +90,8 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
     AudioToolsComponent,
     NasMusicComponent,
     LibraryModeComponent,
-    DeckModeComponent
+    DeckModeComponent,
+    GlobalPlayerComponent
   ],
   imports: [
     BrowserModule,

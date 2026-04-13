@@ -41,6 +41,17 @@ app-root {
     flex-direction: column;
   }
   
+.main-content-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: padding-bottom 300ms ease;
+}
+
+.main-content-layout.player-visible {
+  padding-bottom: 88px; /* Altura del player-bar */
+}
 /* ── Botón NAS global ───────────────────────────────────────────────────── */
 .btn-nas {
   background: linear-gradient(135deg, rgba(108,99,255,0.25), rgba(79,70,229,0.25)) !important;

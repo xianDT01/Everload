@@ -17,7 +17,7 @@
         <span *ngIf="loading">{{ 'LOADING' | translate }}...</span>
       </button>
       <button *ngIf="hasNasAccess" class="login-button btn-nas" (click)="showNasBrowser = true" [disabled]="loading">
-        💾 Guardar en NAS
+        💾 {{ 'NAS.SAVE_TO_NAS' | translate }}
       </button>
       <app-nas-browser *ngIf="showNasBrowser" [mode]="'select'" [downloadFileName]="videoUrl"
         (pathSelected)="showNasBrowser = false; download()" (closed)="showNasBrowser = false">
