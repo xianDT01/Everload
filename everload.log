@@ -1,6 +1,5 @@
-2026-04-12 19:33:10 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
-2026-04-12 19:33:10 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-04-12 19:33:10 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-04-12 19:33:10 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
-2026-04-12 19:33:10 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
-2026-04-12 21:17:53 INFO  c.E.everload.service.DownloadService - 🔵 [NAS] Ejecutando: yt-dlp --ignore-errors --print after_move:filepath -x --audio-format mp3 -o ./downloads/tmp-2ee31206-9c83-45cf-b786-a1daf8692c34/%(title)s.%(ext)s https://www.youtube.com/watch?v=aBM-571wvhM
+2026-04-13 10:52:59 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
+2026-04-13 10:53:00 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-13 10:53:21 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-13 10:53:21 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-04-13 10:53:21 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms

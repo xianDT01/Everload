@@ -36,7 +36,14 @@
         <div class="deck-info">
           <div class="deck-meta-row" *ngIf="stateA?.currentTrack; else noTrackA">
             <span class="source-badge" [class.source-yt]="stateA?.currentTrack?.source === 'youtube'">
-              {{ stateA?.currentTrack?.source === 'youtube' ? '▶ YT' : '💾 NAS' }}
+              <ng-container *ngIf="stateA?.currentTrack?.source === 'youtube'; else nasIconA">
+                <svg class="source-yt-icon" [class.source-yt-playing]="stateA?.playing" viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                YT
+              </ng-container>
+              <ng-template #nasIconA>
+                <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z"/></svg>
+                NAS
+              </ng-template>
             </span>
             <span class="bpm-badge" *ngIf="stateA?.currentTrack?.bpm; else pitchOnlyA">
               {{ getCurrentBpm('A') | number:'1.1-1' }} <small>({{ stateA?.currentTrack?.bpm }})</small> BPM
@@ -141,7 +148,8 @@
               <span class="queue-pos">{{ i + 1 }}</span>
               <div class="qi-thumb">
                 <span class="source-icon" [title]="item.track.source">
-                  {{ item.track.source === 'youtube' ? '▶' : '💾' }}
+                  <svg *ngIf="item.track.source === 'youtube'" class="yt-queue-icon" viewBox="0 0 24 24" width="14" height="14"><path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  <svg *ngIf="item.track.source !== 'youtube'" viewBox="0 0 24 24" width="13" height="13" fill="#888"><path d="M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z"/></svg>
                 </span>
               </div>
               <div class="qi-main">
@@ -315,7 +323,14 @@
               {{ getPitchPct('B') }}
             </span>
             <span class="source-badge" [class.source-yt]="stateB?.currentTrack?.source === 'youtube'">
-              {{ stateB?.currentTrack?.source === 'youtube' ? '▶ YT' : '💾 NAS' }}
+              <ng-container *ngIf="stateB?.currentTrack?.source === 'youtube'; else nasIconB">
+                <svg class="source-yt-icon" [class.source-yt-playing]="stateB?.playing" viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                YT
+              </ng-container>
+              <ng-template #nasIconB>
+                <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z"/></svg>
+                NAS
+              </ng-template>
             </span>
           </div>
           <ng-template #noTrackB><div class="deck-meta-row"></div></ng-template>
@@ -409,7 +424,8 @@
               <span class="queue-pos">{{ i + 1 }}</span>
               <div class="qi-thumb">
                 <span class="source-icon" [title]="item.track.source">
-                  {{ item.track.source === 'youtube' ? '▶' : '💾' }}
+                  <svg *ngIf="item.track.source === 'youtube'" class="yt-queue-icon" viewBox="0 0 24 24" width="14" height="14"><path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  <svg *ngIf="item.track.source !== 'youtube'" viewBox="0 0 24 24" width="13" height="13" fill="#888"><path d="M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z"/></svg>
                 </span>
               </div>
               <div class="qi-main">
@@ -441,7 +457,8 @@
 
         <!-- NAS section label -->
         <div class="tree-section-label" *ngIf="treeRoots.length > 0">
-          <span>📡 NAS</span>
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" style="vertical-align:middle;margin-right:4px;opacity:.7"><path d="M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z"/></svg>
+          NAS
         </div>
 
         <ng-container *ngFor="let node of visibleTreeNodes; let i = index">
@@ -449,7 +466,8 @@
           <div class="tree-section-label"
                *ngIf="node.source === 'local' && node.isRoot &&
                       (i === 0 || visibleTreeNodes[i-1].source === 'nas')">
-            <span>💻 Local</span>
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" style="vertical-align:middle;margin-right:4px;opacity:.7"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+            Local
           </div>
 
           <div class="tree-node"
@@ -494,17 +512,35 @@
     <div class="browser-content">
 
       <div class="browser-tabs">
+        <!-- Ficheros NAS -->
         <button class="b-tab" [class.active]="browserTab === 'nas'" (click)="browserTab = 'nas'">
-          📁 {{ 'MUSIC.DECK_FILES' | translate }}
+          <svg class="tab-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M2 20h20v-4H2v4zm2-3h2v2H4v-2zM2 4v4h20V4H2zm4 3H4V5h2v2zm-4 7h20v-4H2v4zm2-3h2v2H4v-2z"/>
+          </svg>
+          {{ 'MUSIC.DECK_FILES' | translate }}
         </button>
-        <button class="b-tab" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">
-          ▶ {{ 'MUSIC.DJ_TAB_YOUTUBE' | translate }}
+        <!-- YouTube -->
+        <button class="b-tab b-tab-yt" [class.active]="browserTab === 'youtube'" (click)="browserTab = 'youtube'">
+          <span class="yt-tab-wrap" [class.yt-tab-active]="browserTab === 'youtube'">
+            <svg class="yt-tab-svg" viewBox="0 0 24 24" width="16" height="16">
+              <path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+          </span>
+          {{ 'MUSIC.DJ_TAB_YOUTUBE' | translate }}
         </button>
+        <!-- Local -->
         <button class="b-tab" [class.active]="browserTab === 'local'" (click)="browserTab = 'local'">
-          💻 {{ 'MUSIC.DJ_TAB_LOCAL' | translate }}
+          <svg class="tab-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
+          </svg>
+          {{ 'MUSIC.DJ_TAB_LOCAL' | translate }}
         </button>
+        <!-- Historial -->
         <button class="b-tab" [class.active]="browserTab === 'history'" (click)="browserTab = 'history'">
-          🕒 {{ 'MUSIC.DJ_TAB_HISTORY' | translate }}
+          <svg class="tab-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+          </svg>
+          {{ 'MUSIC.DJ_TAB_HISTORY' | translate }}
         </button>
       </div>
 

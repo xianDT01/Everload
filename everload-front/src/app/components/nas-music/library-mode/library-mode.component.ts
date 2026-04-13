@@ -298,20 +298,42 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     e.stopPropagation();
     const pid = track.nasPathId ?? this.selectedPathId;
     if (pid === null || pid === undefined) return;
+
+    // Optimistic update: toggle immediately for instant visual feedback
+    const wasLiked = this.isLiked(track);
+    if (wasLiked) {
+      this.likedItems = this.likedItems.filter(f => !(f.trackPath === track.path && f.nasPathId === pid));
+    } else {
+      this.likedItems = [...this.likedItems, { trackPath: track.path, nasPathId: pid }];
+    }
+
     this.musicService.toggleFavorite(track.path, track.title || track.name, track.artist || '', track.album || '', pid)
-      .subscribe((res: any) => {
-         if (res.isFavorite) {
-           this.likedItems.push({ trackPath: track.path, nasPathId: pid });
-         } else {
-           this.likedItems = this.likedItems.filter(f => !(f.trackPath === track.path && f.nasPathId === pid));
-         }
-         if (this.currentView === 'liked') this.load(); // Refresh if in liked view
+      .subscribe({
+        next: (res: any) => {
+          // Sync final state with server response
+          const nowLiked = this.isLiked(track);
+          if (res.isFavorite && !nowLiked) {
+            this.likedItems = [...this.likedItems, { trackPath: track.path, nasPathId: pid }];
+          } else if (!res.isFavorite && nowLiked) {
+            this.likedItems = this.likedItems.filter(f => !(f.trackPath === track.path && f.nasPathId === pid));
+          }
+          if (this.currentView === 'liked') this.load();
+        },
+        error: () => {
+          // Rollback optimistic update on error
+          if (wasLiked) {
+            this.likedItems = [...this.likedItems, { trackPath: track.path, nasPathId: pid }];
+          } else {
+            this.likedItems = this.likedItems.filter(f => !(f.trackPath === track.path && f.nasPathId === pid));
+          }
+        }
       });
   }
 
   isLiked(track: MusicMetadataDto): boolean {
     const pid = track.nasPathId ?? this.selectedPathId;
-    return this.likedItems.some(f => f.trackPath === track.path && f.nasPathId === pid);
+    if (pid === null || pid === undefined) return false;
+    return this.likedItems.some(f => f.trackPath === track.path && Number(f.nasPathId) === Number(pid));
   }
 
   private fetchCoversForVisible() {

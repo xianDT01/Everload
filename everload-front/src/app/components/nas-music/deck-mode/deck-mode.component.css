@@ -175,6 +175,9 @@
   color: #888;
   border: 1px solid #3a3a3a;
   text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 .source-yt {
   background: rgba(196,48,43,.12);
@@ -715,6 +718,7 @@
   background: transparent; color: var(--col-dim);
   border: none; font-size: 11px; font-weight: 700;
   cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 6px;
 }
 .b-tab.active {
   color: #fff; background: #222;
@@ -1974,4 +1978,330 @@
   padding: 12px 20px;
   border-top: 1px solid #222;
   flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ICONOS DE FUENTE — YouTube · NAS · Local · Historial
+══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Tabs del browser con icono SVG ─────────────────────────────────────── */
+.tab-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+.b-tab .tab-icon { opacity: 0.55; }
+.b-tab.active .tab-icon,
+.b-tab:hover .tab-icon { opacity: 1; }
+
+/* ── Tab YouTube ─────────────────────────────────────────────────────────── */
+.b-tab-yt { gap: 5px; }
+
+.yt-tab-wrap {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.yt-tab-svg {
+  display: block;
+  transition: filter 0.25s, transform 0.25s;
+  filter: drop-shadow(0 0 0px rgba(255,0,0,0));
+}
+
+/* Hover: brillo sutil */
+.b-tab-yt:hover .yt-tab-svg {
+  filter: drop-shadow(0 0 4px rgba(255,0,0,0.55));
+  transform: scale(1.08);
+}
+
+/* Tab activo: pulso de luz roja continuo */
+@keyframes ytTabPulse {
+  0%, 100% { filter: drop-shadow(0 0 3px rgba(255,0,0,0.5)); transform: scale(1); }
+  50%       { filter: drop-shadow(0 0 9px rgba(255,0,0,1));   transform: scale(1.12); }
+}
+.yt-tab-active .yt-tab-svg {
+  animation: ytTabPulse 2.2s ease-in-out infinite;
+}
+
+/* ── Icono YouTube en source-badge del deck ─────────────────────────────── */
+.source-yt-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+/* Respira cuando está reproduciendo */
+@keyframes ytBadgeBreathe {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255,0,0,0.5));  transform: scale(1); }
+  50%       { filter: drop-shadow(0 0 7px rgba(255,0,0,0.95)); transform: scale(1.2); }
+}
+.source-yt-icon.source-yt-playing {
+  animation: ytBadgeBreathe 1.6s ease-in-out infinite;
+}
+
+/* ── Icono YouTube en cola (queue items) ────────────────────────────────── */
+.yt-queue-icon {
+  display: inline-block;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 3px rgba(255,0,0,0.4));
+  transition: filter 0.2s;
+}
+.queue-item:hover .yt-queue-icon {
+  filter: drop-shadow(0 0 6px rgba(255,0,0,0.8));
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Pantalla de portátil estándar (≤ 1280px) ────────────────────────────── */
+@media (max-width: 1280px) {
+  .mixer {
+    width: 160px;
+    min-width: 150px;
+    padding: 8px 6px;
+    gap: 6px;
+  }
+
+  .vinyl {
+    width: 110px;
+    height: 110px;
+  }
+
+  .pitch-slider {
+    height: 110px;
+  }
+
+  .pitch-container {
+    right: -48px;
+  }
+
+  .deck-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .spectrum-canvas {
+    height: 46px;
+  }
+
+  .fader-track {
+    height: 90px;
+  }
+
+  .vu-meters {
+    height: 90px;
+  }
+}
+
+/* ── Portátil pequeño / pantalla intermedia (≤ 1100px) ───────────────────── */
+@media (max-width: 1100px) {
+  .mixer {
+    width: 130px;
+    min-width: 120px;
+    padding: 6px 4px;
+    gap: 5px;
+  }
+
+  .mixer-title {
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
+
+  .vinyl {
+    width: 90px;
+    height: 90px;
+  }
+
+  .pitch-slider {
+    height: 90px;
+  }
+
+  .pitch-container {
+    right: -44px;
+    padding: 6px 4px;
+    gap: 5px;
+  }
+
+  .deck-body {
+    padding: 6px 8px 8px;
+    gap: 5px;
+  }
+
+  .deck-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .btn-play {
+    width: 40px;
+    height: 40px;
+  }
+
+  .btn-ctrl {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .btn-cue {
+    padding: 5px 8px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .btn-sync {
+    padding: 4px 7px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .btn-sync-bpm {
+    padding: 3px 6px;
+    font-size: 8px;
+  }
+
+  .btn-queue-toggle {
+    padding: 4px 7px;
+    font-size: 11px;
+  }
+
+  .fader-track {
+    height: 75px;
+  }
+
+  .vu-meters {
+    height: 75px;
+  }
+
+  .spectrum-canvas {
+    height: 38px;
+  }
+
+  .eq-knob {
+    height: 56px;
+  }
+
+  .deck-extra-tools {
+    padding: 5px 0;
+    gap: 8px;
+  }
+
+  .cue-pad {
+    height: 28px;
+    font-size: 10px;
+  }
+
+  .loop-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 9px;
+  }
+
+  .fx-panel {
+    padding: 4px 6px;
+  }
+
+  .xfade-track {
+    height: 16px;
+  }
+
+  .xfade-cursor {
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+  }
+}
+
+/* ── Portátil muy pequeño (≤ 960px) ─────────────────────────────────────── */
+@media (max-width: 960px) {
+  .decks-section {
+    /* Apilar decks verticalmente en pantallas muy pequeñas */
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    max-height: 55vh;
+    overflow-y: auto;
+  }
+
+  .deck {
+    border-right: none;
+    border-left: none;
+    border-bottom: 2px solid var(--col-border);
+    min-height: 200px;
+  }
+
+  .deck-b {
+    border-left: none;
+    border-top: none;
+  }
+
+  .mixer {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    gap: 8px;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--col-border);
+    border-bottom: 1px solid var(--col-border);
+  }
+
+  .mixer-header {
+    width: 100%;
+    padding: 0 0 4px;
+    margin-bottom: 0;
+  }
+
+  .channel-faders {
+    flex: 1;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .crossfader-section {
+    width: 100%;
+  }
+
+  .vinyl {
+    width: 80px;
+    height: 80px;
+  }
+
+  .pitch-slider {
+    height: 80px;
+  }
+
+  .pitch-container {
+    right: -40px;
+    padding: 4px 3px;
+  }
+
+  .deck-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .spectrum-canvas {
+    height: 32px;
+  }
+
+  .fader-track {
+    height: 60px;
+  }
+
+  .vu-meters {
+    height: 60px;
+  }
 }
