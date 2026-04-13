@@ -43,9 +43,6 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     error: string;
   } = { type: null, item: null, value: '', title: '', artist: '', loading: false, error: '' };
 
-  // iTunes cover cache: trackPath → url
-  private coverOverrideMap = new Map<string, string>();
-  private itunesFetchedTerms = new Set<string>();
 
   private subs: Subscription[] = [];
 
@@ -67,7 +64,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
       const prev = this.state?.currentTrack?.path;
       this.state = s;
       if (s.currentTrack && s.currentTrack.path !== prev) {
-        this.fetchCoverIfNeeded(s.currentTrack);
+        this.musicService.fetchCoverIfNeeded(s.currentTrack);
       }
     }));
 
@@ -254,32 +251,15 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     return this.state?.currentTrack?.path === track.path;
   }
 
-  togglePlay()  { this.musicService.mainPlayer.togglePlay(); }
-  next()        { this.musicService.playNextMain(); }
-  prev()        { this.musicService.playPrevMain(); }
-  toggleShuffle() { this.musicService.toggleShuffle(); }
-  toggleRepeat()  { this.musicService.toggleRepeat(); }
-
-  onSeek(e: Event)   { this.musicService.mainPlayer.seek(+(e.target as HTMLInputElement).value); }
-  onVolume(e: Event) { this.musicService.mainPlayer.setVolume(+(e.target as HTMLInputElement).value); }
-
-  onSeekClick(e: MouseEvent) {
-    const bar = (e.currentTarget as HTMLElement);
-    const rect = bar.getBoundingClientRect();
-    const pct = (e.clientX - rect.left) / rect.width;
-    const duration = this.state?.duration ?? 0;
-    if (duration > 0) this.musicService.mainPlayer.seek(pct * duration);
-  }
 
   // ── Cover art & Interactions ──────────────────────────────────────────────
 
   coverUrl(track: MusicMetadataDto): string {
-    if (this.coverOverrideMap.has(track.path)) return this.coverOverrideMap.get(track.path)!;
     const pid = track.nasPathId ?? ((this.state?.currentTrack?.path === track.path && this.state?.pathId)
                 ? this.state.pathId
                 : this.selectedPathId);
     if (pid === null || pid === undefined) return '';
-    return this.musicService.getCoverUrl(pid, track.path);
+    return this.musicService.getCoverUrlWithCache(pid, track.path);
   }
   
   folderCoverUrl(folder: MusicMetadataDto): string {
@@ -294,20 +274,18 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   hasCoverToShow(track: MusicMetadataDto): boolean {
-    return track.hasCover || this.coverOverrideMap.has(track.path) || this.currentView !== 'folder';
-  }
-
-  playerCoverUrl(): string {
-    const t = this.state?.currentTrack;
-    if (!t) return '';
-    if (this.coverOverrideMap.has(t.path)) return this.coverOverrideMap.get(t.path)!;
-    if (!t.hasCover || !this.state?.pathId) return '';
-    return this.musicService.getCoverUrl(this.state.pathId, t.path);
+    return this.musicService.hasCoverToShow(track) || this.currentView !== 'folder';
   }
 
   playerHasCover(): boolean {
     const t = this.state?.currentTrack;
-    return !!t && (t.hasCover || this.coverOverrideMap.has(t.path));
+    return !!t && this.musicService.hasCoverToShow(t);
+  }
+
+  playerCoverUrl(): string {
+    const t = this.state?.currentTrack;
+    if (!t || !this.state?.pathId) return '';
+    return this.musicService.getCoverUrlWithCache(this.state.pathId, t.path);
   }
 
   toggleLike(e: Event, track: MusicMetadataDto) {
@@ -353,30 +331,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   private fetchCoversForVisible() {
-    this.tracks.filter(t => !t.hasCover).slice(0, 30).forEach(t => this.fetchCoverIfNeeded(t));
-  }
-
-  private fetchCoverIfNeeded(track: MusicMetadataDto) {
-    if (!track || track.hasCover || this.coverOverrideMap.has(track.path)) return;
-    const term = `${track.artist || ''} ${track.album || track.title || ''}`.trim();
-    if (!term) return;
-    if (this.itunesFetchedTerms.has(term)) return;
-    
-    this.itunesFetchedTerms.add(term);
-    const encoded = encodeURIComponent(term);
-    fetch(`https://itunes.apple.com/search?term=${encoded}&entity=album&limit=1`)
-      .then(r => r.json())
-      .then(data => {
-        const result = data.results?.[0];
-        if (result?.artworkUrl100) {
-          const hq = result.artworkUrl100.replace('100x100bb', '600x600bb');
-          this.tracks
-            .filter(t => !t.hasCover && `${t.artist || ''} ${t.album || t.title || ''}`.trim() === term)
-            .forEach(t => this.coverOverrideMap.set(t.path, hq));
-          this.coverOverrideMap.set(track.path, hq);
-        }
-      })
-      .catch(() => {});
+    this.tracks.filter(t => !this.musicService.hasCoverToShow(t)).slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
   }
 
   // ── Edit mode ─────────────────────────────────────────────────────────────
@@ -514,10 +469,6 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     return (format || '').toLowerCase();
   }
 
-  progressPct(): number {
-    if (!this.state?.duration) return 0;
-    return (this.state.currentTime / this.state.duration) * 100;
-  }
 
   repeatIcon(): string {
     if (this.repeat === 'one') return 'repeat1';

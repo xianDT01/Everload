@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { AuthService } from './services/auth.service';
 import { ChatService } from './services/chat.service';
+import { MusicService } from './services/music.service';
 import { NotificationService } from './services/notification.service';
 
 @Component({
@@ -20,6 +21,7 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(
     private authService: AuthService,
     private chatService: ChatService,
+    public musicService: MusicService,
     private notificationService: NotificationService,
     private http: HttpClient
   ) {}
