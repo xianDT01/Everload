@@ -23,7 +23,7 @@
         <span *ngIf="cargando">{{ 'LOADING' | translate }}...</span>
       </button>
       <button *ngIf="hasNasAccess" class="login-button btn-nas" (click)="showNasBrowser = true" [disabled]="cargando">
-        💾 Guardar en NAS
+        💾 {{ 'NAS.SAVE_TO_NAS' | translate }}
       </button>
       <app-nas-browser *ngIf="showNasBrowser" [mode]="'select'" [downloadFileName]="tiktokUrl"
         (pathSelected)="showNasBrowser = false; descargar()" (closed)="showNasBrowser = false">

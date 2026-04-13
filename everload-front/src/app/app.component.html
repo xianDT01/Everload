@@ -1,2 +1,5 @@
-<router-outlet></router-outlet>
+<div class="main-content-layout" [class.player-visible]="!!musicService.mainPlayer.state.currentTrack">
+  <router-outlet></router-outlet>
+</div>
+<app-global-player></app-global-player>
 <app-notification-toast></app-notification-toast>
