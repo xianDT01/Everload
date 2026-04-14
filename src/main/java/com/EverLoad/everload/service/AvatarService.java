@@ -53,6 +53,23 @@ public class AvatarService {
         return filename;
     }
 
+    public String uploadGroupAvatar(Long groupId, String oldFilename, MultipartFile file) throws IOException {
+        validateFile(file);
+
+        // Borrar avatar anterior si existe
+        deleteAvatarFile(oldFilename);
+
+        // Generar nombre único
+        String ext = getExtension(file.getOriginalFilename());
+        String filename = "group_" + groupId + "_" + UUID.randomUUID().toString().substring(0, 8) + ext;
+
+        Path dir = Path.of(storagePath);
+        Files.createDirectories(dir);
+        Files.copy(file.getInputStream(), dir.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
+
+        return filename;
+    }
+
     public void removeAvatar(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));

@@ -29,6 +29,13 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   searchQuery = '';
   likedSortBy: 'date' | 'title' | 'artist' = 'date';
 
+  // ── Mobile ────────────────────────────────────────────────────────────────
+  mobileMenuOpen = false;
+  mobileSearchOpen = false;
+
+  toggleMobileMenu(): void { this.mobileMenuOpen = !this.mobileMenuOpen; }
+  closeMobileMenu(): void  { this.mobileMenuOpen = false; }
+
   // ── Edit mode ─────────────────────────────────────────────────────────────
   editMode = false;
   activeMenuPath: string | null = null;

@@ -21,6 +21,8 @@ export interface ChatGroupDto {
   partnerLastSeen?: string;
   /** Presence: for GROUP/ANNOUNCEMENT */
   onlineCount?: number;
+  /** Role of the current user in this group (ADMIN, MEMBER, READONLY) */
+  currentUserRole?: string;
 }
 
 export interface ChatMessageDto {
@@ -171,6 +173,34 @@ export class ChatService implements OnDestroy {
 
   deleteGroup(groupId: number): Observable<void> {
     return this.http.delete<void>(`${this.BASE}/api/chat/groups/${groupId}`);
+  }
+
+  // ── Group Administration ──────────────────────────────────────────────────
+
+  updateGroupInfo(groupId: number, name: string, description: string): Observable<ChatGroupDto> {
+    return this.http.put<ChatGroupDto>(`${this.BASE}/api/chat/groups/${groupId}/info`, { name, description });
+  }
+
+  updateGroupAvatar(groupId: number, file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post(`${this.BASE}/api/chat/groups/${groupId}/avatar`, formData);
+  }
+
+  updateMemberRole(groupId: number, username: string, role: string): Observable<void> {
+    return this.http.put<void>(`${this.BASE}/api/chat/groups/${groupId}/members/${username}/role`, { role });
+  }
+
+  kickMember(groupId: number, username: string): Observable<void> {
+    return this.http.delete<void>(`${this.BASE}/api/chat/groups/${groupId}/members/${username}`);
+  }
+
+  addMember(groupId: number, username: string): Observable<void> {
+    return this.http.post<void>(`${this.BASE}/api/chat/groups/${groupId}/members`, { username });
+  }
+
+  leaveGroup(groupId: number): Observable<void> {
+    return this.http.post<void>(`${this.BASE}/api/chat/groups/${groupId}/leave`, {});
   }
 
   // ── Groups refresh ────────────────────────────────────────────────────────

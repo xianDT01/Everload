@@ -2,6 +2,20 @@
   transition: padding-bottom 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.main-content-layout.player-visible {
+.main-content-layout.player-full {
   padding-bottom: 88px;
+}
+
+.main-content-layout.player-mini {
+  padding-bottom: 64px;
+}
+
+.main-content-layout.player-hidden {
+  padding-bottom: 0px;
+}
+
+@media (max-width: 768px) {
+  .main-content-layout.player-mini {
+    padding-bottom: 62px;
+  }
 }

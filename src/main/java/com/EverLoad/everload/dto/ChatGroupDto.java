@@ -31,4 +31,6 @@ public class ChatGroupDto {
     private LocalDateTime partnerLastSeen;
     /** For GROUP/ANNOUNCEMENT: number of members currently online. */
     private int onlineCount;
+    /** For GROUP: Role of the current user retrieving the DTO (ADMIN, MEMBER, READONLY) */
+    private String currentUserRole;
 }

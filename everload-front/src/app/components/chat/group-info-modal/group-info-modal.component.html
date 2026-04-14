@@ -1,0 +1,144 @@
+<div class="modal-overlay" (click)="closeModal()">
+  <div class="modal-box" (click)="onModalClick(); $event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <span class="modal-title">Info del Grupo</span>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+
+    <!-- Loading overlay for admin actions -->
+    <div class="action-loading-bar" *ngIf="actionLoading"></div>
+
+    <!-- Group Hero -->
+    <div class="group-hero">
+
+      <!-- Avatar -->
+      <div class="group-avatar-wrapper" [class.editable]="isAdmin">
+        <img *ngIf="getAvatarUrl()" [src]="getAvatarUrl()" alt="Avatar del grupo" />
+        <span *ngIf="!getAvatarUrl()" class="group-avatar-initial">{{ getInitials() }}</span>
+
+        <label *ngIf="isAdmin" class="avatar-edit-overlay" title="Cambiar foto del grupo">
+          <span>📷</span>
+          <input type="file" hidden accept="image/*" (change)="onImageSelected($event)" />
+        </label>
+      </div>
+
+      <!-- Name / Description (view mode) -->
+      <div class="group-details" *ngIf="!editInfoMode">
+        <h2 class="group-name">
+          {{ group.name }}
+          <button *ngIf="isAdmin" class="edit-btn" (click)="enableEditInfo(); $event.stopPropagation()" title="Editar nombre y descripción">✎</button>
+        </h2>
+        <p class="group-type-badge">
+          {{ group.type === 'PRIVATE' ? 'Chat Privado' : (group.type === 'ANNOUNCEMENT' ? 'Canal de Avisos' : 'Grupo') }}
+        </p>
+        <p class="group-desc">{{ group.description || 'Sin descripción' }}</p>
+      </div>
+
+      <!-- Name / Description (edit mode) -->
+      <div class="group-details-edit" *ngIf="editInfoMode" (click)="$event.stopPropagation()">
+        <input type="text" [(ngModel)]="editName" class="edit-input" placeholder="Nombre del grupo" maxlength="80" />
+        <textarea [(ngModel)]="editDescription" class="edit-input" placeholder="Descripción (opcional)" maxlength="300"></textarea>
+        <div class="edit-actions">
+          <button class="btn-cancel" (click)="editInfoMode = false">Cancelar</button>
+          <button class="btn-save" (click)="saveInfo()" [disabled]="!editName.trim() || actionLoading">
+            {{ actionLoading ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Members Section -->
+    <div class="members-section" *ngIf="group.type !== 'PRIVATE'">
+
+      <div class="members-header">
+        <span class="members-title">Participantes ({{ members.length || group.memberCount }})</span>
+        <button *ngIf="isAdmin && !addMemberMode" class="btn-add-member" (click)="openAddMember(); $event.stopPropagation()" title="Añadir miembro">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          Añadir
+        </button>
+      </div>
+
+      <!-- Add member panel -->
+      <div class="add-member-panel" *ngIf="addMemberMode" (click)="$event.stopPropagation()">
+        <input
+          type="text"
+          [(ngModel)]="newMemberUsername"
+          class="edit-input"
+          placeholder="Nombre de usuario exacto"
+          (keyup.enter)="confirmAddMember()"
+          autofocus />
+        <div class="edit-actions">
+          <button class="btn-cancel" (click)="cancelAddMember()">Cancelar</button>
+          <button class="btn-save" (click)="confirmAddMember()" [disabled]="!newMemberUsername.trim() || addMemberLoading">
+            {{ addMemberLoading ? 'Añadiendo…' : 'Añadir' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="spinner" *ngIf="loading">Cargando participantes…</div>
+
+      <!-- Member list -->
+      <div class="members-list" *ngIf="!loading">
+        <div class="member-item" *ngFor="let m of members">
+
+          <!-- Avatar -->
+          <div class="member-avatar">
+            <img *ngIf="m.avatarUrl" [src]="getUserAvatar(m)" alt="{{ m.username }}" />
+            <span *ngIf="!m.avatarUrl">{{ getUserInitials(m.username) }}</span>
+          </div>
+
+          <!-- Info -->
+          <div class="member-info">
+            <span class="member-name">
+              {{ m.username }}
+              <span class="badge-you" *ngIf="m.username === currentUser">(Tú)</span>
+            </span>
+            <span class="badge-creator" *ngIf="m.username === group.createdByUsername">Creador</span>
+            <span class="badge-admin" *ngIf="m.role === 'ADMIN' && m.username !== group.createdByUsername">Admin</span>
+          </div>
+
+          <!-- Context menu -->
+          <div class="member-actions" *ngIf="canManageUser(m)" (click)="$event.stopPropagation()">
+            <button class="context-btn" (click)="toggleMenu($event, m.username)" title="Opciones">⋮</button>
+
+            <div class="context-menu" *ngIf="openMenuForUser === m.username">
+              <!-- Promote to admin (creator only) -->
+              <button class="context-item"
+                *ngIf="isCreator && m.role !== 'ADMIN' && m.username !== group.createdByUsername"
+                (click)="setRole(m.username, 'ADMIN'); $event.stopPropagation()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93V5z"/></svg>
+                Hacer administrador
+              </button>
+              <!-- Remove admin (creator only) -->
+              <button class="context-item"
+                *ngIf="isCreator && m.role === 'ADMIN' && m.username !== group.createdByUsername"
+                (click)="setRole(m.username, 'MEMBER'); $event.stopPropagation()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                Quitar administrador
+              </button>
+              <!-- Kick (admin or creator, not the creator target) -->
+              <button class="context-item text-danger"
+                *ngIf="m.username !== group.createdByUsername"
+                (click)="kickUser(m.username); $event.stopPropagation()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                Expulsar del grupo
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer" *ngIf="group.type !== 'PRIVATE'">
+      <button class="leave-btn" (click)="leaveGroup(); $event.stopPropagation()">
+        {{ isCreator ? '🗑 Eliminar Grupo' : '🚪 Salir del Grupo' }}
+      </button>
+    </div>
+
+  </div>
+</div>

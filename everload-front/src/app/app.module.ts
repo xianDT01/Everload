@@ -65,6 +65,8 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
   };
 }
 
+import { GroupInfoModalComponent } from './components/chat/group-info-modal/group-info-modal.component';
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -87,6 +89,7 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
     NotificationCenterComponent,
     ChatComponent,
     CreateGroupModalComponent,
+    GroupInfoModalComponent,
     AudioToolsComponent,
     NasMusicComponent,
     LibraryModeComponent,

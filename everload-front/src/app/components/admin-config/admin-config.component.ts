@@ -111,6 +111,17 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   newNasDesc = '';
   nasMsg = '';
 
+  themes = [
+    { id: 'default', color: '#2a3b5f' },
+    { id: 'ocean',   color: '#1c3645' },
+    { id: 'forest',  color: '#1e7085' },
+    { id: 'sunset',  color: '#3d5bc4' },
+    { id: 'dark',    color: '#242424' }
+  ];
+  currentTheme = 'default';
+  showThemePicker = false;
+
+
   constructor(
     private http: HttpClient,
     private translate: TranslateService,
@@ -119,6 +130,11 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
     if (savedLang) translate.use(savedLang);
+
+    const savedTheme = localStorage.getItem('admin_theme');
+    if (savedTheme) {
+      this.currentTheme = savedTheme;
+    }
   }
 
   ngOnInit(): void {
@@ -145,6 +161,15 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   changeLanguage(lang: string) {
     this.translate.use(lang);
     localStorage.setItem('language', lang);
+  }
+
+  toggleThemePicker() {
+    this.showThemePicker = !this.showThemePicker;
+  }
+
+  applyTheme(themeId: string) {
+    this.currentTheme = themeId;
+    localStorage.setItem('admin_theme', themeId);
   }
 
   guardarCambios(): void {

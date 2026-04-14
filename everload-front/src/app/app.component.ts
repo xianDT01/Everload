@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { AuthService } from './services/auth.service';
@@ -13,6 +14,7 @@ import { NotificationService } from './services/notification.service';
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'everload-front';
+  playerMode: 'full' | 'mini' | 'hidden' = 'mini';
 
   private authSub?: Subscription;
   private alertSub?: Subscription;
@@ -23,8 +25,24 @@ export class AppComponent implements OnInit, OnDestroy {
     private chatService: ChatService,
     public musicService: MusicService,
     private notificationService: NotificationService,
-    private http: HttpClient
-  ) {}
+    private http: HttpClient,
+    private router: Router
+  ) {
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        const url = event.urlAfterRedirects || event.url;
+        if (url.includes('/nas-music')) {
+          if (url.includes('mode=deck')) {
+            this.playerMode = 'hidden';
+          } else {
+            this.playerMode = 'full';
+          }
+        } else {
+          this.playerMode = 'mini';
+        }
+      }
+    });
+  }
 
   ngOnInit(): void {
     // Subscribe to auth state: start/stop global chat polling

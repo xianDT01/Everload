@@ -1,4 +1,4 @@
-<div class="dashboard">
+<div class="dashboard" [ngClass]="'theme-' + currentTheme">
 
   <div class="dashboard-header">
     <h2 class="dashboard-title">{{ 'ADMIN.TITLE' | translate }}</h2>
@@ -13,6 +13,18 @@
       <button (click)="changeLanguage('gl')">
         <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="GL" class="flag" /><span>Galego</span>
       </button>
+    </div>
+    <div class="theme-picker-wrap">
+      <button class="theme-toggle-btn" (click)="toggleThemePicker()" title="Cambiar tema">🎨</button>
+      <div class="theme-picker-panel" *ngIf="showThemePicker">
+        <div *ngFor="let t of themes" 
+             class="theme-dot" 
+             [style.background]="t.color"
+             [class.active]="currentTheme === t.id"
+             (click)="applyTheme(t.id)"
+             [title]="t.id">
+        </div>
+      </div>
     </div>
   </div>
 
