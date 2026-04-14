@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { MusicService, PlayerState, MusicMetadataDto } from '../../services/music.service';
@@ -9,6 +9,8 @@ import { MusicService, PlayerState, MusicMetadataDto } from '../../services/musi
   styleUrls: ['./global-player.component.css']
 })
 export class GlobalPlayerComponent implements OnInit, OnDestroy {
+
+  @Input() mode: 'full' | 'mini' | 'hidden' = 'mini';
 
   state: PlayerState | null = null;
   shuffle = false;
@@ -101,6 +103,12 @@ export class GlobalPlayerComponent implements OnInit, OnDestroy {
 
   goToLibrary(): void {
     if (this.isNasTrack) this.router.navigate(['/nas-music']);
+  }
+
+  onMiniPlayerClick(e: Event): void {
+    if (this.mode === 'mini') {
+      this.goToLibrary();
+    }
   }
 
   get sourceLabel(): string {

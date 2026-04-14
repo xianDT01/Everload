@@ -1,5 +1,5 @@
-<div class="main-content-layout" [class.player-visible]="!!musicService.mainPlayer.state.currentTrack">
+<div class="main-content-layout" [ngClass]="musicService.mainPlayer.state.currentTrack ? 'player-' + playerMode : ''">
   <router-outlet></router-outlet>
 </div>
-<app-global-player></app-global-player>
+<app-global-player [mode]="playerMode"></app-global-player>
 <app-notification-toast></app-notification-toast>

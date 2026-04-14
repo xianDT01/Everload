@@ -113,6 +113,54 @@ public class ChatController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/groups/{id}/info")
+    public ResponseEntity<ChatGroupDto> updateGroupInfo(@PathVariable Long id,
+                                                        @RequestBody Map<String, String> body,
+                                                        @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        return ResponseEntity.ok(chatService.updateGroupInfo(id, body.get("name"), body.get("description"), user));
+    }
+
+    @PostMapping(value = "/groups/{id}/avatar", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateGroupAvatar(@PathVariable Long id,
+                                               @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+                                               @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            User user = getCurrentUser(userDetails);
+            String filename = chatService.updateGroupImage(id, file, user);
+            return ResponseEntity.ok(Map.of("message", "Group avatar updated", "imageFilename", filename));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/groups/{id}/members/{username}/role")
+    public ResponseEntity<Void> updateMemberRole(@PathVariable Long id,
+                                                 @PathVariable String username,
+                                                 @RequestBody Map<String, String> body,
+                                                 @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        chatService.updateMemberRole(id, username, body.get("role"), user);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/groups/{id}/members/{username}")
+    public ResponseEntity<Void> kickMember(@PathVariable Long id,
+                                           @PathVariable String username,
+                                           @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        chatService.kickMember(id, username, user);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/groups/{id}/leave")
+    public ResponseEntity<Void> leaveGroup(@PathVariable Long id,
+                                           @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        chatService.leaveGroup(id, user);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/users")
     public ResponseEntity<List<Map<String, Object>>> getActiveUsers(@AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = getCurrentUser(userDetails);

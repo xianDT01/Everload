@@ -101,7 +101,7 @@
                 [class.presence-dot--offline]="!isPartnerOnline(selectedGroup)">
           </span>
         </div>
-        <div class="chat-header-info">
+        <div class="chat-header-info" (click)="openGroupInfo()" [style.cursor]="selectedGroup.type !== 'PRIVATE' ? 'pointer' : 'default'" [title]="selectedGroup.type !== 'PRIVATE' ? 'Ver info del grupo' : ''">
           <span class="chat-header-name">{{ getGroupDisplayName(selectedGroup) }}</span>
           <span class="chat-header-sub">
             <span class="chat-header-presence">{{ getPresenceSubtitle(selectedGroup) }}</span>
@@ -140,7 +140,7 @@
             <button class="chat-option-item" (click)="confirmClear()">
               🗑 {{ 'CHAT.CLEAR_MESSAGES' | translate }}
             </button>
-            <button class="chat-option-item danger" (click)="confirmDelete()">
+            <button class="chat-option-item danger" (click)="confirmDelete()" *ngIf="canDeleteChat()">
               ❌ {{ 'CHAT.DELETE_CHAT' | translate }}
             </button>
           </div>
@@ -368,5 +368,13 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══ GROUP INFO MODAL ═════════════════════════════════════════════ -->
+  <app-group-info-modal
+    *ngIf="showGroupInfoModal && selectedGroup"
+    [group]="selectedGroup"
+    (close)="showGroupInfoModal = false"
+    (groupUpdated)="onGroupInfoUpdated()">
+  </app-group-info-modal>
 
 </div>

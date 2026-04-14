@@ -87,7 +87,7 @@
     <div class="buttons">
       <button (click)="addToQueue('video')" [disabled]="isLoading">{{ 'DOWNLOAD_VIDEO' | translate }}</button>
       <button (click)="addToQueue('music')" [disabled]="isLoading">{{ 'DOWNLOAD_MUSIC' | translate }}</button>
-      <button *ngIf="hasNasAccess" (click)="openNasBrowser('video')" [disabled]="isLoading" class="btn-nas">
+      <button *ngIf="hasNasAccess" (click)="openNasBrowser('music')" [disabled]="isLoading" class="btn-nas">
         💾 {{ 'NAS.SAVE_TO_NAS' | translate }}
       </button>
     </div>
