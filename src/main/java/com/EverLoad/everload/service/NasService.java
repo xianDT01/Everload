@@ -296,7 +296,7 @@ public class NasService {
     }
 
     private String sanitizeName(String name) {
-        return name.replaceAll("[^a-zA-Z0-9._\\-() ]", "_");
+        return name.replaceAll("[^\\p{L}\\p{N}._\\-() ]", "_");
     }
 
     private String formatDate(long epochMillis) {

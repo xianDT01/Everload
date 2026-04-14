@@ -101,3 +101,36 @@
   display: flex;
 }
 .music-body > * { width: 100%; }
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mode-bar {
+    padding: 0 8px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .back-btn span {
+    display: none; /* icon only */
+  }
+
+  .back-btn {
+    padding: 6px 8px;
+    min-width: 36px;
+  }
+
+  .pill {
+    padding: 5px 12px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .pill svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .bar-spacer {
+    width: 44px; /* matches icon-only back-btn */
+  }
+}

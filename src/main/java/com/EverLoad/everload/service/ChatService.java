@@ -25,6 +25,7 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
     private final PresenceService presenceService;
+    private final AvatarService avatarService;
 
     @Transactional
     public List<ChatGroupDto> getGroupsForUser(User user) {
@@ -248,6 +249,132 @@ public class ChatService {
                 .collect(Collectors.toList());
     }
 
+    // ── Group Administration ──────────────────────────────────────────────────
+
+    @Transactional
+    public ChatGroupDto updateGroupInfo(Long groupId, String name, String description, User requester) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        if (group.getType() == GroupType.ANNOUNCEMENT || group.getType() == GroupType.PRIVATE) {
+            throw new RuntimeException("Cannot modify this group type");
+        }
+
+        GroupMember requesterMember = groupMemberRepository.findByGroupAndUser(group, requester)
+                .orElseThrow(() -> new RuntimeException("Not a member"));
+
+        if (requesterMember.getRole() != MemberRole.ADMIN) {
+            throw new RuntimeException("Only admins can edit group info");
+        }
+
+        group.setName(name);
+        group.setDescription(description);
+        chatGroupRepository.save(group);
+        return toGroupDto(group, requester);
+    }
+
+    @Transactional
+    public String updateGroupImage(Long groupId, org.springframework.web.multipart.MultipartFile file, User requester) throws java.io.IOException {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        GroupMember requesterMember = groupMemberRepository.findByGroupAndUser(group, requester)
+                .orElseThrow(() -> new RuntimeException("Not a member"));
+
+        if (requesterMember.getRole() != MemberRole.ADMIN) {
+            throw new RuntimeException("Only admins can edit group image");
+        }
+
+        String filename = avatarService.uploadGroupAvatar(groupId, group.getImageFilename(), file);
+        group.setImageFilename(filename);
+        chatGroupRepository.save(group);
+        return filename;
+    }
+
+    @Transactional
+    public void updateMemberRole(Long groupId, String username, String newRole, User requester) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        if (!group.getCreatedBy().getId().equals(requester.getId())) {
+            throw new RuntimeException("Only the group creator can manage admin roles");
+        }
+
+        User targetUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (targetUser.getId().equals(group.getCreatedBy().getId())) {
+            throw new RuntimeException("Cannot change the role of the creator");
+        }
+
+        GroupMember member = groupMemberRepository.findByGroupAndUser(group, targetUser)
+                .orElseThrow(() -> new RuntimeException("Target is not a member"));
+
+        try {
+            MemberRole parsedRole = MemberRole.valueOf(newRole.toUpperCase());
+            member.setRole(parsedRole);
+            groupMemberRepository.save(member);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid role");
+        }
+    }
+
+    @Transactional
+    public void kickMember(Long groupId, String username, User requester) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        GroupMember requesterMember = groupMemberRepository.findByGroupAndUser(group, requester)
+                .orElseThrow(() -> new RuntimeException("Not a member"));
+
+        if (requesterMember.getRole() != MemberRole.ADMIN) {
+            throw new RuntimeException("Only admins can kick members");
+        }
+
+        User targetUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (targetUser.getId().equals(group.getCreatedBy().getId())) {
+            throw new RuntimeException("Cannot kick the group creator");
+        }
+        
+        if (targetUser.getId().equals(requester.getId())) {
+             throw new RuntimeException("Use leave action instead");
+        }
+
+        GroupMember member = groupMemberRepository.findByGroupAndUser(group, targetUser)
+                .orElseThrow(() -> new RuntimeException("Target is not a member"));
+
+        groupMemberRepository.delete(member);
+    }
+
+    @Transactional
+    public void leaveGroup(Long groupId, User user) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+
+        if (group.getType() == GroupType.ANNOUNCEMENT) {
+            throw new RuntimeException("Cannot leave announcement channel");
+        }
+
+        if (group.getType() == GroupType.PRIVATE) {
+             throw new RuntimeException("Cannot leave private chat, delete it instead.");
+        }
+
+        if (group.getCreatedBy().getId().equals(user.getId())) {
+             // The creator wants to leave. According to plan, this defaults to deleting the group.
+             chatMessageRepository.deleteByGroup(group);
+             groupMemberRepository.deleteByGroup(group);
+             chatGroupRepository.delete(group);
+             return;
+        }
+
+        GroupMember member = groupMemberRepository.findByGroupAndUser(group, user)
+                .orElseThrow(() -> new RuntimeException("Not a member"));
+
+        groupMemberRepository.delete(member);
+    }
+
     // ── User chat management ──────────────────────────────────────────────────
 
     @Transactional
@@ -422,6 +549,7 @@ public class ChatService {
         Boolean partnerOnline = null;
         LocalDateTime partnerLastSeen = null;
 
+        String currentUserRole = null;
         if (g.getType() == GroupType.PRIVATE) {
             for (GroupMember m : members) {
                 if (!m.getUser().getId().equals(currentUser.getId())) {
@@ -433,6 +561,14 @@ public class ChatService {
                     if (!partnerOnline && !Boolean.FALSE.equals(partner.getShowLastSeen())) {
                         partnerLastSeen = partner.getLastSeen();
                     }
+                } else {
+                    currentUserRole = m.getRole().name();
+                }
+            }
+        } else {
+            for (GroupMember m : members) {
+                if (m.getUser().getId().equals(currentUser.getId())) {
+                    currentUserRole = m.getRole().name();
                     break;
                 }
             }
@@ -455,6 +591,7 @@ public class ChatService {
                 .partnerOnline(partnerOnline)
                 .partnerLastSeen(partnerLastSeen)
                 .onlineCount(onlineCount)
+                .currentUserRole(currentUserRole)
                 .build();
     }
 

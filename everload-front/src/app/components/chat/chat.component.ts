@@ -23,6 +23,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   showCreateGroupModal = false;
   showPrivateChatModal = false;
+  showGroupInfoModal = false;
   activeUsers: ActiveUser[] = [];
   userSearch = '';
 
@@ -393,6 +394,36 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
+  // ── Group Info Modal ───────────────────────────────────────────────────────
+
+  openGroupInfo(): void {
+    if (this.selectedGroup && this.selectedGroup.type !== 'PRIVATE') {
+      this.showGroupInfoModal = true;
+    }
+  }
+
+  onGroupInfoUpdated(): void {
+    // Refresh group string info like name or avatar
+    this.chatService.refreshGroups();
+    
+    // If the selected group was left by the current user, it won't be returned by refreshGroups.
+    // However, refreshGroups takes time to propagate, so we must proactively check
+    // if the user left or were deleted. Let's just fetch groups manually and verify.
+    this.chatService.getGroups().subscribe({
+      next: (groups) => {
+        if (!groups.find(g => g.id === this.selectedGroup?.id)) {
+           this.selectedGroup = null;
+           this.messages = [];
+           this.sidebarVisible = true;
+           this.showGroupInfoModal = false;
+        } else {
+           // Update loaded selectedGroup reference so the UI reflects new name/avatar/description immediately
+           this.selectedGroup = groups.find(g => g.id === this.selectedGroup?.id) || null;
+        }
+      }
+    });
+  }
+
   // ── Reply ──────────────────────────────────────────────────────────────────
 
   setReply(msg: ChatMessageDto): void {
@@ -518,6 +549,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (group.type === 'PRIVATE' && group.privatePartnerAvatarUrl) {
       return this.resolveAvatarUrl(group.privatePartnerAvatarUrl);
     }
+    // Show the group's own image if it has one (e.g. for GROUP type chats)
+    if (group.imageFilename) {
+      return this.resolveAvatarUrl(`/api/user/avatar/img/${group.imageFilename}`);
+    }
     return null;
   }
 
@@ -580,7 +615,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   canManageChat(): boolean {
     if (!this.selectedGroup) return false;
-    return this.selectedGroup.type !== 'ANNOUNCEMENT';
+    if (this.selectedGroup.type === 'ANNOUNCEMENT') return false;
+    if (this.selectedGroup.type === 'PRIVATE') return true;
+    return this.selectedGroup.currentUserRole === 'ADMIN' || this.selectedGroup.createdByUsername === this.currentUsername;
+  }
+
+  canDeleteChat(): boolean {
+    if (!this.selectedGroup) return false;
+    if (this.selectedGroup.type === 'PRIVATE') return true;
+    return this.selectedGroup.createdByUsername === this.currentUsername;
   }
 
   confirmClear(): void {

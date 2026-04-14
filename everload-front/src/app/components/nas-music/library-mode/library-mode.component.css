@@ -1309,3 +1309,432 @@
   color: #000;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   MOBILE EXPERIENCE — Spotify-like mobile redesign
+   @media max-width: 768px
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Mobile overlay (sidebar drawer backdrop) ─────────────────────────────── */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 299;
+  animation: fade-in 200ms ease;
+}
+
+/* ── Buttons only shown on mobile ─────────────────────────────────────────── */
+.mobile-menu-btn,
+.mobile-search-btn {
+  display: none;
+}
+
+/* Sidebar close button — hidden on desktop */
+.sidebar-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--sp-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms, background 150ms;
+  flex-shrink: 0;
+}
+
+.sidebar-close-btn:hover {
+  color: var(--sp-text);
+  background: rgba(255,255,255,0.08);
+}
+
+@media (max-width: 768px) {
+
+  /* ─── Root layout: single column ─────────────────────────────────────── */
+  :host {
+    height: calc(100vh - 46px); /* mode-bar */
+  }
+
+  .lib-root {
+    grid-template-columns: 1fr;
+    overflow: hidden;
+  }
+
+  /* ─── Sidebar: fixed drawer, slides from left ─────────────────────────── */
+  .lib-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(78vw, 300px);
+    z-index: 300;
+    transform: translateX(-105%);
+    transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 40px rgba(0, 0, 0, 0.85);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-top: 16px;
+  }
+
+  .lib-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .mobile-overlay {
+    display: block;
+  }
+
+  /* Sidebar close button — visible only on mobile */
+  .sidebar-close-btn {
+    display: flex;
+  }
+
+  /* Close button inside sidebar header */
+  .sidebar-logo {
+    justify-content: space-between;
+    padding-bottom: 24px;
+  }
+
+  /* ─── Topbar ──────────────────────────────────────────────────────────── */
+  .topbar {
+    padding: 0 8px 0 4px;
+    height: 52px;
+    gap: 4px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--sp-text);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 150ms;
+  }
+
+  .mobile-menu-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .topbar-search {
+    display: none; /* hidden by default on mobile */
+    flex: 1;
+    min-width: 0;
+  }
+
+  .topbar-search.mobile-visible {
+    display: flex;
+  }
+
+  .topbar-search.mobile-visible .search-input {
+    width: 100%;
+  }
+
+  .mobile-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--sp-muted);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 150ms, background 150ms;
+  }
+
+  .mobile-search-btn:hover {
+    color: var(--sp-text);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Hide breadcrumbs — replaced by folder name in header */
+  .breadcrumbs {
+    display: none;
+  }
+
+  .btn-edit-mode .edit-mode-label {
+    display: none; /* icon only on mobile */
+  }
+
+  /* Full-width search when open */
+  .topbar.mobile-search-open .topbar-nav {
+    flex: 0 0 auto;
+  }
+
+  /* ─── Content header: vertical, centered ─────────────────────────────── */
+  .content-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 16px 16px;
+    min-height: auto;
+    gap: 16px;
+  }
+
+  .header-art {
+    width: min(55vw, 200px);
+    height: min(55vw, 200px);
+    border-radius: 12px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+  }
+
+  .header-meta {
+    padding-bottom: 0;
+    gap: 6px;
+  }
+
+  .header-folder-name {
+    font-size: clamp(22px, 7vw, 40px);
+  }
+
+  /* ─── Action bar ──────────────────────────────────────────────────────── */
+  .action-bar {
+    padding: 12px 16px 8px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .btn-play-all {
+    width: 52px;
+    height: 52px;
+  }
+
+  .sort-buttons {
+    margin-left: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* ─── Section titles ──────────────────────────────────────────────────── */
+  .section-title {
+    padding: 8px 16px 6px;
+    font-size: 16px;
+  }
+
+  /* ─── Folder grid: 2 columns ─────────────────────────────────────────── */
+  .folder-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 6px 12px 20px;
+  }
+
+  .folder-card {
+    padding: 10px;
+  }
+
+  .folder-card-name {
+    font-size: 13px;
+  }
+
+  /* Show play button always on mobile (no hover) */
+  .folder-card-play {
+    opacity: 1;
+    transform: translateY(0);
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Show card menu button always in edit mode on mobile */
+  .card-menu-btn {
+    opacity: 1;
+    width: 32px;
+    height: 32px;
+  }
+
+  /* ─── Track list: mobile-optimized ───────────────────────────────────── */
+  .track-list {
+    padding: 0 0 130px;
+  }
+
+  /* Hide desktop column headers */
+  .track-header,
+  .track-divider {
+    display: none;
+  }
+
+  /* Simplified 3-column grid: art+info | like | duration+menu */
+  .track-row {
+    grid-template-columns: 1fr 36px 52px;
+    gap: 0;
+    padding: 10px 12px;
+    border-radius: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Hide number column (show art instead as tap indicator) */
+  .tr-num {
+    display: none;
+  }
+
+  /* Title cell takes all remaining space */
+  .tr-title-cell {
+    gap: 10px;
+  }
+
+  .tr-art {
+    width: 46px;
+    height: 46px;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+
+  .tr-name {
+    font-size: 14px;
+  }
+
+  .tr-artist {
+    font-size: 12px;
+  }
+
+  /* Hide album column */
+  .tr-album {
+    display: none;
+  }
+
+  /* Like button — always visible on mobile (no hover) */
+  .tr-format {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-like {
+    opacity: 1;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Duration + menu column */
+  .tr-dur {
+    justify-content: flex-end;
+    gap: 2px;
+  }
+
+  .tr-dur-text {
+    font-size: 12px;
+  }
+
+  /* Menu button always visible on mobile in edit mode */
+  .tr-menu-btn {
+    opacity: 1;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Context menus: appear from bottom on mobile */
+  .ctx-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+    min-width: unset;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.7);
+    z-index: 400;
+    animation: slide-up-sheet 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ctx-menu-track {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    margin-bottom: 0;
+  }
+
+  @keyframes slide-up-sheet {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  .ctx-item {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  /* Modals: bottom sheet on mobile */
+  .modal-backdrop {
+    align-items: flex-end;
+  }
+
+  .modal-box {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+    animation: modal-slide-up 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes modal-slide-up {
+    from { opacity: 1; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .modal-btn {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 15px;
+    border-radius: 12px;
+    text-align: center;
+  }
+
+  /* Now playing widget — hide in sidebar (mini player covers it) */
+  .sidebar-now-playing {
+    display: none;
+  }
+}
+
+/* ── Extra small screens (≤ 400px) ───────────────────────────────────────── */
+@media (max-width: 400px) {
+  .folder-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 6px 10px 20px;
+  }
+
+  .header-art {
+    width: min(60vw, 180px);
+    height: min(60vw, 180px);
+  }
+
+  .track-row {
+    padding: 10px 10px;
+  }
+
+  .tr-art {
+    width: 42px;
+    height: 42px;
+  }
+}
+
