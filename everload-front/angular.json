@@ -23,7 +23,9 @@
             "assets": [
               "src/favicon.ico",
               "src/Logo App-icon.ico",
-              "src/assets"
+              "src/assets",
+              "src/manifest.webmanifest",
+              "src/icons"
             ],
             "styles": [
               "src/styles.css"
@@ -32,6 +34,8 @@
           },
           "configurations": {
             "production": {
+              "serviceWorker": true,
+              "ngswConfigPath": "ngsw-config.json",
               "budgets": [
                 {
                   "type": "initial",
@@ -47,6 +51,7 @@
               "outputHashing": "all"
             },
             "development": {
+              "serviceWorker": false,
               "buildOptimizer": false,
               "optimization": false,
               "vendorChunk": true,

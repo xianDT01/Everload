@@ -1,0 +1,95 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app-shell",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/favicon.ico",
+          "/index.html",
+          "/manifest.webmanifest",
+          "/*.css",
+          "/*.js"
+        ]
+      }
+    },
+    {
+      "name": "app-icons",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/icons/**",
+          "/Logo App-icon.ico"
+        ]
+      }
+    },
+    {
+      "name": "app-assets",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": [
+          "/assets/i18n/*.json",
+          "/assets/*.png",
+          "/assets/*.jpg",
+          "/assets/*.jpeg",
+          "/assets/*.webp",
+          "/assets/*.svg",
+          "/assets/*.gif"
+        ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "i18n-api",
+      "urls": [
+        "/assets/i18n/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 20,
+        "maxAge": "7d"
+      }
+    },
+    {
+      "name": "api-freshness",
+      "urls": [
+        "/api/chat/**",
+        "/api/notifications/**",
+        "/api/presence/**",
+        "/api/maintenance/**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 30,
+        "maxAge": "1m",
+        "timeout": "5s"
+      }
+    },
+    {
+      "name": "api-performance",
+      "urls": [
+        "/api/users/**",
+        "/api/groups/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 50,
+        "maxAge": "5m",
+        "timeout": "10s"
+      }
+    }
+  ],
+  "navigationUrls": [
+    "/**",
+    "!/**/*.*",
+    "!/api/**",
+    "!/stream/**",
+    "!/download/**"
+  ]
+}
