@@ -15,6 +15,11 @@ FROM maven:3.9.5-eclipse-temurin-21 AS backend-build
 WORKDIR /app
 COPY . .
 
+# Embed the current git commit hash so the app knows what revision is deployed.
+# Passed from docker-compose (or deploy script) via --build-arg GIT_COMMIT=$(git rev-parse HEAD).
+ARG GIT_COMMIT=unknown
+RUN echo "$GIT_COMMIT" > src/main/resources/git-commit.txt
+
 # Asegura permisos para el wrapper, por si existe
 RUN chmod +x mvnw || true
 

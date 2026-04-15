@@ -26,6 +26,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
     private final RateLimitFilter rateLimitFilter;
+    private final MaintenanceFilter maintenanceFilter;
 
     /** Comma-separated allowed CORS origins. Set via CORS_ALLOWED_ORIGINS env var. */
     @Value("${cors.allowed-origins:http://localhost:4200,http://localhost:8080,http://localhost}")
@@ -54,6 +55,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Auth endpoints (public)
                 .requestMatchers("/api/auth/**").permitAll()
+                // Maintenance status — public so Angular can check before login
+                .requestMatchers("/api/maintenance/status").permitAll()
                 // Health check (used by Docker + Caddy depends_on)
                 .requestMatchers("/actuator/health").permitAll()
                 // Avatar images (served publicly for chat/profile display)
@@ -72,7 +75,9 @@ public class SecurityConfig {
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            // MaintenanceFilter runs AFTER JWT so it can inspect the user's role
+            .addFilterAfter(maintenanceFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

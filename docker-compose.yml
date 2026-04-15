@@ -30,7 +30,11 @@ services:
   # ── EverLoad: Spring Boot backend + Angular frontend ────────────────────
   # Not exposed externally — all traffic goes through Caddy
   everload:
-    build: .
+    build:
+      context: .
+      args:
+        # Injected by deploy.sh / deploy.ps1 so the admin panel shows the deployed commit.
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     image: everload:latest
     container_name: everload
     expose:
@@ -50,10 +54,15 @@ services:
       # Trust X-Forwarded-* headers from Caddy
       SERVER_FORWARD_HEADERS_STRATEGY: framework
 
+      # Backup directory — mapped to a host folder so copies survive container rebuilds
+      APP_BACKUP_PATH: /app/backups
+
     volumes:
       - everload-db:/app/data
       - everload-avatars:/app/avatars
       - C:/Users/Xian/Music/Everload/musica:/app/nas_storage
+      # Backups stored directly on the host — survives docker-compose down/up and rebuilds
+      - C:/Users/Xian/Music/Everload/backups:/app/backups
     restart: unless-stopped
     networks:
       - everload-net

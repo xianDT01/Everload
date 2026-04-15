@@ -6,6 +6,7 @@ import { AuthService } from './services/auth.service';
 import { ChatService } from './services/chat.service';
 import { MusicService } from './services/music.service';
 import { NotificationService } from './services/notification.service';
+import { MaintenanceService, MaintenanceState } from './services/maintenance.service';
 
 @Component({
   selector: 'app-root',
@@ -15,22 +16,27 @@ import { NotificationService } from './services/notification.service';
 export class AppComponent implements OnInit, OnDestroy {
   title = 'everload-front';
   playerMode: 'full' | 'mini' | 'hidden' = 'mini';
+  maintenanceState: MaintenanceState = { active: false, message: '' };
+  currentUrl = '/';
 
   private authSub?: Subscription;
   private alertSub?: Subscription;
+  private maintenanceSub?: Subscription;
   private heartbeatRef: any = null;
 
   constructor(
-    private authService: AuthService,
+    public authService: AuthService,
     private chatService: ChatService,
     public musicService: MusicService,
     private notificationService: NotificationService,
+    public maintenanceService: MaintenanceService,
     private http: HttpClient,
     private router: Router
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         const url = event.urlAfterRedirects || event.url;
+        this.currentUrl = url;
         if (url.includes('/nas-music')) {
           if (url.includes('mode=deck')) {
             this.playerMode = 'hidden';
@@ -45,6 +51,12 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Check maintenance state on startup
+    this.maintenanceService.checkInitial();
+    this.maintenanceSub = this.maintenanceService.maintenance$.subscribe(state => {
+      this.maintenanceState = state;
+    });
+
     // Subscribe to auth state: start/stop global chat polling
     this.authSub = this.authService.currentUser$.subscribe(user => {
       if (user) {
@@ -84,6 +96,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.authSub?.unsubscribe();
     this.alertSub?.unsubscribe();
+    this.maintenanceSub?.unsubscribe();
     this.stopHeartbeat();
   }
 
