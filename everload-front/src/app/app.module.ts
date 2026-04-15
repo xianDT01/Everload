@@ -1,10 +1,11 @@
-import { NgModule, LOCALE_ID, APP_INITIALIZER } from '@angular/core';
+import { NgModule, LOCALE_ID, APP_INITIALIZER, isDevMode } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule, HttpClient, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { ServiceWorkerModule } from '@angular/service-worker';
 import { firstValueFrom } from 'rxjs';
 
 import { registerLocaleData } from '@angular/common';
@@ -67,6 +68,7 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
 }
 
 import { GroupInfoModalComponent } from './components/chat/group-info-modal/group-info-modal.component';
+import { PwaUpdateBannerComponent } from './components/pwa-update-banner/pwa-update-banner.component';
 
 @NgModule({
   declarations: [
@@ -95,7 +97,8 @@ import { GroupInfoModalComponent } from './components/chat/group-info-modal/grou
     NasMusicComponent,
     LibraryModeComponent,
     DeckModeComponent,
-    GlobalPlayerComponent
+    GlobalPlayerComponent,
+    PwaUpdateBannerComponent
   ],
   imports: [
     BrowserModule,
@@ -110,6 +113,10 @@ import { GroupInfoModalComponent } from './components/chat/group-info-modal/grou
         useFactory: HttpLoaderFactory,
         deps: [HttpClient]
       }
+    }),
+    ServiceWorkerModule.register('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000'
     })
   ],
   providers: [

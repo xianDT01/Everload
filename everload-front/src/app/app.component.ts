@@ -7,6 +7,7 @@ import { ChatService } from './services/chat.service';
 import { MusicService } from './services/music.service';
 import { NotificationService } from './services/notification.service';
 import { MaintenanceService, MaintenanceState } from './services/maintenance.service';
+import { PwaUpdateService } from './services/pwa-update.service';
 
 @Component({
   selector: 'app-root',
@@ -30,6 +31,7 @@ export class AppComponent implements OnInit, OnDestroy {
     public musicService: MusicService,
     private notificationService: NotificationService,
     public maintenanceService: MaintenanceService,
+    private pwaUpdate: PwaUpdateService,
     private http: HttpClient,
     private router: Router
   ) {
@@ -51,6 +53,9 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Initialize PWA update checks
+    this.pwaUpdate.init();
+
     // Check maintenance state on startup
     this.maintenanceService.checkInitial();
     this.maintenanceSub = this.maintenanceService.maintenance$.subscribe(state => {
