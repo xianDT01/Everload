@@ -1,0 +1,14 @@
+<div class="update-banner" *ngIf="visible" role="alert">
+  <div class="update-banner__content">
+    <span class="update-banner__icon">✦</span>
+    <span class="update-banner__text">Nueva versión disponible</span>
+  </div>
+  <div class="update-banner__actions">
+    <button class="update-banner__btn update-banner__btn--apply" (click)="reload()">
+      Actualizar
+    </button>
+    <button class="update-banner__btn update-banner__btn--dismiss" (click)="dismiss()" aria-label="Cerrar">
+      ✕
+    </button>
+  </div>
+</div>
