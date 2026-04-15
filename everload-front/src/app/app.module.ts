@@ -41,8 +41,9 @@ import { CreateGroupModalComponent } from './components/chat/create-group-modal/
 // Audio Tools
 import { AudioToolsComponent } from './components/audio-tools/audio-tools.component';
 
-// Interceptor JWT
+// Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
+import { MaintenanceInterceptor } from './interceptors/maintenance.interceptor';
 import { NasMusicComponent } from './components/nas-music/nas-music.component';
 import { LibraryModeComponent } from './components/nas-music/library-mode/library-mode.component';
 import { DeckModeComponent } from './components/nas-music/deck-mode/deck-mode.component';
@@ -114,6 +115,7 @@ import { GroupInfoModalComponent } from './components/chat/group-info-modal/grou
   providers: [
     { provide: LOCALE_ID, useValue: 'es-ES' },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: MaintenanceInterceptor, multi: true },
     {
       provide: APP_INITIALIZER,
       useFactory: initTranslations,

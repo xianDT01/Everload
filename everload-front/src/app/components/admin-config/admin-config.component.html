@@ -37,6 +37,7 @@
     <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'; cargarHistorial()">📜 {{ 'ADMIN.TAB_HISTORY' | translate }}</button>
     <button [class.active]="activeTab === 'chat'" (click)="activeTab = 'chat'; loadChatGroups()">💬 {{ 'ADMIN.TAB_CHAT' | translate }}</button>
     <button [class.active]="activeTab === 'audit'" (click)="activeTab = 'audit'; loadAuditLogs(0)">🔍 {{ 'ADMIN.TAB_AUDIT' | translate }}</button>
+    <button [class.active]="activeTab === 'sistema'" (click)="activeTab = 'sistema'; onSistemaTab()">🛠️ Sistema</button>
   </div>
 
   <!-- ══ TAB: CONFIG ══════════════════════════════════════════════════════════ -->
@@ -478,6 +479,237 @@
       <button class="btn small" [disabled]="auditPage === 0" (click)="auditPrevPage()">← {{ 'ADMIN.PREV' | translate }}</button>
       <span>{{ auditPage + 1 }} / {{ auditTotalPages }} ({{ auditTotalElements }} {{ 'ADMIN.AUDIT_ENTRIES' | translate }})</span>
       <button class="btn small" [disabled]="auditPage >= auditTotalPages - 1" (click)="auditNextPage()">{{ 'ADMIN.NEXT' | translate }} →</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB: SISTEMA ══════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'sistema'" class="tab-content sistema-tab">
+
+    <!-- ── Modo Mantenimiento ─────────────────────────────────────────── -->
+    <div class="sistema-section">
+      <h3 class="sistema-section-title">🔧 Modo Mantenimiento</h3>
+      <p class="sistema-section-desc">
+        Cuando está activo, los usuarios no administradores ven un mensaje de mantenimiento
+        y no pueden usar la app. Los administradores siguen teniendo acceso completo.
+      </p>
+
+      <div class="maintenance-status-row">
+        <div class="maintenance-badge" [class.active]="maintenance.active">
+          {{ maintenance.active ? '🔴 ACTIVO' : '🟢 INACTIVO' }}
+        </div>
+        <button class="btn"
+                [class.danger]="maintenance.active"
+                [class.primary]="!maintenance.active"
+                [disabled]="maintenanceLoading"
+                (click)="toggleMaintenance()">
+          {{ maintenance.active ? '🟢 Desactivar mantenimiento' : '🔴 Activar mantenimiento' }}
+        </button>
+      </div>
+
+      <div class="maintenance-message-block">
+        <label class="field-label">Mensaje para los usuarios:</label>
+        <textarea class="sistema-textarea"
+                  [(ngModel)]="maintenanceNewMessage"
+                  rows="3"
+                  placeholder="La aplicación está en mantenimiento. Inténtalo más tarde.">
+        </textarea>
+        <button class="btn secondary small" [disabled]="maintenanceLoading" (click)="saveMaintenance()">
+          💾 Guardar mensaje
+        </button>
+      </div>
+
+      <p *ngIf="maintenanceMsg" class="sistema-msg" [class.error]="maintenanceMsg.includes('❌')">
+        {{ maintenanceMsg }}
+      </p>
+    </div>
+
+    <!-- ── Copias de Seguridad ────────────────────────────────────────── -->
+    <div class="sistema-section">
+      <h3 class="sistema-section-title">💾 Copias de Seguridad</h3>
+      <p class="sistema-section-desc">
+        Las copias se guardan como archivos SQL comprimidos. Una copia previa se crea
+        automáticamente antes de cualquier actualización o restauración.
+      </p>
+
+      <!-- Config row -->
+      <div class="backup-config-row">
+        <label class="field-label">Copias a conservar:</label>
+        <input type="number" class="small-input" [(ngModel)]="backupConfig.retention" min="1" max="100" />
+        <button class="btn secondary small" (click)="saveBackupConfig()">Guardar</button>
+      </div>
+
+      <!-- Actions row -->
+      <div class="sistema-actions-row">
+        <button class="btn primary" [disabled]="backupLoading" (click)="createBackup()">
+          📦 Crear copia ahora
+        </button>
+        <button class="btn secondary small" [disabled]="backupLoading" (click)="loadBackups()">
+          🔄 Refrescar
+        </button>
+      </div>
+
+      <p *ngIf="backupMsg" class="sistema-msg" [class.error]="backupMsg.includes('❌')">
+        {{ backupMsg }}
+      </p>
+
+      <!-- Backup list -->
+      <div *ngIf="backupLoading && backups.length === 0" class="empty-state">⏳ Cargando...</div>
+      <div *ngIf="!backupLoading && backups.length === 0" class="empty-state">
+        No hay copias de seguridad. Crea una desde el botón de arriba.
+      </div>
+
+      <div *ngIf="backups.length > 0" class="backup-list">
+        <div *ngFor="let b of backups" class="backup-item">
+          <div class="backup-info">
+            <span class="backup-name">{{ b.name }}</span>
+            <span class="backup-meta">{{ b.createdAt }} · {{ b.sizeFormatted }}</span>
+          </div>
+          <div class="backup-actions">
+            <button class="btn-icon restore-btn" (click)="confirmRestore(b)" title="Restaurar">
+              ♻️
+            </button>
+            <button class="btn-icon delete-btn" (click)="confirmDelete(b)" title="Eliminar">
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Actualización ──────────────────────────────────────────────── -->
+    <div class="sistema-section">
+      <h3 class="sistema-section-title">🚀 Actualización de la App</h3>
+
+      <!-- System info -->
+      <div *ngIf="systemInfo" class="sysinfo-grid">
+        <div class="sysinfo-item">
+          <span class="sysinfo-label">Versión</span>
+          <span class="sysinfo-value version-badge">v{{ systemInfo.appVersion }}</span>
+        </div>
+        <div class="sysinfo-item">
+          <span class="sysinfo-label">Commit desplegado</span>
+          <span class="sysinfo-value commit-badge">
+            {{ systemInfo.currentCommit === 'unknown' ? '—' : systemInfo.currentCommit }}
+          </span>
+        </div>
+        <div class="sysinfo-item">
+          <span class="sysinfo-label">Java</span>
+          <span class="sysinfo-value">{{ systemInfo.javaVersion }}</span>
+        </div>
+        <div class="sysinfo-item">
+          <span class="sysinfo-label">Tiempo activo</span>
+          <span class="sysinfo-value">{{ formatUptime(systemInfo.uptimeSeconds) }}</span>
+        </div>
+        <div class="sysinfo-item">
+          <span class="sysinfo-label">Base de datos</span>
+          <span class="sysinfo-value">{{ systemInfo.dbSizeFormatted }}</span>
+        </div>
+      </div>
+
+      <!-- Check update -->
+      <div class="sistema-actions-row">
+        <button class="btn secondary" [disabled]="systemLoading" (click)="checkUpdate()">
+          🔍 Buscar actualización
+        </button>
+      </div>
+
+      <p *ngIf="systemMsg" class="sistema-msg" [class.error]="systemMsg.includes('❌')">
+        {{ systemMsg }}
+      </p>
+
+      <!-- Update result -->
+      <div *ngIf="updateCheck" class="update-result">
+
+        <!-- ── Commit mode (commits API) ── -->
+        <ng-container *ngIf="updateCheck.latestCommit">
+          <div class="update-available-badge" *ngIf="updateCheck.updateAvailable">
+            🆕 Hay commits nuevos sin desplegar
+          </div>
+          <div class="update-ok-badge" *ngIf="!updateCheck.updateAvailable">
+            ✅ Desplegado al último commit
+          </div>
+          <div class="commit-comparison">
+            <div class="commit-row">
+              <span class="commit-label">Desplegado</span>
+              <code class="commit-sha">{{ updateCheck.currentCommit || '?' }}</code>
+            </div>
+            <div class="commit-row">
+              <span class="commit-label">En GitHub main</span>
+              <code class="commit-sha" [class.commit-sha-new]="updateCheck.updateAvailable">
+                {{ updateCheck.latestCommit }}
+              </code>
+            </div>
+            <div class="commit-message" *ngIf="updateCheck.commitMessage">
+              💬 {{ updateCheck.commitMessage }}
+            </div>
+            <a *ngIf="updateCheck.commitUrl" [href]="updateCheck.commitUrl" target="_blank"
+               class="btn secondary small">🔗 Ver commit en GitHub</a>
+          </div>
+        </ng-container>
+
+        <!-- ── Release mode (releases API) ── -->
+        <ng-container *ngIf="!updateCheck.latestCommit && updateCheck.updateAvailable">
+          <div class="update-available-badge">🆕 Nueva versión disponible</div>
+          <div class="update-versions">
+            <span>Actual: <strong>v{{ updateCheck.currentVersion }}</strong></span>
+            <span>→</span>
+            <span>Nueva: <strong>v{{ updateCheck.latestVersion }}</strong></span>
+          </div>
+          <a *ngIf="updateCheck.releaseUrl" [href]="updateCheck.releaseUrl" target="_blank"
+             class="btn secondary small">📋 Ver notas de la versión</a>
+        </ng-container>
+        <div *ngIf="!updateCheck.latestCommit && !updateCheck.updateAvailable && updateCheck.checkConfigured && !updateCheck.error"
+             class="update-ok-badge">✅ App actualizada</div>
+
+      </div>
+
+      <!-- Prepare update -->
+      <div class="prepare-update-block">
+        <p class="sistema-section-desc">
+          El botón <strong>"Preparar actualización"</strong> crea una copia de seguridad automática
+          y activa el modo mantenimiento. Si está configurado un script de actualización, lo ejecuta.
+          De lo contrario, recibirás instrucciones para actualizar manualmente.
+        </p>
+        <button class="btn warning" [disabled]="prepareUpdateLoading" (click)="prepareUpdate()">
+          ⚙️ Preparar actualización
+        </button>
+        <div *ngIf="prepareUpdateMsg" class="prepare-update-msg"
+             [class.error]="prepareUpdateMsg.includes('❌')">
+          {{ prepareUpdateMsg }}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Modal: Confirmar restaurar ─────────────────────────────────────────── -->
+  <div *ngIf="confirmRestoreBackup" class="modal-backdrop" (click)="confirmRestoreBackup = null">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <h3>♻️ Restaurar copia de seguridad</h3>
+      <p>Vas a restaurar la base de datos desde:</p>
+      <div class="modal-filename">{{ confirmRestoreBackup.name }}</div>
+      <p class="modal-warn">
+        ⚠️ <strong>Esta acción sobrescribirá todos los datos actuales</strong> de la base de datos.
+        Los cambios posteriores al momento de la copia se perderán. No se puede deshacer sin otra copia.
+      </p>
+      <p>Se recomienda activar el modo mantenimiento antes de restaurar para evitar accesos concurrentes.</p>
+      <div class="modal-actions">
+        <button class="btn secondary" (click)="confirmRestoreBackup = null">Cancelar</button>
+        <button class="btn danger" (click)="restoreBackup()">♻️ Sí, restaurar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Confirmar eliminar copia ────────────────────────────────────── -->
+  <div *ngIf="confirmDeleteBackup" class="modal-backdrop" (click)="confirmDeleteBackup = null">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <h3>🗑️ Eliminar copia de seguridad</h3>
+      <p>¿Eliminar permanentemente la siguiente copia?</p>
+      <div class="modal-filename">{{ confirmDeleteBackup.name }}</div>
+      <div class="modal-actions">
+        <button class="btn secondary" (click)="confirmDeleteBackup = null">Cancelar</button>
+        <button class="btn danger" (click)="deleteBackup()">🗑️ Eliminar</button>
+      </div>
     </div>
   </div>
 

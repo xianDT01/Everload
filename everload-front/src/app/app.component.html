@@ -1,3 +1,16 @@
+<!-- Maintenance overlay — shown to non-admin users while maintenance is active -->
+<div class="maintenance-overlay" *ngIf="maintenanceState.active && !authService.isAdmin() && !currentUrl.startsWith('/login')">
+  <div class="maintenance-card">
+    <div class="maintenance-icon">🔧</div>
+    <h1 class="maintenance-title">Mantenimiento</h1>
+    <p class="maintenance-message">{{ maintenanceState.message }}</p>
+    <button class="maintenance-retry" (click)="maintenanceService.checkInitial()">
+      🔄 Comprobar de nuevo
+    </button>
+    <a class="maintenance-admin-link" routerLink="/login">Acceso administrador</a>
+  </div>
+</div>
+
 <div class="main-content-layout" [ngClass]="musicService.mainPlayer.state.currentTrack ? 'player-' + playerMode : ''">
   <router-outlet></router-outlet>
 </div>
