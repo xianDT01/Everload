@@ -3,6 +3,47 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 import { NasService, NasPath } from '../../services/nas.service';
 
+// ── Sistema tab interfaces ─────────────────────────────────────────────────────
+
+interface MaintenanceStatus {
+  active: boolean;
+  message: string;
+}
+
+interface BackupDto {
+  name: string;
+  sizeBytes: number;
+  sizeFormatted: string;
+  createdAt: string;
+}
+
+interface SystemInfoDto {
+  appVersion: string;
+  currentCommit?: string;
+  javaVersion: string;
+  uptimeSeconds: number;
+  dbPath: string;
+  dbSizeBytes: number;
+  dbSizeFormatted: string;
+}
+
+interface UpdateCheckDto {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  releaseUrl: string;
+  releaseNotes: string;
+  checkConfigured: boolean;
+  error: string;
+  currentCommit?: string;
+  latestCommit?: string;
+  commitMessage?: string;
+  commitDate?: string;
+  commitUrl?: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface AdminConfig {
   clientId: string;
   clientSecret: string;
@@ -72,7 +113,7 @@ interface AdminChatMember {
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
 
-  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' = 'config';
+  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' | 'sistema' = 'config';
 
   private readonly BASE: string = (() => {
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
@@ -539,5 +580,229 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
 
   trackByHistorial(_index: number, item: DownloadHistoryVm) {
     return `${item.titulo}-${item.fecha}`;
+  }
+
+  // ══ TAB: SISTEMA ═════════════════════════════════════════════════════════════
+
+  // ── Maintenance ───────────────────────────────────────────────────────────────
+  maintenance: MaintenanceStatus = { active: false, message: '' };
+  maintenanceNewMessage = '';
+  maintenanceLoading = false;
+  maintenanceMsg = '';
+
+  loadMaintenance(): void {
+    this.http.get<MaintenanceStatus>(`${this.BASE}/api/admin/maintenance`).subscribe({
+      next: data => {
+        this.maintenance = data;
+        this.maintenanceNewMessage = data.message;
+      },
+      error: () => {}
+    });
+  }
+
+  toggleMaintenance(): void {
+    this.maintenanceLoading = true;
+    this.maintenanceMsg = '';
+    const newActive = !this.maintenance.active;
+    this.http.put<MaintenanceStatus>(`${this.BASE}/api/admin/maintenance`, {
+      active: newActive,
+      message: this.maintenanceNewMessage || this.maintenance.message
+    }).subscribe({
+      next: data => {
+        this.maintenance = data;
+        this.maintenanceNewMessage = data.message;
+        this.maintenanceLoading = false;
+        this.maintenanceMsg = newActive
+          ? '✅ Modo mantenimiento activado'
+          : '✅ Modo mantenimiento desactivado';
+      },
+      error: () => {
+        this.maintenanceLoading = false;
+        this.maintenanceMsg = '❌ Error al cambiar el modo mantenimiento';
+      }
+    });
+  }
+
+  saveMaintenance(): void {
+    this.maintenanceLoading = true;
+    this.maintenanceMsg = '';
+    this.http.put<MaintenanceStatus>(`${this.BASE}/api/admin/maintenance`, {
+      active: this.maintenance.active,
+      message: this.maintenanceNewMessage
+    }).subscribe({
+      next: data => {
+        this.maintenance = data;
+        this.maintenanceLoading = false;
+        this.maintenanceMsg = '✅ Mensaje guardado';
+      },
+      error: () => {
+        this.maintenanceLoading = false;
+        this.maintenanceMsg = '❌ Error al guardar el mensaje';
+      }
+    });
+  }
+
+  // ── Backup ────────────────────────────────────────────────────────────────────
+  backups: BackupDto[] = [];
+  backupLoading = false;
+  backupMsg = '';
+  backupConfig = { retention: 10 };
+  confirmRestoreBackup: BackupDto | null = null;
+  confirmDeleteBackup: BackupDto | null = null;
+
+  loadBackups(): void {
+    this.backupLoading = true;
+    this.http.get<BackupDto[]>(`${this.BASE}/api/admin/backup`).subscribe({
+      next: data => { this.backups = data; this.backupLoading = false; },
+      error: () => { this.backupLoading = false; this.backupMsg = '❌ Error al cargar las copias'; }
+    });
+  }
+
+  loadBackupConfig(): void {
+    this.http.get<any>(`${this.BASE}/api/admin/backup/config`).subscribe({
+      next: data => this.backupConfig = data,
+      error: () => {}
+    });
+  }
+
+  createBackup(): void {
+    this.backupLoading = true;
+    this.backupMsg = '⏳ Creando copia de seguridad...';
+    this.http.post<BackupDto>(`${this.BASE}/api/admin/backup`, null).subscribe({
+      next: data => {
+        this.backupLoading = false;
+        this.backupMsg = `✅ Copia creada: ${data.name} (${data.sizeFormatted})`;
+        this.loadBackups();
+      },
+      error: (err) => {
+        this.backupLoading = false;
+        this.backupMsg = '❌ ' + (err?.error?.error || 'Error al crear la copia');
+      }
+    });
+  }
+
+  confirmRestore(backup: BackupDto): void {
+    this.confirmRestoreBackup = backup;
+  }
+
+  restoreBackup(): void {
+    if (!this.confirmRestoreBackup) return;
+    const filename = this.confirmRestoreBackup.name;
+    this.confirmRestoreBackup = null;
+    this.backupLoading = true;
+    this.backupMsg = '⏳ Restaurando base de datos...';
+
+    this.http.post<any>(`${this.BASE}/api/admin/backup/restore`, { filename }).subscribe({
+      next: (res) => {
+        this.backupLoading = false;
+        this.backupMsg = res.message || '✅ Restauración completada';
+        this.loadBackups();
+      },
+      error: (err) => {
+        this.backupLoading = false;
+        this.backupMsg = '❌ ' + (err?.error?.error || 'Error al restaurar');
+      }
+    });
+  }
+
+  confirmDelete(backup: BackupDto): void {
+    this.confirmDeleteBackup = backup;
+  }
+
+  deleteBackup(): void {
+    if (!this.confirmDeleteBackup) return;
+    const filename = this.confirmDeleteBackup.name;
+    this.confirmDeleteBackup = null;
+    this.http.delete<any>(`${this.BASE}/api/admin/backup/${encodeURIComponent(filename)}`).subscribe({
+      next: () => {
+        this.backupMsg = `✅ Copia "${filename}" eliminada`;
+        this.loadBackups();
+      },
+      error: () => this.backupMsg = '❌ Error al eliminar la copia'
+    });
+  }
+
+  saveBackupConfig(): void {
+    this.http.put<any>(`${this.BASE}/api/admin/backup/config`, this.backupConfig).subscribe({
+      next: () => this.backupMsg = '✅ Configuración guardada',
+      error: () => this.backupMsg = '❌ Error al guardar la configuración'
+    });
+  }
+
+  // ── System info & Update ──────────────────────────────────────────────────────
+  systemInfo: SystemInfoDto | null = null;
+  updateCheck: UpdateCheckDto | null = null;
+  systemLoading = false;
+  systemMsg = '';
+  prepareUpdateMsg = '';
+  prepareUpdateLoading = false;
+
+  loadSystemInfo(): void {
+    this.systemLoading = true;
+    this.http.get<SystemInfoDto>(`${this.BASE}/api/admin/system/info`).subscribe({
+      next: data => { this.systemInfo = data; this.systemLoading = false; },
+      error: () => { this.systemLoading = false; }
+    });
+  }
+
+  checkUpdate(): void {
+    this.systemLoading = true;
+    this.updateCheck = null;
+    this.systemMsg = '⏳ Buscando actualizaciones...';
+    this.http.get<UpdateCheckDto>(`${this.BASE}/api/admin/system/check-update`).subscribe({
+      next: data => {
+        this.updateCheck = data;
+        this.systemLoading = false;
+        if (!data.checkConfigured) {
+          this.systemMsg = '⚠️ No hay URL de actualización configurada (app.update.check-url)';
+        } else if (data.error) {
+          this.systemMsg = '❌ Error al verificar: ' + data.error;
+        } else if (data.updateAvailable) {
+          this.systemMsg = `🆕 Nueva versión disponible: ${data.latestVersion}`;
+        } else {
+          this.systemMsg = '✅ La app está actualizada (' + data.currentVersion + ')';
+        }
+      },
+      error: () => {
+        this.systemLoading = false;
+        this.systemMsg = '❌ Error al conectar con el servidor de actualizaciones';
+      }
+    });
+  }
+
+  prepareUpdate(): void {
+    this.prepareUpdateLoading = true;
+    this.prepareUpdateMsg = '⏳ Preparando actualización (creando backup y activando mantenimiento)...';
+    this.http.post<any>(`${this.BASE}/api/admin/system/prepare-update`, {
+      message: 'La aplicación se está actualizando. Vuelve en unos minutos.'
+    }).subscribe({
+      next: (res) => {
+        this.prepareUpdateLoading = false;
+        this.prepareUpdateMsg = res.message;
+        this.loadMaintenance();
+        this.loadBackups();
+      },
+      error: (err) => {
+        this.prepareUpdateLoading = false;
+        this.prepareUpdateMsg = '❌ ' + (err?.error?.error || 'Error en la preparación');
+      }
+    });
+  }
+
+  formatUptime(seconds: number): string {
+    if (!seconds) return '—';
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m ${seconds % 60}s`;
+  }
+
+  onSistemaTab(): void {
+    this.loadMaintenance();
+    this.loadBackups();
+    this.loadBackupConfig();
+    this.loadSystemInfo();
   }
 }
