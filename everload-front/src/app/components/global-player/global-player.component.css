@@ -166,35 +166,55 @@
   color: #000;
 }
 
-/* ── Mini player mobile adjustments ─────────────────────────────────────── */
+/* ── Mini player mobile ──────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .mini-bar {
-    padding: 0 10px 0 12px;
-    height: 62px;
-    gap: 8px;
-    padding-bottom: env(safe-area-inset-bottom);
+    /* Full width is already guaranteed by left:0 right:0, but box-sizing
+       must be border-box so padding does not add phantom width.            */
+    box-sizing: border-box;
+    width: 100%;
+
+    /* Symmetric horizontal padding so content stays centred               */
+    padding: 0 14px;
+
+    /* Let height grow to accommodate the safe-area inset (notched phones).
+       min-height keeps it consistent on regular devices.                   */
+    height: auto;
+    min-height: 64px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+
+    gap: 10px;
   }
 
   .mini-art {
     width: 40px;
     height: 40px;
+    flex-shrink: 0;
   }
 
-  .mini-title {
-    font-size: 13px;
+  .mini-info {
+    /* Takes all remaining space; truncation already handled by ellipsis   */
+    flex: 1;
+    min-width: 0;
   }
 
-  .mini-artist {
-    font-size: 11px;
-  }
+  .mini-title { font-size: 13px; }
+  .mini-artist { font-size: 11px; }
 
   .mini-controls {
-    gap: 0;
+    gap: 2px;
+    flex-shrink: 0;
   }
 
   .mini-play {
     width: 36px;
     height: 36px;
+  }
+
+  /* Progress track spans the full bar width regardless of padding         */
+  .mini-progress-track {
+    left: 0;
+    right: 0;
   }
 }
 
@@ -564,4 +584,60 @@
   opacity: 0;
   cursor: pointer;
   width: 100%;
+}
+
+/* ── Full player — mobile ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .player-bar {
+    /* Switch from 3-column desktop grid to a 2-row mobile layout          */
+    box-sizing: border-box;
+    width: 100%;
+    height: auto;
+    min-height: var(--player-h);
+    padding: 10px 14px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px;
+  }
+
+  /* Row 1: cover + track info (left-aligned, fills full width)            */
+  .pb-left {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .pb-art {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .pb-track-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pb-title  { font-size: 13px; }
+  .pb-artist { font-size: 11px; }
+
+  /* Row 2: center takes the full row; controls + progress stacked          */
+  .pb-center {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .pb-controls {
+    gap: 8px;
+  }
+
+  /* Progress bar spans the full available width                            */
+  .pb-progress {
+    width: 100%;
+  }
+
+  /* Hide volume on mobile — takes too much space                           */
+  .pb-right {
+    display: none;
+  }
 }

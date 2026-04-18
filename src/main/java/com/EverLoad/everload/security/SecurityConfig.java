@@ -68,6 +68,9 @@ public class SecurityConfig {
                 .requestMatchers("/**/*.js", "/**/*.css", "/**/*.map").permitAll()
                 .requestMatchers("/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.svg", "/**/*.ico", "/**/*.webp").permitAll()
                 .requestMatchers("/assets/**", "/media/**").permitAll()
+                // PWA files
+                .requestMatchers("/manifest.webmanifest", "/ngsw.json", "/ngsw-worker.js",
+                                 "/safety-worker.js", "/worker-basic.min.js", "/icons/**").permitAll()
                 // All API endpoints require authentication
                 .requestMatchers("/api/**").authenticated()
                 // Any other non-API path (e.g. Angular client-side routes) serves index.html — allow

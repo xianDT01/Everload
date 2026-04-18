@@ -1183,6 +1183,10 @@
   margin: 8px 24px;
 }
 
+.sidebar-divider-sm {
+  margin: 8px 16px;
+}
+
 .scroll-section {
   overflow-y: auto;
 }
@@ -1204,6 +1208,77 @@
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 4px 60px rgba(0,0,0,0.5);
+}
+
+/* ── Favorite folder sidebar items ──────────────────────────────────────── */
+
+.fav-folder-item {
+  align-items: center;
+}
+
+.fav-folder-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--sp-surface-2);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.fav-folder-thumb img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.fav-folder-thumb-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 0;
+}
+
+/* ── Folder card favorite button ─────────────────────────────────────────── */
+
+.folder-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.btn-fav-folder {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  color: var(--sp-faint);
+  opacity: 0;
+  transition: opacity 150ms, color 150ms, transform 150ms;
+  flex-shrink: 0;
+}
+
+.folder-card:hover .btn-fav-folder,
+.btn-fav-folder.active {
+  opacity: 1;
+}
+
+.btn-fav-folder:hover {
+  color: var(--sp-text);
+  transform: scale(1.2);
+}
+
+.btn-fav-folder.active {
+  color: var(--sp-green);
 }
 
 /* ── Folder card cover image ─────────────────────────────────────────────── */
@@ -1546,6 +1621,11 @@
     transform: translateY(0);
     width: 36px;
     height: 36px;
+  }
+
+  /* Favorite button always visible on mobile */
+  .btn-fav-folder {
+    opacity: 1;
   }
 
   /* Show card menu button always in edit mode on mobile */

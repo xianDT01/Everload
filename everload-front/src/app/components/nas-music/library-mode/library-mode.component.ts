@@ -16,6 +16,9 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   selectedPathId: number | null = null;
   currentSubPath = '';
 
+  favoriteFolders: { pathId: number; subPath: string; name: string }[] = [];
+  private brokenCoverPaths = new Set<string>();
+
   currentView: 'home' | 'liked' | 'history' | 'folder' = 'folder';
 
   items: MusicMetadataDto[] = [];
@@ -61,6 +64,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadFavoriteFolders();
     this.nasService.getPaths().subscribe(paths => {
       this.paths = paths;
       if (paths.length > 0) this.selectPath(paths[0].id);
@@ -106,6 +110,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   load() {
+    this.brokenCoverPaths.clear();
     if (this.currentView === 'home') {
       this.musicService.getHistory(10).subscribe(h => {
         this.historyItems = h;
@@ -133,7 +138,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
           title: f.title,
           artist: f.artist,
           album: f.album,
-          hasCover: true,
+          hasCover: false,
           directory: false,
           nasPathId: f.nasPathId,
           duration: 0,
@@ -142,6 +147,8 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
           lastModified: '',
           bpm: 0
         } as MusicMetadataDto));
+        // Buscar portadas de iTunes para los ítems visibles
+        this.items.slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
       });
     } else if (this.currentView === 'history') {
       this.musicService.getHistory(50).subscribe(hist => {
@@ -152,13 +159,15 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
            title: h.title,
            artist: h.artist,
            album: h.album,
-           hasCover: true,
+           hasCover: false,
            directory: false,
            nasPathId: h.nasPathId,
            duration: h.durationSeconds,
            size: 0,
            format: ''
         } as MusicMetadataDto));
+        // Buscar portadas de iTunes para los ítems visibles
+        this.items.slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
       });
     } else if (this.currentView === 'folder' && this.selectedPathId !== null) {
       this.musicService.browse(this.selectedPathId, this.currentSubPath).subscribe(items => {
@@ -188,9 +197,8 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   get tracks():  MusicMetadataDto[] { return this.items.filter(i => !i.directory); }
 
   get filteredFolders(): MusicMetadataDto[] {
-    if (!this.searchQuery.trim()) return this.folders;
-    const q = this.searchQuery.trim().toLowerCase();
-    return this.folders.filter(f => f.name.toLowerCase().includes(q));
+    if (this.searchQuery.trim()) return [];
+    return this.folders;
   }
 
   get filteredTracks(): MusicMetadataDto[] {
@@ -281,7 +289,14 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   hasCoverToShow(track: MusicMetadataDto): boolean {
+    if (this.brokenCoverPaths.has(track.path)) return false;
     return this.musicService.hasCoverToShow(track) || this.currentView !== 'folder';
+  }
+
+  onTrackCoverError(e: Event, track: MusicMetadataDto): void {
+    const img = e.target as HTMLImageElement;
+    if (img) img.style.display = 'none';
+    this.brokenCoverPaths.add(track.path);
   }
 
   playerHasCover(): boolean {
@@ -461,6 +476,70 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
       next: () => { this.closeDialog(); this.load(); },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al subir portada'; }
     });
+  }
+
+  // ── Favorite folders ─────────────────────────────────────────────────────
+
+  loadFavoriteFolders(): void {
+    try {
+      const stored = localStorage.getItem('nas_fav_folders');
+      this.favoriteFolders = stored ? JSON.parse(stored) : [];
+    } catch { this.favoriteFolders = []; }
+  }
+
+  saveFavoriteFolders(): void {
+    localStorage.setItem('nas_fav_folders', JSON.stringify(this.favoriteFolders));
+  }
+
+  isFolderFav(folder: MusicMetadataDto): boolean {
+    const pid = this.selectedPathId;
+    return this.favoriteFolders.some(f => f.pathId === pid && f.subPath === folder.path);
+  }
+
+  toggleFolderFav(e: Event, folder: MusicMetadataDto): void {
+    e.stopPropagation();
+    const pid = this.selectedPathId;
+    if (pid === null) return;
+    if (this.isFolderFav(folder)) {
+      this.favoriteFolders = this.favoriteFolders.filter(f => !(f.pathId === pid && f.subPath === folder.path));
+    } else {
+      this.favoriteFolders = [...this.favoriteFolders, { pathId: pid, subPath: folder.path, name: folder.name }];
+    }
+    this.saveFavoriteFolders();
+  }
+
+  navigateToFavFolder(fav: { pathId: number; subPath: string; name: string }): void {
+    this.currentView = 'folder';
+    this.selectedPathId = fav.pathId;
+    this.currentSubPath = fav.subPath;
+    this.searchQuery = '';
+    this.closeMobileMenu();
+    this.load();
+  }
+
+  favFolderCoverUrl(fav: { pathId: number; subPath: string }): string {
+    return this.musicService.getFolderCoverUrl(fav.pathId, fav.subPath);
+  }
+
+  folderFallbackGradient(folder: MusicMetadataDto): string {
+    const gradients = [
+      'linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 100%)',
+      'linear-gradient(135deg, #2d1b69 0%, #4a2f8f 100%)',
+      'linear-gradient(135deg, #4a1942 0%, #7b2960 100%)',
+      'linear-gradient(135deg, #1a2a4a 0%, #2d4a7a 100%)',
+      'linear-gradient(135deg, #3a2a10 0%, #6b4a1a 100%)',
+      'linear-gradient(135deg, #1a3a3a 0%, #2d6060 100%)',
+      'linear-gradient(135deg, #3a1a1a 0%, #6b2d2d 100%)',
+      'linear-gradient(135deg, #2a3a1a 0%, #4a6b2d 100%)',
+      'linear-gradient(135deg, #3a1a3a 0%, #6b2d6b 100%)',
+      'linear-gradient(135deg, #1a1a3a 0%, #2d2d6b 100%)',
+    ];
+    let hash = 0;
+    for (let i = 0; i < folder.name.length; i++) {
+      hash = ((hash << 5) - hash) + folder.name.charCodeAt(i);
+      hash |= 0;
+    }
+    return gradients[Math.abs(hash) % gradients.length];
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

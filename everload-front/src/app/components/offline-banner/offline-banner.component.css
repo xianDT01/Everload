@@ -1,0 +1,56 @@
+.offline-banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: rgba(20, 20, 28, 0.97);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: drop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.offline-banner.reconnected {
+  border-color: rgba(29, 185, 84, 0.5);
+  animation: none;
+}
+
+@keyframes drop-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.offline-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  flex-shrink: 0;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.reconnected .offline-banner__dot {
+  background: #1db954;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+.offline-banner__text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f0f0f8;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
