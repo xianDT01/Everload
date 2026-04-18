@@ -83,23 +83,63 @@ public class MusicService {
         return null;
     }
 
-    /** Returns raw bytes of the embedded cover art of the first audio file in a folder. */
+    /** Returns cover art bytes for a folder, with priority:
+     *  1. cover.jpg / cover.png file in the folder
+     *  2. Embedded ID3 art from any audio file directly in the folder
+     *  3. Same two checks applied to immediate subfolders (one level deep)
+     */
     public byte[] getFolderCoverArt(Long pathId, String relativePath) {
         Path target = nasService.resolveValidatedPath(pathId, relativePath);
         File dir = target.toFile();
         if (!dir.exists() || !dir.isDirectory() || !dir.canRead()) return null;
 
+        // 1. Explicit cover image file
+        byte[] explicit = readCoverImageFile(dir);
+        if (explicit != null) return explicit;
+
         File[] files = dir.listFiles();
         if (files == null) return null;
 
+        // 2. Embedded art from audio files at root of folder
         for (File f : files) {
-            if (isAudio(f)) {
-                String sub = relativePath != null && !relativePath.isEmpty() ? relativePath + "/" + f.getName() : f.getName();
+            if (f.isFile() && isAudio(f)) {
+                String sub = buildSubPath(relativePath, f.getName());
                 byte[] cover = getCoverArt(pathId, sub);
                 if (cover != null && cover.length > 0) return cover;
             }
         }
+
+        // 3. Fall back: check one level of subfolders
+        for (File sub : files) {
+            if (!sub.isDirectory() || !sub.canRead()) continue;
+            byte[] explicit2 = readCoverImageFile(sub);
+            if (explicit2 != null) return explicit2;
+            File[] subFiles = sub.listFiles();
+            if (subFiles == null) continue;
+            for (File f : subFiles) {
+                if (f.isFile() && isAudio(f)) {
+                    String subRel = buildSubPath(relativePath, sub.getName() + "/" + f.getName());
+                    byte[] cover = getCoverArt(pathId, subRel);
+                    if (cover != null && cover.length > 0) return cover;
+                }
+            }
+        }
         return null;
+    }
+
+    private byte[] readCoverImageFile(File dir) {
+        for (String name : new String[]{"cover.jpg", "cover.png", "folder.jpg", "folder.png"}) {
+            File img = new File(dir, name);
+            if (img.exists() && img.isFile() && img.canRead()) {
+                try { return java.nio.file.Files.readAllBytes(img.toPath()); }
+                catch (IOException ignored) {}
+            }
+        }
+        return null;
+    }
+
+    private String buildSubPath(String base, String name) {
+        return (base != null && !base.isEmpty()) ? base + "/" + name : name;
     }
 
     // ── YouTube DJ Cache API ──────────────────────────────────────────────────

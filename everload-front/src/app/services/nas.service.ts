@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpParams, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface NasPath {
@@ -86,5 +86,30 @@ export class NasService {
     let params = new HttpParams();
     if (folderPath) params = params.set('folderPath', folderPath);
     return this.http.post(`${this.BASE}/api/nas/browse/${pathId}/cover`, formData, { params });
+  }
+
+  uploadFiles(pathId: number, subPath: string | undefined, files: File[], relativePaths?: string[]): Observable<HttpEvent<any>> {
+    const formData = new FormData();
+    files.forEach((f, i) => {
+      formData.append('files', f);
+      if (relativePaths?.[i]) formData.append('paths', relativePaths[i]);
+    });
+    let params = new HttpParams();
+    if (subPath) params = params.set('subPath', subPath);
+    const req = new HttpRequest('POST', `${this.BASE}/api/nas/browse/${pathId}/upload`, formData, {
+      params,
+      reportProgress: true
+    });
+    return this.http.request(req);
+  }
+
+  downloadFile(pathId: number, relativePath: string): Observable<Blob> {
+    const params = new HttpParams().set('relativePath', relativePath);
+    return this.http.get(`${this.BASE}/api/nas/browse/${pathId}/download`, { params, responseType: 'blob' });
+  }
+
+  downloadFolderZip(pathId: number, relativePath: string): Observable<Blob> {
+    const params = new HttpParams().set('relativePath', relativePath);
+    return this.http.get(`${this.BASE}/api/nas/browse/${pathId}/download-zip`, { params, responseType: 'blob' });
   }
 }

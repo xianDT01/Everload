@@ -2058,6 +2058,98 @@
    RESPONSIVE BREAKPOINTS
 ══════════════════════════════════════════════════════════════════════════ */
 
+/* ── Altura portátil estándar (≤ 840px) — reduce sección de decks ─────────── */
+@media (max-height: 840px) {
+  .decks-section {
+    height: 52%;
+    min-height: 260px;
+  }
+
+  .deck-body {
+    padding: 5px 12px 7px;
+    gap: 5px;
+  }
+
+  .vinyl { width: 118px; height: 118px; }
+  .pitch-slider { height: 118px; }
+
+  .spectrum-canvas { height: 40px; }
+
+  .fader-track  { height: 95px; }
+  .vu-meters    { height: 95px; }
+  .eq-knob      { height: 62px; }
+}
+
+/* ── Altura portátil pequeño (≤ 720px) — compresión agresiva ──────────────── */
+@media (max-height: 720px) {
+  .decks-section {
+    height: 47%;
+    min-height: 230px;
+  }
+
+  .deck-body {
+    padding: 4px 10px 5px;
+    gap: 3px;
+  }
+
+  .vinyl { width: 90px; height: 90px; }
+  .pitch-slider { height: 90px; }
+  .pitch-container { right: -44px; padding: 6px 4px; gap: 5px; }
+
+  .spectrum-canvas { height: 28px; }
+
+  .btn-play   { width: 40px; height: 40px; }
+  .btn-ctrl   { width: 28px; height: 28px; font-size: 12px; }
+  .btn-cue    { padding: 4px 9px; font-size: 9px; }
+  .btn-sync   { padding: 4px 7px; font-size: 9px; }
+  .btn-sync-bpm { padding: 3px 6px; font-size: 8px; }
+
+  .deck-extra-tools { padding: 3px 0; gap: 8px; }
+  .cue-pad    { height: 26px; font-size: 9px; }
+  .loop-btn   { width: 24px; height: 24px; font-size: 9px; }
+
+  .fx-panel   { padding: 3px 8px; margin-top: 1px; }
+
+  .fader-track  { height: 72px; }
+  .vu-meters    { height: 72px; }
+  .eq-knob      { height: 52px; }
+  .xfade-track  { height: 15px; }
+  .xfade-cursor { width: 18px; height: 18px; margin-top: -9px; }
+
+  .progress-bar { height: 8px; }
+  .deck-title   { font-size: 11px; }
+  .deck-artist  { font-size: 9px; }
+}
+
+/* ── Combinación ancho+altura: portátil 1366×768 ──────────────────────────── */
+@media (max-width: 1366px) and (max-height: 800px) {
+  .mixer {
+    width: 148px;
+    min-width: 140px;
+    padding: 7px 5px;
+    gap: 5px;
+  }
+
+  .eq-rack {
+    padding: 4px 2px;
+    margin-bottom: 4px;
+  }
+
+  .filter-strip {
+    padding: 2px 2px 1px;
+  }
+
+  .b-tab {
+    padding: 6px 10px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .browser-toolbar {
+    padding: 4px 10px;
+  }
+}
+
 /* ── Pantalla de portátil estándar (≤ 1280px) ────────────────────────────── */
 @media (max-width: 1280px) {
   .mixer {

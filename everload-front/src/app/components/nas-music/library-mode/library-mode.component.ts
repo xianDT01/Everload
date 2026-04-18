@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { NasPath, NasService } from '../../../services/nas.service';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/music.service';
@@ -53,7 +54,17 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     error: string;
   } = { type: null, item: null, value: '', title: '', artist: '', loading: false, error: '' };
 
+  uploadState: {
+    active: boolean;
+    progress: number;
+    status: 'idle' | 'uploading' | 'done' | 'error';
+    results: { name: string; status: 'ok' | 'error'; message?: string }[];
+    totalFiles: number;
+  } = { active: false, progress: 0, status: 'idle', results: [], totalFiles: 0 };
 
+  downloadingPaths = new Set<string>();
+
+  private uploadSub?: Subscription;
   private subs: Subscription[] = [];
 
   constructor(
@@ -471,9 +482,14 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     const file = input.files?.[0];
     if (!file || !this.dialog.item) return;
     const pid = (this.dialog.item.nasPathId != null ? this.dialog.item.nasPathId : this.selectedPathId)!;
+    const folderPath = this.dialog.item.path;
     this.dialog.loading = true;
-    this.nasService.uploadFolderCover(pid, this.dialog.item.path, file).subscribe({
-      next: () => { this.closeDialog(); this.load(); },
+    this.nasService.uploadFolderCover(pid, folderPath, file).subscribe({
+      next: () => {
+        this.musicService.invalidateFolderCover(pid, folderPath);
+        this.closeDialog();
+        this.load();
+      },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al subir portada'; }
     });
   }
@@ -560,5 +576,100 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     if (this.repeat === 'one') return 'repeat1';
     if (this.repeat === 'all') return 'repeatAll';
     return 'none';
+  }
+
+  // ── Upload ────────────────────────────────────────────────────────────────
+
+  onUploadFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length || this.selectedPathId === null) return;
+    this.startUpload(files, undefined);
+  }
+
+  onUploadFolderSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length || this.selectedPathId === null) return;
+    // webkitRelativePath gives e.g. "Beatles/Abbey Road/01-Come Together.mp3"
+    const relativePaths = files.map(f => (f as any).webkitRelativePath || f.name);
+    this.startUpload(files, relativePaths);
+  }
+
+  private startUpload(files: File[], relativePaths?: string[]): void {
+    this.uploadState = { active: true, progress: 0, status: 'uploading', results: [], totalFiles: files.length };
+
+    this.uploadSub = this.nasService.uploadFiles(
+      this.selectedPathId!, this.currentSubPath || undefined, files, relativePaths
+    ).subscribe({
+      next: (ev: any) => {
+        if (ev.type === HttpEventType.UploadProgress && ev.total) {
+          this.uploadState.progress = Math.round(100 * ev.loaded / ev.total);
+        } else if (ev.type === HttpEventType.Response) {
+          const results = ev.body as any[];
+          this.uploadState.status = results.some((r: any) => r.status === 'error') ? 'error' : 'done';
+          this.uploadState.results = results;
+          this.uploadState.progress = 100;
+          this.load();
+        }
+      },
+      error: (err: any) => {
+        this.uploadState.status = 'error';
+        this.uploadState.results = [{ name: 'Upload', status: 'error', message: err.error?.error || 'Error al subir' }];
+      }
+    });
+  }
+
+  cancelUpload(): void {
+    this.uploadSub?.unsubscribe();
+    this.uploadState = { active: false, progress: 0, status: 'idle', results: [], totalFiles: 0 };
+  }
+
+  closeUploadPanel(): void {
+    this.uploadState = { active: false, progress: 0, status: 'idle', results: [], totalFiles: 0 };
+  }
+
+  // ── Download ──────────────────────────────────────────────────────────────
+
+  downloadTrack(e: Event, track: MusicMetadataDto): void {
+    e.stopPropagation();
+    const pid = track.nasPathId ?? this.selectedPathId;
+    if (pid === null) return;
+    this.downloadingPaths.add(track.path);
+    this.nasService.downloadFile(pid, track.path).subscribe({
+      next: (blob) => {
+        this.triggerBlobDownload(blob, track.name);
+        this.downloadingPaths.delete(track.path);
+      },
+      error: () => this.downloadingPaths.delete(track.path)
+    });
+  }
+
+  downloadFolder(e: Event, folder: MusicMetadataDto): void {
+    e.stopPropagation();
+    if (this.selectedPathId === null) return;
+    this.downloadingPaths.add(folder.path);
+    this.nasService.downloadFolderZip(this.selectedPathId, folder.path).subscribe({
+      next: (blob) => {
+        this.triggerBlobDownload(blob, folder.name + '.zip');
+        this.downloadingPaths.delete(folder.path);
+      },
+      error: () => this.downloadingPaths.delete(folder.path)
+    });
+  }
+
+  isDownloading(path: string): boolean {
+    return this.downloadingPaths.has(path);
+  }
+
+  private triggerBlobDownload(blob: Blob, fileName: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }
