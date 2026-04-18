@@ -98,4 +98,29 @@ public class AuthService {
                 .avatarUrl(avatarUrl)
                 .build();
     }
+
+    public AuthResponse refreshToken(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new IllegalStateException("Cuenta no activa");
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        String newToken = jwtUtil.generateToken(userDetails);
+
+        String avatarUrl = (user.getAvatarFilename() != null && !user.getAvatarFilename().isBlank())
+                ? "/api/user/avatar/img/" + user.getAvatarFilename()
+                : null;
+
+        return AuthResponse.builder()
+                .token(newToken)
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .status(user.getStatus().name())
+                .avatarUrl(avatarUrl)
+                .build();
+    }
 }

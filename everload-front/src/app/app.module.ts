@@ -41,7 +41,7 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
   return (): Promise<void> => {
     translate.setDefaultLang('es');
     const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'es';
-    return firstValueFrom(translate.use(lang)).then(() => undefined);
+    return firstValueFrom(translate.use(lang)).then(() => undefined).catch(() => undefined);
   };
 }
 

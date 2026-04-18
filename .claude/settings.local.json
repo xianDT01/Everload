@@ -22,7 +22,8 @@
       "Bash(npx tsc *)",
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Read(//usr/local/bin/**)",
-      "Read(//usr/bin/**)"
+      "Read(//usr/bin/**)",
+      "Bash(grep -iE \"\\\\.\\(java|yml|yaml|properties\\)$\")"
     ]
   }
 }

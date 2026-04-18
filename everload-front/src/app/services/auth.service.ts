@@ -103,12 +103,23 @@ export class AuthService {
     return localStorage.getItem('auth_token');
   }
 
+  isTokenExpired(): boolean {
+    const token = this.getToken();
+    if (!token) return true;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch {
+      return true;
+    }
+  }
+
   getCurrentUser(): AuthResponse | null {
     return this.currentUserSubject.value;
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    return !!this.getToken() && !this.isTokenExpired();
   }
 
   isAdmin(): boolean {
@@ -122,6 +133,16 @@ export class AuthService {
 
   isPending(): boolean {
     return this.getCurrentUser()?.status === 'PENDING';
+  }
+
+  refreshToken(): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.BASE}/api/auth/refresh`, {}).pipe(
+      tap(response => {
+        localStorage.setItem('auth_user', JSON.stringify(response));
+        localStorage.setItem('auth_token', response.token);
+        this.currentUserSubject.next(response);
+      })
+    );
   }
 
   updateToken(token: string): void {
