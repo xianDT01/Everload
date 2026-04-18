@@ -18,7 +18,11 @@
       "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/service/ChatService.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/service/)",
       "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/service/NotificationService.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/service/)",
       "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/controller/ChatController.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/controller/)",
-      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/controller/NotificationController.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/controller/)"
+      "Bash(cp /home/xiandt/IdeaProjects/Everload/.claude/worktrees/agent-a81fab71/src/main/java/com/EverLoad/everload/controller/NotificationController.java /home/xiandt/IdeaProjects/Everload/src/main/java/com/EverLoad/everload/controller/)",
+      "Bash(npx tsc *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Read(//usr/local/bin/**)",
+      "Read(//usr/bin/**)"
     ]
   }
 }
