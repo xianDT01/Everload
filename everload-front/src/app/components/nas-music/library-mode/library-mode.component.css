@@ -65,7 +65,7 @@
 }
 
 .sidebar-section {
-  flex: 1;
+  flex: 0 0 auto;
 }
 
 .collections-list {
@@ -1174,7 +1174,7 @@
 /* ── Custom overhaul classes ─────────────────────────────────────────────── */
 
 .custom-height {
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .sidebar-divider {
@@ -1188,6 +1188,7 @@
 }
 
 .scroll-section {
+  flex: 1;
   overflow-y: auto;
 }
 
