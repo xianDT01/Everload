@@ -52,6 +52,24 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "Refrescar token JWT — emite un nuevo token sin requerir contraseña")
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(HttpServletRequest request) {
+        org.springframework.security.core.Authentication auth =
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+            return ResponseEntity.status(401).body(Map.of("error", "Token inválido o expirado"));
+        }
+
+        try {
+            AuthResponse response = authService.refreshToken(auth.getName());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @Operation(summary = "Cerrar sesión — invalida el token actual")
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
