@@ -29,8 +29,8 @@
     },
     {
       "name": "app-assets",
-      "installMode": "lazy",
-      "updateMode": "lazy",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
       "resources": {
         "files": [
           "/assets/i18n/*.json",
@@ -45,17 +45,6 @@
     }
   ],
   "dataGroups": [
-    {
-      "name": "i18n-api",
-      "urls": [
-        "/assets/i18n/**"
-      ],
-      "cacheConfig": {
-        "strategy": "performance",
-        "maxSize": 20,
-        "maxAge": "7d"
-      }
-    },
     {
       "name": "api-freshness",
       "urls": [

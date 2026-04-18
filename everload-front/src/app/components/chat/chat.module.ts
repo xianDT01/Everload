@@ -7,6 +7,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ChatComponent } from './chat.component';
 import { CreateGroupModalComponent } from './create-group-modal/create-group-modal.component';
 import { GroupInfoModalComponent } from './group-info-modal/group-info-modal.component';
+import { MentionHighlightPipe } from '../../pipes/mention-highlight.pipe';
 
 const routes: Routes = [
   { path: '', component: ChatComponent },
@@ -17,6 +18,7 @@ const routes: Routes = [
     ChatComponent,
     CreateGroupModalComponent,
     GroupInfoModalComponent,
+    MentionHighlightPipe,
   ],
   imports: [
     CommonModule,

@@ -23,7 +23,6 @@ import { NotificationCenterComponent } from './components/notification-center/no
 import { GlobalPlayerComponent } from './components/global-player/global-player.component';
 import { PwaUpdateBannerComponent } from './components/pwa-update-banner/pwa-update-banner.component';
 import { OfflineBannerComponent } from './components/offline-banner/offline-banner.component';
-
 // Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { MaintenanceInterceptor } from './interceptors/maintenance.interceptor';
@@ -41,7 +40,22 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
   return (): Promise<void> => {
     translate.setDefaultLang('es');
     const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'es';
-    return firstValueFrom(translate.use(lang)).then(() => undefined).catch(() => undefined);
+    return firstValueFrom(translate.use(lang))
+      .then(() => undefined)
+      .catch(async () => {
+        // Translation load failed — probably corrupted SW cache. Reset SW and reload once.
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator
+            && typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('sw_reset')) {
+          sessionStorage.setItem('sw_reset', '1');
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+          } catch {}
+          window.location.reload();
+          return;
+        }
+        // Already reset once — continue without translations rather than loop
+      });
   };
 }
 

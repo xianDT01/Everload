@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -26,6 +28,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final PresenceService presenceService;
     private final AvatarService avatarService;
+    private final NotificationService notificationService;
 
     @Transactional
     public List<ChatGroupDto> getGroupsForUser(User user) {
@@ -178,7 +181,37 @@ public class ChatService {
                 .build();
         message = chatMessageRepository.save(message);
 
+        // Notify mentioned users (@username in plain-text messages)
+        if (msgType == MessageType.TEXT && message.getContent() != null && !message.getContent().isEmpty()) {
+            notifyMentionedUsers(message, group, sender);
+        }
+
         return toMessageDto(message);
+    }
+
+    private void notifyMentionedUsers(ChatMessage message, ChatGroup group, User sender) {
+        Matcher matcher = Pattern.compile("@(\\w+)").matcher(message.getContent());
+        Set<String> mentioned = new LinkedHashSet<>();
+        while (matcher.find()) mentioned.add(matcher.group(1));
+
+        String preview = message.getContent().length() > 60
+                ? message.getContent().substring(0, 60) + "…"
+                : message.getContent();
+
+        for (String username : mentioned) {
+            if (username.equals(sender.getUsername())) continue;
+            userRepository.findByUsername(username).ifPresent(mentionedUser -> {
+                if (groupMemberRepository.existsByGroupAndUser(group, mentionedUser)) {
+                    notificationService.createNotification(
+                            mentionedUser,
+                            "MENTION",
+                            sender.getUsername() + " te mencionó en " + group.getName(),
+                            preview,
+                            "/chat?group=" + group.getId()
+                    );
+                }
+            });
+        }
     }
 
     @Transactional(readOnly = true)

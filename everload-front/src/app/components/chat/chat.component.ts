@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
-import { ChatService, ChatGroupDto, ChatMessageDto, ActiveUser, YoutubeSharePayload } from '../../services/chat.service';
+import { ChatService, ChatGroupDto, ChatMessageDto, ActiveUser, YoutubeSharePayload, MemberDto } from '../../services/chat.service';
 import { NotificationService } from '../../services/notification.service';
 import { AuthService } from '../../services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -59,6 +59,12 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   // ── Reply ──────────────────────────────────────────────────────────────────
   replyTo: ChatMessageDto | null = null;
+
+  // ── Mentions ───────────────────────────────────────────────────────────────
+  mentionSuggestions: MemberDto[] = [];
+  showMentionDropdown = false;
+  private mentionStartIndex = -1;
+  private groupMembers: MemberDto[] = [];
 
   // ── Search ─────────────────────────────────────────────────────────────────
   searchMode = false;
@@ -173,7 +179,24 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.searchMode = false;
     this.searchQuery = '';
     this.searchResults = null;
+    this.showMentionDropdown = false;
+    this.groupMembers = [];
     this.chatService.stopPolling();
+
+    // Load members for @mention autocomplete
+    if (group.type !== 'PRIVATE') {
+      this.chatService.getMembers(group.id).subscribe({
+        next: members => { this.groupMembers = members; },
+        error: () => {}
+      });
+    } else if (group.privatePartnerUsername) {
+      this.groupMembers = [{
+        username: group.privatePartnerUsername,
+        role: 'MEMBER',
+        avatarUrl: group.privatePartnerAvatarUrl,
+        joinedAt: ''
+      }];
+    }
 
     // Mark group as read immediately when selected
     this.chatService.markGroupRead(group.id);
@@ -203,8 +226,52 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
   }
 
+  onInput(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    const value = textarea.value;
+    const cursor = textarea.selectionStart ?? value.length;
+    const textBeforeCursor = value.slice(0, cursor);
+    const match = textBeforeCursor.match(/@(\w*)$/);
+
+    if (match) {
+      this.mentionStartIndex = cursor - match[0].length;
+      const query = match[1].toLowerCase();
+      this.mentionSuggestions = this.groupMembers
+        .filter(m => m.username !== this.currentUsername && m.username.toLowerCase().startsWith(query))
+        .slice(0, 6);
+      this.showMentionDropdown = this.mentionSuggestions.length > 0;
+    } else {
+      this.showMentionDropdown = false;
+      this.mentionSuggestions = [];
+    }
+  }
+
+  selectMention(member: MemberDto): void {
+    const textarea = this.messageTextarea?.nativeElement;
+    const cursorPos = textarea?.selectionStart ?? this.messageInput.length;
+    const before = this.messageInput.slice(0, this.mentionStartIndex);
+    const after = this.messageInput.slice(cursorPos);
+    this.messageInput = `${before}@${member.username} ${after}`;
+    this.showMentionDropdown = false;
+    this.mentionSuggestions = [];
+
+    setTimeout(() => {
+      if (textarea) {
+        const pos = this.mentionStartIndex + member.username.length + 2;
+        textarea.focus();
+        textarea.setSelectionRange(pos, pos);
+      }
+    });
+  }
+
+  onTextareaBlur(): void {
+    // Small delay so mousedown on suggestion items fires before dropdown closes
+    setTimeout(() => { this.showMentionDropdown = false; }, 150);
+  }
+
   sendMessage(): void {
     if (!this.messageInput.trim() || !this.selectedGroup) return;
+    this.showMentionDropdown = false;
 
     const content = this.messageInput.trim();
     this.messageInput = '';
@@ -237,6 +304,18 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   onKeyDown(event: KeyboardEvent): void {
+    if (this.showMentionDropdown) {
+      if (event.key === 'Escape') {
+        this.showMentionDropdown = false;
+        event.preventDefault();
+        return;
+      }
+      if (event.key === 'Enter' && this.mentionSuggestions.length > 0) {
+        this.selectMention(this.mentionSuggestions[0]);
+        event.preventDefault();
+        return;
+      }
+    }
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       this.sendMessage();
