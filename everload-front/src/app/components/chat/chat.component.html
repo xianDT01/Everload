@@ -199,7 +199,7 @@
                 class="message-bubble"
                 [class.own-bubble]="isOwnMessage(msg)"
                 [class.other-bubble]="!isOwnMessage(msg)">
-                <span class="msg-text" [innerHTML]="msg.content"></span>
+                <span class="msg-text" [innerHTML]="msg.content | mentionHighlight:currentUsername"></span>
                 <div class="msg-footer">
                   <span class="msg-time">{{ formatMessageTime(msg.sentAt) }}</span>
                   <span class="msg-edited" *ngIf="msg.edited"> · {{ 'CHAT.EDITED' | translate }}</span>
@@ -272,6 +272,19 @@
               (click)="insertEmoji(emoji)">{{ emoji }}</button>
           </div>
 
+          <!-- @mention suggestions dropdown -->
+          <div class="mention-dropdown" *ngIf="showMentionDropdown">
+            <div class="mention-item"
+                 *ngFor="let m of mentionSuggestions"
+                 (mousedown)="$event.preventDefault(); selectMention(m)">
+              <div class="mention-avatar-sm">
+                <img *ngIf="m.avatarUrl" [src]="resolveAvatarUrl(m.avatarUrl)" [alt]="m.username" />
+                <span *ngIf="!m.avatarUrl" class="mention-initial">{{ getInitials(m.username) }}</span>
+              </div>
+              <span class="mention-name">@{{ m.username }}</span>
+            </div>
+          </div>
+
           <div class="input-row">
             <button
               class="emoji-trigger-btn"
@@ -283,6 +296,8 @@
               #messageTextarea
               [(ngModel)]="messageInput"
               (keydown)="onKeyDown($event)"
+              (input)="onInput($event)"
+              (blur)="onTextareaBlur()"
               [placeholder]="'CHAT.MESSAGE_PLACEHOLDER' | translate"
               rows="1"
               class="message-input"
