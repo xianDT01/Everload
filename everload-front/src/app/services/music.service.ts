@@ -523,6 +523,8 @@ export class MusicService {
   // iTunes cover cache
   private coverOverrideMap = new Map<string, string>();
   private itunesFetchedTerms = new Set<string>();
+  // Cache-bust timestamps for folder covers (invalidated on cover upload)
+  private folderCoverBust = new Map<string, number>();
 
   constructor(private http: HttpClient, private auth: AuthService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
@@ -618,7 +620,14 @@ export class MusicService {
 
   getFolderCoverUrl(pathId: number, folderPath: string): string {
     const token = this.auth.getToken();
-    return `${this.api}/folder-cover?pathId=${pathId}&subPath=${encodeURIComponent(folderPath)}&token=${token}`;
+    const key = `${pathId}:${folderPath}`;
+    const bust = this.folderCoverBust.get(key);
+    const bustParam = bust ? `&v=${bust}` : '';
+    return `${this.api}/folder-cover?pathId=${pathId}&subPath=${encodeURIComponent(folderPath)}&token=${token}${bustParam}`;
+  }
+
+  invalidateFolderCover(pathId: number, folderPath: string): void {
+    this.folderCoverBust.set(`${pathId}:${folderPath}`, Date.now());
   }
 
   // ── Cover fetching logic (universal) ──────────────────────────────────────

@@ -4,24 +4,32 @@ import com.EverLoad.everload.dto.NasFileDto;
 import com.EverLoad.everload.dto.NasPathDto;
 import com.EverLoad.everload.model.NasPath;
 import com.EverLoad.everload.repository.NasPathRepository;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.*;
+import java.util.Arrays;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 @RequiredArgsConstructor
 public class NasService {
+
+    private static final Set<String> ALLOWED_AUDIO_EXTENSIONS = Set.of(
+            "mp3", "flac", "m4a", "wav", "ogg", "aac", "opus", "wma", "alac", "webm"
+    );
 
     private final NasPathRepository nasPathRepository;
 
@@ -246,6 +254,92 @@ public class NasService {
         }
     }
 
+    // ── Upload / Download ─────────────────────────────────────────────────────
+
+    /**
+     * @param paths Optional list of relative paths (one per file), used when uploading a folder
+     *              to preserve the directory structure (e.g. "Beatles/Abbey Road/01-ComeT.mp3").
+     *              When null or shorter than files list, files are placed flat in destDir.
+     */
+    public List<Map<String, Object>> uploadMusicFiles(Long pathId, String subPath,
+                                                       List<MultipartFile> files,
+                                                       List<String> paths) {
+        NasPath nasPath = nasPathRepository.findById(pathId)
+                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+        Path basePath = Path.of(nasPath.getPath()).normalize();
+        Path destDir = subPath != null && !subPath.isBlank()
+                ? basePath.resolve(subPath).normalize()
+                : basePath;
+        if (!destDir.startsWith(basePath)) throw new SecurityException("Acceso denegado: path traversal detectado");
+
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (int i = 0; i < files.size(); i++) {
+            MultipartFile file = files.get(i);
+            String originalName = file.getOriginalFilename();
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("name", originalName != null ? originalName : file.getName());
+            try {
+                if (originalName == null || !isAllowedAudioExtension(originalName)) {
+                    result.put("status", "error");
+                    result.put("message", "Formato no permitido");
+                    results.add(result);
+                    continue;
+                }
+                // If a relative path was provided (folder upload), recreate directory structure
+                Path dest;
+                String relPath = (paths != null && i < paths.size()) ? paths.get(i) : null;
+                if (relPath != null && !relPath.isBlank()) {
+                    String safePath = buildSafeRelativePath(relPath);
+                    dest = destDir.resolve(safePath).normalize();
+                } else {
+                    dest = destDir.resolve(sanitizeName(originalName)).normalize();
+                }
+                if (!dest.startsWith(basePath)) throw new SecurityException("Acceso denegado");
+                Files.createDirectories(dest.getParent());
+                Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
+                result.put("status", "ok");
+                result.put("path", basePath.relativize(dest).toString());
+            } catch (Exception e) {
+                result.put("status", "error");
+                result.put("message", e.getMessage());
+            }
+            results.add(result);
+        }
+        return results;
+    }
+
+    /** Sanitizes each segment of a relative path like "FolderA/SubB/file.mp3". */
+    private String buildSafeRelativePath(String relPath) {
+        String[] segments = relPath.replace('\\', '/').split("/");
+        return Arrays.stream(segments)
+                .filter(s -> !s.isBlank())
+                .map(this::sanitizeName)
+                .collect(Collectors.joining("/"));
+    }
+
+    public void downloadFileToResponse(Long pathId, String relativePath, HttpServletResponse response) throws IOException {
+        Path file = resolveValidatedPath(pathId, relativePath);
+        if (!file.toFile().isFile()) throw new IllegalArgumentException("No es un archivo");
+        String fileName = file.getFileName().toString();
+        response.setContentType(detectAudioMimeType(fileName));
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+        response.setContentLengthLong(Files.size(file));
+        try (OutputStream out = response.getOutputStream()) {
+            Files.copy(file, out);
+        }
+    }
+
+    public void downloadFolderZipToResponse(Long pathId, String relativePath, HttpServletResponse response) throws IOException {
+        Path folder = resolveValidatedPath(pathId, relativePath);
+        if (!folder.toFile().isDirectory()) throw new IllegalArgumentException("No es una carpeta");
+        String zipName = folder.getFileName() + ".zip";
+        response.setContentType("application/zip");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + zipName + "\"");
+        try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
+            addFolderToZip(folder, folder.getParent(), zos);
+        }
+    }
+
     // ── Shared path helpers (used by MusicService and others) ────────────────
 
     /**
@@ -314,5 +408,43 @@ public class NasService {
             }
         }
         Files.deleteIfExists(path);
+    }
+
+    private boolean isAllowedAudioExtension(String filename) {
+        int dot = filename.lastIndexOf('.');
+        if (dot < 0) return false;
+        return ALLOWED_AUDIO_EXTENSIONS.contains(filename.substring(dot + 1).toLowerCase());
+    }
+
+    private void addFolderToZip(Path path, Path baseDir, ZipOutputStream zos) throws IOException {
+        if (Files.isDirectory(path)) {
+            try (var stream = Files.list(path)) {
+                for (Path child : stream.sorted().toList()) {
+                    addFolderToZip(child, baseDir, zos);
+                }
+            }
+        } else {
+            String entryName = baseDir.relativize(path).toString().replace('\\', '/');
+            zos.putNextEntry(new ZipEntry(entryName));
+            Files.copy(path, zos);
+            zos.closeEntry();
+        }
+    }
+
+    private String detectAudioMimeType(String fileName) {
+        int dot = fileName.lastIndexOf('.');
+        String ext = dot >= 0 ? fileName.substring(dot + 1).toLowerCase() : "";
+        return switch (ext) {
+            case "mp3"  -> "audio/mpeg";
+            case "flac" -> "audio/flac";
+            case "wav"  -> "audio/wav";
+            case "ogg"  -> "audio/ogg";
+            case "m4a"  -> "audio/mp4";
+            case "aac"  -> "audio/aac";
+            case "opus" -> "audio/opus";
+            case "wma"  -> "audio/x-ms-wma";
+            case "webm" -> "audio/webm";
+            default     -> "application/octet-stream";
+        };
     }
 }

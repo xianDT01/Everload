@@ -107,7 +107,7 @@ public class MusicController {
                     headers.setContentType(MediaType.IMAGE_JPEG);
                 }
                 headers.setContentLength(cover.length);
-                headers.setCacheControl("public, max-age=86400"); // 24h cache
+                headers.setCacheControl("public, max-age=3600"); // 1h — se refresca tras subir portada
                 return new ResponseEntity<>(cover, headers, HttpStatus.OK);
             }
             return ResponseEntity.notFound().build();

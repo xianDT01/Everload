@@ -1208,6 +1208,209 @@
   padding: 4px 0;
 }
 
+/* ── Upload button ─────────────────────────────────────────────────────────── */
+.btn-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: var(--sp-muted, #b3b3b3);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 180ms;
+  letter-spacing: .5px;
+}
+.btn-upload:hover {
+  border-color: #fff;
+  color: #fff;
+}
+.btn-upload-active {
+  border-color: var(--sp-green, #1db954);
+  color: var(--sp-green, #1db954);
+  animation: uploadPulse 1.4s ease-in-out infinite;
+}
+@keyframes uploadPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .65; }
+}
+.btn-upload-label { font-size: 12px; }
+
+.btn-upload-folder {
+  border-color: rgba(29,185,84,0.35);
+  color: #1db954;
+}
+.btn-upload-folder:hover {
+  border-color: #1db954;
+  color: #1db954;
+  background: rgba(29,185,84,0.08);
+}
+
+/* ── Download buttons ──────────────────────────────────────────────────────── */
+.btn-dl-track {
+  background: transparent;
+  border: none;
+  color: transparent;
+  width: 24px; height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 160ms;
+  flex-shrink: 0;
+}
+.track-row:hover .btn-dl-track {
+  color: var(--sp-muted, #b3b3b3);
+}
+.btn-dl-track:hover {
+  color: #fff !important;
+  background: rgba(255,255,255,0.08);
+}
+.btn-dl-track.downloading {
+  color: var(--sp-green, #1db954) !important;
+}
+
+.btn-dl-folder {
+  background: transparent;
+  border: none;
+  color: transparent;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 160ms;
+  flex-shrink: 0;
+}
+.folder-card:hover .btn-dl-folder {
+  color: var(--sp-muted, #b3b3b3);
+}
+.btn-dl-folder:hover {
+  color: #fff !important;
+  background: rgba(255,255,255,0.1);
+}
+.btn-dl-folder.downloading {
+  color: var(--sp-green, #1db954) !important;
+}
+
+.dl-spin {
+  display: inline-block;
+  animation: dlSpin .7s linear infinite;
+  font-size: 13px;
+}
+@keyframes dlSpin { to { transform: rotate(360deg); } }
+
+/* ── Upload panel ──────────────────────────────────────────────────────────── */
+.upload-panel {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 320px;
+  background: #282828;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.7);
+  z-index: 300;
+  overflow: hidden;
+  animation: upPanelIn 220ms cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes upPanelIn {
+  from { opacity: 0; transform: translateY(16px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.upload-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #333;
+}
+.upload-panel-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.upload-panel-close {
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: color 150ms;
+  flex-shrink: 0;
+}
+.upload-panel-close:hover { color: #fff; }
+
+.upload-progress-bar {
+  position: relative;
+  height: 4px;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+.upload-progress-fill {
+  height: 100%;
+  background: var(--sp-green, #1db954);
+  transition: width 200ms linear;
+  border-radius: 2px;
+}
+.upload-progress-pct {
+  position: absolute;
+  right: 10px;
+  top: -16px;
+  font-size: 10px;
+  color: var(--sp-green, #1db954);
+  font-weight: 700;
+}
+
+.upload-results {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  max-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.upload-results li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+.ur-icon {
+  font-size: 11px;
+  font-weight: 900;
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+}
+.ur-ok .ur-icon { color: var(--sp-green, #1db954); }
+.ur-err .ur-icon { color: #e74c3c; }
+.ur-name {
+  flex: 1;
+  color: #ccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ur-msg {
+  font-size: 10px;
+  color: #e74c3c;
+  flex-shrink: 0;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .custom-bg-heart {
   background: linear-gradient(135deg, #450af5, #c4efd9);
 }

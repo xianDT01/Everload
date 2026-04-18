@@ -5,12 +5,14 @@ import com.EverLoad.everload.dto.NasPathDto;
 import com.EverLoad.everload.service.NasService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -147,6 +149,53 @@ public class NasController {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Subir archivos de música al NAS (soporta subida de carpetas con estructura)")
+    @PostMapping("/browse/{pathId}/upload")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> uploadFiles(@PathVariable Long pathId,
+                                         @RequestParam(required = false) String subPath,
+                                         @RequestPart("files") List<MultipartFile> files,
+                                         @RequestParam(required = false) List<String> paths) {
+        try {
+            List<Map<String, Object>> results = nasService.uploadMusicFiles(pathId, subPath, files, paths);
+            return ResponseEntity.ok(results);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Descargar archivo de música")
+    @GetMapping("/browse/{pathId}/download")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public void downloadFile(@PathVariable Long pathId,
+                             @RequestParam String relativePath,
+                             HttpServletResponse response) throws IOException {
+        try {
+            nasService.downloadFileToResponse(pathId, relativePath, response);
+        } catch (SecurityException e) {
+            response.sendError(403, e.getMessage());
+        } catch (IllegalArgumentException e) {
+            response.sendError(400, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Descargar carpeta como ZIP")
+    @GetMapping("/browse/{pathId}/download-zip")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public void downloadFolderZip(@PathVariable Long pathId,
+                                  @RequestParam String relativePath,
+                                  HttpServletResponse response) throws IOException {
+        try {
+            nasService.downloadFolderZipToResponse(pathId, relativePath, response);
+        } catch (SecurityException e) {
+            response.sendError(403, e.getMessage());
+        } catch (IllegalArgumentException e) {
+            response.sendError(400, e.getMessage());
         }
     }
 }
