@@ -1,27 +1,10 @@
-2026-04-15 01:14:43 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
-2026-04-15 01:14:44 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
-2026-04-15 01:14:45 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-04-15 01:14:45 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-04-15 01:14:45 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
-2026-04-15 01:17:32 INFO  c.E.everload.service.BackupService - [BACKUP] Creating backup → /home/xiandt/IdeaProjects/Everload/./backups/backup_2026-04-15_01-17-32.zip
-2026-04-15 01:17:32 INFO  c.E.e.c.SystemInfoController - [UPDATE] Pre-update backup created: backup_2026-04-15_01-17-32.zip
-2026-04-15 01:17:32 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → UPDATE_STARTED System (update) detail=backup=backup_2026-04-15_01-17-32.zip | maintenance=ON
-2026-04-15 01:17:41 INFO  c.E.everload.service.BackupService - [BACKUP] Deleted backup: backup_2026-04-15_01-17-32.zip
-2026-04-15 01:17:41 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → BACKUP_DELETED Database (backup_2026-04-15_01-17-32.zip) detail=null
-2026-04-15 01:18:55 INFO  c.E.everload.service.BackupService - [BACKUP] Creating backup → /home/xiandt/IdeaProjects/Everload/./backups/backup_2026-04-15_01-18-55.zip
-2026-04-15 01:18:55 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → BACKUP_CREATED Database (backup_2026-04-15_01-18-55.zip) detail=Tamaño: 3,3 KB
-2026-04-15 01:18:59 INFO  c.E.everload.service.BackupService - [BACKUP] Deleted backup: backup_2026-04-15_01-18-55.zip
-2026-04-15 01:18:59 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → BACKUP_DELETED Database (backup_2026-04-15_01-18-55.zip) detail=null
-2026-04-15 01:22:11 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → MAINTENANCE_DISABLED System (maintenance) detail=null
-2026-04-15 01:22:12 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → MAINTENANCE_ENABLED System (maintenance) detail=Mensaje: La aplicación se está actualizando. Vuelve en unos minutos.
-2026-04-15 01:22:33 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → MAINTENANCE_DISABLED System (maintenance) detail=null
-2026-04-15 01:23:32 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → MAINTENANCE_DISABLED System (maintenance) detail=null
-2026-04-15 01:23:34 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → MAINTENANCE_ENABLED System (maintenance) detail=Mensaje: La aplicación se está actualizando. Vuelve en unos minutos. Mantenimiento por XIAN
-2026-04-15 01:24:09 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → MAINTENANCE_DISABLED System (maintenance) detail=null
-2026-04-15 01:24:38 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → MAINTENANCE_ENABLED System (maintenance) detail=Mensaje: La aplicación se está actualizando. Vuelve en unos minutos. Mantenimiento por XIAN
-2026-04-15 01:29:49 INFO  c.E.everload.service.AuditLogService - [AUDIT] admin → MAINTENANCE_DISABLED System (maintenance) detail=null
-2026-04-15 01:29:58 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
-2026-04-15 01:29:58 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
-2026-04-15 01:29:58 INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-04-15 01:29:58 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-04-15 01:29:58 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-04-17 12:59:37 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
+2026-04-17 12:59:37 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-17 12:59:39 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-17 12:59:39 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-04-17 12:59:39 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2026-04-17 13:02:57 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
+2026-04-17 13:02:57 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
+2026-04-17 13:02:57 INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-17 13:02:57 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-04-17 13:02:57 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
