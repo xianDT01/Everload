@@ -110,12 +110,59 @@ export class ChatService implements OnDestroy {
   private groupsPollRef: any = null;
   private globalPollRef: any = null;
 
-  constructor(private http: HttpClient) {}
+  // ── Visibility API — pause polling when tab is hidden ─────────────────────
+  // Tracks which pollings were active before hiding so we can resume them.
+  private pausedState = { messages: false, groups: false, global: false };
+  private pausedMessageCallback: ((msgs: any[]) => void) | null = null;
+  private readonly visibilityHandler = () => this.onVisibilityChange();
+
+  constructor(private http: HttpClient) {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.visibilityHandler);
+    }
+  }
 
   ngOnDestroy(): void {
     this.stopPolling();
     this.stopGroupsPolling();
     this.stopGlobalPolling();
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+    }
+  }
+
+  private onVisibilityChange(): void {
+    if (document.hidden) {
+      // Pause: record what was running, then clear intervals
+      this.pausedState.messages = !!this.pollIntervalRef;
+      this.pausedState.groups   = !!this.groupsPollRef;
+      this.pausedState.global   = !!this.globalPollRef;
+
+      if (this.pollIntervalRef)  { clearInterval(this.pollIntervalRef);  this.pollIntervalRef  = null; }
+      if (this.groupsPollRef)    { clearInterval(this.groupsPollRef);    this.groupsPollRef    = null; }
+      if (this.globalPollRef)    { clearInterval(this.globalPollRef);    this.globalPollRef    = null; }
+    } else {
+      // Resume: restart whatever was running + do an immediate fetch to catch up
+      if (this.pausedState.global) {
+        this.refreshGroups(); // immediate catch-up
+        this.globalPollRef = setInterval(() => this.refreshGroups(), 5000);
+      }
+      if (this.pausedState.groups) {
+        this.refreshGroups();
+        this.groupsPollRef = setInterval(() => this.refreshGroups(), 5000);
+      }
+      if (this.pausedState.messages && this.currentPollGroupId !== null && this.pausedMessageCallback) {
+        const cb = this.pausedMessageCallback;
+        const gid = this.currentPollGroupId;
+        this.getMessages(gid).subscribe({ next: msgs => cb(msgs), error: () => {} });
+        this.pollIntervalRef = setInterval(() => {
+          if (this.currentPollGroupId !== null) {
+            this.getMessages(this.currentPollGroupId).subscribe({ next: msgs => cb(msgs), error: () => {} });
+          }
+        }, 2000);
+      }
+      this.pausedState = { messages: false, groups: false, global: false };
+    }
   }
 
   // ── API calls ─────────────────────────────────────────────────────────────
@@ -284,6 +331,7 @@ export class ChatService implements OnDestroy {
   startPolling(groupId: number, callback: (messages: ChatMessageDto[]) => void): void {
     this.stopPolling();
     this.currentPollGroupId = groupId;
+    this.pausedMessageCallback = callback; // kept for Visibility API resume
 
     this.pollIntervalRef = setInterval(() => {
       if (this.currentPollGroupId !== null) {

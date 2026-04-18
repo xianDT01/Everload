@@ -60,10 +60,10 @@
   background: rgba(255,255,255,0.08);
 }
 
-/* ── Action loading bar ──────────────────────────────────────────────────── */
+/* ── Action loading bar — picks up the active chat theme accent ──────────── */
 .action-loading-bar {
   height: 2px;
-  background: linear-gradient(90deg, var(--sp-green) 0%, transparent 100%);
+  background: linear-gradient(90deg, var(--cc-accent, #6c63ff) 0%, transparent 100%);
   background-size: 200% 100%;
   animation: loading-sweep 1.2s linear infinite;
 }
@@ -80,7 +80,12 @@
   flex-direction: column;
   align-items: center;
   border-bottom: 1px solid rgba(255,255,255,0.07);
-  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+  /* Subtle tint using the current theme accent */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--cc-accent, #6c63ff) 8%, transparent) 0%,
+    transparent 100%
+  );
 }
 
 .group-avatar-wrapper {
@@ -89,13 +94,19 @@
   height: 88px;
   border-radius: 50%;
   overflow: hidden;
-  background: linear-gradient(135deg, #3a3a50, #2a2a38);
+  /* Avatar background tinted with the accent */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--cc-accent, #6c63ff) 30%, #2a2a38),
+    #2a2a38
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 16px rgba(0,0,0,0.25);
   margin-bottom: 14px;
-  border: 2px solid rgba(255,255,255,0.08);
+  /* Border uses the accent at low opacity */
+  border: 2px solid color-mix(in srgb, var(--cc-accent, #6c63ff) 30%, transparent);
 }
 
 .group-avatar-wrapper img {
@@ -157,18 +168,19 @@
 }
 
 .edit-btn:hover {
-  color: var(--sp-green);
-  background: rgba(29,185,84,0.1);
+  color: var(--cc-accent, #6c63ff);
+  background: color-mix(in srgb, var(--cc-accent, #6c63ff) 12%, transparent);
 }
 
+/* Type badge — accent color of the active theme */
 .group-type-badge {
   font-size: 11px;
-  color: var(--sp-green);
+  color: var(--cc-accent, #6c63ff);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin: 0 0 6px 0;
   font-weight: 600;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .group-desc {
@@ -197,11 +209,12 @@
   font-family: inherit;
   font-size: 14px;
   box-sizing: border-box;
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .edit-input:focus {
   outline: none;
-  border-color: var(--sp-green);
+  border-color: var(--cc-accent, #6c63ff);
   background: rgba(255,255,255,0.08);
 }
 
@@ -223,7 +236,7 @@ textarea.edit-input {
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: background 0.2s;
+  transition: background 0.2s, filter 0.2s;
 }
 
 .btn-cancel {
@@ -235,13 +248,14 @@ textarea.edit-input {
   background: rgba(255,255,255,0.13);
 }
 
+/* Save button uses the active theme accent */
 .btn-save {
-  background: var(--sp-green);
-  color: #000;
+  background: var(--cc-accent, #6c63ff);
+  color: #fff;
 }
 
 .btn-save:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.12);
 }
 
 .btn-save:disabled {
@@ -271,14 +285,15 @@ textarea.edit-input {
   letter-spacing: 0.8px;
 }
 
+/* Add member button — accent border and text */
 .btn-add-member {
   display: flex;
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  background: rgba(29, 185, 84, 0.12);
-  border: 1px solid rgba(29, 185, 84, 0.4);
-  color: var(--sp-green);
+  background: color-mix(in srgb, var(--cc-accent, #6c63ff) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cc-accent, #6c63ff) 45%, transparent);
+  color: var(--cc-accent, #6c63ff);
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
@@ -287,7 +302,7 @@ textarea.edit-input {
 }
 
 .btn-add-member:hover {
-  background: rgba(29, 185, 84, 0.25);
+  background: color-mix(in srgb, var(--cc-accent, #6c63ff) 24%, transparent);
 }
 
 /* ── Add member panel ────────────────────────────────────────────────────── */
@@ -337,7 +352,6 @@ textarea.edit-input {
   object-fit: cover;
 }
 
-/* Initials fallback when user has no avatar */
 .member-avatar span {
   color: rgba(255,255,255,0.8);
   font-size: 13px;
@@ -368,11 +382,12 @@ textarea.edit-input {
   color: rgba(255,255,255,0.35);
 }
 
+/* Creator badge — uses the accent color of the current theme */
 .badge-creator {
   display: inline-block;
   font-size: 10px;
-  background: rgba(29, 185, 84, 0.15);
-  color: var(--sp-green);
+  background: color-mix(in srgb, var(--cc-accent, #6c63ff) 16%, transparent);
+  color: var(--cc-accent, #6c63ff);
   padding: 2px 7px;
   border-radius: 10px;
   margin-top: 3px;

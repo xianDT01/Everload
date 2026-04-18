@@ -47,12 +47,37 @@
 
     <hr class="sidebar-divider">
 
-    <!-- Folders -->
+    <!-- Favorite folders + Paths scroll section -->
     <div class="sidebar-section scroll-section">
+      <!-- Favorites -->
+      <ng-container *ngIf="favoriteFolders.length > 0">
+        <p class="sidebar-label">Favoritos</p>
+        <ul class="collections-list">
+          <li *ngFor="let fav of favoriteFolders"
+              class="collection-item fav-folder-item"
+              [class.active]="currentView === 'folder' && selectedPathId === fav.pathId && currentSubPath === fav.subPath"
+              (click)="navigateToFavFolder(fav)">
+            <div class="fav-folder-thumb">
+              <img [src]="favFolderCoverUrl(fav)" (error)="$any($event.target).style.display='none'" loading="lazy" />
+              <div class="fav-folder-thumb-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+              </div>
+            </div>
+            <div class="collection-info">
+              <span class="collection-name">{{ fav.name }}</span>
+              <span class="collection-type">Carpeta</span>
+            </div>
+          </li>
+        </ul>
+        <hr class="sidebar-divider sidebar-divider-sm">
+      </ng-container>
+
+      <!-- Root NAS paths -->
+      <p class="sidebar-label" *ngIf="paths.length > 0">Biblioteca</p>
       <ul class="collections-list">
         <li *ngFor="let p of paths"
             class="collection-item"
-            [class.active]="currentView === 'folder' && p.id === selectedPathId"
+            [class.active]="currentView === 'folder' && p.id === selectedPathId && !currentSubPath"
             (click)="selectPath(p.id)">
           <span class="collection-name-only">{{ p.name }}</span>
         </li>
@@ -191,10 +216,10 @@
                (click)="!editMode ? navigate(folder) : null"
                (dblclick)="!editMode ? navigate(folder) : null">
             <!-- Dynamic cover image -->
-            <div class="folder-card-art">
+            <div class="folder-card-art" [style.background]="folderFallbackGradient(folder)">
               <img [src]="folderCoverUrl(folder)" class="folder-cover-img" (error)="folderCoverError($event)" loading="lazy" />
               <div class="folder-card-fallback">
-                <svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+                <svg width="52" height="52" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)">
                   <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
                 </svg>
               </div>
@@ -233,7 +258,20 @@
             </div>
             <div class="folder-card-info">
               <span class="folder-card-name">{{ folder.name }}</span>
-              <span class="folder-card-type">{{ 'MUSIC.FOLDER_TYPE' | translate }}</span>
+              <div class="folder-card-meta">
+                <span class="folder-card-type">{{ 'MUSIC.FOLDER_TYPE' | translate }}</span>
+                <button class="btn-fav-folder"
+                        [class.active]="isFolderFav(folder)"
+                        (click)="toggleFolderFav($event, folder)"
+                        [title]="isFolderFav(folder) ? 'Quitar de favoritos' : 'Añadir a favoritos'">
+                  <svg *ngIf="isFolderFav(folder)" width="14" height="14" viewBox="0 0 24 24" fill="#1db954">
+                    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
+                  </svg>
+                  <svg *ngIf="!isFolderFav(folder)" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/>
+                  </svg>
+                </button>
+              </div>
             </div>
             <div class="folder-card-play-overlay" *ngIf="!editMode">
               <div class="folder-card-play">
@@ -281,7 +319,8 @@
 
             <div class="tr-title-cell">
               <div class="tr-art">
-                <img *ngIf="hasCoverToShow(track)" [src]="coverUrl(track)" loading="lazy" />
+                <img *ngIf="hasCoverToShow(track)" [src]="coverUrl(track)" loading="lazy"
+                     (error)="onTrackCoverError($event, track)" />
                 <div *ngIf="!hasCoverToShow(track)" class="tr-art-placeholder">♪</div>
                 <div class="tr-art-overlay" *ngIf="isCurrentTrack(track) && state?.playing">
                   <span class="tr-equalizer-sm">
