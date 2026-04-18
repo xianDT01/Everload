@@ -949,6 +949,9 @@
               <option value="">{{ 'MUSIC.DJ_MIDI_NONE' | translate }}</option>
               <option *ngFor="let d of midiDevices" [value]="d.id">{{ d.name }}</option>
             </select>
+            <span class="midi-preset-badge" *ngIf="midiService.getActivePresetName() as pname">
+              ✓ {{ pname }}
+            </span>
           </div>
 
           <div *ngIf="!activeMidiDeviceId" class="midi-empty">
@@ -989,9 +992,18 @@
         </div>
       </div>
       <div class="midi-modal-footer">
+        <button *ngIf="midiService.getActivePresetName()" class="btn-reset-preset" (click)="resetMidiToPreset()" title="Restaurar mapeo del preset detectado">
+          ↺ Preset: {{ midiService.getActivePresetName() }}
+        </button>
         <button class="btn-modal-close" (click)="showMidiConfig = false">{{ 'MUSIC.DJ_HELP_CLOSE' | translate }}</button>
       </div>
     </div>
+  </div>
+
+  <!-- ══ MIDI auto-detect toast ════════════════════════════════════════════════ -->
+  <div class="midi-toast" *ngIf="midiAutoDetectMsg" (click)="midiAutoDetectMsg = ''">
+    <span class="midi-toast-icon">🎛️</span>
+    <span class="midi-toast-text">{{ midiAutoDetectMsg }}</span>
   </div>
 
 </div><!-- /vdj-layout -->

@@ -114,6 +114,8 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   isMidiLearning = false;
   showMidiConfig = false;
   showHelp = false;
+  midiAutoDetectMsg = '';
+  private midiToastTimer: any = null;
 
   // Album art fetched from iTunes API (clave = track.path)
   coverOverrideMap = new Map<string, string>();
@@ -182,8 +184,14 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
           this.fetchCoverIfNeeded(s.currentTrack);
         }
       }),
+      this.midiService.devices$.subscribe(devs => {
+        this.midiDevices = devs;
+        if (!this.activeMidiDeviceId && devs.length > 0) this.activeMidiDeviceId = devs[0].id;
+      }),
+      this.midiService.activeDeviceId$.subscribe(id => this.activeMidiDeviceId = id),
       this.midiService.isLearning$.subscribe(l => this.isMidiLearning = l),
       this.midiService.action$.subscribe(action => this.handleMidiAction(action)),
+      this.midiService.autoDetected$.subscribe(ev => this.showMidiAutoDetectToast(ev.deviceName, ev.presetName)),
 
       // Auto-add to history after 15s
       this.musicService.deckAPlayer.state$.subscribe(s => this.trackHistoryA(s)),
@@ -1493,5 +1501,18 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   clearMidiMapping(actionId: string) {
     this.midiService.clearMapping(actionId);
+  }
+
+  resetMidiToPreset() {
+    this.midiService.resetToPreset();
+  }
+
+  private showMidiAutoDetectToast(deviceName: string, presetName: string) {
+    if (this.midiToastTimer) clearTimeout(this.midiToastTimer);
+    this.midiAutoDetectMsg = `${deviceName} detectado — preset "${presetName}" aplicado`;
+    this.midiToastTimer = setTimeout(() => {
+      this.midiAutoDetectMsg = '';
+      this.midiToastTimer = null;
+    }, 5000);
   }
 }
