@@ -1192,6 +1192,13 @@
   overflow-y: auto;
 }
 
+.fav-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #1db954;
+}
+
 .collection-name-only {
   font-size: 14px;
   font-weight: 500;

@@ -47,34 +47,30 @@
 
     <hr class="sidebar-divider">
 
-    <!-- Favorite folders + Paths scroll section -->
+    <!-- Library: favorites first, then root paths -->
     <div class="sidebar-section scroll-section">
-      <!-- Favorites -->
-      <ng-container *ngIf="favoriteFolders.length > 0">
-        <p class="sidebar-label">Favoritos</p>
-        <ul class="collections-list">
-          <li *ngFor="let fav of favoriteFolders"
-              class="collection-item fav-folder-item"
-              [class.active]="currentView === 'folder' && selectedPathId === fav.pathId && currentSubPath === fav.subPath"
-              (click)="navigateToFavFolder(fav)">
-            <div class="fav-folder-thumb">
-              <img [src]="favFolderCoverUrl(fav)" (error)="$any($event.target).style.display='none'" loading="lazy" />
-              <div class="fav-folder-thumb-icon">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
-              </div>
-            </div>
-            <div class="collection-info">
-              <span class="collection-name">{{ fav.name }}</span>
-              <span class="collection-type">Carpeta</span>
-            </div>
-          </li>
-        </ul>
-        <hr class="sidebar-divider sidebar-divider-sm">
-      </ng-container>
-
-      <!-- Root NAS paths -->
-      <p class="sidebar-label" *ngIf="paths.length > 0">Biblioteca</p>
+      <p class="sidebar-label" *ngIf="favoriteFolders.length > 0 || paths.length > 0">Biblioteca</p>
       <ul class="collections-list">
+        <!-- Favorites sorted to top with star indicator -->
+        <li *ngFor="let fav of favoriteFolders"
+            class="collection-item fav-folder-item"
+            [class.active]="currentView === 'folder' && selectedPathId === fav.pathId && currentSubPath === fav.subPath"
+            (click)="navigateToFavFolder(fav)">
+          <div class="fav-folder-thumb">
+            <img [src]="favFolderCoverUrl(fav)" (error)="$any($event.target).style.display='none'" loading="lazy" />
+            <div class="fav-folder-thumb-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/></svg>
+            </div>
+          </div>
+          <div class="collection-info">
+            <span class="collection-name">{{ fav.name }}</span>
+            <span class="collection-type fav-badge">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="#1db954"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+              Favorito
+            </span>
+          </div>
+        </li>
+        <!-- Root NAS paths -->
         <li *ngFor="let p of paths"
             class="collection-item"
             [class.active]="currentView === 'folder' && p.id === selectedPathId && !currentSubPath"
