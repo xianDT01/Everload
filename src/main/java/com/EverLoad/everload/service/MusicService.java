@@ -1,6 +1,7 @@
 package com.EverLoad.everload.service;
 
 import com.EverLoad.everload.dto.MusicMetadataDto;
+import com.EverLoad.everload.dto.PagedMusicResult;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jaudiotagger.audio.AudioFile;
@@ -17,9 +18,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,27 +35,44 @@ public class MusicService {
     // ── Public API ────────────────────────────────────────────────────────────
 
     /**
-     * Returns all directories + audio files under pathId/subPath with extracted ID3 metadata.
+     * Returns directories + a page of audio files under pathId/subPath with extracted ID3 metadata.
+     * Directories are always included on page 0 (no ID3 reading needed, fast).
+     * Audio tracks are read in batches of `size` to avoid blocking on large folders.
      */
-    public List<MusicMetadataDto> listFilesWithMetadata(Long pathId, String subPath) {
+    public PagedMusicResult listFilesWithMetadata(Long pathId, String subPath, int page, int size) {
         Path target = nasService.resolveValidatedPath(pathId, subPath);
         Path base   = nasService.getBasePath(pathId);
 
         File dir = target.toFile();
-        if (!dir.exists() || !dir.isDirectory()) return Collections.emptyList();
+        if (!dir.exists() || !dir.isDirectory()) return new PagedMusicResult(Collections.emptyList(), 0, page, size);
         if (!dir.canRead()) throw new SecurityException("Sin permisos de lectura en: " + target);
 
         File[] files = dir.listFiles();
-        if (files == null) return Collections.emptyList();
+        if (files == null) return new PagedMusicResult(Collections.emptyList(), 0, page, size);
 
-        return Arrays.stream(files)
-                .filter(f -> f.isDirectory() || isAudio(f))
-                .map(f -> buildDto(f, base))
-                .sorted((a, b) -> {
-                    if (a.isDirectory() != b.isDirectory()) return a.isDirectory() ? -1 : 1;
-                    return a.getName().compareToIgnoreCase(b.getName());
-                })
+        List<File> dirs = Arrays.stream(files)
+                .filter(File::isDirectory)
+                .sorted(Comparator.comparing(f -> f.getName().toLowerCase()))
                 .collect(Collectors.toList());
+
+        List<File> audioFiles = Arrays.stream(files)
+                .filter(f -> f.isFile() && isAudio(f))
+                .sorted(Comparator.comparing(f -> f.getName().toLowerCase()))
+                .collect(Collectors.toList());
+
+        int totalTracks = audioFiles.size();
+        int fromIdx = page * size;
+        int toIdx   = Math.min(fromIdx + size, totalTracks);
+
+        List<MusicMetadataDto> items = new ArrayList<>();
+        if (page == 0) {
+            dirs.stream().map(f -> buildDto(f, base)).forEach(items::add);
+        }
+        if (fromIdx < totalTracks) {
+            audioFiles.subList(fromIdx, toIdx).stream().map(f -> buildDto(f, base)).forEach(items::add);
+        }
+
+        return new PagedMusicResult(items, totalTracks, page, size);
     }
 
     /**

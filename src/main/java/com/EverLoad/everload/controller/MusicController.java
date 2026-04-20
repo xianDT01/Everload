@@ -1,6 +1,7 @@
 package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.dto.MusicMetadataDto;
+import com.EverLoad.everload.dto.PagedMusicResult;
 import com.EverLoad.everload.service.MusicService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,14 +25,16 @@ public class MusicController {
 
     // ── Metadata ──────────────────────────────────────────────────────────────
 
-    @Operation(summary = "Listar archivos de audio con metadatos ID3")
+    @Operation(summary = "Listar archivos de audio con metadatos ID3 (paginado)")
     @GetMapping("/metadata")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<?> browseMusic(@RequestParam Long pathId,
-                                         @RequestParam(required = false) String subPath) {
+                                         @RequestParam(required = false) String subPath,
+                                         @RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "50") int size) {
         try {
-            List<MusicMetadataDto> files = musicService.listFilesWithMetadata(pathId, subPath);
-            return ResponseEntity.ok(files);
+            PagedMusicResult result = musicService.listFilesWithMetadata(pathId, subPath, page, size);
+            return ResponseEntity.ok(result);
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {

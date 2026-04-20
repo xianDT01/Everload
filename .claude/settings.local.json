@@ -32,7 +32,8 @@
       "Bash(docker-compose up *)",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); proj=list\\(d['projects'].keys\\(\\)\\)[0]; build=d['projects'][proj]['architect']['build']; print\\(json.dumps\\({'assets': build.get\\('options',{}\\).get\\('assets'\\), 'configurations': list\\(build.get\\('configurations',{}\\).keys\\(\\)\\)}, indent=2\\)\\)\")",
       "Bash(python3 *)",
-      "Bash(npx ng *)"
+      "Bash(npx ng *)",
+      "Bash(/home/xiandt/.nvm/versions/node/v18.20.8/bin/node node_modules/.bin/ng build --configuration production)"
     ]
   }
 }
