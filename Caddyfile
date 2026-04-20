@@ -20,13 +20,13 @@
 
 {$CADDY_DOMAIN:localhost} {
 
-    # ── Service Worker: never cache the manifest or worker script ────────
-    # Without this, browsers/proxies may serve stale ngsw.json after
+    # ── Service Worker: never cache the manifest, worker script, or index HTML ──
+    # Without this, browsers/proxies may serve stale ngsw.json or index.html after
     # redeployments, causing the SW to request assets with wrong hashes.
-    @sw_files {
-        path /ngsw-worker.js /ngsw.json /safety-worker.js
+    @no_cache_files {
+        path /ngsw-worker.js /ngsw.json /safety-worker.js /index.html /
     }
-    header @sw_files Cache-Control "no-cache, no-store, must-revalidate"
+    header @no_cache_files Cache-Control "no-cache, no-store, must-revalidate"
 
     # ── Reverse proxy → Spring Boot ──────────────────────────────────────
     reverse_proxy everload:8080 {

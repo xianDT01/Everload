@@ -6,6 +6,18 @@ import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/m
 import { AuthService } from '../../../services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
 
+interface NasBanner {
+  id: number;
+  title: string;
+  subtitle: string;
+  gradient: string;
+  view?: 'home' | 'liked' | 'history';
+  pathIndex?: number;
+  subPath?: string;
+  track?: MusicMetadataDto;
+  pathId?: number;
+}
+
 @Component({
   selector: 'app-library-mode',
   templateUrl: './library-mode.component.html',
@@ -32,6 +44,35 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   queueIndex = -1;
   searchQuery = '';
   likedSortBy: 'date' | 'title' | 'artist' = 'date';
+
+  // ── Banners ───────────────────────────────────────────────────────────────
+  banners: NasBanner[] = [
+    {
+      id: 1,
+      title: 'Mis Favoritos',
+      subtitle: 'Tu música preferida reunida',
+      gradient: 'linear-gradient(135deg, #1a0533 0%, #4c1d95 45%, #7c3aed 100%)',
+      view: 'liked'
+    },
+    {
+      id: 2,
+      title: 'Escuchado Recientemente',
+      subtitle: 'Retoma donde lo dejaste',
+      gradient: 'linear-gradient(135deg, #0c1445 0%, #1e3a8a 45%, #3b82f6 100%)',
+      view: 'history'
+    },
+    {
+      id: 3,
+      title: 'Tu Biblioteca',
+      subtitle: 'Toda tu colección de música',
+      gradient: 'linear-gradient(135deg, #0a1f14 0%, #14532d 45%, #1db954 100%)',
+      pathIndex: 0
+    }
+  ];
+  activeBannerIndex = 0;
+  private bannerInterval?: ReturnType<typeof setInterval>;
+  private pendingAutoPlay = false;
+  private preloadAudio = new Audio();
 
   // ── Mobile ────────────────────────────────────────────────────────────────
   mobileMenuOpen = false;
@@ -64,6 +105,19 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
 
   downloadingPaths = new Set<string>();
 
+  // ── YouTube → NAS panel ───────────────────────────────────────────────────
+  ytPanel = false;
+  ytQuery = '';
+  ytSearching = false;
+  ytResults: any[] = [];
+  ytFormat = 'mp3';
+  ytDownloadingIds = new Set<string>();
+
+  // ── Active yt-dlp downloads panel ────────────────────────────────────────
+  ytJobs: any[] = [];
+  private pollInterval?: ReturnType<typeof setInterval>;
+  private completedJobIds = new Set<string>();
+
   private uploadSub?: Subscription;
   private subs: Subscription[] = [];
 
@@ -76,10 +130,13 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadFavoriteFolders();
+    this.startBannerRotation();
+    this.loadFavHistoryBanners();
     this.nasService.getPaths().subscribe(paths => {
       this.paths = paths;
       if (paths.length > 0) this.selectPath(paths[0].id);
       else this.setView('home');
+      this.loadLibraryBanner();
     });
 
     this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => {
@@ -99,7 +156,132 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy(): void { this.subs.forEach(s => s.unsubscribe()); }
+  ngOnDestroy(): void {
+    this.subs.forEach(s => s.unsubscribe());
+    clearInterval(this.bannerInterval);
+    this.stopPollJobs();
+    this.preloadAudio.src = '';
+    this.preloadAudio.load();
+  }
+
+  // ── Banner methods ────────────────────────────────────────────────────────
+
+  startBannerRotation(): void {
+    clearInterval(this.bannerInterval);
+    this.bannerInterval = setInterval(() => {
+      this.activeBannerIndex = (this.activeBannerIndex + 1) % this.banners.length;
+      this.preloadActiveBanner();
+    }, 5000);
+  }
+
+  goToBanner(index: number): void {
+    this.activeBannerIndex = index;
+    this.preloadActiveBanner();
+    this.startBannerRotation();
+  }
+
+  nextBanner(): void {
+    this.goToBanner((this.activeBannerIndex + 1) % this.banners.length);
+  }
+
+  prevBanner(): void {
+    this.goToBanner((this.activeBannerIndex - 1 + this.banners.length) % this.banners.length);
+  }
+
+  onBannerClick(banner: NasBanner): void {
+    if (banner.track && banner.pathId != null) {
+      // Track already pre-buffered → instant play like DJ booth
+      this.musicService.mainPlayer.load(banner.track, banner.pathId).then(() => {
+        this.musicService.mainPlayer.play();
+      });
+      return;
+    }
+    // Fallback: navigate to view and auto-play first track
+    this.pendingAutoPlay = true;
+    if (banner.view) {
+      this.setView(banner.view);
+    } else if (banner.pathIndex !== undefined && this.paths.length > banner.pathIndex) {
+      this.currentView = 'folder';
+      this.selectedPathId = this.paths[banner.pathIndex].id;
+      this.currentSubPath = banner.subPath || '';
+      this.searchQuery = '';
+      this.load();
+    } else {
+      this.pendingAutoPlay = false;
+    }
+  }
+
+  private preloadActiveBanner(): void {
+    const banner = this.banners[this.activeBannerIndex];
+    if (banner?.track && banner.pathId != null) {
+      const url = this.musicService.getStreamUrl(banner.pathId, banner.track.path);
+      this.preloadAudio.preload = 'auto';
+      this.preloadAudio.src = url;
+      this.preloadAudio.load();
+    }
+  }
+
+  getBannerCoverUrl(banner: NasBanner): string {
+    if (!banner.track || banner.pathId == null) return '';
+    return this.musicService.getCoverUrlWithCache(banner.pathId, banner.track.path);
+  }
+
+  private loadFavHistoryBanners(): void {
+    this.musicService.getFavorites().subscribe(favs => {
+      if (!favs.length) return;
+      const fav = favs[0];
+      const track: MusicMetadataDto = {
+        name: fav.title, path: fav.trackPath, title: fav.title, artist: fav.artist,
+        album: fav.album, hasCover: false, directory: false, nasPathId: fav.nasPathId,
+        duration: 0, size: 0, format: '', lastModified: '', bpm: 0
+      };
+      this.musicService.fetchCoverIfNeeded(track);
+      this.banners = this.banners.map((b, i) => i === 0
+        ? { ...b, title: fav.title || b.title, subtitle: fav.artist || b.subtitle, track, pathId: fav.nasPathId }
+        : b);
+      if (this.activeBannerIndex === 0) this.preloadActiveBanner();
+    });
+
+    this.musicService.getHistory(1).subscribe(hist => {
+      if (!hist.length) return;
+      const h = hist[0];
+      const track: MusicMetadataDto = {
+        name: h.title, path: h.trackPath, title: h.title, artist: h.artist,
+        album: h.album, hasCover: false, directory: false, nasPathId: h.nasPathId,
+        duration: h.durationSeconds || 0, size: 0, format: '', lastModified: '', bpm: 0
+      };
+      this.musicService.fetchCoverIfNeeded(track);
+      this.banners = this.banners.map((b, i) => i === 1
+        ? { ...b, title: h.title || b.title, subtitle: h.artist || b.subtitle, track, pathId: h.nasPathId }
+        : b);
+      if (this.activeBannerIndex === 1) this.preloadActiveBanner();
+    });
+  }
+
+  private loadLibraryBanner(): void {
+    if (!this.paths.length) return;
+    const pid = this.paths[0].id;
+    this.musicService.browse(pid, '').subscribe(items => {
+      const tracks = items.filter(i => !i.directory);
+      if (!tracks.length) return;
+      const track = tracks[Math.floor(Math.random() * tracks.length)];
+      track.nasPathId = pid;
+      this.musicService.fetchCoverIfNeeded(track);
+      this.banners = this.banners.map((b, i) => i === 2
+        ? { ...b, title: track.title || track.name || b.title, subtitle: track.artist || b.subtitle, track, pathId: pid }
+        : b);
+      if (this.activeBannerIndex === 2) this.preloadActiveBanner();
+    });
+  }
+
+  private checkPendingAutoPlay(): void {
+    if (this.pendingAutoPlay && this.tracks.length > 0) {
+      this.pendingAutoPlay = false;
+      this.playTrack(this.tracks[0]);
+    } else if (this.pendingAutoPlay && this.tracks.length === 0) {
+      this.pendingAutoPlay = false;
+    }
+  }
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
@@ -160,6 +342,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
         } as MusicMetadataDto));
         // Buscar portadas de iTunes para los ítems visibles
         this.items.slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
+        this.checkPendingAutoPlay();
       });
     } else if (this.currentView === 'history') {
       this.musicService.getHistory(50).subscribe(hist => {
@@ -179,11 +362,13 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
         } as MusicMetadataDto));
         // Buscar portadas de iTunes para los ítems visibles
         this.items.slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
+        this.checkPendingAutoPlay();
       });
     } else if (this.currentView === 'folder' && this.selectedPathId !== null) {
       this.musicService.browse(this.selectedPathId, this.currentSubPath).subscribe(items => {
         this.items = items;
         this.fetchCoversForVisible();
+        this.checkPendingAutoPlay();
       });
     }
   }
@@ -668,6 +853,89 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
 
   isDownloading(path: string): boolean {
     return this.downloadingPaths.has(path);
+  }
+
+  // ── YouTube → NAS ─────────────────────────────────────────────────────────
+
+  toggleYtPanel(): void {
+    this.ytPanel = !this.ytPanel;
+    if (!this.ytPanel) { this.ytResults = []; this.ytQuery = ''; }
+  }
+
+  searchYouTube(): void {
+    if (!this.ytQuery.trim()) return;
+    this.ytSearching = true;
+    this.ytResults = [];
+    this.musicService.searchYouTube(this.ytQuery.trim(), 10).subscribe({
+      next: (res: any) => { this.ytResults = res?.items || []; this.ytSearching = false; },
+      error: () => { this.ytSearching = false; }
+    });
+  }
+
+  downloadYtToNas(video: any): void {
+    if (!this.selectedPathId) return;
+    const vid = video.id?.videoId || video.id;
+    const title = video.snippet?.title || vid;
+    this.ytDownloadingIds.add(vid);
+    this.musicService.ytDlpQueue(vid, title, this.selectedPathId, this.currentSubPath, this.ytFormat).subscribe({
+      next: () => {
+        this.ytDownloadingIds.delete(vid);
+        this.startPollJobs();
+      },
+      error: () => this.ytDownloadingIds.delete(vid)
+    });
+  }
+
+  isYtDownloading(video: any): boolean {
+    return this.ytDownloadingIds.has(video.id?.videoId || video.id);
+  }
+
+  ytThumbnail(video: any): string {
+    const id = video.id?.videoId || video.id;
+    return `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+  }
+
+  // ── Downloads polling ─────────────────────────────────────────────────────
+
+  startPollJobs(): void {
+    if (this.pollInterval) return;
+    this.pollInterval = setInterval(() => this.pollJobs(), 2500);
+    this.pollJobs();
+  }
+
+  stopPollJobs(): void {
+    clearInterval(this.pollInterval);
+    this.pollInterval = undefined;
+  }
+
+  private pollJobs(): void {
+    this.musicService.ytDlpActiveJobs().subscribe({
+      next: (jobs: any[]) => {
+        this.ytJobs = jobs;
+        const hasActive = jobs.some(j => j.status === 'QUEUED' || j.status === 'RUNNING');
+        if (!hasActive) this.stopPollJobs();
+        // Auto-refresh folder when a new job finishes in current location
+        jobs.filter(j => j.status === 'DONE' && !this.completedJobIds.has(j.jobId)).forEach(j => {
+          this.completedJobIds.add(j.jobId);
+          if (j.nasPathId === this.selectedPathId && (j.subPath || '') === (this.currentSubPath || '')) {
+            this.load();
+          }
+        });
+      },
+      error: () => this.stopPollJobs()
+    });
+  }
+
+  closeJobsPanel(): void {
+    this.ytJobs = this.ytJobs.filter(j => j.status === 'RUNNING' || j.status === 'QUEUED');
+    if (!this.ytJobs.length) this.stopPollJobs();
+  }
+
+  jobStatusLabel(job: any): string {
+    if (job.status === 'QUEUED') return 'En cola';
+    if (job.status === 'RUNNING') return `${job.progress}%`;
+    if (job.status === 'DONE') return 'Listo ✓';
+    return 'Error';
   }
 
   private triggerBlobDownload(blob: Blob, fileName: string): void {
