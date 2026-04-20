@@ -786,15 +786,55 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
   padding: 80px 24px;
   text-align: center;
+}
+
+.empty-state.interactive {
+  margin: 40px 24px;
+  padding: 48px 32px;
+  border: 1.5px dashed rgba(255,255,255,0.08);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(29,185,84,0.03) 0%, rgba(18,18,18,0.6) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color 300ms, background 300ms;
+}
+
+.empty-state.interactive:hover {
+  border-color: rgba(29,185,84,0.2);
+  background: linear-gradient(145deg, rgba(29,185,84,0.06) 0%, rgba(18,18,18,0.7) 100%);
+}
+
+.empty-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-dynamic-icon {
+  filter: drop-shadow(0 4px 20px rgba(29,185,84,0.25));
+  animation: float-icon 4s ease-in-out infinite;
+}
+
+@keyframes float-icon {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.empty-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .empty-title {
   font-size: 20px;
   font-weight: 700;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .empty-hint {
@@ -802,6 +842,66 @@
   color: var(--sp-muted);
   margin: 0;
 }
+
+.empty-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-empty-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 200ms ease;
+}
+
+.btn-empty-cta.primary {
+  background: var(--sp-green);
+  color: #000;
+  box-shadow: 0 4px 16px rgba(29,185,84,0.3);
+}
+
+.btn-empty-cta.primary:hover {
+  background: var(--sp-green-h);
+  transform: scale(1.04);
+  box-shadow: 0 6px 24px rgba(29,185,84,0.4);
+}
+
+.btn-empty-cta.secondary {
+  background: rgba(255,255,255,0.07);
+  color: var(--sp-text);
+  border: 1px solid var(--sp-faint);
+}
+
+.btn-empty-cta.secondary:hover {
+  background: rgba(255,255,255,0.12);
+  border-color: var(--sp-muted);
+  transform: scale(1.04);
+}
+
+/* ── Premium header icon ──────────────────────────────────────────────────── */
+.premium-header-icon {
+  filter: drop-shadow(0 4px 12px rgba(29,185,84,0.3));
+}
+
+.header-art-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(40,40,40,0.8) 0%, rgba(24,24,24,1) 100%);
+}
+
 
 
 /* ══ Animations ════════════════════════════════════════════════════════════ */
@@ -2297,6 +2397,49 @@
     width: 42px;
     height: 42px;
   }
+}
+
+/* ══ SCAN COVERS BUTTON ═══════════════════════════════════════════════════ */
+
+.btn-scan-covers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(29,185,84,0.4);
+  background: transparent;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.btn-scan-covers:hover:not(:disabled),
+.btn-scan-covers.active {
+  background: rgba(29,185,84,0.15);
+  border-color: var(--sp-green);
+  color: #fff;
+}
+
+.btn-scan-covers:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+
+.btn-scan-label {
+  letter-spacing: 0.02em;
+}
+
+.scan-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(29,185,84,0.3);
+  border-top-color: var(--sp-green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
 /* ══ YouTube → NAS PANEL ═══════════════════════════════════════════════════ */
