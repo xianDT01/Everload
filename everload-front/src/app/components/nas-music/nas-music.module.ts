@@ -6,6 +6,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { NasMusicComponent } from './nas-music.component';
+import { NasBrowserModule } from '../nas-browser/nas-browser.module';
 import { LibraryModeComponent } from './library-mode/library-mode.component';
 import { DeckModeComponent } from './deck-mode/deck-mode.component';
 
@@ -24,6 +25,7 @@ const routes: Routes = [
     FormsModule,
     HttpClientModule,
     TranslateModule,
+    NasBrowserModule,
     RouterModule.forChild(routes),
   ],
 })

@@ -29,10 +29,12 @@ public class NasYtDlpService {
 
     private final NasService nasService;
     private final DownloadHistoryService downloadHistoryService;
+    private final MusicService musicService;
 
-    public NasYtDlpService(NasService nasService, DownloadHistoryService downloadHistoryService) {
+    public NasYtDlpService(NasService nasService, DownloadHistoryService downloadHistoryService, MusicService musicService) {
         this.nasService = nasService;
         this.downloadHistoryService = downloadHistoryService;
+        this.musicService = musicService;
     }
 
     @PostConstruct
@@ -122,6 +124,16 @@ public class NasYtDlpService {
 
             File tmp = new File(finalPath.trim());
             if (!tmp.exists()) { fail(job, "Archivo no encontrado: " + finalPath); return; }
+
+            // Escribe title/artist desde el título de YouTube si el archivo no tiene tags
+            String songTitle = job.title;
+            String songArtist = "";
+            int dashIdx = songTitle.indexOf(" - ");
+            if (dashIdx > 0) {
+                songArtist = songTitle.substring(0, dashIdx).trim();
+                songTitle  = songTitle.substring(dashIdx + 3).trim();
+            }
+            musicService.ensureMetadata(tmp, songTitle, songArtist);
 
             job.progress = 97;
             String saved = nasService.saveToNas(job.nasPathId, job.subPath, tmp.toPath(), tmp.getName());

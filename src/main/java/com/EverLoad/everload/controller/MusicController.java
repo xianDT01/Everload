@@ -44,7 +44,7 @@ public class MusicController {
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<?> updateMetadata(@RequestBody MetadataUpdateRequest req) {
         try {
-            musicService.updateMetadata(req.getPathId(), req.getRelativePath(), req.getTitle(), req.getArtist());
+            musicService.updateMetadata(req.getPathId(), req.getRelativePath(), req.getTitle(), req.getArtist(), req.getAlbum(), req.getYear());
             return ResponseEntity.ok(Map.of("message", "Metadatos actualizados"));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
@@ -59,6 +59,8 @@ public class MusicController {
         private String relativePath;
         private String title;
         private String artist;
+        private String album;
+        private String year;
     }
 
     // ── Streaming ─────────────────────────────────────────────────────────────

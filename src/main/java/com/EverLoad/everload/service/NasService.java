@@ -354,6 +354,15 @@ public class NasService {
         }
     }
 
+    public void copyFileTo(Long sourcePathId, String sourcePath, Long destPathId, String destPath) throws IOException {
+        Path source = resolveValidatedPath(sourcePathId, sourcePath);
+        if (!source.toFile().isFile()) throw new IllegalArgumentException("El origen no es un archivo");
+        Path destDir = resolveValidatedPath(destPathId, destPath);
+        if (!destDir.toFile().isDirectory()) throw new IllegalArgumentException("El destino no es una carpeta");
+        Path target = destDir.resolve(source.getFileName());
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
     // ── Shared path helpers (used by MusicService and others) ────────────────
 
     /**
