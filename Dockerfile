@@ -54,10 +54,6 @@ RUN apt-get update && \
 # Variable para que el backend sepa dónde está yt-dlp
 ENV everload.ytdlp.path=/usr/local/bin/yt-dlp
 
-# Prepara config.json (para AdminConfigService)
-RUN echo '{"clientId":"","clientSecret":"","apiKey":""}' > /app/config.json && \
-    chmod 666 /app/config.json
-
 # Copia el .jar compilado desde la etapa anterior
 COPY --from=backend-build /app/target/*.jar app.jar
 

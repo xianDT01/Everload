@@ -30,9 +30,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     private router: Router,
     public chatService: ChatService
   ) {
-    translate.setDefaultLang('gl');
-    const savedLang = localStorage.getItem('language');
-    if (savedLang) translate.use(savedLang);
+    // Language is configured by APP_INITIALIZER in app.module.ts.
+    // Do NOT call setDefaultLang() here — it would override the initializer
+    // and trigger an extra HTTP fetch that can fail with a stale SW cache.
 
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
