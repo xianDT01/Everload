@@ -444,12 +444,14 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const nextPage = this.currentPage + 1;
     this.musicService.browse(this.selectedPathId, this.currentSubPath, nextPage, this.PAGE_SIZE).subscribe({
       next: result => {
-        // Append only tracks (result.items on page >0 never contains dirs)
         this.items = [...this.items, ...result.items];
         this.totalTracks = result.totalTracks;
         this.currentPage = nextPage;
         this.loadingPage = false;
-        this.fetchCoversForVisible();
+        // Buscar portadas solo para las pistas recién cargadas (no repetir las anteriores)
+        result.items
+          .filter((t: MusicMetadataDto) => !this.musicService.hasCoverToShow(t))
+          .forEach((t: MusicMetadataDto) => this.musicService.fetchCoverIfNeeded(t));
       },
       error: () => { this.loadingPage = false; }
     });
@@ -601,6 +603,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const img = e.target as HTMLImageElement;
     if (img) img.style.display = 'none';
     this.brokenCoverPaths.add(track.path);
+    // La portada falló (corrupta, formato no soportado, URL caducada, etc.)
+    // Limpiar la cache para que fetchCoverIfNeeded intente buscar de nuevo
+    track.hasCover = false;
+    this.musicService.coverOverrideMap.delete(track.path);
+    this.musicService.fetchCoverIfNeeded(track);
   }
 
   playerHasCover(): boolean {
