@@ -39,6 +39,38 @@
   <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
 </head>
 <body>
+  <!-- SW self-heal: detect corrupt cache and auto-clear before Angular boots -->
+  <script>
+    (function() {
+      if (!navigator.serviceWorker) return;
+      // Quick translation health-check: fetch the default language file
+      // If it returns invalid JSON or is empty, nuke everything and reload
+      var lang = (localStorage.getItem('lang') || navigator.language || 'es').substring(0, 2);
+      var url = '/assets/i18n/' + lang + '.json?_v=' + Date.now();
+      fetch(url, { cache: 'no-store' })
+        .then(function(r) { return r.text(); })
+        .then(function(txt) {
+          try {
+            var obj = JSON.parse(txt);
+            if (!obj || !obj.HOME) throw new Error('missing HOME key');
+          } catch (e) {
+            console.warn('[SW Self-Heal] Corrupt translations detected, clearing SW + caches...');
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
+            });
+            if (window.caches) {
+              caches.keys().then(function(keys) {
+                keys.forEach(function(k) { caches.delete(k); });
+              });
+            }
+            setTimeout(function() { location.reload(); }, 1000);
+          }
+        })
+        .catch(function() {
+          // Network error — could be offline, don't nuke cache
+        });
+    })();
+  </script>
   <app-root></app-root>
 </body>
 </html>
