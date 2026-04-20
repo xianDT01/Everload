@@ -490,6 +490,11 @@
             </span>
 
             <div class="tr-title-cell">
+              <div *ngIf="fingerprintResults.has(track.path)" class="fp-toast"
+                   [class.fp-ok]="fingerprintResults.get(track.path)?.found"
+                   [class.fp-err]="!fingerprintResults.get(track.path)?.found">
+                {{ fingerprintResults.get(track.path)?.msg }}
+              </div>
               <div class="tr-art">
                 <img *ngIf="hasCoverToShow(track)" [src]="coverUrl(track)" loading="lazy"
                      (error)="onTrackCoverError($event, track)" />
@@ -543,6 +548,13 @@
                   <button class="ctx-item" (click)="openMetadata($event, track)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                     {{ 'COMMON.EDIT_METADATA' | translate }}
+                  </button>
+                  <button class="ctx-item" (click)="fingerprintTrack($event, track)"
+                          [disabled]="fingerprintingPaths.has(track.path)"
+                          [title]="'Identificar con AcoustID'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+                    <span *ngIf="!fingerprintingPaths.has(track.path)">Identificar canción</span>
+                    <span *ngIf="fingerprintingPaths.has(track.path)">Identificando…</span>
                   </button>
                   <button class="ctx-item" (click)="openMove($event, track)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg>

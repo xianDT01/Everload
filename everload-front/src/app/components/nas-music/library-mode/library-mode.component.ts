@@ -760,6 +760,45 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dialog = { type: null, item: null, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
+  // ── AcoustID fingerprint ──────────────────────────────────────────────────
+
+  fingerprintingPaths = new Set<string>();
+  fingerprintResults = new Map<string, { found: boolean; msg: string }>();
+
+  fingerprintTrack(e: Event, track: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.activeMenuPath = null;
+    const pid = this.selectedPathId!;
+    this.fingerprintingPaths.add(track.path);
+    this.musicService.fingerprintTrack(pid, track.path).subscribe({
+      next: (r: any) => {
+        this.fingerprintingPaths.delete(track.path);
+        if (r.found) {
+          if (r.title)  track.title  = r.title;
+          if (r.artist) track.artist = r.artist;
+          if (r.album)  (track as any).album = r.album;
+          if (r.coverEmbedded) {
+            track.hasCover = true;
+            this.musicService.coverOverrideMap?.delete(track.path);
+          }
+          const parts = [];
+          if (r.tagsUpdated)    parts.push('tags actualizados');
+          if (r.coverEmbedded)  parts.push('portada añadida');
+          const msg = parts.length ? `✅ ${parts.join(', ')}` : '✅ Identificado (sin cambios)';
+          this.fingerprintResults.set(track.path, { found: true, msg });
+        } else {
+          this.fingerprintResults.set(track.path, { found: false, msg: r.error || 'No encontrado' });
+        }
+        setTimeout(() => this.fingerprintResults.delete(track.path), 4000);
+      },
+      error: () => {
+        this.fingerprintingPaths.delete(track.path);
+        this.fingerprintResults.set(track.path, { found: false, msg: '❌ Error al identificar' });
+        setTimeout(() => this.fingerprintResults.delete(track.path), 4000);
+      }
+    });
+  }
+
   confirmRename(): void {
     const item = this.dialog.item!;
     const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;

@@ -59,6 +59,8 @@
       <input [(ngModel)]="config.clientSecret" name="clientSecret" required />
       <label>{{ 'API_KEY' | translate }}:</label>
       <input [(ngModel)]="config.apiKey" name="apiKey" required />
+      <label>AcoustID API Key:</label>
+      <input [(ngModel)]="config.acoustidApiKey" name="acoustidApiKey" placeholder="Obtén una key gratis en acoustid.org" />
       <button type="submit" class="btn primary" [disabled]="cargando">{{ 'GUARDAR' | translate }}</button>
     </form>
     <p *ngIf="mensaje" class="message">{{ mensaje }}</p>

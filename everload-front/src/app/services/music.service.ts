@@ -527,7 +527,7 @@ export class MusicService {
   get shuffle() { return this._shuffle; }
   get repeat()  { return this._repeat; }
 
-  private coverOverrideMap = new Map<string, string>();
+  coverOverrideMap = new Map<string, string>();
   private itunesFetchedTerms = new Set<string>();
   private folderCoverBust = new Map<string, number>();
   private static readonly COVER_CACHE_KEY = 'ev_covers_v2';
@@ -656,10 +656,15 @@ export class MusicService {
   fetchCoverIfNeeded(track: MusicMetadataDto): void {
     if (!track || track.hasCover || this.coverOverrideMap.has(track.path)) return;
 
-    const artist = (track.artist || '').trim();
+    let artist = (track.artist || '').trim();
     const title  = (track.title  || track.name || '').trim();
     const album  = (track.album  || '').trim();
     if (!title && !artist) return;
+
+    // Si no hay artista pero el título tiene "Artista - Algo", extrae el artista del título
+    if (!artist && title.includes(' - ')) {
+      artist = title.substring(0, title.indexOf(' - ')).trim();
+    }
 
     // Evitar peticiones duplicadas para el mismo par artista+título
     const dedupeKey = `${artist}|${title}`;
@@ -671,9 +676,9 @@ export class MusicService {
         .then(r => r.json())
         .then(d => {
           const r = d.results?.[0];
-          return r?.artworkUrl100
-            ? r.artworkUrl100.replace('100x100bb', '600x600bb')
-            : null;
+          if (!r) return null;
+          const art = r.artworkUrl100 || r.artworkUrl60 || r.artworkUrl30;
+          return art ? art.replace(/\d+x\d+bb/, '600x600bb') : null;
         })
         .catch(() => null);
 
@@ -687,20 +692,31 @@ export class MusicService {
     };
 
     // Estrategia de búsqueda en cascada:
-    // 1. "Artista Título" con entity=song  (mejor para canciones individuales)
-    // 2. "Artista Álbum"  con entity=album (si tiene álbum)
-    // 3. Solo "Título"    con entity=song  (último recurso)
-    const term1 = artist && title ? `${artist} ${title}` : (title || artist);
+    // 1. "Artista Título" con entity=song        (canciones normales)
+    // 2. "Artista Álbum"  con entity=album       (si tiene álbum)
+    // 3. Solo "Título"    con entity=song        (último recurso de título)
+    // 4. Solo "Artista"   con entity=musicArtist (foto oficial, cubre sesiones/mixes sin album)
+    const cleanTitle = title.replace(/\b(session|live|set|mix|festival|dj\s*set|\d{4})\b/gi, '').trim();
+    const term1 = artist && cleanTitle ? `${artist} ${cleanTitle}` : (cleanTitle || artist);
     itunesSearch(term1, 'song').then(url => {
       if (url) { save(url); return; }
       const fallbacks: Promise<string | null>[] = [];
       if (album) fallbacks.push(itunesSearch(artist ? `${artist} ${album}` : album, 'album'));
-      if (artist && title) fallbacks.push(itunesSearch(title, 'song'));
+      if (artist && cleanTitle && cleanTitle !== term1) fallbacks.push(itunesSearch(cleanTitle, 'song'));
+      // Fallback final: álbumes del artista como proxy de su imagen
+      if (artist) fallbacks.push(itunesSearch(artist, 'album'));
       return fallbacks.reduce(
         (chain, next) => chain.then(u => u ?? next),
         Promise.resolve<string | null>(null)
       ).then(u => { if (u) save(u); });
     });
+  }
+
+  // ── AcoustID fingerprinting ───────────────────────────────────────────────
+
+  fingerprintTrack(pathId: number, subPath: string): Observable<any> {
+    const params = new URLSearchParams({ pathId: String(pathId), subPath });
+    return this.http.post<any>(`${this.BASE}/api/music/fingerprint?${params}`, {});
   }
 
   // ── NAS yt-dlp async jobs ─────────────────────────────────────────────────

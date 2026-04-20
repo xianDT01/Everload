@@ -664,6 +664,7 @@
   align-items: center;
   gap: 12px;
   overflow: hidden;
+  position: relative;
 }
 
 .tr-art {
@@ -2893,4 +2894,25 @@
   font-size: 11px;
   color: var(--col-muted, rgba(255,255,255,0.35));
   letter-spacing: 0.5px;
+}
+
+/* ── AcoustID fingerprint toast ────────────────────────────────────────────── */
+.fp-toast {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  animation: fp-fade 4s forwards;
+}
+.fp-ok  { background: rgba(29,185,84,0.9); color: #fff; }
+.fp-err { background: rgba(220,50,50,0.85); color: #fff; }
+
+@keyframes fp-fade {
+  0%, 70% { opacity: 1; }
+  100%     { opacity: 0; }
 }
