@@ -28,7 +28,7 @@
     <!-- Personal Collections -->
     <div class="sidebar-section">
       <ul class="collections-list">
-        <li class="collection-item" [class.active]="currentView === 'home'" (click)="setView('home')">
+        <li class="collection-item" [class.active]="currentView === 'home' || (currentView === 'folder' && !currentSubPath)" (click)="goHome()">
           <div class="collection-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
           </div>
@@ -161,8 +161,8 @@
     <!-- Scrollable content -->
     <div class="content-scroll" #contentScroll>
 
-      <!-- ══ BANNERS SECTION (home view) ══════════════════════════════════ -->
-      <div class="banners-section" *ngIf="currentView === 'home'">
+      <!-- ══ BANNERS SECTION (home + folder root) ════════════════════════ -->
+      <div class="banners-section" *ngIf="currentView === 'home' || (currentView === 'folder' && !currentSubPath)">
         <div class="banners-viewport">
           <div class="banners-track" [style.transform]="'translateX(-' + (activeBannerIndex * 100) + '%)'">
             <div *ngFor="let banner of banners; let i = index"
@@ -222,8 +222,8 @@
         </button>
       </div>
 
-      <!-- Gradient header -->
-      <div class="content-header" *ngIf="currentView !== 'home'" [style.background]="headerGradient">
+      <!-- Gradient header (hidden at folder root where banners are shown) -->
+      <div class="content-header" *ngIf="currentView === 'liked' || currentView === 'history' || (currentView === 'folder' && currentSubPath)" [style.background]="headerGradient">
         <div class="content-header-bg"></div>
         <div class="header-art" [class.border-radius]="currentView === 'liked'">
           <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" class="header-cover-img" [class.playing]="state?.playing" />
@@ -281,6 +281,17 @@
           <span class="btn-yt-label">YouTube</span>
         </button>
 
+        <!-- Scan covers button -->
+        <button *ngIf="filteredTracks.length > 0"
+                class="btn-scan-covers"
+                [class.active]="coverScanActive"
+                [disabled]="coverScanActive"
+                (click)="scanCovers(); $event.stopPropagation()"
+                title="Buscar portadas y metadatos de todas las canciones">
+          <svg *ngIf="!coverScanActive" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          <span *ngIf="coverScanActive" class="scan-spinner"></span>
+          <span class="btn-scan-label">{{ coverScanActive ? coverScanProgress : 'Portadas' }}</span>
+        </button>
         <!-- Upload buttons (edit mode only) -->
         <ng-container *ngIf="editMode && currentView === 'folder' && selectedPathId !== null">
           <button class="btn-upload"

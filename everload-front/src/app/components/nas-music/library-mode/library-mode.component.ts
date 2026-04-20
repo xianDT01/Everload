@@ -118,6 +118,10 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   private pollInterval?: ReturnType<typeof setInterval>;
   private completedJobIds = new Set<string>();
 
+  // ── Cover scan ────────────────────────────────────────────────────────────
+  coverScanActive = false;
+  coverScanProgress = '';
+
   private uploadSub?: Subscription;
   private subs: Subscription[] = [];
 
@@ -294,6 +298,16 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     this.load();
   }
 
+  /** Navigate to the root of the first NAS path — same view the user sees on first load */
+  goHome(): void {
+    this.closeMobileMenu();
+    if (this.paths.length > 0) {
+      this.selectPath(this.paths[0].id);
+    } else {
+      this.setView('home');
+    }
+  }
+
   selectPath(id: number) {
     this.currentView = 'folder';
     this.selectedPathId = id;
@@ -308,10 +322,12 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
       this.musicService.getHistory(10).subscribe(h => {
         this.historyItems = h;
       });
-      // Top folders could be local folders in path 0
+      // Show all folders and tracks from the first NAS path
       if (this.paths.length > 0) {
         this.musicService.browse(this.paths[0].id, '').subscribe(homeItems => {
-          this.items = homeItems.filter(i => i.directory).slice(0, 8);
+          this.items = homeItems;
+          this.fetchCoversForVisible();
+          this.checkPendingAutoPlay();
         });
       }
     } else if (this.currentView === 'liked') {
@@ -550,6 +566,40 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
 
   private fetchCoversForVisible() {
     this.tracks.filter(t => !this.musicService.hasCoverToShow(t)).slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
+  }
+
+  // ── Cover scan ────────────────────────────────────────────────────────────
+
+  async scanCovers(): Promise<void> {
+    const tracksToScan = this.filteredTracks.filter(t => !this.musicService.hasCoverToShow(t));
+    if (tracksToScan.length === 0) {
+      // All tracks already have covers — force re-scan by fetching all
+      const all = this.filteredTracks;
+      if (all.length === 0) return;
+      this.coverScanActive = true;
+      for (let i = 0; i < all.length; i++) {
+        this.coverScanProgress = `${i + 1}/${all.length}`;
+        this.musicService.fetchCoverIfNeeded(all[i]);
+        await this.delay(150);
+      }
+      this.coverScanActive = false;
+      this.coverScanProgress = '';
+      return;
+    }
+
+    this.coverScanActive = true;
+    for (let i = 0; i < tracksToScan.length; i++) {
+      this.coverScanProgress = `${i + 1}/${tracksToScan.length}`;
+      this.musicService.fetchCoverIfNeeded(tracksToScan[i]);
+      // Small delay to avoid hammering the iTunes API
+      await this.delay(200);
+    }
+    this.coverScanActive = false;
+    this.coverScanProgress = '';
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   // ── Edit mode ─────────────────────────────────────────────────────────────
