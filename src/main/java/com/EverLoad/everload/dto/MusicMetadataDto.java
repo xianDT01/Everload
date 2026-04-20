@@ -24,4 +24,5 @@ public class MusicMetadataDto {
     private String format;
     private boolean hasCover;
     private int bpm;
+    private String year;
 }

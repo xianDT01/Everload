@@ -198,4 +198,22 @@ public class NasController {
             response.sendError(400, e.getMessage());
         }
     }
+
+    @Operation(summary = "Copiar archivo a otra carpeta NAS")
+    @PostMapping("/copy")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> copyFile(
+            @RequestParam Long sourcePathId,
+            @RequestParam String sourcePath,
+            @RequestParam Long destPathId,
+            @RequestParam String destPath) {
+        try {
+            nasService.copyFileTo(sourcePathId, sourcePath, destPathId, destPath);
+            return ResponseEntity.ok(Map.of("message", "Archivo copiado correctamente"));
+        } catch (IllegalArgumentException | SecurityException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (java.io.IOException e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al copiar el archivo"));
+        }
+    }
 }

@@ -76,8 +76,8 @@ export class NasService {
     return this.http.put(`${this.BASE}/api/nas/browse/${pathId}/move`, null, { params });
   }
 
-  updateMetadata(pathId: number, relativePath: string, title: string, artist: string): Observable<any> {
-    return this.http.put(`${this.BASE}/api/music/metadata`, { pathId, relativePath, title, artist });
+  updateMetadata(pathId: number, relativePath: string, title: string, artist: string, album?: string, year?: string): Observable<any> {
+    return this.http.put(`${this.BASE}/api/music/metadata`, { pathId, relativePath, title, artist, album, year });
   }
 
   uploadFolderCover(pathId: number, folderPath: string, image: File): Observable<any> {
@@ -111,5 +111,14 @@ export class NasService {
   downloadFolderZip(pathId: number, relativePath: string): Observable<Blob> {
     const params = new HttpParams().set('relativePath', relativePath);
     return this.http.get(`${this.BASE}/api/nas/browse/${pathId}/download-zip`, { params, responseType: 'blob' });
+  }
+
+  copyFile(sourcePathId: number, sourcePath: string, destPathId: number, destPath: string): Observable<any> {
+    const params = new HttpParams()
+      .set('sourcePathId', sourcePathId)
+      .set('sourcePath', sourcePath)
+      .set('destPathId', destPathId)
+      .set('destPath', destPath);
+    return this.http.post(`${this.BASE}/api/nas/copy`, null, { params });
   }
 }

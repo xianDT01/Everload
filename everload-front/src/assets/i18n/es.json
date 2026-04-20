@@ -1,6 +1,5 @@
 {
   "_comment": "EverLoad i18n - Español",
-
   "SUBTITLE": "Descarga videos y música fácilmente",
   "NAV_HOME": "Inicio",
   "HOME": "Inicio",
@@ -16,16 +15,13 @@
   "COMMON.FOLDER_LABEL": "Carpeta",
   "COMMON.FILE_LABEL": "Archivo",
   "COMMON.CHANGE_COVER": "Cambiar portada",
-
   "DOWNLOAD_YOUTUBE": "Descargar vídeo de YouTube",
   "DOWNLOAD_TWITTER": "Descargar vídeo de Twitter",
   "DOWNLOAD_FACEBOOK": "Descargar vídeo de Facebook",
   "DOWNLOAD_INSTAGRAM": "Descargar vídeo de Instagram",
   "DOWNLOAD_SPOTIFY": "Descargar de Spotify",
   "DOWNLOAD_TIKTOK": "Descargar de TikTok",
-
   "GITHUB": "GitHub",
-
   "_s2": "YouTube",
   "Youtube": "YouTube",
   "DOWNLOAD_FROM_YOUTUBE": "Descargar vídeo de YouTube",
@@ -56,25 +52,21 @@
   "ERROR_LOADING_PLAYLIST": "Ocurrió un error al cargar la lista de reproducción.",
   "PLEASE_ENTER_YOUTUBE_LINK": "Introduce un enlace de YouTube",
   "OPEN_IN_YOUTUBE": "Abrir en YouTube",
-
   "_s3": "Twitter/X",
   "PASTE_TWEET_URL": "Pega aquí la URL del tweet",
   "INVALID_TWITTER_URL": "URL inválida. Asegúrate de pegar un tweet válido.",
   "SUBTITLE_TWITTER": "Descarga vídeos públicos de Twitter/X.",
   "TWITTER_LOADING": "Descargando, espera...",
   "DOWNLOAD_FAILED": "Ocurrió un error durante la descarga",
-
   "_s4": "Facebook",
   "PASTE_FACEBOOK_URL": "Pega aquí la URL del video de Facebook",
   "INVALID_FACEBOOK_URL": "URL inválida. Asegúrate de que sea un enlace válido de Facebook.",
   "SUBTITLE_FACEBOOK": "Descarga vídeos públicos de Facebook fácilmente.",
-
   "_s5": "Instagram",
   "PASTE_INSTAGRAM_URL": "Pega aquí la URL del vídeo de Instagram",
   "INVALID_INSTAGRAM_URL": "URL inválida. Asegúrate de que sea un enlace válido de Instagram.",
   "SUBTITLE_INSTAGRAM": "Descarga vídeos públicos de Instagram fácilmente.",
   "INSTAGRAM_LIMITATION": "Solo se pueden descargar Reels y publicaciones públicas. No se admiten stories ni vídeos de cuentas privadas.",
-
   "_s6": "Spotify",
   "DOWNLOAD_Spotify_FAILED": "Ocurrió un error al descargar desde Spotify",
   "TITLE": "Spotify Downloader",
@@ -86,13 +78,11 @@
   "DOWNLOAD": "Descargar",
   "NO_RESULTS": "No se encontraron canciones o hubo un error.",
   "EMPTY_URL_ERROR_Spotify": "Por favor, introduce una URL válida de Spotify.",
-
   "_s7": "TikTok",
   "PASTE_TIKTOK_URL": "Pega el enlace de TikTok",
   "TIKTOK_LOADING": "Descargando...",
   "EMPTY_URL_ERROR": "Por favor, introduce un enlace de TikTok.",
   "TIKTOK_DOWNLOAD_FAILED": "No se pudo descargar el vídeo. Inténtalo de nuevo más tarde.",
-
   "_s8": "Admin Config",
   "TITULO": "🚀 Panel de control EverLoad",
   "YOUTUBE": "YouTube",
@@ -121,14 +111,12 @@
   "FECHA": "Fecha",
   "API_OK": "🟢 {{ platform }} operativo",
   "API_ERROR": "🔴 {{ platform }} con errores",
-
   "_s_about": "About",
   "ABOUT": "Acerca de la app",
   "ABOUT.CREATOR": "EverLoad es una aplicación gratuita y de código abierto para descargar vídeos y música de YouTube, Twitter, Facebook, Instagram, Spotify y TikTok.",
   "ABOUT.ROLE": "Desarrollador",
   "ABOUT.NAME": "XiánDT",
   "ABOUT.EMAIL": "xiandt01@gmail.com",
-
   "_s9": "Login",
   "LOGIN.TITLE": "Iniciar sesión",
   "LOGIN.SUBTITLE": "Bienvenido de vuelta",
@@ -143,7 +131,6 @@
   "LOGIN.NO_ACCOUNT": "¿No tienes cuenta?",
   "LOGIN.REGISTER_LINK": "Regístrate",
   "LOGIN.ERROR": "Error al iniciar sesión",
-
   "_s10": "Register",
   "REGISTER.TITLE": "Crear cuenta",
   "REGISTER.SUBTITLE": "Únete a EverLoad",
@@ -166,13 +153,11 @@
   "REGISTER.ERROR_PASSWORD_TOO_SHORT": "La contraseña debe tener al menos 6 caracteres",
   "REGISTER.SUCCESS": "Registro exitoso. Tu solicitud está pendiente de aprobación por un administrador.",
   "REGISTER.ERROR": "Error al registrarse",
-
   "_s11": "Pending approval",
   "PENDING.TITLE": "Solicitud pendiente",
   "PENDING.MESSAGE": "Tu cuenta está pendiente de aprobación por un administrador.",
   "PENDING.SUBMESSAGE": "Recibirás acceso una vez que un administrador apruebe tu solicitud y asigne tu rol.",
   "PENDING.LOGOUT": "Cerrar sesión",
-
   "_s12": "NAS Browser",
   "NAS.TITLE": "Explorador NAS",
   "NAS.SELECT_LOCATION": "Selecciona una ubicación NAS:",
@@ -195,7 +180,6 @@
   "NAS.CONFIRM_DELETE": "Eliminar",
   "NAS.SAVE_TO_NAS": "Guardar en NAS",
   "NAS.SAVE_ALL_TO_NAS": "Guardar todo en NAS",
-
   "_s13": "Home side menu",
   "HOME.MENU_HOME": "Inicio",
   "HOME.MENU_PROFILE": "Mi perfil",
@@ -216,7 +200,6 @@
   "HOME.DJ_BOOTH_TITLE": "Cabina DJ",
   "HOME.DJ_BOOTH_DESC": "Mezcla y reproduce con calidad profesional",
   "DOWNLOAD_AUDIO_TOOLS": "🎙 Herramientas de Audio",
-
   "_s14": "Admin panel",
   "ADMIN.TITLE": "Panel de Administración",
   "ADMIN.TAB_CONFIG": "Configuración",
@@ -255,7 +238,6 @@
   "ADMIN.CLEAR_LOG": "Limpiar log",
   "ADMIN.CLEAR_HISTORY": "Vaciar historial",
   "ADMIN.COL_TITLE": "Título",
-
   "_s15": "Chat",
   "CHAT.BACK_TO_HOME": "Volver al inicio",
   "CHAT.SEARCH_CONVERSATIONS": "Buscar conversaciones...",
@@ -287,7 +269,7 @@
   "CHAT.GROUP_DESCRIPTION": "Descripción (opcional)",
   "CHAT.GROUP_DESCRIPTION_PLACEHOLDER": "Descripción...",
   "CHAT.ADD_MEMBERS": "Añadir miembros ({{count}} seleccionados)",
-  "CHAT.SEARCH_USERS": "Buscar usuarios...",
+  "CHAT.SEARCH_USERS": "Buscar usuario...",
   "CHAT.CANCEL": "Cancelar",
   "CHAT.CREATING": "Creando...",
   "CHAT.CREATE_GROUP": "Crear grupo",
@@ -323,13 +305,11 @@
   "CHAT.TABS_GROUPS": "Grupos",
   "CHAT.TABS_PRIVATES": "Chats privados",
   "CHAT.SEARCH_GROUPS": "Buscar grupo...",
-  "CHAT.SEARCH_USERS": "Buscar usuario...",
   "CHAT.SUCCESS_SHARED": "¡Vídeo compartido!",
   "CHAT.NO_GROUPS": "No hay grupos disponibles",
   "CHAT.NO_USERS": "No hay usuarios disponibles",
   "CHAT.SHARE_ACTION": "Compartir",
   "CHAT.MEMBERS": "miembros",
-
   "_s_queue": "Download queue",
   "QUEUE.TITLE": "Cola",
   "QUEUE.STATUS_PENDING": "pendiente",
@@ -343,7 +323,6 @@
   "QUEUE.RETRY": "Reintentar",
   "QUEUE.TYPE_VIDEO": "Video",
   "QUEUE.TYPE_MUSIC": "Música",
-
   "_s16": "Admin chat moderation",
   "ADMIN.TAB_CHAT": "Chat",
   "ADMIN.TAB_AUDIT": "Auditoría",
@@ -380,7 +359,6 @@
   "ADMIN.CHAT_ERROR_DELETE_GROUP": "Error al eliminar el grupo",
   "ADMIN.CHAT_ERROR_DELETE_MSG": "Error al eliminar el mensaje",
   "ADMIN.CHAT_ERROR_KICK": "Error al expulsar al usuario",
-
   "_s_audio": "Audio Tools",
   "AUDIO.TITLE": "Herramientas de Audio",
   "AUDIO.SUBTITLE": "Convierte, comprime y recorta tus archivos de audio",
@@ -414,12 +392,10 @@
   "AUDIO.PREVIEW_SELECTION": "Escuchar desde el inicio del recorte",
   "AUDIO.ERROR_INVALID_FORMAT": "Formato de archivo no válido. Usa MP3, M4A, WAV, OGG, AAC, FLAC u OPUS.",
   "AUDIO.ERROR_TOO_LARGE": "El archivo supera el tamaño máximo de 500 MB",
-
   "_s17": "NAS Music Player",
   "MUSIC.BACK": "Volver",
   "MUSIC.MODE_LIBRARY": "Biblioteca",
   "MUSIC.MODE_DECK": "Cabinas",
-
   "MUSIC.SIDEBAR_COLLECTIONS": "Colecciones",
   "MUSIC.SIDEBAR_NOW_PLAYING": "Reproduciendo ahora",
   "MUSIC.UNKNOWN_ARTIST": "Artista desconocido",
@@ -457,7 +433,6 @@
   "MUSIC.SORT_DATE": "Fecha",
   "MUSIC.SORT_TITLE": "Título",
   "MUSIC.SORT_ARTIST": "Artista",
-
   "MUSIC.DECK_A": "CABINA A",
   "MUSIC.DECK_B": "CABINA B",
   "MUSIC.DECK_NO_TRACK": "Sin pista",
@@ -471,7 +446,6 @@
   "MUSIC.DECK_COL_DUR": "Dur.",
   "MUSIC.DECK_COL_LOAD": "Cargar",
   "MUSIC.DECK_NO_AUDIO": "Sin archivos de audio",
-
   "_s_dj": "DJ Deck Mode",
   "MUSIC.DJ_QUEUE_TITLE_A": "Cola Deck A",
   "MUSIC.DJ_QUEUE_TITLE_B": "Cola Deck B",
@@ -541,5 +515,8 @@
   "MUSIC.DJ_MIDI_COL_ACTION": "Acción",
   "MUSIC.DJ_MIDI_COL_MAPPING": "Mapeo",
   "MUSIC.DJ_MIDI_COL_ASSIGN": "Asignar",
-  "MUSIC.DJ_MIDI_LEARNING": "LISTO..."
+  "MUSIC.DJ_MIDI_LEARNING": "LISTO...",
+  "MUSIC.COPY_TO_NAS": "Copiar a NAS",
+  "MUSIC.COPY_COPYING": "Copiando...",
+  "MUSIC.COPY_SUCCESS": "¡Copiado!"
 }

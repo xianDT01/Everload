@@ -11,7 +11,7 @@ import { FacebookDownloadsComponent } from '../facebook-downloads/facebook-downl
 import { InstagramDownloadsComponent } from '../instagram-downloads/instagram-downloads.component';
 import { SpotifyDownloadsComponent } from '../spotify-downloads/spotify-downloads.component';
 import { TiktokDownloadsComponent } from '../tiktok-downloads/tiktok-downloads.component';
-import { NasBrowserComponent } from '../nas-browser/nas-browser.component';
+import { NasBrowserModule } from '../nas-browser/nas-browser.module';
 import { SafeUrlPipe } from '../youtube-downloads/safe-url.pipe';
 
 const routes: Routes = [
@@ -31,7 +31,6 @@ const routes: Routes = [
     InstagramDownloadsComponent,
     SpotifyDownloadsComponent,
     TiktokDownloadsComponent,
-    NasBrowserComponent,
     SafeUrlPipe,
   ],
   imports: [
@@ -39,6 +38,7 @@ const routes: Routes = [
     FormsModule,
     HttpClientModule,
     TranslateModule,
+    NasBrowserModule,
     RouterModule.forChild(routes),
   ],
 })

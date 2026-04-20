@@ -91,9 +91,11 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     value: string;
     title: string;
     artist: string;
+    album: string;
+    year: string;
     loading: boolean;
     error: string;
-  } = { type: null, item: null, value: '', title: '', artist: '', loading: false, error: '' };
+  } = { type: null, item: null, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
 
   uploadState: {
     active: boolean;
@@ -104,6 +106,14 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   } = { active: false, progress: 0, status: 'idle', results: [], totalFiles: 0 };
 
   downloadingPaths = new Set<string>();
+
+  copyModal: {
+    open: boolean;
+    track: MusicMetadataDto | null;
+    copying: boolean;
+    error: string;
+    success: boolean;
+  } = { open: false, track: null, copying: false, error: '', success: false };
 
   // ── YouTube → NAS panel ───────────────────────────────────────────────────
   ytPanel = false;
@@ -633,39 +643,39 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
       const dot = item.name.lastIndexOf('.');
       displayName = dot > 0 ? item.name.substring(0, dot) : item.name;
     }
-    this.dialog = { type: 'rename', item, value: displayName, title: '', artist: '', loading: false, error: '' };
+    this.dialog = { type: 'rename', item, value: displayName, title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   openDelete(e: Event, item: MusicMetadataDto): void {
     e.stopPropagation();
     this.activeMenuPath = null;
-    this.dialog = { type: 'delete', item, value: '', title: '', artist: '', loading: false, error: '' };
+    this.dialog = { type: 'delete', item, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   openMove(e: Event, item: MusicMetadataDto): void {
     e.stopPropagation();
     this.activeMenuPath = null;
-    this.dialog = { type: 'move', item, value: this.currentSubPath, title: '', artist: '', loading: false, error: '' };
+    this.dialog = { type: 'move', item, value: this.currentSubPath, title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   openMetadata(e: Event, track: MusicMetadataDto): void {
     e.stopPropagation();
     this.activeMenuPath = null;
-    this.dialog = { type: 'metadata', item: track, value: '', title: track.title || track.name, artist: track.artist || '', loading: false, error: '' };
+    this.dialog = { type: 'metadata', item: track, value: '', title: track.title || track.name, artist: track.artist || '', album: (track as any).album || '', year: (track as any).year || '', loading: false, error: '' };
   }
 
   openCreateFolder(): void {
-    this.dialog = { type: 'createFolder', item: null, value: '', title: '', artist: '', loading: false, error: '' };
+    this.dialog = { type: 'createFolder', item: null, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   openCover(e: Event, folder: MusicMetadataDto): void {
     e.stopPropagation();
     this.activeMenuPath = null;
-    this.dialog = { type: 'cover', item: folder, value: '', title: '', artist: '', loading: false, error: '' };
+    this.dialog = { type: 'cover', item: folder, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   closeDialog(): void {
-    this.dialog = { type: null, item: null, value: '', title: '', artist: '', loading: false, error: '' };
+    this.dialog = { type: null, item: null, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   confirmRename(): void {
@@ -703,7 +713,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     const track = this.dialog.item!;
     const pid = (track.nasPathId != null ? track.nasPathId : this.selectedPathId)!;
     this.dialog.loading = true;
-    this.nasService.updateMetadata(pid, track.path, this.dialog.title, this.dialog.artist).subscribe({
+    this.nasService.updateMetadata(pid, track.path, this.dialog.title, this.dialog.artist, this.dialog.album, this.dialog.year).subscribe({
       next: () => { this.closeDialog(); this.load(); },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al actualizar metadatos'; }
     });
@@ -873,6 +883,35 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   // ── Download ──────────────────────────────────────────────────────────────
+
+  openCopyModal(e: Event, track: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.copyModal = { open: true, track, copying: false, error: '', success: false };
+  }
+
+  closeCopyModal(): void {
+    this.copyModal = { open: false, track: null, copying: false, error: '', success: false };
+  }
+
+  onCopyDestinationSelected(dest: { pathId: number; subPath: string }): void {
+    if (!this.copyModal.track) return;
+    const track = this.copyModal.track;
+    const pid = track.nasPathId ?? this.selectedPathId;
+    if (pid === null) return;
+    this.copyModal.copying = true;
+    this.copyModal.error = '';
+    this.nasService.copyFile(pid, track.path, dest.pathId, dest.subPath).subscribe({
+      next: () => {
+        this.copyModal.copying = false;
+        this.copyModal.success = true;
+        setTimeout(() => this.closeCopyModal(), 1500);
+      },
+      error: (err) => {
+        this.copyModal.copying = false;
+        this.copyModal.error = err.error?.error || 'Error al copiar';
+      }
+    });
+  }
 
   downloadTrack(e: Event, track: MusicMetadataDto): void {
     e.stopPropagation();
