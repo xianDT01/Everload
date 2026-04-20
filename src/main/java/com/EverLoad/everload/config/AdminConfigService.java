@@ -28,7 +28,7 @@ public class AdminConfigService {
             try {
                 if (f.getParentFile() != null) f.getParentFile().mkdirs();
                 mapper.writerWithDefaultPrettyPrinter()
-                      .writeValue(f, Map.of("clientId", "", "clientSecret", "", "apiKey", ""));
+                      .writeValue(f, Map.of("clientId", "", "clientSecret", "", "apiKey", "", "acoustidApiKey", ""));
                 log.info("Created empty config.json at: {}", f.getAbsolutePath());
             } catch (IOException e) {
                 log.warn("Could not create config.json at '{}': {}", f.getAbsolutePath(), e.getMessage());
@@ -40,8 +40,10 @@ public class AdminConfigService {
 
     public Map<String, String> getConfig() throws IOException {
         File f = new File(configPath);
-        if (!f.exists()) return new HashMap<>(Map.of("clientId", "", "clientSecret", "", "apiKey", ""));
-        return mapper.readValue(f, Map.class);
+        if (!f.exists()) return new HashMap<>(Map.of("clientId", "", "clientSecret", "", "apiKey", "", "acoustidApiKey", ""));
+        Map<String, String> cfg = new HashMap<>(mapper.readValue(f, Map.class));
+        cfg.putIfAbsent("acoustidApiKey", "");
+        return cfg;
     }
 
     public void updateConfig(Map<String, String> newConfig) throws IOException {
@@ -61,5 +63,9 @@ public class AdminConfigService {
 
     public String getApiKey() throws IOException {
         return getConfig().getOrDefault("apiKey", "");
+    }
+
+    public String getAcoustidApiKey() throws IOException {
+        return getConfig().getOrDefault("acoustidApiKey", "");
     }
 }
