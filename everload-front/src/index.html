@@ -39,41 +39,6 @@
   <meta name="msapplication-TileImage" content="icons/icon-144x144.png">
 </head>
 <body>
-  <!-- SW self-heal: detect corrupt cache and auto-clear before Angular boots (runs ONCE per session) -->
-  <script>
-    (function() {
-      if (!navigator.serviceWorker) return;
-      // Prevent infinite reload: only try self-heal once per session
-      if (sessionStorage.getItem('sw_healed')) return;
-
-      var lang = (localStorage.getItem('lang') || navigator.language || 'es').substring(0, 2);
-      var url = '/assets/i18n/' + lang + '.json?_v=' + Date.now();
-      fetch(url, { cache: 'no-store' })
-        .then(function(r) { return r.text(); })
-        .then(function(txt) {
-          try {
-            var obj = JSON.parse(txt);
-            if (!obj || typeof obj !== 'object' || !Object.keys(obj).length) throw new Error('missing');
-          } catch (e) {
-            // Mark as attempted so we don't loop
-            sessionStorage.setItem('sw_healed', '1');
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              regs.forEach(function(r) { r.unregister(); });
-            });
-            if (window.caches) {
-              caches.keys().then(function(keys) {
-                Promise.all(keys.map(function(k) { return caches.delete(k); })).then(function() {
-                  location.reload();
-                });
-              });
-            } else {
-              setTimeout(function() { location.reload(); }, 500);
-            }
-          }
-        })
-        .catch(function() { /* offline or network error, skip */ });
-    })();
-  </script>
   <app-root></app-root>
 </body>
 </html>
