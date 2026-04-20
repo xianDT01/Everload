@@ -48,6 +48,7 @@ interface AdminConfig {
   clientId: string;
   clientSecret: string;
   apiKey: string;
+  acoustidApiKey: string;
 }
 
 interface DownloadHistoryDto {
@@ -121,7 +122,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     return '';
   })();
 
-  config: AdminConfig = { clientId: '', clientSecret: '', apiKey: '' };
+  config: AdminConfig = { clientId: '', clientSecret: '', apiKey: '', acoustidApiKey: '' };
   intervalId: any;
   mensaje = '';
   cargando = false;
