@@ -30,10 +30,9 @@
     {
       "name": "app-assets",
       "installMode": "prefetch",
-      "updateMode": "prefetch",
+      "updateMode": "lazy",
       "resources": {
         "files": [
-          "/assets/i18n/*.json",
           "/assets/*.png",
           "/assets/*.jpg",
           "/assets/*.jpeg",
@@ -45,6 +44,18 @@
     }
   ],
   "dataGroups": [
+    {
+      "name": "i18n-translations",
+      "urls": [
+        "/assets/i18n/*.json"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 10,
+        "maxAge": "7d",
+        "timeout": "3s"
+      }
+    },
     {
       "name": "api-freshness",
       "urls": [

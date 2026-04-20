@@ -25,11 +25,18 @@ public class SpotifyService {
 
     public String getAccessToken() {
         try {
-            String url = "https://accounts.spotify.com/api/token";
+            String clientId = configService.getClientId();
+            String clientSecret = configService.getClientSecret();
 
+            if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
+                throw new RuntimeException("Las credenciales de Spotify no están configuradas. " +
+                        "Ve al Panel Admin → Configuración y añade el Client ID y Client Secret.");
+            }
+
+            String url = "https://accounts.spotify.com/api/token";
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            String auth = configService.getClientId() + ":" + configService.getClientSecret();
+            String auth = clientId + ":" + clientSecret;
             headers.setBasicAuth(Base64.getEncoder().encodeToString(auth.getBytes()));
 
             HttpEntity<String> request = new HttpEntity<>("grant_type=client_credentials", headers);
@@ -39,43 +46,58 @@ public class SpotifyService {
                 return (String) response.getBody().get("access_token");
             }
 
-            throw new RuntimeException("No se pudo obtener el token de Spotify");
+            throw new RuntimeException("No se pudo obtener el token de Spotify (credenciales incorrectas)");
 
+        } catch (RuntimeException e) {
+            throw e;
         } catch (IOException e) {
-            throw new RuntimeException("Error al leer el archivo de configuración", e);
+            throw new RuntimeException("Error al leer el archivo de configuración: " + e.getMessage(), e);
         }
     }
 
 
     public List<SpotifyResult> getPlaylistTracks(String playlistId) {
         String token = getAccessToken();
-        String url = "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("Error al obtener la playlist de Spotify");
+        List<SpotifyResult> results = new ArrayList<>();
+        String url = "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks?limit=100";
+
+        while (url != null) {
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("Error al obtener la playlist de Spotify");
+            }
+
+            Map<String, Object> body = response.getBody();
+            List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
+
+            if (items != null) {
+                for (Map<String, Object> item : items) {
+                    Map<String, Object> track = (Map<String, Object>) item.get("track");
+                    if (track == null || Boolean.TRUE.equals(track.get("is_local"))) continue;
+
+                    String name = (String) track.get("name");
+                    List<Map<String, String>> artists = (List<Map<String, String>>) track.get("artists");
+                    if (name == null || artists == null || artists.isEmpty()) continue;
+
+                    String artistNames = artists.stream()
+                            .map(a -> a.get("name"))
+                            .collect(Collectors.joining(", "));
+
+                    String query = artistNames + " - " + name;
+                    String youtubeUrl = searchYouTube(query);
+                    results.add(new SpotifyResult(query, youtubeUrl));
+                }
+            }
+
+            url = (String) body.get("next");
         }
 
-        List<Map<String, Object>> items = (List<Map<String, Object>>) response.getBody().get("items");
-
-        return items.stream().map(item -> {
-            Map<String, Object> track = (Map<String, Object>) item.get("track");
-            String name = (String) track.get("name");
-
-            List<Map<String, String>> artists = (List<Map<String, String>>) track.get("artists");
-            String artistNames = artists.stream()
-                    .map(a -> a.get("name"))
-                    .collect(Collectors.joining(", "));
-
-            String query = artistNames + " - " + name;
-            String youtubeUrl = searchYouTube(query);
-            return new SpotifyResult(query, youtubeUrl);
-
-        }).collect(Collectors.toList());
+        return results;
     }
 
     private String searchYouTube(String rawTitle) {

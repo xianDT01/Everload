@@ -1,10 +1,5 @@
-2026-04-18 13:12:42 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
-2026-04-18 13:12:42 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
-2026-04-18 13:12:48 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-04-18 13:12:48 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
-2026-04-18 13:12:48 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
-2026-04-18 13:30:26 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
-2026-04-18 13:30:26 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
-2026-04-18 13:30:26 INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-04-18 13:30:26 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
-2026-04-18 13:30:26 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-04-20 15:26:39 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
+2026-04-20 15:26:39 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-20 15:26:54 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-20 15:26:54 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-04-20 15:26:54 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
