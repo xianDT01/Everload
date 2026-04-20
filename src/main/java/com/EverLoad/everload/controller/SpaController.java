@@ -16,7 +16,8 @@ public class SpaController {
     @RequestMapping(value = {
         "/",
         "/{path:[^\\.]*}",
-        "/{path:[^\\.]*}/**"
+        "/{path:[^\\.]*}/{sub:[^\\.]*}",
+        "/{path:[^\\.]*}/{sub:[^\\.]*}/{deep:[^\\.]*}"
     })
     public String forwardToAngular() {
         return "forward:/index.html";
