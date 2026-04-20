@@ -57,6 +57,12 @@ services:
       # Backup directory — mapped to a host folder so copies survive container rebuilds
       APP_BACKUP_PATH: /app/backups
 
+      # Maintenance flag — on the DB volume so it survives container restarts
+      APP_MAINTENANCE_FLAG: /app/data/maintenance.flag
+
+      # Admin config.json (Spotify/YouTube API keys) — on the DB volume so credentials persist
+      APP_CONFIG_PATH: /app/data/config.json
+
     volumes:
       - everload-db:/app/data
       - everload-avatars:/app/avatars

@@ -391,7 +391,13 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   openRename(e: Event, item: MusicMetadataDto): void {
     e.stopPropagation();
     this.activeMenuPath = null;
-    const displayName = item.directory ? item.name : (item.title || item.name);
+    // For files, strip extension from the display name so the user edits only the stem;
+    // the backend always preserves the original extension automatically.
+    let displayName = item.name;
+    if (!item.directory) {
+      const dot = item.name.lastIndexOf('.');
+      displayName = dot > 0 ? item.name.substring(0, dot) : item.name;
+    }
     this.dialog = { type: 'rename', item, value: displayName, title: '', artist: '', loading: false, error: '' };
   }
 

@@ -2363,15 +2363,26 @@
   }
 }
 
-/* ── Portátil muy pequeño (≤ 960px) ─────────────────────────────────────── */
+/* ── Tablet (≤ 960px) ────────────────────────────────────────────────────── */
 @media (max-width: 960px) {
+  :host {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+  }
+
+  .vdj-layout {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+  }
+
   .decks-section {
-    /* Apilar decks verticalmente en pantallas muy pequeñas */
     flex-direction: column;
     height: auto;
     min-height: 0;
-    max-height: 55vh;
-    overflow-y: auto;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .deck {
@@ -2427,8 +2438,7 @@
   }
 
   .pitch-container {
-    right: -40px;
-    padding: 4px 3px;
+    display: none;
   }
 
   .deck-controls {
@@ -2448,4 +2458,157 @@
   .vu-meters {
     height: 60px;
   }
+
+  /* Browser: ocultar árbol lateral en tablet también */
+  .folder-tree-panel  { display: none; }
+  .tree-resize-handle { display: none; }
+  .browser-content    { width: 100%; }
+
+  .bc-artist { display: none; }
+  .bc-dur    { display: none; }
+  .bc-load   { width: auto; }
+
+  .b-tab {
+    padding: 7px 12px;
+    font-size: 10px;
+  }
+}
+
+/* ── Móvil / tablet pequeña (≤ 768px) ───────────────────────────────────── */
+@media (max-width: 768px) {
+  :host {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+  }
+
+  .vdj-layout {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+  }
+
+  .decks-section {
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .deck {
+    border-right: none;
+    border-left: none;
+    border-bottom: 2px solid var(--col-border);
+    min-height: 0;
+  }
+
+  .deck-b { border-left: none; border-top: none; }
+
+  .deck-body {
+    padding: 6px 10px 8px;
+    gap: 4px;
+  }
+
+  .vinyl { width: 90px; height: 90px; }
+  .pitch-slider { height: 90px; }
+  .pitch-container { display: none; }
+
+  .spectrum-canvas { height: 30px; }
+
+  .deck-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .btn-play     { width: 42px; height: 42px; }
+  .btn-ctrl     { width: 30px; height: 30px; font-size: 12px; }
+  .btn-cue      { padding: 5px 10px; font-size: 9px; }
+  .btn-sync     { padding: 4px 8px; font-size: 9px; }
+  .btn-sync-bpm { padding: 3px 7px; font-size: 8px; }
+
+  .deck-extra-tools { gap: 8px; padding: 4px 0; }
+  .cue-pad { height: 28px; }
+  .loop-btn { width: 26px; height: 26px; }
+
+  .mixer {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 6px 10px;
+    gap: 8px;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--col-border);
+    border-bottom: 1px solid var(--col-border);
+  }
+
+  .mixer-header { width: 100%; padding: 0 0 4px; margin-bottom: 0; }
+
+  .channel-faders {
+    flex: 1;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .fader-track { height: 60px; }
+  .vu-meters   { height: 60px; }
+  .eq-knob     { height: 50px; }
+  .crossfader-section { width: 100%; }
+
+  /* Browser: ocultar árbol lateral, contenido a pantalla completa */
+  .browser-section-wrapper { flex-direction: column; }
+
+  .folder-tree-panel  { display: none; }
+  .tree-resize-handle { display: none; }
+  .browser-content    { width: 100%; }
+
+  /* Ocultar columnas secundarias en la tabla */
+  .bc-artist { display: none; }
+  .bc-dur    { display: none; }
+  .bc-load   { width: auto; }
+
+  .b-tab {
+    padding: 8px 10px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  .yt-title { max-width: 180px; }
+}
+
+/* ── Móvil pequeño (≤ 480px) ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .vinyl { width: 70px; height: 70px; }
+
+  .btn-play     { width: 38px; height: 38px; }
+  .btn-ctrl     { width: 26px; height: 26px; font-size: 11px; }
+  .btn-cue      { padding: 4px 8px; font-size: 8px; letter-spacing: 0.5px; }
+  .btn-sync     { padding: 3px 6px; font-size: 8px; }
+  .btn-sync-bpm { display: none; }
+
+  .deck-title   { font-size: 11px; }
+  .deck-artist  { font-size: 9px; }
+
+  .b-tab {
+    padding: 6px 8px;
+    font-size: 9px;
+    letter-spacing: 0;
+  }
+
+  .spectrum-canvas { display: none; }
+
+  .fx-panel    { display: none; }
+  .loop-btn    { display: none; }
+
+  .progress-bar { height: 8px; }
+
+  .fader-track { height: 50px; }
+  .vu-meters   { height: 50px; }
+  .eq-knob     { height: 40px; }
+
+  .deck-extra-tools { justify-content: center; }
 }

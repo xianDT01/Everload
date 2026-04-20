@@ -35,26 +35,51 @@ export function HttpLoaderFactory(http: HttpClient) {
  * Pre-loads translations before Angular renders any component.
  * Eliminates the intermittent "missing text" bug caused by the race between
  * Angular's first render and the async HTTP load of the i18n JSON.
+ *
+ * Recovery strategy when the load fails (typically a corrupted SW cache):
+ *  1. Unregister all Service Workers
+ *  2. Delete every `ngsw:*` entry in CacheStorage
+ *  3. Reload the page once (guarded by sessionStorage to avoid loops)
  */
 export function initTranslations(translate: TranslateService): () => Promise<void> {
   return (): Promise<void> => {
     translate.setDefaultLang('es');
     const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'es';
-    return firstValueFrom(translate.use(lang))
+
+    // Wrap the translation load with a timeout so we detect stalled fetches too
+    const translationLoad = firstValueFrom(translate.use(lang));
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('i18n load timeout')), 8000)
+    );
+
+    return Promise.race([translationLoad, timeout])
       .then(() => undefined)
       .catch(async () => {
-        // Translation load failed — probably corrupted SW cache. Reset SW and reload once.
+        // Translation load failed — probably corrupted SW cache.
+        // Reset SW + clear CacheStorage and reload once.
         if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator
             && typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('sw_reset')) {
           sessionStorage.setItem('sw_reset', '1');
           try {
+            // 1. Unregister all service workers
             const regs = await navigator.serviceWorker.getRegistrations();
             await Promise.all(regs.map(r => r.unregister()));
-          } catch {}
+
+            // 2. Clear all ngsw caches (the actual corrupted data)
+            if ('caches' in window) {
+              const cacheNames = await caches.keys();
+              await Promise.all(
+                cacheNames
+                  .filter(name => name.startsWith('ngsw:'))
+                  .map(name => caches.delete(name))
+              );
+            }
+          } catch { /* best-effort cleanup */ }
           window.location.reload();
           return;
         }
-        // Already reset once — continue without translations rather than loop
+        // Already reset once — continue without translations rather than loop.
+        // The app will show raw keys but remain functional.
       });
   };
 }

@@ -141,7 +141,21 @@ public class NasService {
         if (target.equals(basePath)) throw new SecurityException("No se puede renombrar la raíz");
         if (!target.toFile().exists()) throw new IllegalArgumentException("Archivo/carpeta no encontrado");
 
-        Path destination = target.resolveSibling(sanitizeName(newName)).normalize();
+        String finalName = sanitizeName(newName.trim());
+
+        // Preserve original extension if the target is a file and the new name has no extension
+        if (target.toFile().isFile()) {
+            String originalFileName = target.getFileName().toString();
+            int dotIdx = originalFileName.lastIndexOf('.');
+            if (dotIdx > 0) {
+                String originalExt = originalFileName.substring(dotIdx); // e.g. ".mp3"
+                if (!finalName.toLowerCase().endsWith(originalExt.toLowerCase())) {
+                    finalName = finalName + originalExt;
+                }
+            }
+        }
+
+        Path destination = target.resolveSibling(finalName).normalize();
         if (!destination.startsWith(basePath)) throw new SecurityException("Acceso denegado");
         if (destination.toFile().exists()) throw new IllegalArgumentException("Ya existe un elemento con ese nombre");
 
