@@ -161,8 +161,69 @@
     <!-- Scrollable content -->
     <div class="content-scroll" #contentScroll>
 
+      <!-- ══ BANNERS SECTION (home view) ══════════════════════════════════ -->
+      <div class="banners-section" *ngIf="currentView === 'home'">
+        <div class="banners-viewport">
+          <div class="banners-track" [style.transform]="'translateX(-' + (activeBannerIndex * 100) + '%)'">
+            <div *ngFor="let banner of banners; let i = index"
+                 class="banner-slide"
+                 [style.background]="banner.gradient"
+                 (click)="onBannerClick(banner)">
+              <!-- Album art as background (blurred) when available -->
+              <img *ngIf="getBannerCoverUrl(banner)"
+                   class="banner-bg-img"
+                   [src]="getBannerCoverUrl(banner)"
+                   (error)="$any($event.target).style.display='none'" />
+              <div class="banner-overlay"></div>
+              <div class="banner-content">
+                <!-- Icon shown only when no album art -->
+                <div class="banner-icon" *ngIf="!getBannerCoverUrl(banner)">
+                  <svg *ngIf="banner.view === 'liked'" width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  </svg>
+                  <svg *ngIf="banner.view === 'history'" width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
+                    <path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.25 2.52.75-1.23-3.5-2.06V8h-1.5z"/>
+                  </svg>
+                  <svg *ngIf="!banner.view" width="48" height="48" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
+                    <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
+                  </svg>
+                </div>
+                <!-- Cover art thumbnail when available -->
+                <div class="banner-cover-thumb" *ngIf="getBannerCoverUrl(banner)">
+                  <img [src]="getBannerCoverUrl(banner)" (error)="$any($event.target).style.display='none'" />
+                </div>
+                <div class="banner-text">
+                  <h2 class="banner-title">{{ banner.title }}</h2>
+                  <p class="banner-subtitle">{{ banner.subtitle }}</p>
+                </div>
+                <div class="banner-action">
+                  <div class="banner-play-btn">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="#000"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Dots -->
+        <div class="banner-dots">
+          <button *ngFor="let b of banners; let i = index"
+                  class="banner-dot"
+                  [class.active]="i === activeBannerIndex"
+                  (click)="goToBanner(i); $event.stopPropagation()">
+          </button>
+        </div>
+        <!-- Arrows -->
+        <button class="banner-arrow banner-prev" (click)="prevBanner(); $event.stopPropagation()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg>
+        </button>
+        <button class="banner-arrow banner-next" (click)="nextBanner(); $event.stopPropagation()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+        </button>
+      </div>
+
       <!-- Gradient header -->
-      <div class="content-header" [style.background]="headerGradient">
+      <div class="content-header" *ngIf="currentView !== 'home'" [style.background]="headerGradient">
         <div class="content-header-bg"></div>
         <div class="header-art" [class.border-radius]="currentView === 'liked'">
           <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" class="header-cover-img" [class.playing]="state?.playing" />
@@ -187,7 +248,7 @@
       </div>
 
       <!-- Action bar -->
-      <div class="action-bar" *ngIf="filteredTracks.length > 0 || filteredFolders.length > 0 || (editMode && currentView === 'folder' && selectedPathId !== null)">
+      <div class="action-bar" *ngIf="filteredTracks.length > 0 || filteredFolders.length > 0 || (currentView === 'folder' && selectedPathId !== null)">
         <button class="btn-play-all" (click)="playTrack(filteredTracks[0])" *ngIf="filteredTracks.length > 0">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </button>
@@ -210,6 +271,16 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg>
           {{ 'COMMON.NEW_FOLDER' | translate }}
         </button>
+        <!-- YouTube → NAS button (folder view, NAS access) -->
+        <button *ngIf="canEdit && currentView === 'folder' && selectedPathId !== null"
+                class="btn-yt-panel"
+                [class.active]="ytPanel"
+                (click)="toggleYtPanel(); $event.stopPropagation()"
+                title="Añadir música desde YouTube">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19c-.23-.86-.9-1.54-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.82.42c-.86.23-1.53.91-1.76 1.77C2 8.76 2 12 2 12s0 3.24.42 4.81c.23.86.9 1.54 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.82-.42c.86-.23 1.53-.91 1.76-1.77C22 15.24 22 12 22 12s0-3.24-.42-4.81zM10 15V9l5.2 3-5.2 3z"/></svg>
+          <span class="btn-yt-label">YouTube</span>
+        </button>
+
         <!-- Upload buttons (edit mode only) -->
         <ng-container *ngIf="editMode && currentView === 'folder' && selectedPathId !== null">
           <button class="btn-upload"
@@ -227,6 +298,65 @@
             <span class="btn-upload-label">Carpeta</span>
           </button>
         </ng-container>
+      </div>
+
+      <!-- ══ YOUTUBE SEARCH PANEL ════════════════════════════════════════════ -->
+      <div class="yt-search-panel" *ngIf="ytPanel && currentView === 'folder'" (click)="$event.stopPropagation()">
+        <div class="yt-search-bar">
+          <div class="yt-search-input-wrap">
+            <svg class="yt-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21.58 7.19c-.23-.86-.9-1.54-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.82.42c-.86.23-1.53.91-1.76 1.77C2 8.76 2 12 2 12s0 3.24.42 4.81c.23.86.9 1.54 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.82-.42c.86-.23 1.53-.91 1.76-1.77C22 15.24 22 12 22 12s0-3.24-.42-4.81zM10 15V9l5.2 3-5.2 3z"/>
+            </svg>
+            <input class="yt-search-input" type="text" [(ngModel)]="ytQuery"
+                   placeholder="Buscar en YouTube para añadir a esta carpeta..."
+                   (keydown.enter)="searchYouTube()" autofocus />
+            <button class="yt-search-clear" *ngIf="ytQuery" (click)="ytQuery=''; ytResults=[]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+          </div>
+          <div class="yt-format-select">
+            <select [(ngModel)]="ytFormat" class="yt-format-dropdown">
+              <option value="mp3">MP3</option>
+              <option value="flac">FLAC</option>
+              <option value="m4a">M4A</option>
+              <option value="opus">OPUS</option>
+            </select>
+          </div>
+          <button class="btn-yt-search" (click)="searchYouTube()" [disabled]="ytSearching || !ytQuery.trim()">
+            <svg *ngIf="!ytSearching" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <span *ngIf="ytSearching" class="yt-spinner"></span>
+          </button>
+        </div>
+
+        <div class="yt-results-grid" *ngIf="ytResults.length > 0">
+          <div *ngFor="let video of ytResults" class="yt-result-card">
+            <div class="yt-result-thumb">
+              <img [src]="ytThumbnail(video)" loading="lazy" />
+              <div class="yt-result-thumb-overlay">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
+              </div>
+            </div>
+            <div class="yt-result-info">
+              <span class="yt-result-title">{{ video.snippet?.title }}</span>
+              <span class="yt-result-channel">{{ video.snippet?.channelTitle }}</span>
+            </div>
+            <button class="btn-yt-dl"
+                    [class.downloading]="isYtDownloading(video)"
+                    [disabled]="isYtDownloading(video)"
+                    (click)="downloadYtToNas(video)"
+                    [title]="'Descargar como ' + ytFormat.toUpperCase() + ' al NAS'">
+              <svg *ngIf="!isYtDownloading(video)" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              <span *ngIf="isYtDownloading(video)" class="yt-spinner"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="yt-empty-search" *ngIf="!ytSearching && ytQuery && ytResults.length === 0">
+          No se encontraron resultados para "{{ ytQuery }}"
+        </div>
+        <div class="yt-hint" *ngIf="!ytQuery && ytResults.length === 0">
+          Los archivos se guardarán en <strong>{{ currentFolderName }}</strong> con portada y metadatos embebidos.
+        </div>
       </div>
 
       <!-- ── Folders section ─────────────────────────────────────────────── -->
@@ -438,6 +568,34 @@
 
     </div><!-- /content-scroll -->
   </div><!-- /lib-main -->
+
+  <!-- ══ YT-DLP JOBS PANEL ════════════════════════════════════════════════════ -->
+  <div class="ytjobs-panel" *ngIf="ytJobs.length > 0" (click)="$event.stopPropagation()">
+    <div class="ytjobs-header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19c-.23-.86-.9-1.54-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.82.42c-.86.23-1.53.91-1.76 1.77C2 8.76 2 12 2 12s0 3.24.42 4.81c.23.86.9 1.54 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.82-.42c.86-.23 1.53-.91 1.76-1.77C22 15.24 22 12 22 12s0-3.24-.42-4.81zM10 15V9l5.2 3-5.2 3z"/></svg>
+      <span class="ytjobs-title">Descargas NAS</span>
+      <button class="ytjobs-close" (click)="closeJobsPanel()" title="Cerrar completadas">✕</button>
+    </div>
+    <ul class="ytjobs-list">
+      <li *ngFor="let job of ytJobs" class="ytjob-item" [class.done]="job.status === 'DONE'" [class.error]="job.status === 'ERROR'">
+        <div class="ytjob-thumb">
+          <img [src]="'https://img.youtube.com/vi/' + job.videoId + '/default.jpg'" />
+        </div>
+        <div class="ytjob-info">
+          <span class="ytjob-title">{{ job.title }}</span>
+          <div class="ytjob-progress-wrap" *ngIf="job.status === 'RUNNING' || job.status === 'QUEUED'">
+            <div class="ytjob-progress-bar">
+              <div class="ytjob-progress-fill" [style.width.%]="job.progress"
+                   [class.indeterminate]="job.status === 'QUEUED'"></div>
+            </div>
+            <span class="ytjob-pct">{{ jobStatusLabel(job) }}</span>
+          </div>
+          <span class="ytjob-status done" *ngIf="job.status === 'DONE'">✓ {{ job.resultFilename }}</span>
+          <span class="ytjob-status error" *ngIf="job.status === 'ERROR'">✕ {{ job.error }}</span>
+        </div>
+      </li>
+    </ul>
+  </div>
 
   <!-- ══ UPLOAD PANEL ════════════════════════════════════════════════════════ -->
   <div class="upload-panel" *ngIf="uploadState.active" (click)="$event.stopPropagation()">

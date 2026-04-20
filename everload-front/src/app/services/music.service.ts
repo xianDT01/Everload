@@ -484,7 +484,7 @@ export class DeckPlayer {
 @Injectable({ providedIn: 'root' })
 export class MusicService {
 
-  private readonly BASE: string = (() => {
+  readonly BASE: string = (() => {
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
     const port = typeof window !== 'undefined' ? window.location.port : '';
     // Use absolute URL only when running the Angular dev server (port 4200).
@@ -659,6 +659,22 @@ export class MusicService {
         }
       })
       .catch(() => {});
+  }
+
+  // ── NAS yt-dlp async jobs ─────────────────────────────────────────────────
+
+  searchYouTube(query: string, maxResults = 8): Observable<any> {
+    const url = `${this.api.replace('/api/music', '/api/youtube').replace('/music', '/youtube')}/search?query=${encodeURIComponent(query)}&maxResults=${maxResults}`;
+    return this.http.get<any>(url);
+  }
+
+  ytDlpQueue(videoId: string, title: string, nasPathId: number, subPath: string, format: string): Observable<{jobId: string}> {
+    const p = new URLSearchParams({ videoId, title, nasPathId: String(nasPathId), subPath, format });
+    return this.http.post<{jobId: string}>(`${this.BASE}/api/nas/ytdlp/queue?${p}`, {});
+  }
+
+  ytDlpActiveJobs(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.BASE}/api/nas/ytdlp/active`);
   }
 
   // ── Favorites & History API ───────────────────────────────────────────────
