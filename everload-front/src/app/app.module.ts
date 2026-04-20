@@ -28,7 +28,7 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { MaintenanceInterceptor } from './interceptors/maintenance.interceptor';
 
 export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, './assets/i18n/', '.json');
+  return new TranslateHttpLoader(http, './assets/i18n/', '.json?v=' + new Date().getTime());
 }
 
 /**
@@ -53,7 +53,13 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
     );
 
     return Promise.race([translationLoad, timeout])
-      .then(() => undefined)
+      .then((res: any) => {
+        // Validation: If it succeeds but the object is empty or lacks the critical 'HOME' key,
+        // it means the SW returned a corrupted cache response (e.g. 200 OK with no data).
+        if (!res || Object.keys(res).length === 0 || !res['HOME']) {
+          throw new Error('Corrupted translations payload');
+        }
+      })
       .catch(async () => {
         // Translation load failed — probably corrupted SW cache.
         // Reset SW + clear CacheStorage and reload once.
