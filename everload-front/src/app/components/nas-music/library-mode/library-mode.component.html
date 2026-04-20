@@ -510,11 +510,9 @@
             <span class="tr-format">
               <button *ngIf="editMode"
                       class="btn-dl-track"
-                      [class.downloading]="isDownloading(track.path)"
-                      (click)="downloadTrack($event, track)"
-                      title="Descargar">
-                <svg *ngIf="!isDownloading(track.path)" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                <span *ngIf="isDownloading(track.path)" class="dl-spin">↻</span>
+                      (click)="openCopyModal($event, track)"
+                      [title]="'MUSIC.COPY_TO_NAS' | translate">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
               </button>
               <button class="btn-like" [class.liked]="isLiked(track)" (click)="toggleLike($event, track)">
                 <svg *ngIf="!isLiked(track)" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5">
@@ -690,7 +688,11 @@
       <label class="modal-label">Título</label>
       <input class="modal-input" type="text" [(ngModel)]="dialog.title" placeholder="Título de la canción" autofocus />
       <label class="modal-label">Artista</label>
-      <input class="modal-input" type="text" [(ngModel)]="dialog.artist" placeholder="Nombre del artista"
+      <input class="modal-input" type="text" [(ngModel)]="dialog.artist" placeholder="Nombre del artista" />
+      <label class="modal-label">Álbum</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.album" placeholder="Nombre del álbum" />
+      <label class="modal-label">Año</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.year" placeholder="Ej: 2024"
              (keydown.enter)="confirmMetadata()" />
       <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
       <div class="modal-actions">
@@ -734,3 +736,18 @@
   </div>
 </div>
 
+<!-- Copy to NAS modal -->
+<ng-container *ngIf="copyModal.open">
+  <div *ngIf="copyModal.copying || copyModal.success" class="copy-modal-status">
+    <span *ngIf="copyModal.copying" class="dl-spin">↻</span>
+    <span *ngIf="copyModal.success">✅ {{ 'MUSIC.COPY_SUCCESS' | translate }}</span>
+    <span *ngIf="copyModal.error" class="copy-error">{{ copyModal.error }}</span>
+  </div>
+  <app-nas-browser
+    *ngIf="!copyModal.copying && !copyModal.success"
+    mode="select"
+    [downloadFileName]="copyModal.track?.name || ''"
+    (pathSelected)="onCopyDestinationSelected($event)"
+    (closed)="closeCopyModal()">
+  </app-nas-browser>
+</ng-container>

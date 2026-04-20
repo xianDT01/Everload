@@ -268,7 +268,7 @@ public class MusicService {
 
     // ── Metadata write ────────────────────────────────────────────────────────
 
-    public void updateMetadata(Long pathId, String relativePath, String title, String artist) {
+    public void updateMetadata(Long pathId, String relativePath, String title, String artist, String album, String year) {
         File file = resolveFile(pathId, relativePath);
         if (!isAudio(file)) throw new IllegalArgumentException("No es un archivo de audio");
         try {
@@ -276,11 +276,37 @@ public class MusicService {
             Tag tag = af.getTagOrCreateDefault();
             if (title  != null) tag.setField(FieldKey.TITLE,  title);
             if (artist != null) tag.setField(FieldKey.ARTIST, artist);
+            if (album  != null) tag.setField(FieldKey.ALBUM,  album);
+            if (year   != null) tag.setField(FieldKey.YEAR,   year);
             af.setTag(tag);
             AudioFileIO.write(af);
         } catch (Exception e) {
             throw new RuntimeException("No se pudieron actualizar los metadatos: " + e.getMessage());
         }
+    }
+
+    // Escribe title/artist solo si faltan — usado tras descargas de YouTube
+    public void ensureMetadata(File file, String fallbackTitle, String fallbackArtist) {
+        if (!isAudio(file)) return;
+        try {
+            AudioFile af = AudioFileIO.read(file);
+            Tag tag = af.getTagOrCreateDefault();
+            boolean changed = false;
+            String existingTitle = tag.getFirst(FieldKey.TITLE);
+            if (existingTitle == null || existingTitle.isBlank()) {
+                tag.setField(FieldKey.TITLE, fallbackTitle);
+                changed = true;
+            }
+            String existingArtist = tag.getFirst(FieldKey.ARTIST);
+            if (existingArtist == null || existingArtist.isBlank()) {
+                tag.setField(FieldKey.ARTIST, fallbackArtist);
+                changed = true;
+            }
+            if (changed) {
+                af.setTag(tag);
+                AudioFileIO.write(af);
+            }
+        } catch (Exception ignored) {}
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -323,9 +349,12 @@ public class MusicService {
                 String album  = tag.getFirst(FieldKey.ALBUM);
                 String bpmStr = tag.getFirst(FieldKey.BPM);
 
+                String year   = tag.getFirst(FieldKey.YEAR);
+
                 b.title(title  != null && !title.isBlank()  ? title  : stripExtension(f.getName()));
                 b.artist(artist != null ? artist : "");
                 b.album(album   != null ? album  : "");
+                b.year(year     != null ? year   : "");
                 b.hasCover(tag.getFirstArtwork() != null);
 
                 if (bpmStr != null && !bpmStr.isBlank()) {

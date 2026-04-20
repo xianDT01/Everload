@@ -2612,3 +2612,35 @@
 
   .deck-extra-tools { justify-content: center; }
 }
+
+/* ── Tablet / portátil en horizontal con altura reducida ─────────────────── */
+/* Cubre tablets (iPad, Samsung Tab, etc.) en landscape donde la altura      */
+/* disponible impide ver el botón de play.                                    */
+@media (orientation: landscape) and (max-height: 840px) and (min-width: 769px) {
+  .deck-body {
+    overflow-y: auto;
+    padding: 4px 10px 6px;
+    gap: 3px;
+    scroll-behavior: smooth;
+  }
+
+  /* Asegura que deck-controls sea siempre visible — no se corta */
+  .deck-controls {
+    position: sticky;
+    bottom: 0;
+    background: var(--col-panel);
+    padding: 4px 0 2px;
+    z-index: 2;
+    border-top: 1px solid var(--col-border);
+  }
+
+  .vinyl          { width: 80px; height: 80px; }
+  .pitch-slider   { height: 80px; }
+  .spectrum-canvas { height: 22px; }
+  .btn-play       { width: 38px; height: 38px; }
+  .btn-ctrl       { width: 26px; height: 26px; font-size: 11px; }
+  .btn-cue        { padding: 4px 8px; font-size: 9px; }
+  .btn-sync       { padding: 3px 7px; font-size: 9px; }
+  .deck-extra-tools { padding: 2px 0; gap: 6px; }
+  .fx-panel       { padding: 2px 6px; margin-top: 0; }
+}
