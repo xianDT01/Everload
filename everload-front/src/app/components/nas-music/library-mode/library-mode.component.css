@@ -2858,3 +2858,39 @@
   .btn-yt-label { display: none; }
 }
 
+
+/* ── Pagination / infinite scroll ─────────────────────────────────────────── */
+.tracks-end-sentinel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 8px;
+  min-height: 40px;
+}
+
+.page-loading-spinner {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.spinner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--col-accent, #1db954);
+  animation: spinner-bounce 1.2s infinite ease-in-out;
+}
+.spinner-dot:nth-child(2) { animation-delay: 0.2s; }
+.spinner-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes spinner-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1;   }
+}
+
+.load-more-hint {
+  font-size: 11px;
+  color: var(--col-muted, rgba(255,255,255,0.35));
+  letter-spacing: 0.5px;
+}

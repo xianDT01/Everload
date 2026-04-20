@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { NasPath, NasService } from '../../../services/nas.service';
-import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/music.service';
+import { MusicMetadataDto, MusicService, PagedMusicResult, PlayerState } from '../../../services/music.service';
 import { AuthService } from '../../../services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -23,7 +23,7 @@ interface NasBanner {
   templateUrl: './library-mode.component.html',
   styleUrls: ['./library-mode.component.css']
 })
-export class LibraryModeComponent implements OnInit, OnDestroy {
+export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
@@ -132,6 +132,15 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   coverScanActive = false;
   coverScanProgress = '';
 
+  // ── Pagination ────────────────────────────────────────────────────────────
+  private readonly PAGE_SIZE = 50;
+  private currentPage = 0;
+  totalTracks = 0;
+  pageLoading = false;
+  loadingPage = false; // dedup guard, también usado en template
+  private intersectionObserver?: IntersectionObserver;
+  @ViewChild('tracksEndSentinel') tracksEndSentinel?: ElementRef;
+
   private uploadSub?: Subscription;
   private subs: Subscription[] = [];
 
@@ -170,12 +179,27 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     });
   }
 
+  ngAfterViewInit(): void {
+    this.setupIntersectionObserver();
+  }
+
   ngOnDestroy(): void {
     this.subs.forEach(s => s.unsubscribe());
     clearInterval(this.bannerInterval);
     this.stopPollJobs();
+    this.intersectionObserver?.disconnect();
     this.preloadAudio.src = '';
     this.preloadAudio.load();
+  }
+
+  private setupIntersectionObserver(): void {
+    if (typeof IntersectionObserver === 'undefined') return;
+    this.intersectionObserver = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting) this.loadNextPage();
+    }, { threshold: 0.1 });
+    if (this.tracksEndSentinel) {
+      this.intersectionObserver.observe(this.tracksEndSentinel.nativeElement);
+    }
   }
 
   // ── Banner methods ────────────────────────────────────────────────────────
@@ -275,8 +299,8 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   private loadLibraryBanner(): void {
     if (!this.paths.length) return;
     const pid = this.paths[0].id;
-    this.musicService.browse(pid, '').subscribe(items => {
-      const tracks = items.filter(i => !i.directory);
+    this.musicService.browse(pid, '', 0, 50).subscribe(result => {
+      const tracks = result.items.filter((i: MusicMetadataDto) => !i.directory);
       if (!tracks.length) return;
       const track = tracks[Math.floor(Math.random() * tracks.length)];
       track.nasPathId = pid;
@@ -328,14 +352,18 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
 
   load() {
     this.brokenCoverPaths.clear();
+    this.currentPage = 0;
+    this.totalTracks = 0;
+    this.loadingPage = false;
     if (this.currentView === 'home') {
       this.musicService.getHistory(10).subscribe(h => {
         this.historyItems = h;
       });
-      // Show all folders and tracks from the first NAS path
       if (this.paths.length > 0) {
-        this.musicService.browse(this.paths[0].id, '').subscribe(homeItems => {
-          this.items = homeItems;
+        this.musicService.browse(this.paths[0].id, '', 0, this.PAGE_SIZE).subscribe(result => {
+          this.items = result.items;
+          this.totalTracks = result.totalTracks;
+          this.currentPage = 0;
           this.fetchCoversForVisible();
           this.checkPendingAutoPlay();
         });
@@ -343,14 +371,12 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
     } else if (this.currentView === 'liked') {
       this.musicService.getFavorites().subscribe(favs => {
         this.likedItems = favs;
-        // Sort liked items
         const sorted = [...favs];
         if (this.likedSortBy === 'title') {
           sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
         } else if (this.likedSortBy === 'artist') {
           sorted.sort((a, b) => (a.artist || '').localeCompare(b.artist || ''));
         }
-        // 'date' is default sort from backend (DESC createdAt)
         this.items = sorted.map(f => ({
           name: f.title,
           path: f.trackPath,
@@ -366,7 +392,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
           lastModified: '',
           bpm: 0
         } as MusicMetadataDto));
-        // Buscar portadas de iTunes para los ítems visibles
+        this.totalTracks = this.items.length;
         this.items.slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
         this.checkPendingAutoPlay();
       });
@@ -386,17 +412,67 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
            size: 0,
            format: ''
         } as MusicMetadataDto));
-        // Buscar portadas de iTunes para los ítems visibles
+        this.totalTracks = this.items.length;
         this.items.slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
         this.checkPendingAutoPlay();
       });
     } else if (this.currentView === 'folder' && this.selectedPathId !== null) {
-      this.musicService.browse(this.selectedPathId, this.currentSubPath).subscribe(items => {
-        this.items = items;
+      this.pageLoading = true;
+      this.musicService.browse(this.selectedPathId, this.currentSubPath, 0, this.PAGE_SIZE).subscribe(result => {
+        this.items = result.items;
+        this.totalTracks = result.totalTracks;
+        this.currentPage = 0;
+        this.pageLoading = false;
         this.fetchCoversForVisible();
         this.checkPendingAutoPlay();
       });
     }
+  }
+
+  get allTracksLoaded(): boolean {
+    return this.totalTracks > 0 && this.tracks.length >= this.totalTracks;
+  }
+
+  loadNextPage(): void {
+    if (this.currentView !== 'folder') return;
+    if (this.allTracksLoaded) return;
+    if (this.loadingPage || this.pageLoading) return;
+    if (this.selectedPathId === null) return;
+    if (this.searchQuery.trim()) return; // búsqueda activa: no paginar
+
+    this.loadingPage = true;
+    const nextPage = this.currentPage + 1;
+    this.musicService.browse(this.selectedPathId, this.currentSubPath, nextPage, this.PAGE_SIZE).subscribe({
+      next: result => {
+        // Append only tracks (result.items on page >0 never contains dirs)
+        this.items = [...this.items, ...result.items];
+        this.totalTracks = result.totalTracks;
+        this.currentPage = nextPage;
+        this.loadingPage = false;
+        this.fetchCoversForVisible();
+      },
+      error: () => { this.loadingPage = false; }
+    });
+  }
+
+  // Carga todas las páginas restantes (usado cuando el usuario busca)
+  private loadAllRemainingPages(): void {
+    if (this.currentView !== 'folder') return;
+    if (this.allTracksLoaded) return;
+    if (this.selectedPathId === null) return;
+
+    const fetchNext = (page: number) => {
+      this.musicService.browse(this.selectedPathId!, this.currentSubPath, page, this.PAGE_SIZE).subscribe({
+        next: result => {
+          this.items = [...this.items, ...result.items];
+          this.totalTracks = result.totalTracks;
+          this.currentPage = page;
+          if (this.tracks.length < this.totalTracks) fetchNext(page + 1);
+        },
+        error: () => {}
+      });
+    };
+    fetchNext(this.currentPage + 1);
   }
 
   navigate(item: MusicMetadataDto) {
@@ -431,6 +507,12 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
       (t.artist || '').toLowerCase().includes(q) ||
       (t.album  || '').toLowerCase().includes(q)
     );
+  }
+
+  onSearchChange(): void {
+    if (this.searchQuery.trim() && !this.allTracksLoaded) {
+      this.loadAllRemainingPages();
+    }
   }
 
   get breadcrumbs(): string[] {
@@ -575,7 +657,7 @@ export class LibraryModeComponent implements OnInit, OnDestroy {
   }
 
   private fetchCoversForVisible() {
-    this.tracks.filter(t => !this.musicService.hasCoverToShow(t)).slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
+    this.tracks.filter(t => !this.musicService.hasCoverToShow(t)).slice(0, 60).forEach(t => this.musicService.fetchCoverIfNeeded(t));
   }
 
   // ── Cover scan ────────────────────────────────────────────────────────────

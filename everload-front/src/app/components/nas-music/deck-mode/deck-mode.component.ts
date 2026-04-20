@@ -572,8 +572,8 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   loadDir() {
     if (this.selectedPathId === null) return;
-    this.musicService.browse(this.selectedPathId, this.currentSubPath).subscribe(items => {
-      this.items = items;
+    this.musicService.browse(this.selectedPathId, this.currentSubPath, 0, 200).subscribe(result => {
+      this.items = result.items;
       this.selectedIndex = -1;
     });
   }
@@ -1231,11 +1231,11 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!node.childrenLoaded) {
       if (node.source === 'nas') {
         node.loading = true;
-        this.musicService.browse(node.pathId!, node.subPath!).subscribe(items => {
-          node.children = items
-            .filter(i => i.directory)
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map(i => {
+        this.musicService.browse(node.pathId!, node.subPath!, 0, 200).subscribe(result => {
+          node.children = result.items
+            .filter((i: MusicMetadataDto) => i.directory)
+            .sort((a: MusicMetadataDto, b: MusicMetadataDto) => a.name.localeCompare(b.name))
+            .map((i: MusicMetadataDto) => {
               const sub = node.subPath ? `${node.subPath}/${i.name}` : i.name;
               return {
                 key: `nas:${node.pathId}:${sub}`,

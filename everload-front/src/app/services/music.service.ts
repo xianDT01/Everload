@@ -3,6 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { BehaviorSubject, Observable } from 'rxjs';
 
+export interface PagedMusicResult {
+  items: MusicMetadataDto[];
+  totalTracks: number;
+  page: number;
+  size: number;
+}
+
 export interface MusicMetadataDto {
   name: string;
   path: string;
@@ -520,16 +527,21 @@ export class MusicService {
   get shuffle() { return this._shuffle; }
   get repeat()  { return this._repeat; }
 
-  // iTunes cover cache
   private coverOverrideMap = new Map<string, string>();
   private itunesFetchedTerms = new Set<string>();
-  // Cache-bust timestamps for folder covers (invalidated on cover upload)
   private folderCoverBust = new Map<string, number>();
+  private static readonly COVER_CACHE_KEY = 'ev_covers_v2';
 
   constructor(private http: HttpClient, private auth: AuthService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
     this.deckAPlayer = new DeckPlayer(this, 'deckA');
     this.deckBPlayer = new DeckPlayer(this, 'deckB');
+
+    // Cargar caché de portadas persistida en localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem(MusicService.COVER_CACHE_KEY) || '{}');
+      Object.entries(saved).forEach(([path, url]) => this.coverOverrideMap.set(path, url as string));
+    } catch {}
 
     // Auto-advance queue when main player track ends naturally
     this.mainPlayer.onTrackEnded = () => {
@@ -599,10 +611,10 @@ export class MusicService {
 
   // ── API calls ─────────────────────────────────────────────────────────────
 
-  browse(pathId: number, subPath?: string): Observable<MusicMetadataDto[]> {
-    let url = `${this.api}/metadata?pathId=${pathId}`;
+  browse(pathId: number, subPath?: string, page = 0, size = 50): Observable<PagedMusicResult> {
+    let url = `${this.api}/metadata?pathId=${pathId}&page=${page}&size=${size}`;
     if (subPath) url += `&subPath=${encodeURIComponent(subPath)}`;
-    return this.http.get<MusicMetadataDto[]>(url);
+    return this.http.get<PagedMusicResult>(url);
   }
 
   getStreamUrl(pathId: number, trackPath: string): string {
@@ -641,24 +653,54 @@ export class MusicService {
     return track.hasCover || this.coverOverrideMap.has(track.path);
   }
 
-  fetchCoverIfNeeded(track: MusicMetadataDto) {
+  fetchCoverIfNeeded(track: MusicMetadataDto): void {
     if (!track || track.hasCover || this.coverOverrideMap.has(track.path)) return;
-    const term = `${track.artist || ''} ${track.album || track.title || ''}`.trim();
-    if (!term) return;
-    if (this.itunesFetchedTerms.has(term)) return;
 
-    this.itunesFetchedTerms.add(term);
-    const encoded = encodeURIComponent(term);
-    fetch(`https://itunes.apple.com/search?term=${encoded}&entity=album&limit=1`)
-      .then(r => r.json())
-      .then(data => {
-        const result = data.results?.[0];
-        if (result?.artworkUrl100) {
-          const hq = result.artworkUrl100.replace('100x100bb', '600x600bb');
-          this.coverOverrideMap.set(track.path, hq);
-        }
-      })
-      .catch(() => {});
+    const artist = (track.artist || '').trim();
+    const title  = (track.title  || track.name || '').trim();
+    const album  = (track.album  || '').trim();
+    if (!title && !artist) return;
+
+    // Evitar peticiones duplicadas para el mismo par artista+título
+    const dedupeKey = `${artist}|${title}`;
+    if (this.itunesFetchedTerms.has(dedupeKey)) return;
+    this.itunesFetchedTerms.add(dedupeKey);
+
+    const itunesSearch = (term: string, entity: string): Promise<string | null> =>
+      fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=3`)
+        .then(r => r.json())
+        .then(d => {
+          const r = d.results?.[0];
+          return r?.artworkUrl100
+            ? r.artworkUrl100.replace('100x100bb', '600x600bb')
+            : null;
+        })
+        .catch(() => null);
+
+    const save = (url: string) => {
+      this.coverOverrideMap.set(track.path, url);
+      try {
+        const cache = JSON.parse(localStorage.getItem(MusicService.COVER_CACHE_KEY) || '{}');
+        cache[track.path] = url;
+        localStorage.setItem(MusicService.COVER_CACHE_KEY, JSON.stringify(cache));
+      } catch {}
+    };
+
+    // Estrategia de búsqueda en cascada:
+    // 1. "Artista Título" con entity=song  (mejor para canciones individuales)
+    // 2. "Artista Álbum"  con entity=album (si tiene álbum)
+    // 3. Solo "Título"    con entity=song  (último recurso)
+    const term1 = artist && title ? `${artist} ${title}` : (title || artist);
+    itunesSearch(term1, 'song').then(url => {
+      if (url) { save(url); return; }
+      const fallbacks: Promise<string | null>[] = [];
+      if (album) fallbacks.push(itunesSearch(artist ? `${artist} ${album}` : album, 'album'));
+      if (artist && title) fallbacks.push(itunesSearch(title, 'song'));
+      return fallbacks.reduce(
+        (chain, next) => chain.then(u => u ?? next),
+        Promise.resolve<string | null>(null)
+      ).then(u => { if (u) save(u); });
+    });
   }
 
   // ── NAS yt-dlp async jobs ─────────────────────────────────────────────────
