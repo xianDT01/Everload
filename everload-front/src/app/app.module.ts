@@ -28,65 +28,19 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { MaintenanceInterceptor } from './interceptors/maintenance.interceptor';
 
 export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, './assets/i18n/', '.json?v=' + new Date().getTime());
+  return new TranslateHttpLoader(http, './assets/i18n/', '.json');
 }
 
-/**
- * Pre-loads translations before Angular renders any component.
- * Eliminates the intermittent "missing text" bug caused by the race between
- * Angular's first render and the async HTTP load of the i18n JSON.
- *
- * Recovery strategy when the load fails (typically a corrupted SW cache):
- *  1. Unregister all Service Workers
- *  2. Delete every `ngsw:*` entry in CacheStorage
- *  3. Reload the page once (guarded by sessionStorage to avoid loops)
- */
+// Pre-loads translations before Angular renders any component to avoid flash of untranslated content.
 export function initTranslations(translate: TranslateService): () => Promise<void> {
   return (): Promise<void> => {
     translate.setDefaultLang('es');
     const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('language')) || 'es';
 
-    // Wrap the translation load with a timeout so we detect stalled fetches too
     const translationLoad = firstValueFrom(translate.use(lang));
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('i18n load timeout')), 8000)
-    );
+    const fallback = new Promise<void>(resolve => setTimeout(resolve, 5000));
 
-    return Promise.race([translationLoad, timeout])
-      .then((res: any) => {
-        // Validation: If it succeeds but the object is empty or lacks the critical 'HOME' key,
-        // it means the SW returned a corrupted cache response (e.g. 200 OK with no data).
-        if (!res || Object.keys(res).length === 0 || !res['HOME']) {
-          throw new Error('Corrupted translations payload');
-        }
-      })
-      .catch(async () => {
-        // Translation load failed — probably corrupted SW cache.
-        // Reset SW + clear CacheStorage and reload once.
-        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator
-            && typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('sw_reset')) {
-          sessionStorage.setItem('sw_reset', '1');
-          try {
-            // 1. Unregister all service workers
-            const regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(r => r.unregister()));
-
-            // 2. Clear all ngsw caches (the actual corrupted data)
-            if ('caches' in window) {
-              const cacheNames = await caches.keys();
-              await Promise.all(
-                cacheNames
-                  .filter(name => name.startsWith('ngsw:'))
-                  .map(name => caches.delete(name))
-              );
-            }
-          } catch { /* best-effort cleanup */ }
-          window.location.reload();
-          return;
-        }
-        // Already reset once — continue without translations rather than loop.
-        // The app will show raw keys but remain functional.
-      });
+    return Promise.race([translationLoad.then(() => {}), fallback]).catch(() => {});
   };
 }
 

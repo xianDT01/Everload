@@ -17,45 +17,24 @@
       }
     },
     {
-      "name": "app-icons",
-      "installMode": "lazy",
+      "name": "app-assets",
+      "installMode": "prefetch",
       "updateMode": "prefetch",
       "resources": {
         "files": [
-          "/icons/**",
-          "/Logo App-icon.ico"
-        ]
-      }
-    },
-    {
-      "name": "app-assets",
-      "installMode": "prefetch",
-      "updateMode": "lazy",
-      "resources": {
-        "files": [
+          "/assets/i18n/*.json",
           "/assets/*.png",
           "/assets/*.jpg",
           "/assets/*.jpeg",
           "/assets/*.webp",
           "/assets/*.svg",
-          "/assets/*.gif"
+          "/assets/*.gif",
+          "/icons/**"
         ]
       }
     }
   ],
   "dataGroups": [
-    {
-      "name": "i18n-translations",
-      "urls": [
-        "/assets/i18n/*.json"
-      ],
-      "cacheConfig": {
-        "strategy": "freshness",
-        "maxSize": 10,
-        "maxAge": "7d",
-        "timeout": "3s"
-      }
-    },
     {
       "name": "api-freshness",
       "urls": [
