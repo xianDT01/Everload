@@ -149,33 +149,6 @@
         </a>
       </section>
 
-      <!-- ══ RANDOM TRACKS ════════════════════════════════════════════════════ -->
-      <section class="discover-section" *ngIf="randomTracks.length > 0" aria-label="Descubre música">
-        <h3 class="discover-title">{{ 'HOME.DISCOVER_TITLE' | translate }}</h3>
-        <div class="discover-cards">
-          <a *ngFor="let track of randomTracks"
-             routerLink="/nas-music"
-             [queryParams]="{mode: 'library'}"
-             class="discover-card">
-            <div class="discover-bg" [class.no-cover]="!track.hasCover">
-              <img *ngIf="track.hasCover && track.nasPathId"
-                   [src]="musicService.getCoverUrl(track.nasPathId, track.path)"
-                   class="discover-cover-img"
-                   loading="lazy"
-                   alt=""
-                   (load)="onCoverLoaded($event)"
-                   (error)="onCoverError($event)" />
-            </div>
-            <div class="discover-overlay"></div>
-            <div class="discover-info">
-              <span class="discover-track-title">{{ track.title || track.name }}</span>
-              <span class="discover-track-artist" *ngIf="track.artist">{{ track.artist }}</span>
-            </div>
-            <span class="discover-play-icon">▶</span>
-          </a>
-        </div>
-      </section>
-
       <section class="social-cards-container" aria-labelledby="downloads-heading">
         <h2 id="downloads-heading" class="visuallyhidden">Download Options</h2>
         

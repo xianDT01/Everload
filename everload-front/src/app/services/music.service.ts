@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
 export interface PagedMusicResult {
   items: MusicMetadataDto[];
@@ -528,19 +528,29 @@ export class MusicService {
   get repeat()  { return this._repeat; }
 
   coverOverrideMap = new Map<string, string>();
+  /** Emite el trackPath cada vez que se guarda una portada nueva (iTunes o manual) */
+  readonly coverReady$ = new Subject<string>();
+  /** Términos ya buscados esta sesión (evita duplicados en memoria) */
   private itunesFetchedTerms = new Set<string>();
+  /** Paths de canciones que iTunes confirmó que no tiene (persistido en localStorage) */
+  private itunesNotFoundPaths = new Set<string>();
   private folderCoverBust = new Map<string, number>();
   private static readonly COVER_CACHE_KEY = 'ev_covers_v2';
+  private static readonly COVER_NOT_FOUND_KEY = 'ev_covers_nf_v1';
 
   constructor(private http: HttpClient, private auth: AuthService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
     this.deckAPlayer = new DeckPlayer(this, 'deckA');
     this.deckBPlayer = new DeckPlayer(this, 'deckB');
 
-    // Cargar caché de portadas persistida en localStorage
+    // Cargar caché de portadas y "no encontradas" de localStorage
     try {
       const saved = JSON.parse(localStorage.getItem(MusicService.COVER_CACHE_KEY) || '{}');
       Object.entries(saved).forEach(([path, url]) => this.coverOverrideMap.set(path, url as string));
+    } catch {}
+    try {
+      const nf = JSON.parse(localStorage.getItem(MusicService.COVER_NOT_FOUND_KEY) || '[]');
+      (nf as string[]).forEach(p => this.itunesNotFoundPaths.add(p));
     } catch {}
 
     // Auto-advance queue when main player track ends naturally
@@ -659,35 +669,40 @@ export class MusicService {
 
   fetchCoverIfNeeded(track: MusicMetadataDto): void {
     if (!track || track.hasCover || this.coverOverrideMap.has(track.path)) return;
+    // Saltar canciones que iTunes ya confirmó que no tiene
+    if (this.itunesNotFoundPaths.has(track.path)) return;
 
     let artist = (track.artist || '').trim();
     const title  = (track.title  || track.name || '').trim();
     const album  = (track.album  || '').trim();
     if (!title && !artist) return;
 
-    // Si no hay artista pero el título tiene "Artista - Algo", extrae el artista del título
     if (!artist && title.includes(' - ')) {
       artist = title.substring(0, title.indexOf(' - ')).trim();
     }
 
-    // Evitar peticiones duplicadas para el mismo par artista+título
+    // Evitar peticiones duplicadas dentro de la misma sesión
     const dedupeKey = `${artist}|${title}`;
     if (this.itunesFetchedTerms.has(dedupeKey)) return;
     this.itunesFetchedTerms.add(dedupeKey);
 
     const itunesSearch = (term: string, entity: string): Promise<string | null> =>
       fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=${entity}&limit=3`)
-        .then(r => r.json())
+        .then(r => {
+          // Si iTunes nos rate-limita, lanzar error especial para no marcar como "no encontrada"
+          if (r.status === 429) throw new Error('rate_limited');
+          return r.json();
+        })
         .then(d => {
           const r = d.results?.[0];
           if (!r) return null;
           const art = r.artworkUrl100 || r.artworkUrl60 || r.artworkUrl30;
           return art ? art.replace(/\d+x\d+bb/, '600x600bb') : null;
-        })
-        .catch(() => null);
+        });
 
     const save = (url: string) => {
       this.coverOverrideMap.set(track.path, url);
+      this.coverReady$.next(track.path);
       try {
         const cache = JSON.parse(localStorage.getItem(MusicService.COVER_CACHE_KEY) || '{}');
         cache[track.path] = url;
@@ -695,25 +710,44 @@ export class MusicService {
       } catch {}
     };
 
-    // Estrategia de búsqueda en cascada:
-    // 1. "Artista Título" con entity=song        (canciones normales)
-    // 2. "Artista Álbum"  con entity=album       (si tiene álbum)
-    // 3. Solo "Título"    con entity=song        (último recurso de título)
-    // 4. Solo "Artista"   con entity=musicArtist (foto oficial, cubre sesiones/mixes sin album)
+    const saveNotFound = () => {
+      this.itunesNotFoundPaths.add(track.path);
+      try {
+        const nf = JSON.parse(localStorage.getItem(MusicService.COVER_NOT_FOUND_KEY) || '[]') as string[];
+        if (!nf.includes(track.path)) {
+          nf.push(track.path);
+          localStorage.setItem(MusicService.COVER_NOT_FOUND_KEY, JSON.stringify(nf));
+        }
+      } catch {}
+    };
+
+    // Cascada: artista+título → artista+álbum → solo título → solo artista
     const cleanTitle = title.replace(/\b(session|live|set|mix|festival|dj\s*set|\d{4})\b/gi, '').trim();
     const term1 = artist && cleanTitle ? `${artist} ${cleanTitle}` : (cleanTitle || artist);
-    itunesSearch(term1, 'song').then(url => {
-      if (url) { save(url); return; }
-      const fallbacks: Promise<string | null>[] = [];
-      if (album) fallbacks.push(itunesSearch(artist ? `${artist} ${album}` : album, 'album'));
-      if (artist && cleanTitle && cleanTitle !== term1) fallbacks.push(itunesSearch(cleanTitle, 'song'));
-      // Fallback final: álbumes del artista como proxy de su imagen
-      if (artist) fallbacks.push(itunesSearch(artist, 'album'));
-      return fallbacks.reduce(
-        (chain, next) => chain.then(u => u ?? next),
-        Promise.resolve<string | null>(null)
-      ).then(u => { if (u) save(u); });
-    });
+    itunesSearch(term1, 'song')
+      .then(url => {
+        if (url) { save(url); return; }
+        const fallbacks: Promise<string | null>[] = [];
+        if (album) fallbacks.push(itunesSearch(artist ? `${artist} ${album}` : album, 'album'));
+        if (artist && cleanTitle && cleanTitle !== term1) fallbacks.push(itunesSearch(cleanTitle, 'song'));
+        if (artist) fallbacks.push(itunesSearch(artist, 'album'));
+        return fallbacks
+          .reduce(
+            (chain, next) => chain.then(u => u != null ? u : next),
+            Promise.resolve<string | null>(null)
+          )
+          .then(u => {
+            if (u) save(u);
+            else saveNotFound(); // toda la cascada agotada sin resultado
+          });
+      })
+      .catch(err => {
+        // Rate limit: quitar de itunesFetchedTerms para que se reintente más adelante
+        if (err?.message === 'rate_limited') {
+          this.itunesFetchedTerms.delete(dedupeKey);
+        }
+        // Cualquier otro error de red: silencioso, se reintentará la próxima sesión
+      });
   }
 
   // ── AcoustID fingerprinting ───────────────────────────────────────────────
