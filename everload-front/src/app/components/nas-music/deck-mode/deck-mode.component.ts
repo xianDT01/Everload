@@ -106,8 +106,16 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private localFallbackCurrentPath = '';
 
   @ViewChild('localFileInput') localFileInputRef?: ElementRef<HTMLInputElement>;
-  
+  @ViewChild('vdjLayout') vdjLayoutRef?: ElementRef<HTMLElement>;
+
   selectedIndex: number = -1;
+
+  // ── Vertical resize (decks / browser split) ───────────────────────────────
+  private static readonly DECK_HEIGHT_KEY = 'ev_dj_deck_height_pct';
+  deckHeightPct = 58; // % of total height given to .decks-section
+  private resizeDragging = false;
+  private resizeStartY = 0;
+  private resizeStartPct = 0;
 
   private subs: Subscription[] = [];
 
@@ -161,6 +169,11 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    const saved = localStorage.getItem(DeckModeComponent.DECK_HEIGHT_KEY);
+    if (saved) {
+      const n = parseFloat(saved);
+      if (n >= 20 && n <= 80) this.deckHeightPct = n;
+    }
     this.applyVolumes();
 
     this.nasService.getPaths().subscribe(paths => {
@@ -217,6 +230,46 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.subs.forEach(s => s.unsubscribe());
     this.musicService.deckAPlayer.pause();
     this.musicService.deckBPlayer.pause();
+    this.removeResizeListeners();
+  }
+
+  // ── Resize logic ──────────────────────────────────────────────────────────
+
+  onResizeStart(e: MouseEvent): void {
+    e.preventDefault();
+    this.resizeDragging = true;
+    this.resizeStartY = e.clientY;
+    this.resizeStartPct = this.deckHeightPct;
+    document.addEventListener('mousemove', this.onResizeMove);
+    document.addEventListener('mouseup', this.onResizeEnd);
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  }
+
+  private onResizeMove = (e: MouseEvent): void => {
+    if (!this.resizeDragging) return;
+    const layout = this.vdjLayoutRef?.nativeElement;
+    if (!layout) return;
+    const totalH = layout.offsetHeight;
+    if (totalH === 0) return;
+    const delta = e.clientY - this.resizeStartY;
+    const deltaPct = (delta / totalH) * 100;
+    const newPct = Math.min(80, Math.max(20, this.resizeStartPct + deltaPct));
+    this.deckHeightPct = Math.round(newPct * 10) / 10;
+  };
+
+  private onResizeEnd = (): void => {
+    if (!this.resizeDragging) return;
+    this.resizeDragging = false;
+    localStorage.setItem(DeckModeComponent.DECK_HEIGHT_KEY, String(this.deckHeightPct));
+    this.removeResizeListeners();
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  };
+
+  private removeResizeListeners(): void {
+    document.removeEventListener('mousemove', this.onResizeMove);
+    document.removeEventListener('mouseup', this.onResizeEnd);
   }
 
   private drawSpectrum(deck: 'A' | 'B'): void {
