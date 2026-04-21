@@ -25,6 +25,17 @@ public class MusicController {
 
     // ── Metadata ──────────────────────────────────────────────────────────────
 
+    @Operation(summary = "Canciones aleatorias con portada para el panel de inicio")
+    @GetMapping("/random")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> getRandomTracks(@RequestParam(defaultValue = "3") int count) {
+        try {
+            return ResponseEntity.ok(musicService.getRandomTracks(Math.min(count, 10)));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @Operation(summary = "Listar archivos de audio con metadatos ID3 (paginado)")
     @GetMapping("/metadata")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")

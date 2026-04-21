@@ -2,6 +2,8 @@ package com.EverLoad.everload.service;
 
 import com.EverLoad.everload.dto.MusicMetadataDto;
 import com.EverLoad.everload.dto.PagedMusicResult;
+import com.EverLoad.everload.model.NasPath;
+import com.EverLoad.everload.repository.NasPathRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jaudiotagger.audio.AudioFile;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class MusicService {
 
     private final NasService nasService;
+    private final NasPathRepository nasPathRepository;
 
     private static final List<String> AUDIO_EXTENSIONS =
             Arrays.asList("mp3", "flac", "m4a", "wav", "ogg", "aac", "opus", "wma", "alac");
@@ -33,6 +36,46 @@ public class MusicService {
     private static final String DJ_CACHE_DIR = "./downloads/dj_cache/";
 
     // ── Public API ────────────────────────────────────────────────────────────
+
+    /**
+     * Returns `count` random audio tracks (with covers preferred) across all NAS paths.
+     * Walks up to 4 levels deep and stops collecting after 300 candidates for performance.
+     */
+    public List<MusicMetadataDto> getRandomTracks(int count) {
+        List<NasPath> paths = nasPathRepository.findAll();
+        List<MusicMetadataDto> candidates = new ArrayList<>();
+
+        for (NasPath nasPath : paths) {
+            File root = new File(nasPath.getPath());
+            if (!root.exists() || !root.isDirectory() || !root.canRead()) continue;
+            collectAudioFiles(root, nasPath.getId(), root.toPath(), candidates, 4, 300);
+        }
+
+        List<MusicMetadataDto> withCovers = candidates.stream()
+                .filter(MusicMetadataDto::isHasCover)
+                .collect(Collectors.toList());
+
+        List<MusicMetadataDto> pool = withCovers.isEmpty() ? candidates : withCovers;
+        Collections.shuffle(pool);
+        return pool.stream().limit(count).collect(Collectors.toList());
+    }
+
+    private void collectAudioFiles(File dir, Long pathId, Path base, List<MusicMetadataDto> out, int maxDepth, int maxFiles) {
+        if (maxDepth < 0 || out.size() >= maxFiles) return;
+        File[] files = dir.listFiles();
+        if (files == null) return;
+
+        for (File f : files) {
+            if (out.size() >= maxFiles) break;
+            if (f.isDirectory()) {
+                collectAudioFiles(f, pathId, base, out, maxDepth - 1, maxFiles);
+            } else if (f.isFile() && isAudio(f)) {
+                MusicMetadataDto dto = buildDto(f, base);
+                dto.setNasPathId(pathId);
+                out.add(dto);
+            }
+        }
+    }
 
     /**
      * Returns directories + a page of audio files under pathId/subPath with extracted ID3 metadata.
