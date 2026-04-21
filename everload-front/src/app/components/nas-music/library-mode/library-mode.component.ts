@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { NasPath, NasService } from '../../../services/nas.service';
@@ -45,6 +45,14 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   searchQuery = '';
   likedSortBy: 'date' | 'title' | 'artist' = 'date';
 
+  private static readonly RANDOM_GRADIENTS = [
+    'linear-gradient(135deg, #0a1f14 0%, #14532d 45%, #1db954 100%)',
+    'linear-gradient(135deg, #1c0a0a 0%, #7f1d1d 45%, #ef4444 100%)',
+    'linear-gradient(135deg, #0c1a2e 0%, #0e3a5c 45%, #0ea5e9 100%)',
+    'linear-gradient(135deg, #1a1200 0%, #713f12 45%, #f59e0b 100%)',
+    'linear-gradient(135deg, #150a2a 0%, #581c87 45%, #a855f7 100%)',
+  ];
+
   // ── Banners ───────────────────────────────────────────────────────────────
   banners: NasBanner[] = [
     {
@@ -65,8 +73,19 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       id: 3,
       title: 'MUSIC.BANNER_LIB_TITLE',
       subtitle: 'MUSIC.BANNER_LIB_SUB',
-      gradient: 'linear-gradient(135deg, #0a1f14 0%, #14532d 45%, #1db954 100%)',
-      pathIndex: 0
+      gradient: LibraryModeComponent.RANDOM_GRADIENTS[0],
+    },
+    {
+      id: 4,
+      title: 'MUSIC.BANNER_LIB_TITLE',
+      subtitle: 'MUSIC.BANNER_LIB_SUB',
+      gradient: LibraryModeComponent.RANDOM_GRADIENTS[1],
+    },
+    {
+      id: 5,
+      title: 'MUSIC.BANNER_LIB_TITLE',
+      subtitle: 'MUSIC.BANNER_LIB_SUB',
+      gradient: LibraryModeComponent.RANDOM_GRADIENTS[2],
     }
   ];
   activeBannerIndex = 0;
@@ -148,7 +167,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     public musicService: MusicService,
     private nasService: NasService,
     private authService: AuthService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -159,8 +179,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.paths = paths;
       if (paths.length > 0) this.selectPath(paths[0].id);
       else this.setView('home');
-      this.loadLibraryBanner();
     });
+    this.loadRandomBanners();
 
     this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => {
       const prev = this.state?.currentTrack?.path;
@@ -173,6 +193,12 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.subs.push(this.musicService.shuffle$.subscribe(v => this.shuffle = v));
     this.subs.push(this.musicService.repeat$.subscribe(v => this.repeat = v));
     this.subs.push(this.musicService.queue$.subscribe(q => this.queueIndex = q.index));
+
+    // Cuando llega una portada de iTunes, forzar re-render si afecta a un banner
+    this.subs.push(this.musicService.coverReady$.subscribe(trackPath => {
+      const affectsBanner = this.banners.some(b => b.track?.path === trackPath);
+      if (affectsBanner) this.cdr.detectChanges();
+    }));
 
     this.musicService.getFavorites().subscribe(favs => {
       this.likedItems = favs;
@@ -296,19 +322,28 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private loadLibraryBanner(): void {
-    if (!this.paths.length) return;
-    const pid = this.paths[0].id;
-    this.musicService.browse(pid, '', 0, 50).subscribe(result => {
-      const tracks = result.items.filter((i: MusicMetadataDto) => !i.directory);
+  private loadRandomBanners(): void {
+    this.musicService.getRandomTracks(3).subscribe(tracks => {
       if (!tracks.length) return;
-      const track = tracks[Math.floor(Math.random() * tracks.length)];
-      track.nasPathId = pid;
-      this.musicService.fetchCoverIfNeeded(track);
-      this.banners = this.banners.map((b, i) => i === 2
-        ? { ...b, title: track.title || track.name || b.title, subtitle: track.artist || b.subtitle, track, pathId: pid }
-        : b);
-      if (this.activeBannerIndex === 2) this.preloadActiveBanner();
+      const updated = [...this.banners];
+      tracks.forEach((track, i) => {
+        const slotIndex = 2 + i;
+        if (slotIndex >= updated.length) return;
+        const pathId = track.nasPathId;
+        if (!pathId) return;
+        track.nasPathId = pathId;
+        this.musicService.fetchCoverIfNeeded(track);
+        updated[slotIndex] = {
+          ...updated[slotIndex],
+          title: track.title || track.name || updated[slotIndex].title,
+          subtitle: track.artist || updated[slotIndex].subtitle,
+          gradient: LibraryModeComponent.RANDOM_GRADIENTS[i % LibraryModeComponent.RANDOM_GRADIENTS.length],
+          track,
+          pathId,
+        };
+      });
+      this.banners = updated;
+      if (this.activeBannerIndex >= 2) this.preloadActiveBanner();
     });
   }
 
@@ -679,7 +714,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       for (let i = 0; i < all.length; i++) {
         this.coverScanProgress = `${i + 1}/${all.length}`;
         this.musicService.fetchCoverIfNeeded(all[i]);
-        await this.delay(150);
+        await this.delay(400);
       }
       this.coverScanActive = false;
       this.coverScanProgress = '';
@@ -690,8 +725,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     for (let i = 0; i < tracksToScan.length; i++) {
       this.coverScanProgress = `${i + 1}/${tracksToScan.length}`;
       this.musicService.fetchCoverIfNeeded(tracksToScan[i]);
-      // Small delay to avoid hammering the iTunes API
-      await this.delay(200);
+      await this.delay(400);
     }
     this.coverScanActive = false;
     this.coverScanProgress = '';
