@@ -67,7 +67,15 @@ public class SpotifyService {
         String url = "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks?limit=100";
 
         while (url != null) {
-            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            ResponseEntity<Map> response;
+            try {
+                response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
+            } catch (org.springframework.web.client.HttpClientErrorException e) {
+                if (e.getStatusCode().value() == 403 || e.getStatusCode().value() == 404) {
+                    throw new RuntimeException("A lista de Spotify non é accesible. Comproba que a lista sexa pública (non privada).");
+                }
+                throw new RuntimeException("Erro ao acceder á lista de Spotify: " + e.getStatusCode());
+            }
             if (!response.getStatusCode().is2xxSuccessful()) {
                 throw new RuntimeException("Error al obtener la playlist de Spotify");
             }
