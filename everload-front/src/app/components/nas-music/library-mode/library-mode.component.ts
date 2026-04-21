@@ -157,6 +157,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   totalTracks = 0;
   pageLoading = false;
   loadingPage = false; // dedup guard, también usado en template
+  private loadingAllPages = false;
   private intersectionObserver?: IntersectionObserver;
   @ViewChild('tracksEndSentinel') tracksEndSentinel?: ElementRef;
 
@@ -390,6 +391,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.currentPage = 0;
     this.totalTracks = 0;
     this.loadingPage = false;
+    this.loadingAllPages = false;
     if (this.currentView === 'home') {
       this.musicService.getHistory(10).subscribe(h => {
         this.historyItems = h;
@@ -496,20 +498,31 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadAllRemainingPages(): void {
     if (this.currentView !== 'folder') return;
     if (this.allTracksLoaded) return;
+    if (this.loadingAllPages) return; // ya hay una cadena en curso, no lanzar otra
     if (this.selectedPathId === null) return;
+
+    this.loadingAllPages = true;
+    const startPage = this.currentPage + 1;
 
     const fetchNext = (page: number) => {
       this.musicService.browse(this.selectedPathId!, this.currentSubPath, page, this.PAGE_SIZE).subscribe({
         next: result => {
-          this.items = [...this.items, ...result.items];
+          // Deduplicar: solo añadir items cuyo path no esté ya en this.items
+          const existingPaths = new Set(this.items.map(i => i.path));
+          const newItems = result.items.filter((i: any) => !existingPaths.has(i.path));
+          this.items = [...this.items, ...newItems];
           this.totalTracks = result.totalTracks;
           this.currentPage = page;
-          if (this.tracks.length < this.totalTracks) fetchNext(page + 1);
+          if (this.tracks.length < this.totalTracks) {
+            fetchNext(page + 1);
+          } else {
+            this.loadingAllPages = false;
+          }
         },
-        error: () => {}
+        error: () => { this.loadingAllPages = false; }
       });
     };
-    fetchNext(this.currentPage + 1);
+    fetchNext(startPage);
   }
 
   navigate(item: MusicMetadataDto) {

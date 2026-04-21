@@ -218,6 +218,14 @@ export class ChatService implements OnDestroy {
     return this.http.delete<void>(`${this.BASE}/api/chat/groups/${groupId}/messages`);
   }
 
+  markRead(groupId: number): Observable<void> {
+    return this.http.post<void>(`${this.BASE}/api/chat/groups/${groupId}/mark-read`, {});
+  }
+
+  getReadStatus(groupId: number): Observable<Record<string, string>> {
+    return this.http.get<Record<string, string>>(`${this.BASE}/api/chat/groups/${groupId}/read-status`);
+  }
+
   deleteGroup(groupId: number): Observable<void> {
     return this.http.delete<void>(`${this.BASE}/api/chat/groups/${groupId}`);
   }
@@ -396,6 +404,12 @@ export class ChatService implements OnDestroy {
 
   unmuteGroup(groupId: number): void {
     localStorage.removeItem(`chat_muted_${groupId}`);
+  }
+
+  isGroupUnread(group: ChatGroupDto): boolean {
+    if (!group.lastMessageTime) return false;
+    const lastSeen = localStorage.getItem(`chat_seen_${group.id}`);
+    return !lastSeen || group.lastMessageTime > lastSeen;
   }
 
   isGroupMuted(groupId: number): boolean {

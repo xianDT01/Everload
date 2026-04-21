@@ -161,6 +161,21 @@ public class ChatController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/groups/{id}/mark-read")
+    public ResponseEntity<Void> markRead(@PathVariable Long id,
+                                         @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        chatService.markRead(id, user);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/groups/{id}/read-status")
+    public ResponseEntity<Map<String, String>> getReadStatus(@PathVariable Long id,
+                                                              @AuthenticationPrincipal UserDetails userDetails) {
+        User user = getCurrentUser(userDetails);
+        return ResponseEntity.ok(chatService.getReadStatus(id, user));
+    }
+
     @GetMapping("/users")
     public ResponseEntity<List<Map<String, Object>>> getActiveUsers(@AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = getCurrentUser(userDetails);
