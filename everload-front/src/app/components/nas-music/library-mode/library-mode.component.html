@@ -20,7 +20,7 @@
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
       </svg>
       <span>{{ 'MUSIC.NAS_LIBRARY_LOGO' | translate }}</span>
-      <button class="sidebar-close-btn" (click)="closeMobileMenu()" aria-label="Cerrar menú">
+      <button class="sidebar-close-btn" (click)="closeMobileMenu()" [ariaLabel]="'COMMON.CLOSE_MENU' | translate">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
     </div>
@@ -58,7 +58,7 @@
 
     <!-- Library: favorites first, then root paths -->
     <div class="sidebar-section scroll-section">
-      <p class="sidebar-label" *ngIf="favoriteFolders.length > 0 || paths.length > 0">Biblioteca</p>
+      <p class="sidebar-label" *ngIf="favoriteFolders.length > 0 || paths.length > 0">{{ 'MUSIC.NAS_LIBRARY_LOGO' | translate }}</p>
       <ul class="collections-list">
         <!-- Favorites sorted to top with star indicator -->
         <li *ngFor="let fav of favoriteFolders"
@@ -75,7 +75,7 @@
             <span class="collection-name">{{ fav.name }}</span>
             <span class="collection-type fav-badge">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="#1db954"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-              Favorito
+              {{ 'COMMON.FAVORITE' | translate }}
             </span>
           </div>
         </li>
@@ -114,7 +114,7 @@
     <div class="topbar" [class.edit-active]="editMode" [class.mobile-search-open]="mobileSearchOpen">
       <div class="topbar-nav">
         <!-- Mobile: hamburger -->
-        <button class="mobile-menu-btn" (click)="toggleMobileMenu(); $event.stopPropagation()" aria-label="Menú">
+        <button class="mobile-menu-btn" (click)="toggleMobileMenu(); $event.stopPropagation()" [ariaLabel]="'COMMON.MENU' | translate">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
         </button>
         <!-- Back button -->
@@ -137,13 +137,13 @@
         </svg>
         <input class="search-input" type="text" [(ngModel)]="searchQuery"
                (ngModelChange)="onSearchChange()"
-               placeholder="{{ 'MUSIC.SEARCH_PLACEHOLDER' | translate }}" />
+               [placeholder]="'MUSIC.SEARCH_PLACEHOLDER_LIB' | translate" />
         <button class="search-clear" *ngIf="searchQuery" (click)="searchQuery = ''">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
       <!-- Mobile search toggle -->
-      <button class="mobile-search-btn" (click)="mobileSearchOpen = !mobileSearchOpen" aria-label="Buscar">
+      <button class="mobile-search-btn" (click)="mobileSearchOpen = !mobileSearchOpen" [ariaLabel]="'COMMON.SEARCH' | translate">
         <svg *ngIf="!mobileSearchOpen" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         <svg *ngIf="mobileSearchOpen" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
@@ -151,11 +151,11 @@
       <!-- Edit mode toggle (admin/nas_user only) -->
       <button *ngIf="canEdit" class="btn-edit-mode" [class.active]="editMode"
               (click)="toggleEditMode(); $event.stopPropagation()"
-              [title]="editMode ? 'Salir del modo edición' : 'Modo edición'">
+              [title]="editMode ? ('COMMON.EXIT_EDIT' | translate) : ('COMMON.EDIT_MODE' | translate)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
         </svg>
-        <span *ngIf="editMode" class="edit-mode-label">Edición</span>
+        <span *ngIf="editMode" class="edit-mode-label">{{ 'COMMON.EDIT' | translate }}</span>
       </button>
     </div>
 
@@ -194,8 +194,8 @@
                   <img [src]="getBannerCoverUrl(banner)" (error)="$any($event.target).style.display='none'" />
                 </div>
                 <div class="banner-text">
-                  <h2 class="banner-title">{{ banner.title }}</h2>
-                  <p class="banner-subtitle">{{ banner.subtitle }}</p>
+                  <h2 class="banner-title">{{ banner.title | translate }}</h2>
+                  <p class="banner-subtitle">{{ banner.subtitle | translate }}</p>
                 </div>
                 <div class="banner-action">
                   <div class="banner-play-btn">
@@ -238,7 +238,7 @@
           </div>
         </div>
         <div class="header-meta">
-          <span class="header-type">{{ currentView === 'folder' ? ('MUSIC.COLLECTION_HEADER' | translate) : 'Lista' }}</span>
+          <span class="header-type">{{ currentView === 'folder' ? ('MUSIC.COLLECTION_HEADER' | translate) : ('ADMIN.TAB_HISTORY' | translate) }}</span>
           <h1 class="header-folder-name" [style.fontSize]="currentView === 'liked' ? '70px' : ''">{{ currentFolderName }}</h1>
           <div class="header-counts">
             <span *ngIf="folders.length > 0">{{ folders.length }} {{ (folders.length !== 1 ? 'MUSIC.COUNT_FOLDER_PLUR' : 'MUSIC.COUNT_FOLDER_SING') | translate }}</span>
@@ -273,13 +273,12 @@
           {{ 'COMMON.NEW_FOLDER' | translate }}
         </button>
         <!-- YouTube → NAS button (folder view, NAS access) -->
-        <button *ngIf="canEdit && currentView === 'folder' && selectedPathId !== null"
-                class="btn-yt-panel"
+        <button *ngIf="canEdit" class="btn-yt-panel"
                 [class.active]="ytPanel"
                 (click)="toggleYtPanel(); $event.stopPropagation()"
-                title="Añadir música desde YouTube">
+                [title]="'MUSIC.DJ_TAB_YOUTUBE' | translate">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19c-.23-.86-.9-1.54-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.82.42c-.86.23-1.53.91-1.76 1.77C2 8.76 2 12 2 12s0 3.24.42 4.81c.23.86.9 1.54 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.82-.42c.86-.23 1.53-.91 1.76-1.77C22 15.24 22 12 22 12s0-3.24-.42-4.81zM10 15V9l5.2 3-5.2 3z"/></svg>
-          <span class="btn-yt-label">YouTube</span>
+          <span class="btn-yt-label">{{ 'MUSIC.DJ_TAB_YOUTUBE' | translate }}</span>
         </button>
 
         <!-- Scan covers button -->
@@ -288,26 +287,26 @@
                 [class.active]="coverScanActive"
                 [disabled]="coverScanActive"
                 (click)="scanCovers(); $event.stopPropagation()"
-                title="Buscar portadas y metadatos de todas las canciones">
+                [title]="'MUSIC.SCAN_COVERS' | translate">
           <svg *ngIf="!coverScanActive" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
           <span *ngIf="coverScanActive" class="scan-spinner"></span>
-          <span class="btn-scan-label">{{ coverScanActive ? coverScanProgress : 'Portadas' }}</span>
+          <span class="btn-scan-label">{{ coverScanActive ? coverScanProgress : ('MUSIC.COVERS' | translate) }}</span>
         </button>
         <!-- Upload buttons (edit mode only) -->
         <ng-container *ngIf="editMode && currentView === 'folder' && selectedPathId !== null">
           <button class="btn-upload"
                   [class.btn-upload-active]="uploadState.status === 'uploading'"
                   (click)="uploadInput.click(); $event.stopPropagation()"
-                  title="Subir archivos sueltos">
+                  [title]="'COMMON.FILES' | translate">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-            <span class="btn-upload-label">Archivos</span>
+            <span class="btn-upload-label">{{ 'COMMON.FILES' | translate }}</span>
           </button>
           <button class="btn-upload btn-upload-folder"
                   [class.btn-upload-active]="uploadState.status === 'uploading'"
                   (click)="uploadFolderInput.click(); $event.stopPropagation()"
-                  title="Subir carpeta completa (mantiene estructura)">
+                  [title]="'COMMON.FOLDER' | translate">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 7h-3v3h-2v-3h-3v-2h3V8h2v3h3v2z"/></svg>
-            <span class="btn-upload-label">Carpeta</span>
+            <span class="btn-upload-label">{{ 'COMMON.FOLDER' | translate }}</span>
           </button>
         </ng-container>
       </div>
@@ -320,7 +319,7 @@
               <path d="M21.58 7.19c-.23-.86-.9-1.54-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.82.42c-.86.23-1.53.91-1.76 1.77C2 8.76 2 12 2 12s0 3.24.42 4.81c.23.86.9 1.54 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.82-.42c.86-.23 1.53-.91 1.76-1.77C22 15.24 22 12 22 12s0-3.24-.42-4.81zM10 15V9l5.2 3-5.2 3z"/>
             </svg>
             <input class="yt-search-input" type="text" [(ngModel)]="ytQuery"
-                   placeholder="Buscar en YouTube para añadir a esta carpeta..."
+                   [placeholder]="'MUSIC.DJ_YT_SEARCH_PH' | translate"
                    (keydown.enter)="searchYouTube()" autofocus />
             <button class="yt-search-clear" *ngIf="ytQuery" (click)="ytQuery=''; ytResults=[]">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -356,7 +355,7 @@
                     [class.downloading]="isYtDownloading(video)"
                     [disabled]="isYtDownloading(video)"
                     (click)="downloadYtToNas(video)"
-                    [title]="'Descargar como ' + ytFormat.toUpperCase() + ' al NAS'">
+                    [title]="('ADMIN.BACKUP_RESTORE' | translate) + ' ' + ytFormat.toUpperCase() + ' NAS'">
               <svg *ngIf="!isYtDownloading(video)" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
               <span *ngIf="isYtDownloading(video)" class="yt-spinner"></span>
             </button>
@@ -364,10 +363,10 @@
         </div>
 
         <div class="yt-empty-search" *ngIf="!ytSearching && ytQuery && ytResults.length === 0">
-          No se encontraron resultados para "{{ ytQuery }}"
+          {{ 'MUSIC.SEARCH_NO_RESULTS_FOR' | translate }} "{{ ytQuery }}"
         </div>
         <div class="yt-hint" *ngIf="!ytQuery && ytResults.length === 0">
-          Los archivos se guardarán en <strong>{{ currentFolderName }}</strong> con portada y metadatos embebidos.
+          {{ 'MUSIC.DJ_YT_SEARCH_PH' | translate }} <strong>{{ currentFolderName }}</strong>.
         </div>
       </div>
 
@@ -398,7 +397,7 @@
                    class="ctx-menu" (click)="$event.stopPropagation()">
                 <button class="ctx-item" (click)="navigate(folder)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-                  Abrir
+                  {{ 'COMMON.OPEN' | translate }}
                 </button>
                 <button class="ctx-item" (click)="openRename($event, folder)">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
@@ -428,14 +427,14 @@
                         class="btn-dl-folder"
                         [class.downloading]="isDownloading(folder.path)"
                         (click)="downloadFolder($event, folder)"
-                        title="Descargar carpeta como ZIP">
+                        [title]="'ADMIN.BACKUP_RESTORE' | translate">
                   <svg *ngIf="!isDownloading(folder.path)" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                   <span *ngIf="isDownloading(folder.path)" class="dl-spin">↻</span>
                 </button>
                 <button class="btn-fav-folder"
                         [class.active]="isFolderFav(folder)"
                         (click)="toggleFolderFav($event, folder)"
-                        [title]="isFolderFav(folder) ? 'Quitar de favoritos' : 'Añadir a favoritos'">
+                        [title]="isFolderFav(folder) ? ('COMMON.REMOVE_FAVORITE' | translate) : ('COMMON.ADD_FAVORITE' | translate)">
                   <svg *ngIf="isFolderFav(folder)" width="14" height="14" viewBox="0 0 24 24" fill="#1db954">
                     <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
                   </svg>
@@ -551,10 +550,10 @@
                   </button>
                   <button class="ctx-item" (click)="fingerprintTrack($event, track)"
                           [disabled]="fingerprintingPaths.has(track.path)"
-                          [title]="'Identificar con AcoustID'">
+                          [title]="'AcoustID'">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
-                    <span *ngIf="!fingerprintingPaths.has(track.path)">Identificar canción</span>
-                    <span *ngIf="fingerprintingPaths.has(track.path)">Identificando…</span>
+                    <span *ngIf="!fingerprintingPaths.has(track.path)">{{ 'COMMON.IDENTIFY_SONG' | translate }}</span>
+                    <span *ngIf="fingerprintingPaths.has(track.path)">{{ 'COMMON.IDENTIFYING' | translate }}</span>
                   </button>
                   <button class="ctx-item" (click)="openMove($event, track)">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg>
@@ -606,8 +605,8 @@
   <div class="ytjobs-panel" *ngIf="ytJobs.length > 0" (click)="$event.stopPropagation()">
     <div class="ytjobs-header">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19c-.23-.86-.9-1.54-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.82.42c-.86.23-1.53.91-1.76 1.77C2 8.76 2 12 2 12s0 3.24.42 4.81c.23.86.9 1.54 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.82-.42c.86-.23 1.53-.91 1.76-1.77C22 15.24 22 12 22 12s0-3.24-.42-4.81zM10 15V9l5.2 3-5.2 3z"/></svg>
-      <span class="ytjobs-title">Descargas NAS</span>
-      <button class="ytjobs-close" (click)="closeJobsPanel()" title="Cerrar completadas">✕</button>
+      <span class="ytjobs-title">{{ 'ADMIN.TAB_NAS' | translate }}</span>
+      <button class="ytjobs-close" (click)="closeJobsPanel()" [title]="'COMMON.CLOSE' | translate">✕</button>
     </div>
     <ul class="ytjobs-list">
       <li *ngFor="let job of ytJobs" class="ytjob-item" [class.done]="job.status === 'DONE'" [class.error]="job.status === 'ERROR'">
@@ -635,11 +634,11 @@
     <div class="upload-panel-header">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
       <span class="upload-panel-title">
-        <ng-container *ngIf="uploadState.status === 'uploading'">Subiendo {{ uploadState.totalFiles }} archivo(s)…</ng-container>
-        <ng-container *ngIf="uploadState.status === 'done'">Subida completada</ng-container>
-        <ng-container *ngIf="uploadState.status === 'error'">Subida con errores</ng-container>
+        <ng-container *ngIf="uploadState.status === 'uploading'">{{ 'NAS.UPLOAD_STATUS_UPLOADING' | translate: { count: uploadState.totalFiles } }}</ng-container>
+        <ng-container *ngIf="uploadState.status === 'done'">{{ 'NAS.UPLOAD_STATUS_DONE' | translate }}</ng-container>
+        <ng-container *ngIf="uploadState.status === 'error'">{{ 'NAS.UPLOAD_STATUS_ERROR' | translate }}</ng-container>
       </span>
-      <button class="upload-panel-close" (click)="uploadState.status === 'uploading' ? cancelUpload() : closeUploadPanel()" title="Cerrar">✕</button>
+      <button class="upload-panel-close" (click)="uploadState.status === 'uploading' ? cancelUpload() : closeUploadPanel()" [title]="'COMMON.CLOSE' | translate">✕</button>
     </div>
     <div class="upload-progress-bar" *ngIf="uploadState.status === 'uploading'">
       <div class="upload-progress-fill" [style.width.%]="uploadState.progress"></div>
@@ -663,7 +662,7 @@
     <ng-container *ngIf="dialog.type === 'rename'">
       <h3 class="modal-title">{{ 'COMMON.RENAME' | translate }}</h3>
       <p class="modal-sub">{{ dialog.item?.directory ? ('COMMON.FOLDER_LABEL' | translate) : ('COMMON.FILE_LABEL' | translate) }}: <em>{{ dialog.item?.name }}</em></p>
-      <input class="modal-input" type="text" [(ngModel)]="dialog.value" placeholder="{{ 'COMMON.NEW_NAME' | translate }}"
+      <input class="modal-input" type="text" [(ngModel)]="dialog.value" [placeholder]="'COMMON.NEW_NAME' | translate"
              (keydown.enter)="confirmRename()" autofocus />
       <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
       <div class="modal-actions">
@@ -677,8 +676,9 @@
     <!-- DELETE -->
     <ng-container *ngIf="dialog.type === 'delete'">
       <h3 class="modal-title">{{ 'COMMON.DELETE' | translate }}</h3>
-      <p class="modal-sub">¿{{ 'COMMON.DELETE' | translate }} <strong>{{ dialog.item?.name }}</strong>?
-        <span *ngIf="dialog.item?.directory"> Esta acción eliminará la carpeta y todo su contenido.</span>
+      <p class="modal-sub">
+        <span [innerHTML]="'NAS.DELETE_CONFIRM_QUESTION' | translate: { name: dialog.item?.name }"></span>
+        <span *ngIf="dialog.item?.directory"> {{ 'NAS.DELETE_FOLDER_WARN' | translate }}</span>
       </p>
       <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
       <div class="modal-actions">
@@ -692,9 +692,9 @@
     <!-- MOVE -->
     <ng-container *ngIf="dialog.type === 'move'">
       <h3 class="modal-title">{{ 'COMMON.MOVE' | translate }}</h3>
-      <p class="modal-sub">{{ 'COMMON.MOVE' | translate }} <em>{{ dialog.item?.name }}</em> a:</p>
-      <label class="modal-label">Ruta de destino (relativa, vacío = raíz)</label>
-      <input class="modal-input" type="text" [(ngModel)]="dialog.value" placeholder="ej: Artistas/Rock"
+      <p class="modal-sub">{{ 'COMMON.MOVE' | translate }} <em>{{ dialog.item?.name }}</em> {{ 'COMMON.A_TO' | translate }}</p>
+      <label class="modal-label">{{ 'NAS.PATH_DESTINATION' | translate }}</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.value" [placeholder]="'NAS.MOVE_DEST_PLACEHOLDER' | translate"
              (keydown.enter)="confirmMove()" autofocus />
       <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
       <div class="modal-actions">
@@ -709,14 +709,14 @@
     <ng-container *ngIf="dialog.type === 'metadata'">
       <h3 class="modal-title">{{ 'COMMON.EDIT_METADATA' | translate }}</h3>
       <p class="modal-sub">{{ dialog.item?.name }}</p>
-      <label class="modal-label">Título</label>
-      <input class="modal-input" type="text" [(ngModel)]="dialog.title" placeholder="Título de la canción" autofocus />
-      <label class="modal-label">Artista</label>
-      <input class="modal-input" type="text" [(ngModel)]="dialog.artist" placeholder="Nombre del artista" />
-      <label class="modal-label">Álbum</label>
-      <input class="modal-input" type="text" [(ngModel)]="dialog.album" placeholder="Nombre del álbum" />
-      <label class="modal-label">Año</label>
-      <input class="modal-input" type="text" [(ngModel)]="dialog.year" placeholder="Ej: 2024"
+      <label class="modal-label">{{ 'NAS.METADATA_TITLE' | translate }}</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.title" [placeholder]="'NAS.METADATA_TITLE' | translate" autofocus />
+      <label class="modal-label">{{ 'NAS.METADATA_ARTIST' | translate }}</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.artist" [placeholder]="'NAS.METADATA_ARTIST' | translate" />
+      <label class="modal-label">{{ 'NAS.METADATA_ALBUM' | translate }}</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.album" [placeholder]="'NAS.METADATA_ALBUM' | translate" />
+      <label class="modal-label">{{ 'NAS.METADATA_YEAR' | translate }}</label>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.year" [placeholder]="'NAS.METADATA_YEAR_PLACEHOLDER' | translate"
              (keydown.enter)="confirmMetadata()" />
       <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
       <div class="modal-actions">
@@ -730,8 +730,8 @@
     <!-- CREATE FOLDER -->
     <ng-container *ngIf="dialog.type === 'createFolder'">
       <h3 class="modal-title">{{ 'COMMON.NEW_FOLDER' | translate }}</h3>
-      <p class="modal-sub" *ngIf="currentSubPath">Dentro de: <em>{{ currentSubPath }}</em></p>
-      <input class="modal-input" type="text" [(ngModel)]="dialog.value" placeholder="Nombre de la carpeta"
+      <p class="modal-sub" *ngIf="currentSubPath">{{ 'NAS.MODAL_INSIDE' | translate }} <em>{{ currentSubPath }}</em></p>
+      <input class="modal-input" type="text" [(ngModel)]="dialog.value" [placeholder]="'COMMON.NEW_FOLDER' | translate"
              (keydown.enter)="confirmCreateFolder()" autofocus />
       <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>
       <div class="modal-actions">
@@ -745,8 +745,8 @@
     <!-- COVER -->
     <ng-container *ngIf="dialog.type === 'cover'">
       <h3 class="modal-title">{{ 'COMMON.CHANGE_COVER' | translate }}</h3>
-      <p class="modal-sub">Carpeta: <em>{{ dialog.item?.name }}</em></p>
-      <label class="modal-label">Selecciona una imagen (JPG, PNG)</label>
+      <p class="modal-sub">{{ 'NAS.MODAL_FOLDER' | translate }} <em>{{ dialog.item?.name }}</em></p>
+      <label class="modal-label">{{ 'NAS.SELECT_IMAGE' | translate }}</label>
       <input class="modal-input-file" type="file" accept="image/jpeg,image/png"
              (change)="onCoverFileSelected($event)" />
       <div class="modal-error" *ngIf="dialog.error">{{ dialog.error }}</div>

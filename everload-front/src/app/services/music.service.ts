@@ -611,6 +611,10 @@ export class MusicService {
 
   // ── API calls ─────────────────────────────────────────────────────────────
 
+  getRandomTracks(count = 3): Observable<MusicMetadataDto[]> {
+    return this.http.get<MusicMetadataDto[]>(`${this.api}/random?count=${count}`);
+  }
+
   browse(pathId: number, subPath?: string, page = 0, size = 50): Observable<PagedMusicResult> {
     let url = `${this.api}/metadata?pathId=${pathId}&page=${page}&size=${size}`;
     if (subPath) url += `&subPath=${encodeURIComponent(subPath)}`;

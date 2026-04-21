@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef, NgZone } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef, NgZone, inject } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/music.service';
 
@@ -29,6 +29,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { NasPath, NasService } from '../../../services/nas.service';
 import { MidiService, MidiDevice } from '../../../services/midi.service';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-deck-mode',
@@ -41,6 +42,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('spectrumB') canvasB?: ElementRef<HTMLCanvasElement>;
 
   private animFrameId: number | null = null;
+  private translate = inject(TranslateService);
 
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
@@ -122,31 +124,31 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private lastCoverPath = { A: '', B: '' };
 
   midiActions = [
-    { id: 'VOL_A', label: 'Volumen Deck A' },
-    { id: 'VOL_B', label: 'Volumen Deck B' },
-    { id: 'CROSSFADER', label: 'Crossfader' },
-    { id: 'PLAY_A', label: 'Play/Pause Deck A' },
-    { id: 'PLAY_B', label: 'Play/Pause Deck B' },
-    { id: 'CUE_A', label: 'Cue Deck A' },
-    { id: 'CUE_B', label: 'Cue Deck B' },
-    { id: 'SYNC_A', label: 'Sync Deck A' },
-    { id: 'SYNC_B', label: 'Sync Deck B' },
-    { id: 'MUTE_A', label: 'Mute Deck A' },
-    { id: 'MUTE_B', label: 'Mute Deck B' },
-    { id: 'NEXT_A', label: 'Siguiente Deck A' },
-    { id: 'PREV_A', label: 'Anterior Deck A' },
-    { id: 'RESET_A', label: 'Reset Deck A' },
-    { id: 'NEXT_B', label: 'Siguiente Deck B' },
-    { id: 'PREV_B', label: 'Anterior Deck B' },
-    { id: 'RESET_B', label: 'Reset Deck B' },
-    { id: 'EQ_LOW_A', label: 'EQ Low Deck A' },
-    { id: 'EQ_MID_A', label: 'EQ Mid Deck A' },
-    { id: 'EQ_HIGH_A', label: 'EQ High Deck A' },
-    { id: 'EQ_LOW_B', label: 'EQ Low Deck B' },
-    { id: 'EQ_MID_B', label: 'EQ Mid Deck B' },
-    { id: 'EQ_HIGH_B', label: 'EQ High Deck B' },
-    { id: 'PITCH_A', label: 'Pitch Deck A' },
-    { id: 'PITCH_B', label: 'Pitch Deck B' }
+    { id: 'VOL_A', label: 'MUSIC.DJ_MIDI_VOL', params: { deck: 'A' } },
+    { id: 'VOL_B', label: 'MUSIC.DJ_MIDI_VOL', params: { deck: 'B' } },
+    { id: 'CROSSFADER', label: 'MUSIC.DJ_MIDI_CROSSFADER' },
+    { id: 'PLAY_A', label: 'MUSIC.DJ_MIDI_PLAY', params: { deck: 'A' } },
+    { id: 'PLAY_B', label: 'MUSIC.DJ_MIDI_PLAY', params: { deck: 'B' } },
+    { id: 'CUE_A', label: 'MUSIC.DJ_MIDI_CUE', params: { deck: 'A' } },
+    { id: 'CUE_B', label: 'MUSIC.DJ_MIDI_CUE', params: { deck: 'B' } },
+    { id: 'SYNC_A', label: 'MUSIC.DJ_MIDI_SYNC', params: { deck: 'A' } },
+    { id: 'SYNC_B', label: 'MUSIC.DJ_MIDI_SYNC', params: { deck: 'B' } },
+    { id: 'MUTE_A', label: 'MUSIC.DJ_MIDI_MUTE', params: { deck: 'A' } },
+    { id: 'MUTE_B', label: 'MUSIC.DJ_MIDI_MUTE', params: { deck: 'B' } },
+    { id: 'NEXT_A', label: 'MUSIC.DJ_MIDI_NEXT', params: { deck: 'A' } },
+    { id: 'PREV_A', label: 'MUSIC.DJ_MIDI_PREV', params: { deck: 'A' } },
+    { id: 'RESET_A', label: 'MUSIC.DJ_MIDI_RESET', params: { deck: 'A' } },
+    { id: 'NEXT_B', label: 'MUSIC.DJ_MIDI_NEXT', params: { deck: 'B' } },
+    { id: 'PREV_B', label: 'MUSIC.DJ_MIDI_PREV', params: { deck: 'B' } },
+    { id: 'RESET_B', label: 'MUSIC.DJ_MIDI_RESET', params: { deck: 'B' } },
+    { id: 'EQ_LOW_A', label: 'MUSIC.DJ_MIDI_EQ_LOW', params: { deck: 'A' } },
+    { id: 'EQ_MID_A', label: 'MUSIC.DJ_MIDI_EQ_MID', params: { deck: 'A' } },
+    { id: 'EQ_HIGH_A', label: 'MUSIC.DJ_MIDI_EQ_HIGH', params: { deck: 'A' } },
+    { id: 'EQ_LOW_B', label: 'MUSIC.DJ_MIDI_EQ_LOW', params: { deck: 'B' } },
+    { id: 'EQ_MID_B', label: 'MUSIC.DJ_MIDI_EQ_MID', params: { deck: 'B' } },
+    { id: 'EQ_HIGH_B', label: 'MUSIC.DJ_MIDI_EQ_HIGH', params: { deck: 'B' } },
+    { id: 'PITCH_A', label: 'MUSIC.DJ_MIDI_PITCH', params: { deck: 'A' } },
+    { id: 'PITCH_B', label: 'MUSIC.DJ_MIDI_PITCH', params: { deck: 'B' } }
   ];
 
   constructor(
@@ -1509,7 +1511,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private showMidiAutoDetectToast(deviceName: string, presetName: string) {
     if (this.midiToastTimer) clearTimeout(this.midiToastTimer);
-    this.midiAutoDetectMsg = `${deviceName} detectado — preset "${presetName}" aplicado`;
+    this.midiAutoDetectMsg = this.translate.instant('MUSIC.DJ_MIDI_DETECTED', { deviceName, presetName });
     this.midiToastTimer = setTimeout(() => {
       this.midiAutoDetectMsg = '';
       this.midiToastTimer = null;

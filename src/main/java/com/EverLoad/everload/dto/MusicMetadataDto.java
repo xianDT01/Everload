@@ -16,6 +16,9 @@ public class MusicMetadataDto {
     private long size;
     private String lastModified;
     
+    // Set when returned from random/discovery endpoints
+    private Long nasPathId;
+
     // Audio specific metadata
     private String title;
     private String artist;

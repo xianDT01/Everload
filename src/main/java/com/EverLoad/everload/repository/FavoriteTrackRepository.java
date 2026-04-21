@@ -14,4 +14,6 @@ public interface FavoriteTrackRepository extends JpaRepository<FavoriteTrack, Lo
     List<FavoriteTrack> findByUser(User user, Sort sort);
     Optional<FavoriteTrack> findByUserAndTrackPathAndNasPathId(User user, String trackPath, Long nasPathId);
     boolean existsByUserAndTrackPathAndNasPathId(User user, String trackPath, Long nasPathId);
+
+    long countByUser(User user);
 }

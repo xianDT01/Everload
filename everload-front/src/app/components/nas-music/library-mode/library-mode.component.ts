@@ -49,22 +49,22 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   banners: NasBanner[] = [
     {
       id: 1,
-      title: 'Mis Favoritos',
-      subtitle: 'Tu música preferida reunida',
+      title: 'MUSIC.BANNER_FAV_TITLE',
+      subtitle: 'MUSIC.BANNER_FAV_SUB',
       gradient: 'linear-gradient(135deg, #1a0533 0%, #4c1d95 45%, #7c3aed 100%)',
       view: 'liked'
     },
     {
       id: 2,
-      title: 'Escuchado Recientemente',
-      subtitle: 'Retoma donde lo dejaste',
+      title: 'MUSIC.BANNER_RECENT_TITLE',
+      subtitle: 'MUSIC.BANNER_RECENT_SUB',
       gradient: 'linear-gradient(135deg, #0c1445 0%, #1e3a8a 45%, #3b82f6 100%)',
       view: 'history'
     },
     {
       id: 3,
-      title: 'Tu Biblioteca',
-      subtitle: 'Toda tu colección de música',
+      title: 'MUSIC.BANNER_LIB_TITLE',
+      subtitle: 'MUSIC.BANNER_LIB_SUB',
       gradient: 'linear-gradient(135deg, #0a1f14 0%, #14532d 45%, #1db954 100%)',
       pathIndex: 0
     }
@@ -539,7 +539,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getPathName(pathId: number | null): string {
-    return this.paths.find(p => p.id === pathId)?.name ?? 'Biblioteca';
+    return this.paths.find(p => p.id === pathId)?.name ?? this.translate.instant('MUSIC.SIDEBAR_LIBRARY');
   }
 
   get currentFolderName(): string {
@@ -789,18 +789,18 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
             this.musicService.coverOverrideMap?.delete(track.path);
           }
           const parts = [];
-          if (r.tagsUpdated)    parts.push('tags actualizados');
-          if (r.coverEmbedded)  parts.push('portada añadida');
-          const msg = parts.length ? `✅ ${parts.join(', ')}` : '✅ Identificado (sin cambios)';
+          if (r.tagsUpdated)    parts.push(this.translate.instant('NAS.FINGERPRINT_UPDATED'));
+          if (r.coverEmbedded)  parts.push(this.translate.instant('NAS.FINGERPRINT_COVER_ADDED'));
+          const msg = parts.length ? `✅ ${parts.join(', ')}` : this.translate.instant('NAS.FINGERPRINT_IDENTIFIED');
           this.fingerprintResults.set(track.path, { found: true, msg });
         } else {
-          this.fingerprintResults.set(track.path, { found: false, msg: r.error || 'No encontrado' });
+          this.fingerprintResults.set(track.path, { found: false, msg: r.error || this.translate.instant('NAS.FINGERPRINT_NOT_FOUND') });
         }
         setTimeout(() => this.fingerprintResults.delete(track.path), 4000);
       },
       error: () => {
         this.fingerprintingPaths.delete(track.path);
-        this.fingerprintResults.set(track.path, { found: false, msg: '❌ Error al identificar' });
+        this.fingerprintResults.set(track.path, { found: false, msg: '❌ ' + this.translate.instant('CHAT.ERROR') });
         setTimeout(() => this.fingerprintResults.delete(track.path), 4000);
       }
     });
@@ -813,7 +813,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dialog.loading = true;
     this.nasService.rename(pid, item.path, this.dialog.value.trim()).subscribe({
       next: () => { this.closeDialog(); this.load(); },
-      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al renombrar'; }
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_RENAME'); }
     });
   }
 
@@ -823,7 +823,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dialog.loading = true;
     this.nasService.deleteFile(pid, item.path).subscribe({
       next: () => { this.closeDialog(); this.load(); },
-      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al eliminar'; }
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_DELETE'); }
     });
   }
 
@@ -833,7 +833,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dialog.loading = true;
     this.nasService.move(pid, item.path, this.dialog.value.trim()).subscribe({
       next: () => { this.closeDialog(); this.load(); },
-      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al mover'; }
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_MOVE'); }
     });
   }
 
@@ -843,7 +843,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dialog.loading = true;
     this.nasService.updateMetadata(pid, track.path, this.dialog.title, this.dialog.artist, this.dialog.album, this.dialog.year).subscribe({
       next: () => { this.closeDialog(); this.load(); },
-      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al actualizar metadatos'; }
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_METADATA'); }
     });
   }
 
@@ -852,7 +852,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dialog.loading = true;
     this.nasService.mkdir(this.selectedPathId, this.dialog.value.trim(), this.currentSubPath).subscribe({
       next: () => { this.closeDialog(); this.load(); },
-      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al crear carpeta'; }
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_CREATE_FOLDER'); }
     });
   }
 
@@ -869,7 +869,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         this.closeDialog();
         this.load();
       },
-      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || 'Error al subir portada'; }
+      error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_UPLOAD'); }
     });
   }
 
@@ -996,7 +996,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (err: any) => {
         this.uploadState.status = 'error';
-        this.uploadState.results = [{ name: 'Upload', status: 'error', message: err.error?.error || 'Error al subir' }];
+        this.uploadState.results = [{ name: 'Upload', status: 'error', message: err.error?.error || this.translate.instant('NAS.ERROR_UPLOAD') }];
       }
     });
   }
@@ -1036,7 +1036,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (err) => {
         this.copyModal.copying = false;
-        this.copyModal.error = err.error?.error || 'Error al copiar';
+        this.copyModal.error = err.error?.error || this.translate.instant('NAS.ERROR_COPY');
       }
     });
   }
@@ -1149,10 +1149,10 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   jobStatusLabel(job: any): string {
-    if (job.status === 'QUEUED') return 'En cola';
+    if (job.status === 'QUEUED') return this.translate.instant('QUEUE.STATUS_PENDING');
     if (job.status === 'RUNNING') return `${job.progress}%`;
-    if (job.status === 'DONE') return 'Listo ✓';
-    return 'Error';
+    if (job.status === 'DONE') return this.translate.instant('QUEUE.STATUS_DONE') + ' ✓';
+    return this.translate.instant('CHAT.ERROR');
   }
 
   private triggerBlobDownload(blob: Blob, fileName: string): void {

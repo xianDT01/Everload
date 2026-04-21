@@ -5,13 +5,13 @@
     <a routerLink="/" class="btn return-home">🔙 {{ 'HOME.MENU_HOME' | translate }}</a>
     <div class="language-selector">
       <button (click)="changeLanguage('es')">
-        <img src="https://flagcdn.com/w40/es.png" alt="ES" class="flag" /><span>Español</span>
+        <img src="https://flagcdn.com/w40/es.png" alt="ES" class="flag" /><span>{{ 'ADMIN.LANG_ES' | translate }}</span>
       </button>
       <button (click)="changeLanguage('en')">
-        <img src="https://flagcdn.com/w40/gb.png" alt="EN" class="flag" /><span>English</span>
+        <img src="https://flagcdn.com/w40/gb.png" alt="EN" class="flag" /><span>{{ 'ADMIN.LANG_EN' | translate }}</span>
       </button>
       <button (click)="changeLanguage('gl')">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="GL" class="flag" /><span>Galego</span>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="GL" class="flag" /><span>{{ 'ADMIN.LANG_GL' | translate }}</span>
       </button>
     </div>
     <div class="theme-picker-wrap">
@@ -37,19 +37,19 @@
     <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'; cargarHistorial()">📜 {{ 'ADMIN.TAB_HISTORY' | translate }}</button>
     <button [class.active]="activeTab === 'chat'" (click)="activeTab = 'chat'; loadChatGroups()">💬 {{ 'ADMIN.TAB_CHAT' | translate }}</button>
     <button [class.active]="activeTab === 'audit'" (click)="activeTab = 'audit'; loadAuditLogs(0)">🔍 {{ 'ADMIN.TAB_AUDIT' | translate }}</button>
-    <button [class.active]="activeTab === 'sistema'" (click)="activeTab = 'sistema'; onSistemaTab()">🛠️ Sistema</button>
+    <button [class.active]="activeTab === 'sistema'" (click)="activeTab = 'sistema'; onSistemaTab()">🛠️ {{ 'ADMIN.TAB_SYSTEM' | translate }}</button>
   </div>
 
   <!-- ══ TAB: CONFIG ══════════════════════════════════════════════════════════ -->
   <div *ngIf="activeTab === 'config'" class="tab-content">
 
     <div class="platform-buttons">
-      <a routerLink="/youtube-downloads" class="platform youtube"><img src="/assets/youtube-icon-logo-719479.png" class="icon"> YouTube</a>
-      <a routerLink="/twitter-downloads" class="platform twitter"><img src="/assets/twitter-icon.png" class="icon"> Twitter</a>
-      <a routerLink="/facebook-downloads" class="platform facebook"><img src="/assets/fb sin fondo.png" class="icon"> Facebook</a>
-      <a routerLink="/instagram-downloads" class="platform instagram"><img src="/assets/instagram-icon.png" class="icon"> Instagram</a>
-      <a routerLink="/spotify-downloads" class="platform spotify"><img src="/assets/Spotify.png" class="icon"> Spotify</a>
-      <a routerLink="/tiktok-downloads" class="platform tiktok"><img src="/assets/tiktok_logo.png" class="icon"> TikTok</a>
+      <a routerLink="/youtube-downloads" class="platform youtube"><img src="/assets/youtube-icon-logo-719479.png" class="icon"> {{ 'COMMON.YOUTUBE' | translate }}</a>
+      <a routerLink="/twitter-downloads" class="platform twitter"><img src="/assets/twitter-icon.png" class="icon"> {{ 'COMMON.TWITTER' | translate }}</a>
+      <a routerLink="/facebook-downloads" class="platform facebook"><img src="/assets/fb sin fondo.png" class="icon"> {{ 'COMMON.FACEBOOK' | translate }}</a>
+      <a routerLink="/instagram-downloads" class="platform instagram"><img src="/assets/instagram-icon.png" class="icon"> {{ 'COMMON.INSTAGRAM' | translate }}</a>
+      <a routerLink="/spotify-downloads" class="platform spotify"><img src="/assets/Spotify.png" class="icon"> {{ 'COMMON.SPOTIFY' | translate }}</a>
+      <a routerLink="/tiktok-downloads" class="platform tiktok"><img src="/assets/tiktok_logo.png" class="icon"> {{ 'COMMON.TIKTOK' | translate }}</a>
     </div>
 
     <form (ngSubmit)="guardarCambios()" *ngIf="config" class="form-grid">
@@ -59,8 +59,8 @@
       <input [(ngModel)]="config.clientSecret" name="clientSecret" required />
       <label>{{ 'API_KEY' | translate }}:</label>
       <input [(ngModel)]="config.apiKey" name="apiKey" required />
-      <label>AcoustID API Key:</label>
-      <input [(ngModel)]="config.acoustidApiKey" name="acoustidApiKey" placeholder="Obtén una key gratis en acoustid.org" />
+      <label>{{ 'MUSIC.DJ_ACTIONS_ACOUSTID' | translate }}:</label>
+      <input [(ngModel)]="config.acoustidApiKey" name="acoustidApiKey" [placeholder]="'ADMIN.ACOUSTID_HINT' | translate" />
       <button type="submit" class="btn primary" [disabled]="cargando">{{ 'GUARDAR' | translate }}</button>
     </form>
     <p *ngIf="mensaje" class="message">{{ mensaje }}</p>
@@ -106,15 +106,15 @@
         </thead>
         <tbody>
           <tr *ngFor="let u of pendingUsers">
-            <td data-label="Usuario">{{ u.username }}</td>
-            <td data-label="Email">{{ u.email }}</td>
-            <td data-label="Registro">{{ u.createdAt | date:'dd/MM/yy HH:mm' }}</td>
-            <td data-label="Rol">
+            <td [attr.data-label]="'ADMIN.COL_USER' | translate">{{ u.username }}</td>
+            <td [attr.data-label]="'ADMIN.COL_EMAIL' | translate">{{ u.email }}</td>
+            <td [attr.data-label]="'ADMIN.COL_REGISTERED' | translate">{{ u.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+            <td [attr.data-label]="'ADMIN.COL_ROLE' | translate">
               <select #roleSelect class="role-select">
                 <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
               </select>
             </td>
-            <td data-label="Acciones" class="actions-cell">
+            <td [attr.data-label]="'ADMIN.COL_ACTIONS' | translate" class="actions-cell">
               <button class="btn-approve" (click)="approveUser(u, roleSelect.value)">✅ {{ 'ADMIN.APPROVE' | translate }}</button>
               <button class="btn-reject" (click)="rejectUser(u)">❌ {{ 'ADMIN.REJECT' | translate }}</button>
               <button class="btn-del" (click)="deleteUser(u)" title="{{ 'ADMIN.COL_DELETE' | translate }}">🗑</button>
@@ -143,7 +143,7 @@
             <span class="presence-cell">
               <span class="admin-presence-dot" [class.admin-online]="u.online" [class.admin-offline]="!u.online"></span>
               <span class="admin-presence-label" [class.admin-online-label]="u.online">
-                {{ u.online ? 'En línea' : formatLastSeen(u.lastSeen) }}
+                {{ u.online ? ('ADMIN.ONLINE' | translate) : formatLastSeen(u.lastSeen) }}
               </span>
             </span>
           </div>
@@ -168,7 +168,7 @@
             <th></th>
             <th>{{ 'ADMIN.COL_USER' | translate }}</th>
             <th>{{ 'ADMIN.COL_EMAIL' | translate }}</th>
-            <th>Estado</th>
+            <th>{{ 'ADMIN.MAINTENANCE_STATUS' | translate }}</th>
             <th>{{ 'ADMIN.COL_ROLE' | translate }}</th>
             <th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
           </tr>
@@ -186,7 +186,7 @@
             <td class="presence-cell">
               <span class="admin-presence-dot" [class.admin-online]="u.online" [class.admin-offline]="!u.online"></span>
               <span class="admin-presence-label" [class.admin-online-label]="u.online">
-                {{ u.online ? 'En línea' : formatLastSeen(u.lastSeen) }}
+                {{ u.online ? ('ADMIN.ONLINE' | translate) : formatLastSeen(u.lastSeen) }}
               </span>
             </td>
             <td>
@@ -327,7 +327,7 @@
             <th>{{ 'ADMIN.COL_TITLE' | translate }}</th>
             <th>{{ 'TIPO' | translate }}</th>
             <th>{{ 'PLATAFORMA' | translate }}</th>
-            <th>{{ 'FECHA' | translate }}</th>
+            <th>{{ 'COMMON.DATE' | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -489,34 +489,33 @@
 
     <!-- ── Modo Mantenimiento ─────────────────────────────────────────── -->
     <div class="sistema-section">
-      <h3 class="sistema-section-title">🔧 Modo Mantenimiento</h3>
+      <h3 class="sistema-section-title">{{ 'ADMIN.MAINTENANCE_TITLE' | translate }}</h3>
       <p class="sistema-section-desc">
-        Cuando está activo, los usuarios no administradores ven un mensaje de mantenimiento
-        y no pueden usar la app. Los administradores siguen teniendo acceso completo.
+        {{ 'ADMIN.MAINTENANCE_DESC' | translate }}
       </p>
 
       <div class="maintenance-status-row">
         <div class="maintenance-badge" [class.active]="maintenance.active">
-          {{ maintenance.active ? '🔴 ACTIVO' : '🟢 INACTIVO' }}
+          {{ maintenance.active ? ('ADMIN.MAINTENANCE_ACTIVE' | translate) : ('ADMIN.MAINTENANCE_INACTIVE' | translate) }}
         </div>
         <button class="btn"
                 [class.danger]="maintenance.active"
                 [class.primary]="!maintenance.active"
                 [disabled]="maintenanceLoading"
                 (click)="toggleMaintenance()">
-          {{ maintenance.active ? '🟢 Desactivar mantenimiento' : '🔴 Activar mantenimiento' }}
+          {{ maintenance.active ? ('ADMIN.MAINTENANCE_OFF' | translate) : ('ADMIN.MAINTENANCE_ON' | translate) }}
         </button>
       </div>
 
       <div class="maintenance-message-block">
-        <label class="field-label">Mensaje para los usuarios:</label>
+        <label class="field-label">{{ 'ADMIN.MAINTENANCE_LABEL' | translate }}</label>
         <textarea class="sistema-textarea"
                   [(ngModel)]="maintenanceNewMessage"
                   rows="3"
-                  placeholder="La aplicación está en mantenimiento. Inténtalo más tarde.">
+                  [placeholder]="'ADMIN.MAINTENANCE_PLACEHOLDER' | translate">
         </textarea>
         <button class="btn secondary small" [disabled]="maintenanceLoading" (click)="saveMaintenance()">
-          💾 Guardar mensaje
+          {{ 'ADMIN.MAINTENANCE_SAVE' | translate }}
         </button>
       </div>
 
@@ -527,26 +526,25 @@
 
     <!-- ── Copias de Seguridad ────────────────────────────────────────── -->
     <div class="sistema-section">
-      <h3 class="sistema-section-title">💾 Copias de Seguridad</h3>
+      <h3 class="sistema-section-title">{{ 'ADMIN.BACKUP_TITLE' | translate }}</h3>
       <p class="sistema-section-desc">
-        Las copias se guardan como archivos SQL comprimidos. Una copia previa se crea
-        automáticamente antes de cualquier actualización o restauración.
+        {{ 'ADMIN.BACKUP_DESC' | translate }}
       </p>
 
       <!-- Config row -->
       <div class="backup-config-row">
-        <label class="field-label">Copias a conservar:</label>
+        <label class="field-label">{{ 'ADMIN.BACKUP_RETENTION' | translate }}</label>
         <input type="number" class="small-input" [(ngModel)]="backupConfig.retention" min="1" max="100" />
-        <button class="btn secondary small" (click)="saveBackupConfig()">Guardar</button>
+        <button class="btn secondary small" (click)="saveBackupConfig()">{{ 'GUARDAR' | translate }}</button>
       </div>
 
       <!-- Actions row -->
       <div class="sistema-actions-row">
         <button class="btn primary" [disabled]="backupLoading" (click)="createBackup()">
-          📦 Crear copia ahora
+          {{ 'ADMIN.BACKUP_CREATE' | translate }}
         </button>
         <button class="btn secondary small" [disabled]="backupLoading" (click)="loadBackups()">
-          🔄 Refrescar
+          {{ 'ADMIN.BACKUP_REFRESH' | translate }}
         </button>
       </div>
 
@@ -555,9 +553,9 @@
       </p>
 
       <!-- Backup list -->
-      <div *ngIf="backupLoading && backups.length === 0" class="empty-state">⏳ Cargando...</div>
+      <div *ngIf="backupLoading && backups.length === 0" class="empty-state">⏳ {{ 'ADMIN.LOADING' | translate }}...</div>
       <div *ngIf="!backupLoading && backups.length === 0" class="empty-state">
-        No hay copias de seguridad. Crea una desde el botón de arriba.
+        {{ 'ADMIN.BACKUP_EMPTY' | translate }}
       </div>
 
       <div *ngIf="backups.length > 0" class="backup-list">
@@ -567,10 +565,10 @@
             <span class="backup-meta">{{ b.createdAt }} · {{ b.sizeFormatted }}</span>
           </div>
           <div class="backup-actions">
-            <button class="btn-icon restore-btn" (click)="confirmRestore(b)" title="Restaurar">
+            <button class="btn-icon restore-btn" (click)="confirmRestore(b)" [title]="'ADMIN.BACKUP_RESTORE' | translate">
               ♻️
             </button>
-            <button class="btn-icon delete-btn" (click)="confirmDelete(b)" title="Eliminar">
+            <button class="btn-icon delete-btn" (click)="confirmDelete(b)" [title]="'ADMIN.COL_DELETE' | translate">
               🗑️
             </button>
           </div>
@@ -580,30 +578,30 @@
 
     <!-- ── Actualización ──────────────────────────────────────────────── -->
     <div class="sistema-section">
-      <h3 class="sistema-section-title">🚀 Actualización de la App</h3>
+      <h3 class="sistema-section-title">{{ 'ADMIN.APP_UPDATE_TITLE' | translate }}</h3>
 
       <!-- System info -->
       <div *ngIf="systemInfo" class="sysinfo-grid">
         <div class="sysinfo-item">
-          <span class="sysinfo-label">Versión</span>
+          <span class="sysinfo-label">{{ 'ADMIN.SYS_VERSION' | translate }}</span>
           <span class="sysinfo-value version-badge">v{{ systemInfo.appVersion }}</span>
         </div>
         <div class="sysinfo-item">
-          <span class="sysinfo-label">Commit desplegado</span>
+          <span class="sysinfo-label">{{ 'ADMIN.SYS_COMMIT' | translate }}</span>
           <span class="sysinfo-value commit-badge">
             {{ systemInfo.currentCommit === 'unknown' ? '—' : systemInfo.currentCommit }}
           </span>
         </div>
         <div class="sysinfo-item">
-          <span class="sysinfo-label">Java</span>
+          <span class="sysinfo-label">{{ 'ADMIN.SYS_JAVA' | translate }}</span>
           <span class="sysinfo-value">{{ systemInfo.javaVersion }}</span>
         </div>
         <div class="sysinfo-item">
-          <span class="sysinfo-label">Tiempo activo</span>
+          <span class="sysinfo-label">{{ 'ADMIN.SYS_UPTIME' | translate }}</span>
           <span class="sysinfo-value">{{ formatUptime(systemInfo.uptimeSeconds) }}</span>
         </div>
         <div class="sysinfo-item">
-          <span class="sysinfo-label">Base de datos</span>
+          <span class="sysinfo-label">{{ 'ADMIN.SYS_DB' | translate }}</span>
           <span class="sysinfo-value">{{ systemInfo.dbSizeFormatted }}</span>
         </div>
       </div>
@@ -611,7 +609,7 @@
       <!-- Check update -->
       <div class="sistema-actions-row">
         <button class="btn secondary" [disabled]="systemLoading" (click)="checkUpdate()">
-          🔍 Buscar actualización
+          {{ 'ADMIN.UPDATE_SEARCH' | translate }}
         </button>
       </div>
 
@@ -625,18 +623,18 @@
         <!-- ── Commit mode (commits API) ── -->
         <ng-container *ngIf="updateCheck.latestCommit">
           <div class="update-available-badge" *ngIf="updateCheck.updateAvailable">
-            🆕 Hay commits nuevos sin desplegar
+            🆕 {{ 'ADMIN.UPDATE_NEW_COMMITS' | translate }}
           </div>
           <div class="update-ok-badge" *ngIf="!updateCheck.updateAvailable">
-            ✅ Desplegado al último commit
+            ✅ {{ 'ADMIN.UPDATE_UP_TO_DATE' | translate }}
           </div>
           <div class="commit-comparison">
             <div class="commit-row">
-              <span class="commit-label">Desplegado</span>
+              <span class="commit-label">{{ 'ADMIN.COMMIT_LOCAL' | translate }}</span>
               <code class="commit-sha">{{ updateCheck.currentCommit || '?' }}</code>
             </div>
             <div class="commit-row">
-              <span class="commit-label">En GitHub main</span>
+              <span class="commit-label">{{ 'ADMIN.COMMIT_GITHUB' | translate }}</span>
               <code class="commit-sha" [class.commit-sha-new]="updateCheck.updateAvailable">
                 {{ updateCheck.latestCommit }}
               </code>
@@ -645,35 +643,33 @@
               💬 {{ updateCheck.commitMessage }}
             </div>
             <a *ngIf="updateCheck.commitUrl" [href]="updateCheck.commitUrl" target="_blank"
-               class="btn secondary small">🔗 Ver commit en GitHub</a>
+               class="btn secondary small">{{ 'ADMIN.COMMIT_VIEW' | translate }}</a>
           </div>
         </ng-container>
 
         <!-- ── Release mode (releases API) ── -->
         <ng-container *ngIf="!updateCheck.latestCommit && updateCheck.updateAvailable">
-          <div class="update-available-badge">🆕 Nueva versión disponible</div>
+          <div class="update-available-badge">{{ 'ADMIN.UPDATE_NEW_VERSION' | translate }}</div>
           <div class="update-versions">
-            <span>Actual: <strong>v{{ updateCheck.currentVersion }}</strong></span>
+            <span>{{ 'ADMIN.UPDATE_CURRENT' | translate }} <strong>v{{ updateCheck.currentVersion }}</strong></span>
             <span>→</span>
-            <span>Nueva: <strong>v{{ updateCheck.latestVersion }}</strong></span>
+            <span>{{ 'ADMIN.UPDATE_LATEST' | translate }} <strong>v{{ updateCheck.latestVersion }}</strong></span>
           </div>
           <a *ngIf="updateCheck.releaseUrl" [href]="updateCheck.releaseUrl" target="_blank"
-             class="btn secondary small">📋 Ver notas de la versión</a>
+             class="btn secondary small">{{ 'ADMIN.UPDATE_NOTES' | translate }}</a>
         </ng-container>
         <div *ngIf="!updateCheck.latestCommit && !updateCheck.updateAvailable && updateCheck.checkConfigured && !updateCheck.error"
-             class="update-ok-badge">✅ App actualizada</div>
+             class="update-ok-badge">{{ 'ADMIN.UPDATE_OK' | translate }}</div>
 
       </div>
 
       <!-- Prepare update -->
       <div class="prepare-update-block">
         <p class="sistema-section-desc">
-          El botón <strong>"Preparar actualización"</strong> crea una copia de seguridad automática
-          y activa el modo mantenimiento. Si está configurado un script de actualización, lo ejecuta.
-          De lo contrario, recibirás instrucciones para actualizar manualmente.
+          {{ 'ADMIN.PREPARE_UPDATE_DESC' | translate }}
         </p>
         <button class="btn warning" [disabled]="prepareUpdateLoading" (click)="prepareUpdate()">
-          ⚙️ Preparar actualización
+          {{ 'ADMIN.PREPARE_UPDATE_BTN' | translate }}
         </button>
         <div *ngIf="prepareUpdateMsg" class="prepare-update-msg"
              [class.error]="prepareUpdateMsg.includes('❌')">
@@ -687,17 +683,16 @@
   <!-- ── Modal: Confirmar restaurar ─────────────────────────────────────────── -->
   <div *ngIf="confirmRestoreBackup" class="modal-backdrop" (click)="confirmRestoreBackup = null">
     <div class="modal-box" (click)="$event.stopPropagation()">
-      <h3>♻️ Restaurar copia de seguridad</h3>
-      <p>Vas a restaurar la base de datos desde:</p>
+      <h3>{{ 'ADMIN.RESTORE_TITLE' | translate }}</h3>
+      <p>{{ 'ADMIN.RESTORE_TEXT' | translate }}</p>
       <div class="modal-filename">{{ confirmRestoreBackup.name }}</div>
       <p class="modal-warn">
-        ⚠️ <strong>Esta acción sobrescribirá todos los datos actuales</strong> de la base de datos.
-        Los cambios posteriores al momento de la copia se perderán. No se puede deshacer sin otra copia.
+        {{ 'ADMIN.RESTORE_WARN' | translate }}
       </p>
-      <p>Se recomienda activar el modo mantenimiento antes de restaurar para evitar accesos concurrentes.</p>
+      <p>{{ 'ADMIN.RESTORE_HINT' | translate }}</p>
       <div class="modal-actions">
-        <button class="btn secondary" (click)="confirmRestoreBackup = null">Cancelar</button>
-        <button class="btn danger" (click)="restoreBackup()">♻️ Sí, restaurar</button>
+        <button class="btn secondary" (click)="confirmRestoreBackup = null">{{ 'COMMON.CANCEL' | translate }}</button>
+        <button class="btn danger" (click)="restoreBackup()">{{ 'ADMIN.RESTORE_BTN' | translate }}</button>
       </div>
     </div>
   </div>
@@ -705,12 +700,12 @@
   <!-- ── Modal: Confirmar eliminar copia ────────────────────────────────────── -->
   <div *ngIf="confirmDeleteBackup" class="modal-backdrop" (click)="confirmDeleteBackup = null">
     <div class="modal-box" (click)="$event.stopPropagation()">
-      <h3>🗑️ Eliminar copia de seguridad</h3>
-      <p>¿Eliminar permanentemente la siguiente copia?</p>
+      <h3>{{ 'ADMIN.DELETE_BCK_TITLE' | translate }}</h3>
+      <p>{{ 'ADMIN.DELETE_BCK_TEXT' | translate }}</p>
       <div class="modal-filename">{{ confirmDeleteBackup.name }}</div>
       <div class="modal-actions">
-        <button class="btn secondary" (click)="confirmDeleteBackup = null">Cancelar</button>
-        <button class="btn danger" (click)="deleteBackup()">🗑️ Eliminar</button>
+        <button class="btn secondary" (click)="confirmDeleteBackup = null">{{ 'COMMON.CANCEL' | translate }}</button>
+        <button class="btn danger" (click)="deleteBackup()">{{ 'COMMON.DELETE' | translate }}</button>
       </div>
     </div>
   </div>
