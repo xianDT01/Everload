@@ -1,7 +1,7 @@
-<div class="vdj-layout">
+<div class="vdj-layout" #vdjLayout>
 
   <!-- ══ DECK A + MIXER + DECK B ═══════════════════════════════════════════ -->
-  <div class="decks-section">
+  <div class="decks-section" [style.height.%]="deckHeightPct" [style.min-height.px]="180">
 
     <!-- ── DECK A ─────────────────────────────────────────────────────────── -->
     <div class="deck deck-a" [class.is-playing]="stateA?.playing">
@@ -441,6 +441,9 @@
     </div>
 
   </div>
+
+  <!-- ══ RESIZE HANDLE ════════════════════════════════════════════════════ -->
+  <div class="vdj-resize-handle" (mousedown)="onResizeStart($event)" title="Arrastrar para redimensionar"></div>
 
   <!-- ══ BROWSER ════════════════════════════════════════════════════════════ -->
   <div class="browser-section-wrapper">

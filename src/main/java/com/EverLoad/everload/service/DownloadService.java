@@ -29,10 +29,12 @@ public class DownloadService {
 
     private final DownloadHistoryService downloadHistoryService;
     private final NasService nasService;
+    private final MusicService musicService;
 
-    public DownloadService(DownloadHistoryService downloadHistoryService, NasService nasService) {
+    public DownloadService(DownloadHistoryService downloadHistoryService, NasService nasService, MusicService musicService) {
         this.downloadHistoryService = downloadHistoryService;
         this.nasService = nasService;
+        this.musicService = musicService;
     }
 
     @PostConstruct
@@ -74,18 +76,22 @@ public class DownloadService {
 
     public ResponseEntity<FileSystemResource> downloadMusic(String videoId, String format) {
         try {
-                String tempDir = createTempDownloadDir();
-                String command = String.format(
-
-                                "yt-dlp --ignore-errors --print after_move:filepath " +
-                                "-x --audio-format %s " +
-                                "-o %s%%(title)s.%%(ext)s " +
-                                "https://www.youtube.com/watch?v=%s",
-                        format, tempDir, videoId
-                );
-
+            String tempDir = createTempDownloadDir();
+            String[] cmd = {
+                "yt-dlp",
+                "--ignore-errors",
+                "--print", "after_move:filepath",
+                "-x", "--audio-format", format, "--audio-quality", "0",
+                "--embed-thumbnail",
+                "--embed-metadata",
+                "--parse-metadata", "%(title)s:%(meta_title)s",
+                "--parse-metadata", "%(uploader)s:%(meta_artist)s",
+                "--no-playlist",
+                "-o", tempDir + "%(title)s.%(ext)s",
+                "https://www.youtube.com/watch?v=" + videoId
+            };
             downloadHistoryService.recordDownload(new Download("videoId=" + videoId, "music", "YouTube"));
-            return executeCommand(command, "music", "YouTube");
+            return executeCommand(cmd, "music", "YouTube");
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -124,6 +130,66 @@ public class DownloadService {
 
 
 
+
+    private ResponseEntity<FileSystemResource> executeCommand(String[] cmd, String tipo, String origen) {
+        if (!acquireSlot()) {
+            logger.warn("Download rejected — max concurrent downloads ({}) reached", maxConcurrent);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+        }
+        try {
+            logger.info("🔵 Ejecutando comando: {}", String.join(" ", cmd));
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            Process process = pb.start();
+
+            BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader  = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            new Thread(() -> {
+                String line;
+                try {
+                    while ((line = errorReader.readLine()) != null) {
+                        if (!line.contains("nsig extraction failed")) {
+                            System.out.println("⚠️ YT-DLP ERROR: " + line);
+                        }
+                    }
+                } catch (IOException e) { e.printStackTrace(); }
+            }).start();
+
+            int exitCode = process.waitFor();
+            String finalPath = outputReader.readLine();
+            outputReader.close();
+            errorReader.close();
+
+            if (exitCode != 0 || finalPath == null || finalPath.isEmpty()) {
+                logger.info("❌ yt-dlp terminó con error o no devolvió la ruta final.");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+
+            File finalFile = new File(finalPath.trim());
+            if (!finalFile.exists()) {
+                logger.info("❌ El archivo indicado por yt-dlp no existe: {}", finalPath);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+
+            String songTitle  = finalFile.getName();
+            String songArtist = "";
+            int dashIdx = songTitle.indexOf(" - ");
+            if (dashIdx > 0) {
+                songArtist = songTitle.substring(0, dashIdx).trim();
+                songTitle  = songTitle.substring(dashIdx + 3).trim();
+            }
+            musicService.ensureMetadata(finalFile, songTitle, songArtist);
+
+            downloadHistoryService.recordDownload(new Download(finalFile.getName(), tipo, origen));
+            return sendFile(finalFile);
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } finally {
+            downloadSemaphore.release();
+        }
+    }
 
     private ResponseEntity<FileSystemResource> executeCommand(String command, String tipo, String origen) {
         if (!acquireSlot()) {
@@ -247,17 +313,23 @@ public class DownloadService {
         }
         String tempDirPath = createTempDownloadDir();
         try {
-            String command = String.format(
-                    "yt-dlp --ignore-errors --print after_move:filepath " +
-                    "-x --audio-format %s " +
-                    "-o %s%%(title)s.%%(ext)s " +
-                    "https://www.youtube.com/watch?v=%s",
-                    format, tempDirPath, videoId
-            );
-            logger.info("🔵 [NAS] Ejecutando: {}", command);
-            Process process = Runtime.getRuntime().exec(command);
+            String[] cmd = {
+                "yt-dlp",
+                "--ignore-errors",
+                "--print", "after_move:filepath",
+                "-x", "--audio-format", format, "--audio-quality", "0",
+                "--embed-thumbnail",
+                "--embed-metadata",
+                "--parse-metadata", "%(title)s:%(meta_title)s",
+                "--parse-metadata", "%(uploader)s:%(meta_artist)s",
+                "--no-playlist",
+                "-o", tempDirPath + "%(title)s.%(ext)s",
+                "https://www.youtube.com/watch?v=" + videoId
+            };
+            logger.info("🔵 [NAS] Ejecutando: {}", String.join(" ", cmd));
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            Process process = pb.start();
 
-            // Log stderr without blocking
             BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
             new Thread(() -> {
                 String line;
@@ -275,8 +347,17 @@ public class DownloadService {
                 throw new RuntimeException("yt-dlp falló o no devolvió la ruta del archivo");
             }
 
-            File tmpFile = new File(finalPath);
+            File tmpFile = new File(finalPath.trim());
             if (!tmpFile.exists()) throw new RuntimeException("Archivo temporal no encontrado: " + finalPath);
+
+            String songTitle  = tmpFile.getName();
+            String songArtist = "";
+            int dashIdx = songTitle.indexOf(" - ");
+            if (dashIdx > 0) {
+                songArtist = songTitle.substring(0, dashIdx).trim();
+                songTitle  = songTitle.substring(dashIdx + 3).trim();
+            }
+            musicService.ensureMetadata(tmpFile, songTitle, songArtist);
 
             String fileName = tmpFile.getName();
             String savedPath = nasService.saveToNas(nasPathId, subPath, tmpFile.toPath(), fileName);
