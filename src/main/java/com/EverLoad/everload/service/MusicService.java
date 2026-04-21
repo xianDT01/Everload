@@ -220,16 +220,24 @@ public class MusicService {
             return;
         }
 
-        // Use Runtime.exec with single string — same pattern as DownloadService
-        String command = String.format(
-                "yt-dlp --ignore-errors -x --audio-format mp3 -o %s%%(id)s.%%(ext)s https://www.youtube.com/watch?v=%s",
-                DJ_CACHE_DIR, videoId
-        );
+        String[] cmd = {
+            "yt-dlp",
+            "--ignore-errors",
+            "-x", "--audio-format", "mp3", "--audio-quality", "0",
+            "--embed-thumbnail",
+            "--embed-metadata",
+            "--parse-metadata", "%(title)s:%(meta_title)s",
+            "--parse-metadata", "%(uploader)s:%(meta_artist)s",
+            "--no-playlist",
+            "-o", DJ_CACHE_DIR + "%(id)s.%(ext)s",
+            "https://www.youtube.com/watch?v=" + videoId
+        };
 
-        log.info("[DJ Cache] Ejecutando: {}", command);
+        log.info("[DJ Cache] Ejecutando: {}", String.join(" ", cmd));
 
         try {
-            Process process = Runtime.getRuntime().exec(command);
+            ProcessBuilder djPb = new ProcessBuilder(cmd);
+            Process process = djPb.start();
 
             // Consume stdout in a separate thread (same pattern as DownloadService)
             BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
