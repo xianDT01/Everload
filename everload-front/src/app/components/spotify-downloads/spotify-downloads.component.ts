@@ -43,8 +43,9 @@ export class SpotifyDownloadsComponent {
         },
         error: (err) => {
           console.error('❌ Error al obtener canciones:', err);
-          this.error = this.translate.instant('DOWNLOAD_Spotify_FAILED');
-          this.resultado = [];
+          const serverMsg = err?.error?.error;
+          this.error = serverMsg || this.translate.instant('DOWNLOAD_Spotify_FAILED');
+          this.resultado = null;
           this.cargando = false;
         }
       });
