@@ -39,7 +39,8 @@
       "Bash(npm --version)",
       "Bash(export PATH=\"$PATH:/home/xiandt/.nvm/versions/node/v18.20.8/bin\")",
       "Bash(export PATH=\"/home/xiandt/.nvm/versions/node/v18.20.8/bin:$PATH\")",
-      "Bash(ng build *)"
+      "Bash(ng build *)",
+      "Bash(./mvnw clean *)"
     ]
   }
 }
