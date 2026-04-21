@@ -847,9 +847,7 @@ export class MusicService {
 
   playPrevMain() {
     const q = this.queueSubj.value;
-    if (this.mainPlayer.state.currentTime > 3) {
-      this.mainPlayer.seek(0);
-    } else if (this._shuffle) {
+    if (this._shuffle) {
       const pos = this.shuffleOrder.indexOf(q.index);
       if (pos > 0) this.setQueue(q.pathId, q.tracks, this.shuffleOrder[pos - 1]);
       else this.mainPlayer.seek(0);

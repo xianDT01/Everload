@@ -71,6 +71,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   searchQuery = '';
   searchResults: ChatMessageDto[] | null = null;
 
+  // ── Read receipts ──────────────────────────────────────────────────────────
+  readStatus: Record<string, string> = {};
+
   // ── Message actions (hover) ────────────────────────────────────────────────
   hoveredMessageId: number | null = null;
 
@@ -85,7 +88,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   private userScrolledUp = false;  // true when user has scrolled above the bottom
 
   constructor(
-    private chatService: ChatService,
+    public chatService: ChatService,
     private notificationService: NotificationService,
     private authService: AuthService,
     private router: Router,
@@ -198,13 +201,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       }];
     }
 
-    // Mark group as read immediately when selected
+    // Mark group as read immediately when selected (local + backend)
     this.chatService.markGroupRead(group.id);
+    this.chatService.markRead(group.id).subscribe({ error: () => {} });
+    this.readStatus = {};
 
     this.chatService.getMessages(group.id).subscribe({
       next: msgs => {
         this.messages = msgs;
         this.shouldScrollToBottom = true;
+        this.refreshReadStatus(group.id);
       },
       error: () => this.notificationService.showToast(
         'error',
@@ -216,12 +222,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.startPolling(group.id, (msgs) => {
       const lastKnown = this.messages.length > 0 ? this.messages[this.messages.length - 1].id : -1;
       const lastNew   = msgs.length > 0 ? msgs[msgs.length - 1].id : -1;
-      if (lastNew !== lastKnown || msgs.length !== this.messages.length) {
+      const changed = lastNew !== lastKnown || msgs.length !== this.messages.length;
+      if (changed) {
         this.messages = msgs;
-        // Only auto-scroll to bottom if user hasn't scrolled up to read older messages
         if (!this.userScrolledUp) {
           this.shouldScrollToBottom = true;
+          // We're at the bottom = actively reading, mark as read
+          this.chatService.markRead(this.selectedGroup!.id).subscribe({ error: () => {} });
+          this.chatService.markGroupRead(this.selectedGroup!.id);
         }
+        this.refreshReadStatus(this.selectedGroup!.id);
       }
     });
   }
@@ -760,5 +770,60 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       },
       error: () => {}
     });
+  }
+
+  // ── Message grouping & date separators ───────────────────────────────────
+
+  isFirstInGroup(index: number): boolean {
+    const msgs = this.displayMessages;
+    if (index === 0) return true;
+    return msgs[index].senderUsername !== msgs[index - 1].senderUsername;
+  }
+
+  isLastInGroup(index: number): boolean {
+    const msgs = this.displayMessages;
+    if (index === msgs.length - 1) return true;
+    return msgs[index].senderUsername !== msgs[index + 1].senderUsername;
+  }
+
+  shouldShowDateSeparator(index: number): boolean {
+    const msgs = this.displayMessages;
+    if (index === 0) return true;
+    const curr = new Date(msgs[index].sentAt);
+    const prev = new Date(msgs[index - 1].sentAt);
+    return curr.toDateString() !== prev.toDateString();
+  }
+
+  getDateLabel(sentAt: string): string {
+    const date = new Date(sentAt);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    if (date.toDateString() === today.toDateString()) return 'Hoy';
+    if (date.toDateString() === yesterday.toDateString()) return 'Ayer';
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+  }
+
+  // ── Read receipts ─────────────────────────────────────────────────────────
+
+  private refreshReadStatus(groupId: number): void {
+    this.chatService.getReadStatus(groupId).subscribe({
+      next: status => { this.readStatus = status; },
+      error: () => {}
+    });
+  }
+
+  /**
+   * Returns 'read' (✓✓) or 'sent' (✓) for own messages in PRIVATE chats.
+   * Returns null for messages from others or in group/announcement chats.
+   */
+  getTickStatus(msg: ChatMessageDto): 'read' | 'sent' | null {
+    if (msg.senderUsername !== this.currentUsername) return null;
+    if (this.selectedGroup?.type !== 'PRIVATE') return null;
+    const partnerUsername = this.selectedGroup.privatePartnerUsername;
+    if (!partnerUsername) return null;
+    const partnerLastRead = this.readStatus[partnerUsername];
+    if (partnerLastRead && msg.sentAt <= partnerLastRead) return 'read';
+    return 'sent';
   }
 }

@@ -51,12 +51,13 @@
         </div>
         <div class="group-info">
           <div class="group-name-row">
-            <span class="group-name">{{ getGroupDisplayName(group) }}</span>
-            <span class="group-time" *ngIf="group.lastMessageTime">{{ formatTime(group.lastMessageTime) }}</span>
+            <span class="group-name" [class.group-name-unread]="chatService.isGroupUnread(group) && selectedGroup?.id !== group.id">{{ getGroupDisplayName(group) }}</span>
+            <span class="group-time" [class.group-time-unread]="chatService.isGroupUnread(group) && selectedGroup?.id !== group.id" *ngIf="group.lastMessageTime">{{ formatTime(group.lastMessageTime) }}</span>
           </div>
           <div class="group-preview">
             <span class="last-message" *ngIf="group.lastMessage">{{ group.lastMessage }}</span>
             <span class="no-messages" *ngIf="!group.lastMessage">{{ 'CHAT.NO_MESSAGES_YET' | translate }}</span>
+            <span class="unread-dot" *ngIf="chatService.isGroupUnread(group) && selectedGroup?.id !== group.id"></span>
           </div>
           <span *ngIf="isAnnouncementGroup(group)" class="official-badge">{{ 'CHAT.OFFICIAL' | translate }}</span>
           <span *ngIf="isGroupMuted(group)" class="muted-badge" title="Silenciado">🔕</span>
@@ -171,22 +172,30 @@
             <p>{{ 'CHAT.SEARCH_NO_RESULTS' | translate }}</p>
           </div>
 
+          <ng-container *ngFor="let msg of displayMessages; let i = index; trackBy: trackByMessageId">
+
+          <!-- Date separator -->
+          <div class="date-separator" *ngIf="shouldShowDateSeparator(i)">
+            <span class="date-label">{{ getDateLabel(msg.sentAt) }}</span>
+          </div>
+
           <div
-            *ngFor="let msg of displayMessages; trackBy: trackByMessageId"
             class="message-wrapper"
             [class.own]="isOwnMessage(msg)"
             [class.other]="!isOwnMessage(msg)"
+            [class.group-first]="isFirstInGroup(i)"
+            [class.group-last]="isLastInGroup(i)"
             (mouseenter)="hoveredMessageId = msg.id"
             (mouseleave)="hoveredMessageId = null">
 
-            <!-- Avatar for others -->
-            <div class="msg-avatar" *ngIf="!isOwnMessage(msg)">
+            <!-- Avatar for others — space always reserved, only shown on last message in group -->
+            <div class="msg-avatar" *ngIf="!isOwnMessage(msg)" [class.avatar-hidden]="!isLastInGroup(i)">
               <img *ngIf="msg.senderAvatarUrl" [src]="resolveAvatarUrl(msg.senderAvatarUrl)" [alt]="msg.senderUsername" />
               <span *ngIf="!msg.senderAvatarUrl" class="avatar-initial">{{ getInitials(msg.senderUsername) }}</span>
             </div>
 
             <div class="message-content-col">
-              <span class="msg-sender" *ngIf="!isOwnMessage(msg)">{{ msg.senderUsername }}</span>
+              <span class="msg-sender" *ngIf="!isOwnMessage(msg) && isFirstInGroup(i)">{{ msg.senderUsername }}</span>
 
               <!-- Quoted reply (only shown on messages that ARE a reply) -->
               <div class="reply-quote" *ngIf="msg.replyToId">
@@ -203,6 +212,9 @@
                 <div class="msg-footer">
                   <span class="msg-time">{{ formatMessageTime(msg.sentAt) }}</span>
                   <span class="msg-edited" *ngIf="msg.edited"> · {{ 'CHAT.EDITED' | translate }}</span>
+                  <span class="msg-ticks" *ngIf="getTickStatus(msg) as tick" [class.ticks-read]="tick === 'read'">
+                    {{ tick === 'read' ? '✓✓' : '✓' }}
+                  </span>
                   <!-- Inline action buttons — appear in the footer on hover, always clickable -->
                   <span class="msg-inline-actions" *ngIf="hoveredMessageId === msg.id && canSendMessage()">
                     <button class="msg-inline-btn" (click)="setReply(msg)" [title]="'CHAT.REPLY' | translate">↩</button>
@@ -239,11 +251,15 @@
                 </div>
                 <div class="yt-card-footer">
                   <span class="msg-time">{{ formatMessageTime(msg.sentAt) }}</span>
+                  <span class="msg-ticks" *ngIf="getTickStatus(msg) as tick" [class.ticks-read]="tick === 'read'">
+                    {{ tick === 'read' ? '✓✓' : '✓' }}
+                  </span>
                 </div>
               </div>
 
             </div>
           </div>
+          </ng-container>
         </div>
       </div>
 

@@ -29,6 +29,7 @@ public class ChatService {
     private final PresenceService presenceService;
     private final AvatarService avatarService;
     private final NotificationService notificationService;
+    private final com.EverLoad.everload.repository.ChatGroupReadRepository chatGroupReadRepository;
 
     @Transactional
     public List<ChatGroupDto> getGroupsForUser(User user) {
@@ -504,6 +505,39 @@ public class ChatService {
         userRepository.findByUsername(username).ifPresent(user ->
                 groupMemberRepository.findByGroupAndUser(group, user)
                         .ifPresent(groupMemberRepository::delete));
+    }
+
+    // ── Read receipts ─────────────────────────────────────────────────────────
+
+    @Transactional
+    public void markRead(Long groupId, User user) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+        if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
+            throw new RuntimeException("Access denied");
+        }
+        com.EverLoad.everload.model.ChatGroupRead record =
+                chatGroupReadRepository.findByUserAndGroup(user, group)
+                        .orElse(com.EverLoad.everload.model.ChatGroupRead.builder()
+                                .user(user).group(group).build());
+        record.setLastReadAt(LocalDateTime.now());
+        chatGroupReadRepository.save(record);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, String> getReadStatus(Long groupId, User user) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found"));
+        if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
+            throw new RuntimeException("Access denied");
+        }
+        Map<String, String> result = new HashMap<>();
+        for (com.EverLoad.everload.model.ChatGroupRead r : chatGroupReadRepository.findByGroup(group)) {
+            result.put(r.getUser().getUsername(),
+                    r.getLastReadAt().atOffset(java.time.ZoneOffset.UTC)
+                            .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+        }
+        return result;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
