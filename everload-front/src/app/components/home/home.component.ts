@@ -4,6 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { AuthService, AuthResponse } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
+import { MusicService, MusicMetadataDto } from '../../services/music.service';
 
 @Component({
   selector: 'app-home',
@@ -21,6 +22,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   avatarLoading = false;
 
   unreadCount = 0;
+  randomTracks: MusicMetadataDto[] = [];
 
   private subs: Subscription[] = [];
 
@@ -28,7 +30,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     private translate: TranslateService,
     public authService: AuthService,
     private router: Router,
-    public chatService: ChatService
+    public chatService: ChatService,
+    public musicService: MusicService
   ) {
     // Language is configured by APP_INITIALIZER in app.module.ts.
     // Do NOT call setDefaultLang() here — it would override the initializer
@@ -46,6 +49,12 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.unreadCount = count;
       })
     );
+    if (this.hasNasAccess) {
+      this.musicService.getRandomTracks(3).subscribe({
+        next: tracks => this.randomTracks = tracks,
+        error: () => {} // silent — home page shows fine without it
+      });
+    }
   }
 
   ngOnDestroy(): void {
@@ -111,6 +120,14 @@ export class HomeComponent implements OnInit, OnDestroy {
       next: () => { this.avatarLoading = false; },
       error: () => { this.avatarLoading = false; }
     });
+  }
+
+  onCoverLoaded(event: Event): void {
+    (event.target as HTMLImageElement).classList.add('loaded');
+  }
+
+  onCoverError(event: Event): void {
+    (event.target as HTMLImageElement).style.display = 'none';
   }
 
   getRoleBadgeClass(): string {

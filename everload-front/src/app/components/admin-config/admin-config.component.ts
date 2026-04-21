@@ -182,7 +182,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.http.get<AdminConfig>(`${this.BASE}/api/admin/config`).subscribe({
       next: data => this.config = data,
-      error: () => this.mensaje = '❌ Error al cargar la configuración'
+      error: () => this.mensaje = '❌ ' + this.translate.instant('ADMIN.FORM_LOAD_ERROR')
     });
     this.cargarLogs();
     this.cargarHistorial();
@@ -217,13 +217,13 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   guardarCambios(): void {
     this.cargando = true;
     this.http.post(`${this.BASE}/api/admin/config`, this.config).subscribe({
-      next: () => { this.mensaje = '✅ Configuración guardada'; this.cargando = false; },
-      error: () => { this.mensaje = '❌ Error al guardar'; this.cargando = false; }
+      next: () => { this.mensaje = this.translate.instant('ADMIN.FORM_SAVE_SUCCESS'); this.cargando = false; },
+      error: () => { this.mensaje = this.translate.instant('ADMIN.FORM_SAVE_ERROR'); this.cargando = false; }
     });
   }
 
   actualizarYtDlp(): void {
-    this.mensaje = '⏳ Actualizando yt-dlp...';
+    this.mensaje = this.translate.instant('ADMIN.YTDLP_UPDATING');
     this.cargando = true;
     this.http.post(`${this.BASE}/api/admin/update-yt-dlp`, null, { responseType: 'text' }).subscribe({
       next: (r) => { this.mensaje = '📦 ' + r; this.cargando = false; },
@@ -243,7 +243,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
           }
         }, 50);
       },
-      error: () => this.logs = ['❌ Error al cargar logs']
+      error: () => this.logs = ['❌ ' + this.translate.instant('ADMIN.LOG_LOAD_ERROR')]
     });
   }
 
@@ -262,21 +262,21 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   limpiarTemporales(): void {
     this.http.get(`${this.BASE}/api/admin/limpiarTemp`, { responseType: 'text' }).subscribe({
       next: (r) => { this.mensajeLimpieza = r; this.cargarHistorial(); },
-      error: () => this.mensajeLimpieza = '❌ Error al limpiar temporales'
+      error: () => this.mensajeLimpieza = this.translate.instant('ADMIN.TEMP_CLEAN_ERROR')
     });
   }
 
   vaciarHistorial(): void {
     this.http.delete(`${this.BASE}/api/admin/historial/vaciar`, { responseType: 'text' }).subscribe({
       next: (r) => { this.mensajeVaciarHistorial = r; this.cargarHistorial(); },
-      error: () => this.mensajeVaciarHistorial = '❌ Error al vaciar historial'
+      error: () => this.mensajeVaciarHistorial = this.translate.instant('ADMIN.HISTORY_CLEAR_ERROR')
     });
   }
 
   limpiarLog(): void {
     this.http.post(`${this.BASE}/api/admin/logs/clear`, null, { responseType: 'text' }).subscribe({
       next: (msg) => { this.mensajeLogLimpio = msg; this.cargarLogs(); },
-      error: () => this.mensajeLogLimpio = '❌ Error al limpiar el log'
+      error: () => this.mensajeLogLimpio = this.translate.instant('ADMIN.LOG_CLEAR_ERROR')
     });
   }
 
@@ -318,31 +318,31 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   approveUser(user: UserDto, role: string): void {
     this.http.put(`${this.BASE}/api/admin/users/${user.id}`, { role, status: 'ACTIVE' }).subscribe({
       next: () => {
-        this.userMsg = `✅ ${user.username} aprobado como ${role}`;
+        this.userMsg = this.translate.instant('ADMIN.USER_APPROVED', { username: user.username, role });
         this.loadPendingUsers();
         this.loadActiveUsers();
       },
-      error: () => this.userMsg = '❌ Error al aprobar usuario'
+      error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_APPROVE_ERROR')
     });
   }
 
   rejectUser(user: UserDto): void {
     this.http.put(`${this.BASE}/api/admin/users/${user.id}`, { status: 'REJECTED' }).subscribe({
       next: () => {
-        this.userMsg = `❌ ${user.username} rechazado`;
+        this.userMsg = this.translate.instant('ADMIN.USER_REJECTED', { username: user.username });
         this.loadPendingUsers();
       },
-      error: () => this.userMsg = '❌ Error al rechazar'
+      error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_REJECT_ERROR')
     });
   }
 
   changeRole(user: UserDto, role: string): void {
     this.http.put(`${this.BASE}/api/admin/users/${user.id}`, { role }).subscribe({
       next: () => {
-        this.userMsg = `✅ Rol de ${user.username} cambiado a ${role}`;
+        this.userMsg = this.translate.instant('ADMIN.ROLE_CHANGED', { username: user.username, role });
         user.role = role;
       },
-      error: () => this.userMsg = '❌ Error al cambiar rol'
+      error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_ROLE_ERROR')
     });
   }
 
@@ -350,10 +350,10 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     if (!confirm(`¿Revocar acceso de ${user.username}?`)) return;
     this.http.post(`${this.BASE}/api/admin/users/${user.id}/revoke`, null).subscribe({
       next: () => {
-        this.userMsg = `✅ Acceso revocado a ${user.username}`;
+        this.userMsg = this.translate.instant('ADMIN.USER_REVOKED', { username: user.username });
         this.loadActiveUsers();
       },
-      error: () => this.userMsg = '❌ Error al revocar acceso'
+      error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_REVOKE_ERROR')
     });
   }
 
@@ -361,11 +361,11 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     if (!confirm(`¿Eliminar usuario ${user.username}?`)) return;
     this.http.delete(`${this.BASE}/api/admin/users/${user.id}`).subscribe({
       next: () => {
-        this.userMsg = `✅ Usuario ${user.username} eliminado`;
+        this.userMsg = this.translate.instant('ADMIN.USER_DELETED_SUCCESS', { username: user.username });
         this.loadPendingUsers();
         this.loadActiveUsers();
       },
-      error: () => this.userMsg = '❌ Error al eliminar usuario'
+      error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_DELETE_ERROR')
     });
   }
 
@@ -389,21 +389,21 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       description: this.newNasDesc
     }).subscribe({
       next: () => {
-        this.nasMsg = '✅ Ruta NAS añadida';
+        this.nasMsg = this.translate.instant('ADMIN.NAS_PATH_ADDED');
         this.newNasName = '';
         this.newNasPath = '';
         this.newNasDesc = '';
         this.loadNasPaths();
       },
-      error: (err) => this.nasMsg = '❌ ' + (err.error?.error || 'Error al añadir ruta')
+      error: (err) => this.nasMsg = '❌ ' + (err.error?.error || this.translate.instant('ADMIN.NAS_ERROR_ADD'))
     });
   }
 
   removeNasPath(id: number): void {
     if (!confirm('¿Eliminar esta ruta NAS?')) return;
     this.nasService.deletePath(id).subscribe({
-      next: () => { this.nasMsg = '✅ Ruta eliminada'; this.loadNasPaths(); },
-      error: () => this.nasMsg = '❌ Error al eliminar ruta'
+      next: () => { this.nasMsg = this.translate.instant('ADMIN.NAS_PATH_DELETED'); this.loadNasPaths(); },
+      error: () => this.nasMsg = '❌ ' + this.translate.instant('ADMIN.NAS_ERROR_DELETE')
     });
   }
 
@@ -561,10 +561,11 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     if (!dateStr) return '—';
     const date = new Date(dateStr);
     const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (diff < 60) return 'hace un momento';
-    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' });
+    if (diff < 60) return this.translate.instant('ADMIN.LAST_SEEN_MOMENT');
+    if (diff < 3600) return this.translate.instant('ADMIN.LAST_SEEN_MIN', { count: Math.floor(diff / 60) });
+    if (diff < 86400) return this.translate.instant('ADMIN.LAST_SEEN_HOUR', { count: Math.floor(diff / 3600) });
+    return date.toLocaleDateString(this.translate.currentLang === 'es' ? 'es-ES' : (this.translate.currentLang === 'gl' ? 'gl-ES' : 'en-GB'), 
+      { day: '2-digit', month: 'short', year: '2-digit' });
   }
 
   getIconPath(plataforma: string): string {
@@ -614,12 +615,12 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
         this.maintenanceNewMessage = data.message;
         this.maintenanceLoading = false;
         this.maintenanceMsg = newActive
-          ? '✅ Modo mantenimiento activado'
-          : '✅ Modo mantenimiento desactivado';
+          ? this.translate.instant('ADMIN.MAINTENANCE_TOGGLE_ON')
+          : this.translate.instant('ADMIN.MAINTENANCE_TOGGLE_OFF');
       },
       error: () => {
         this.maintenanceLoading = false;
-        this.maintenanceMsg = '❌ Error al cambiar el modo mantenimiento';
+        this.maintenanceMsg = this.translate.instant('ADMIN.MAINTENANCE_TOGGLE_ERROR');
       }
     });
   }
@@ -634,11 +635,11 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       next: data => {
         this.maintenance = data;
         this.maintenanceLoading = false;
-        this.maintenanceMsg = '✅ Mensaje guardado';
+        this.maintenanceMsg = this.translate.instant('ADMIN.MAINTENANCE_SAVE_SUCCESS');
       },
       error: () => {
         this.maintenanceLoading = false;
-        this.maintenanceMsg = '❌ Error al guardar el mensaje';
+        this.maintenanceMsg = this.translate.instant('ADMIN.MAINTENANCE_SAVE_ERROR');
       }
     });
   }
@@ -655,7 +656,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     this.backupLoading = true;
     this.http.get<BackupDto[]>(`${this.BASE}/api/admin/backup`).subscribe({
       next: data => { this.backups = data; this.backupLoading = false; },
-      error: () => { this.backupLoading = false; this.backupMsg = '❌ Error al cargar las copias'; }
+      error: () => { this.backupLoading = false; this.backupMsg = this.translate.instant('ADMIN.BACKUP_LOAD_ERROR'); }
     });
   }
 
@@ -668,16 +669,16 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
 
   createBackup(): void {
     this.backupLoading = true;
-    this.backupMsg = '⏳ Creando copia de seguridad...';
+    this.backupMsg = this.translate.instant('ADMIN.BACKUP_CREATING'); // (Wait, I should add this key or use a generic one)
     this.http.post<BackupDto>(`${this.BASE}/api/admin/backup`, null).subscribe({
       next: data => {
         this.backupLoading = false;
-        this.backupMsg = `✅ Copia creada: ${data.name} (${data.sizeFormatted})`;
+        this.backupMsg = this.translate.instant('ADMIN.BACKUP_CREATED', { name: data.name, size: data.sizeFormatted });
         this.loadBackups();
       },
       error: (err) => {
         this.backupLoading = false;
-        this.backupMsg = '❌ ' + (err?.error?.error || 'Error al crear la copia');
+        this.backupMsg = '❌ ' + (err?.error?.error || this.translate.instant('ADMIN.BACKUP_CREATE_ERROR'));
       }
     });
   }
@@ -696,12 +697,12 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     this.http.post<any>(`${this.BASE}/api/admin/backup/restore`, { filename }).subscribe({
       next: (res) => {
         this.backupLoading = false;
-        this.backupMsg = res.message || '✅ Restauración completada';
+        this.backupMsg = res.message || this.translate.instant('ADMIN.BACKUP_RESTORED');
         this.loadBackups();
       },
       error: (err) => {
         this.backupLoading = false;
-        this.backupMsg = '❌ ' + (err?.error?.error || 'Error al restaurar');
+        this.backupMsg = '❌ ' + (err?.error?.error || this.translate.instant('ADMIN.BACKUP_RESTORE_ERROR'));
       }
     });
   }
@@ -716,17 +717,17 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     this.confirmDeleteBackup = null;
     this.http.delete<any>(`${this.BASE}/api/admin/backup/${encodeURIComponent(filename)}`).subscribe({
       next: () => {
-        this.backupMsg = `✅ Copia "${filename}" eliminada`;
+        this.backupMsg = this.translate.instant('ADMIN.BACKUP_DELETED', { filename });
         this.loadBackups();
       },
-      error: () => this.backupMsg = '❌ Error al eliminar la copia'
+      error: () => this.backupMsg = '❌ ' + this.translate.instant('ADMIN.BACKUP_DELETE_ERROR')
     });
   }
 
   saveBackupConfig(): void {
     this.http.put<any>(`${this.BASE}/api/admin/backup/config`, this.backupConfig).subscribe({
-      next: () => this.backupMsg = '✅ Configuración guardada',
-      error: () => this.backupMsg = '❌ Error al guardar la configuración'
+      next: () => this.backupMsg = this.translate.instant('ADMIN.BACKUP_CONFIG_SUCCESS'),
+      error: () => this.backupMsg = this.translate.instant('ADMIN.BACKUP_CONFIG_ERROR')
     });
   }
 
@@ -749,31 +750,31 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   checkUpdate(): void {
     this.systemLoading = true;
     this.updateCheck = null;
-    this.systemMsg = '⏳ Buscando actualizaciones...';
+    this.systemMsg = this.translate.instant('ADMIN.UPDATE_SEARCHING_LONG');
     this.http.get<UpdateCheckDto>(`${this.BASE}/api/admin/system/check-update`).subscribe({
       next: data => {
         this.updateCheck = data;
         this.systemLoading = false;
         if (!data.checkConfigured) {
-          this.systemMsg = '⚠️ No hay URL de actualización configurada (app.update.check-url)';
+          this.systemMsg = this.translate.instant('ADMIN.UPDATE_NOT_CONFIGURED');
         } else if (data.error) {
-          this.systemMsg = '❌ Error al verificar: ' + data.error;
+          this.systemMsg = '❌ ' + this.translate.instant('ADMIN.UPDATE_ERROR', { error: data.error });
         } else if (data.updateAvailable) {
-          this.systemMsg = `🆕 Nueva versión disponible: ${data.latestVersion}`;
+          this.systemMsg = this.translate.instant('ADMIN.UPDATE_AVAILABLE', { version: data.latestVersion });
         } else {
-          this.systemMsg = '✅ La app está actualizada (' + data.currentVersion + ')';
+          this.systemMsg = this.translate.instant('ADMIN.UPDATE_UP_TO_DATE_VER', { version: data.currentVersion });
         }
       },
       error: () => {
         this.systemLoading = false;
-        this.systemMsg = '❌ Error al conectar con el servidor de actualizaciones';
+        this.systemMsg = '❌ ' + this.translate.instant('ADMIN.UPDATE_CONNECT_ERROR');
       }
     });
   }
 
   prepareUpdate(): void {
     this.prepareUpdateLoading = true;
-    this.prepareUpdateMsg = '⏳ Preparando actualización (creando backup y activando mantenimiento)...';
+    this.prepareUpdateMsg = this.translate.instant('ADMIN.UPDATE_PREPARING_LONG');
     this.http.post<any>(`${this.BASE}/api/admin/system/prepare-update`, {
       message: 'La aplicación se está actualizando. Vuelve en unos minutos.'
     }).subscribe({
@@ -785,7 +786,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.prepareUpdateLoading = false;
-        this.prepareUpdateMsg = '❌ ' + (err?.error?.error || 'Error en la preparación');
+        this.prepareUpdateMsg = '❌ ' + (err?.error?.error || this.translate.instant('ADMIN.UPDATE_PREPARING_ERROR'));
       }
     });
   }

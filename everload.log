@@ -1,2 +1,7 @@
-2026-04-21 00:44:10 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
-2026-04-21 00:44:11 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-21 11:28:17 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
+2026-04-21 11:28:17 INFO  c.E.everload.EverloadApplication - Started EverloadApplication in 2.897 seconds (process running for 356.129)
+2026-04-21 11:28:17 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-04-21 11:28:17 INFO  o.s.b.d.a.ConditionEvaluationDeltaLoggingListener - Condition evaluation unchanged
+2026-04-21 11:28:18 INFO  o.a.c.c.C.[Tomcat-1].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-21 11:28:18 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-04-21 11:28:18 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
