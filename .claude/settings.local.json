@@ -40,7 +40,8 @@
       "Bash(export PATH=\"$PATH:/home/xiandt/.nvm/versions/node/v18.20.8/bin\")",
       "Bash(export PATH=\"/home/xiandt/.nvm/versions/node/v18.20.8/bin:$PATH\")",
       "Bash(ng build *)",
-      "Bash(./mvnw clean *)"
+      "Bash(./mvnw clean *)",
+      "Bash(/home/xiandt/.nvm/versions/node/v18.20.8/bin/node node_modules/.bin/tsc --noEmit)"
     ]
   }
 }

@@ -563,6 +563,96 @@ export class MusicService {
     };
 
     this.loadPersistedState();
+    this.setupMediaSession();
+    this.setupNowPlayingNotifications();
+  }
+
+  private setupMediaSession(): void {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+
+    navigator.mediaSession.setActionHandler('play',          () => this.mainPlayer.play());
+    navigator.mediaSession.setActionHandler('pause',         () => this.mainPlayer.pause());
+    navigator.mediaSession.setActionHandler('nexttrack',     () => this.playNextMain());
+    navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevMain());
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.seekTime != null) this.mainPlayer.seek(details.seekTime);
+    });
+
+    this.mainPlayer.state$.subscribe(state => {
+      navigator.mediaSession.playbackState = state.playing ? 'playing' : 'paused';
+
+      if (state.currentTrack) {
+        const track = state.currentTrack;
+        const pathId = state.pathId ?? 0;
+        const artworkUrl = this.getAbsoluteCoverUrl(pathId, track);
+        const artwork: MediaImage[] = artworkUrl ? [{ src: artworkUrl, sizes: '512x512', type: 'image/jpeg' }] : [];
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title:  track.title  || track.name,
+          artist: track.artist || '',
+          album:  track.album  || '',
+          artwork,
+        });
+      }
+    });
+  }
+
+  private setupNowPlayingNotifications(): void {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    let lastNotifiedPath: string | null = null;
+    let activeNotification: Notification | null = null;
+
+    this.mainPlayer.state$.subscribe(state => {
+      if (!state.playing || !state.currentTrack) return;
+      if (state.currentTrack.path === lastNotifiedPath) return;
+
+      lastNotifiedPath = state.currentTrack.path;
+      this.showNowPlayingNotification(state.currentTrack, state.pathId ?? 0, (n) => {
+        activeNotification?.close();
+        activeNotification = n;
+      });
+    });
+  }
+
+  private showNowPlayingNotification(
+    track: MusicMetadataDto,
+    pathId: number,
+    onCreated: (n: Notification) => void
+  ): void {
+    const doShow = () => {
+      if (Notification.permission !== 'granted') return;
+      const icon = this.getAbsoluteCoverUrl(pathId, track) || undefined;
+      const n = new Notification(track.title || track.name, {
+        body:  [track.artist, track.album].filter(Boolean).join(' — '),
+        icon,
+        image: icon,
+        silent: true,
+        tag:   'now-playing',
+      } as NotificationOptions);
+      setTimeout(() => n.close(), 5000);
+      onCreated(n);
+    };
+
+    if (Notification.permission === 'granted') {
+      doShow();
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then(perm => { if (perm === 'granted') doShow(); });
+    }
+  }
+
+  private getAbsoluteCoverUrl(pathId: number, track: MusicMetadataDto): string {
+    const override = this.coverOverrideMap.get(track.path);
+    if (override) return override; // iTunes URLs are already absolute
+
+    if (track.source === 'youtube') {
+      return `https://img.youtube.com/vi/${track.path}/hqdefault.jpg`;
+    }
+
+    if (!track.hasCover) return '';
+
+    const relative = this.getCoverUrl(pathId, track.path, track.source);
+    if (relative.startsWith('http')) return relative;
+    return window.location.origin + relative;
   }
 
   private loadPersistedState() {
