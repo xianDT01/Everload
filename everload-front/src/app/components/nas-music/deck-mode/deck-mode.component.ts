@@ -95,6 +95,11 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ytSearchResults: any[] = [];
   ytSearching = false;
   ytDirectUrl = '';
+
+  nasSearchQuery = '';
+  nasSearchResults: MusicMetadataDto[] | null = null;
+  nasSearchLoading = false;
+  private nasSearchDebounce?: ReturnType<typeof setTimeout>;
   
   localRootHandle: any = null;
   localDirStack: any[] = [];
@@ -622,6 +627,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   selectPath(id: number) {
     this.selectedPathId = id;
     this.currentSubPath = '';
+    this.clearNasSearch();
     this.loadDir();
   }
 
@@ -631,6 +637,35 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.items = result.items;
       this.selectedIndex = -1;
     });
+  }
+
+  onNasSearchChange(): void {
+    clearTimeout(this.nasSearchDebounce);
+    if (!this.nasSearchQuery.trim()) {
+      this.nasSearchResults = null;
+      this.nasSearchLoading = false;
+      return;
+    }
+    this.nasSearchLoading = true;
+    this.nasSearchDebounce = setTimeout(() => this.runNasSearch(), 400);
+  }
+
+  private runNasSearch(): void {
+    if (!this.selectedPathId || !this.nasSearchQuery.trim()) return;
+    this.musicService.search(this.selectedPathId, undefined, this.nasSearchQuery.trim()).subscribe({
+      next: results => {
+        this.nasSearchResults = results;
+        this.nasSearchLoading = false;
+        this.selectedIndex = -1;
+      },
+      error: () => { this.nasSearchLoading = false; }
+    });
+  }
+
+  clearNasSearch(): void {
+    this.nasSearchQuery = '';
+    this.nasSearchResults = null;
+    this.nasSearchLoading = false;
   }
 
   navigate(item: MusicMetadataDto) {
@@ -954,7 +989,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get currentPlayableList(): any[] {
-    if (this.browserTab === 'nas') return this.tracks;
+    if (this.browserTab === 'nas') return this.nasSearchResults !== null ? this.nasSearchResults : this.tracks;
     if (this.browserTab === 'youtube') return this.ytSearchResults;
     if (this.browserTab === 'local') return this.localTracks;
     return [];
