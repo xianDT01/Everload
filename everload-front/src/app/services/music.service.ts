@@ -856,6 +856,12 @@ export class MusicService {
 
   // ── NAS yt-dlp async jobs ─────────────────────────────────────────────────
 
+  search(pathId: number, subPath: string | undefined, query: string, limit = 200): Observable<MusicMetadataDto[]> {
+    let url = `${this.api}/search?pathId=${pathId}&query=${encodeURIComponent(query)}&limit=${limit}`;
+    if (subPath) url += `&subPath=${encodeURIComponent(subPath)}`;
+    return this.http.get<MusicMetadataDto[]>(url);
+  }
+
   searchYouTube(query: string, maxResults = 8): Observable<any> {
     const url = `${this.api.replace('/api/music', '/api/youtube').replace('/music', '/youtube')}/search?query=${encodeURIComponent(query)}&maxResults=${maxResults}`;
     return this.http.get<any>(url);
