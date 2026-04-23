@@ -151,12 +151,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private vizRaf?: number;
   private vizPeaks: number[] = [];
 
-  // ── Fullscreen player ─────────────────────────────────────────────────────
-  fullscreenOpen = false;
-  vizMode: 'bars' | 'wave' | 'scope' = 'bars';
-  @ViewChild('fsCanvas') fsCanvas?: ElementRef<HTMLCanvasElement>;
-  private fsRaf?: number;
-  private fsPeaks: number[] = [];
+  // ── Now playing panel (rendered at app root level via NowPlayingPanelComponent) ──
 
   toggleViz(): void {
     this.vizActive = !this.vizActive;
@@ -222,238 +217,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.vizRaf = requestAnimationFrame(() => this.drawViz());
   }
 
-  // ── Fullscreen player methods ─────────────────────────────────────────────
-
-  openFullscreen(): void {
-    this.fullscreenOpen = true;
-    document.body.style.overflow = 'hidden';
-    requestAnimationFrame(() => this.startFsViz());
-  }
-
-  closeFullscreen(): void {
-    this.fullscreenOpen = false;
-    document.body.style.overflow = '';
-    this.stopFsViz();
-  }
-
-  onFsSeek(e: MouseEvent): void {
-    const bar = e.currentTarget as HTMLElement;
-    const pct = e.offsetX / bar.offsetWidth;
-    const duration = this.state?.duration ?? 0;
-    if (duration > 0) this.musicService.mainPlayer.seek(pct * duration);
-  }
-
-  readonly Math = Math;
-
-  cycleVizMode(): void {
-    const modes: ('bars' | 'wave' | 'scope')[] = ['bars', 'wave', 'scope'];
-    const idx = modes.indexOf(this.vizMode);
-    this.vizMode = modes[(idx + 1) % modes.length];
-  }
-
-  private startFsViz(): void {
-    this.stopFsViz();
-    this.drawFsViz();
-  }
-
-  private stopFsViz(): void {
-    if (this.fsRaf) { cancelAnimationFrame(this.fsRaf); this.fsRaf = undefined; }
-  }
-
-  private drawFsViz(): void {
-    if (!this.fullscreenOpen) return;
-    const canvas = this.fsCanvas?.nativeElement;
-    if (!canvas) { this.fsRaf = requestAnimationFrame(() => this.drawFsViz()); return; }
-
-    const dpr = window.devicePixelRatio || 1;
-    const cssW = canvas.offsetWidth;
-    const cssH = canvas.offsetHeight;
-    if (canvas.width !== cssW * dpr || canvas.height !== cssH * dpr) {
-      canvas.width = cssW * dpr;
-      canvas.height = cssH * dpr;
-    }
-    const ctx = canvas.getContext('2d')!;
-    ctx.scale(dpr, dpr);
-    const W = cssW;
-    const H = cssH;
-
-    ctx.clearRect(0, 0, W, H);
-
-    if (this.vizMode === 'bars') this.drawFsBars(ctx, W, H);
-    else if (this.vizMode === 'wave') this.drawFsWave(ctx, W, H);
-    else this.drawFsScope(ctx, W, H);
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.fsRaf = requestAnimationFrame(() => this.drawFsViz());
-  }
-
-  private drawFsBars(ctx: CanvasRenderingContext2D, W: number, H: number): void {
-    const data = this.musicService.mainPlayer.getFrequencyData();
-    const BAR_COUNT = 80;
-    const gap = 2;
-    const barW = (W - gap * (BAR_COUNT - 1)) / BAR_COUNT;
-
-    if (this.fsPeaks.length !== BAR_COUNT) this.fsPeaks = new Array(BAR_COUNT).fill(0);
-
-    // Baseline: bars grow up from 72% height, leaving 28% for reflection below
-    const baseline = H * 0.72;
-    const maxBarH  = baseline * 0.95;
-    const reflZone = H - baseline;         // pixels available for reflection
-
-    const hueStep = 240 / BAR_COUNT;
-
-    for (let i = 0; i < BAR_COUNT; i++) {
-      let value = 0;
-      if (data) {
-        const di = Math.floor((i / BAR_COUNT) * data.length * 0.75);
-        value = data[di] / 255;
-        value = Math.pow(value, 0.75);
-      }
-      const barH = Math.max(2, value * maxBarH);
-      const x    = i * (barW + gap);
-      const hue  = i * hueStep;
-
-      // Main bar
-      const grad = ctx.createLinearGradient(0, baseline, 0, baseline - barH);
-      grad.addColorStop(0,   `hsla(${hue},       100%, 50%, 0.9)`);
-      grad.addColorStop(0.6, `hsla(${hue + 30},  100%, 62%, 0.9)`);
-      grad.addColorStop(1,   `hsla(${hue + 60},  100%, 78%, 1)`);
-      ctx.fillStyle = grad;
-      ctx.shadowColor = `hsla(${hue}, 100%, 65%, 0.7)`;
-      ctx.shadowBlur  = 10;
-      ctx.fillRect(x, baseline - barH, barW, barH);
-
-      // Reflection (mirrored downward within canvas)
-      const reflH = Math.min(barH * 0.35, reflZone);
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 0.22;
-      const reflGrad = ctx.createLinearGradient(0, baseline, 0, baseline + reflH);
-      reflGrad.addColorStop(0, `hsla(${hue}, 100%, 50%, 0.7)`);
-      reflGrad.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
-      ctx.fillStyle = reflGrad;
-      ctx.fillRect(x, baseline, barW, reflH);
-      ctx.globalAlpha = 1;
-
-      // Peak dot
-      if (barH > this.fsPeaks[i]) this.fsPeaks[i] = barH;
-      else this.fsPeaks[i] = Math.max(0, this.fsPeaks[i] - 1.2);
-
-      if (this.fsPeaks[i] > 3) {
-        ctx.shadowColor = '#fff';
-        ctx.shadowBlur  = 6;
-        ctx.fillStyle   = '#fff';
-        ctx.fillRect(x, baseline - this.fsPeaks[i] - 2, barW, 2);
-      }
-    }
-
-    // Floor line
-    ctx.shadowBlur  = 0;
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.lineWidth   = 1;
-    ctx.beginPath(); ctx.moveTo(0, baseline); ctx.lineTo(W, baseline); ctx.stroke();
-  }
-
-  private drawFsWave(ctx: CanvasRenderingContext2D, W: number, H: number): void {
-    const data = this.musicService.mainPlayer.getTimeDomainData();
-    const cy = H / 2;
-
-    // Glow line
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = '#00e5ff';
-    ctx.strokeStyle = '#00e5ff';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-
-    const samples = data ? Math.min(data.length, W * 2) : 0;
-
-    for (let i = 0; i < (data ? samples : 0); i++) {
-      const x = (i / samples) * W;
-      const v = (data![i] / 128.0) - 1;
-      const y = cy + v * cy * 0.85;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    if (!data) { ctx.moveTo(0, cy); ctx.lineTo(W, cy); }
-    ctx.stroke();
-
-    // Second pass: thinner bright inner line
-    ctx.shadowBlur = 6;
-    ctx.strokeStyle = '#e0f7fa';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    for (let i = 0; i < (data ? samples : 0); i++) {
-      const x = (i / samples) * W;
-      const v = (data![i] / 128.0) - 1;
-      const y = cy + v * cy * 0.85;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    if (!data) { ctx.moveTo(0, cy); ctx.lineTo(W, cy); }
-    ctx.stroke();
-
-    // Mirror reflection below
-    ctx.globalAlpha = 0.3;
-    ctx.shadowBlur = 8;
-    ctx.strokeStyle = '#00e5ff';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let i = 0; i < (data ? samples : 0); i++) {
-      const x = (i / samples) * W;
-      const v = (data![i] / 128.0) - 1;
-      const y = cy - v * cy * 0.85;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    if (!data) { ctx.moveTo(0, cy); ctx.lineTo(W, cy); }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-  }
-
-  private drawFsScope(ctx: CanvasRenderingContext2D, W: number, H: number): void {
-    const data = this.musicService.mainPlayer.getTimeDomainData();
-    const cy = H / 2;
-    const samples = data ? Math.min(data.length, W * 2) : 0;
-
-    // Filled area gradient
-    const areaGrad = ctx.createLinearGradient(0, 0, 0, H);
-    areaGrad.addColorStop(0, 'rgba(29,185,84,0)');
-    areaGrad.addColorStop(0.4, 'rgba(29,185,84,0.55)');
-    areaGrad.addColorStop(0.5, 'rgba(29,185,84,0.8)');
-    areaGrad.addColorStop(0.6, 'rgba(29,185,84,0.55)');
-    areaGrad.addColorStop(1, 'rgba(29,185,84,0)');
-
-    ctx.beginPath();
-    ctx.moveTo(0, cy);
-    for (let i = 0; i < samples; i++) {
-      const x = (i / samples) * W;
-      const v = (data![i] / 128.0) - 1;
-      const y = cy + v * cy * 0.85;
-      ctx.lineTo(x, y);
-    }
-    if (!data || samples === 0) ctx.lineTo(W, cy);
-    ctx.lineTo(W, cy);
-    ctx.closePath();
-    ctx.fillStyle = areaGrad;
-    ctx.fill();
-
-    // Glowing outline
-    ctx.shadowBlur = 14;
-    ctx.shadowColor = '#1db954';
-    ctx.strokeStyle = '#1db954';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i < samples; i++) {
-      const x = (i / samples) * W;
-      const v = (data![i] / 128.0) - 1;
-      const y = cy + v * cy * 0.85;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    if (!data || samples === 0) { ctx.moveTo(0, cy); ctx.lineTo(W, cy); }
-    ctx.stroke();
-
-    // Center line
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(29,185,84,0.3)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+  openNowPlayingPanel(): void {
+    this.musicService.nowPlayingPanelOpen = true;
   }
 
   // ── Active yt-dlp downloads panel ────────────────────────────────────────
@@ -529,17 +294,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     clearInterval(this.bannerInterval);
     this.stopPollJobs();
     this.stopViz();
-    this.stopFsViz();
-    if (this.fullscreenOpen) document.body.style.overflow = '';
     this.intersectionObserver?.disconnect();
     this.preloadAudio.src = '';
     this.preloadAudio.load();
   }
 
-  @HostListener('document:keydown.escape')
-  onEscapeKey(): void {
-    if (this.fullscreenOpen) this.closeFullscreen();
-  }
 
   private setupIntersectionObserver(): void {
     if (typeof IntersectionObserver === 'undefined') return;
