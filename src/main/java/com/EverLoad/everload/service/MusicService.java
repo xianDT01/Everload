@@ -16,7 +16,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -117,40 +116,6 @@ public class MusicService {
         }
 
         return new PagedMusicResult(items, totalTracks, page, size);
-    }
-
-    /**
-     * Busca recursivamente canciones bajo pathId/subPath cuyo título, artista, álbum o nombre
-     * de archivo contengan query. Devuelve como máximo `limit` resultados.
-     */
-    public List<MusicMetadataDto> searchTracks(Long pathId, String subPath, String query, int limit) {
-        Path base   = nasService.getBasePath(pathId);
-        Path target = nasService.resolveValidatedPath(pathId, subPath);
-        String q    = query.trim().toLowerCase();
-
-        List<MusicMetadataDto> results = new ArrayList<>();
-        try (var stream = Files.walk(target)) {
-            stream.filter(p -> !Files.isDirectory(p) && isAudio(p.toFile()))
-                  .forEach(p -> {
-                      if (results.size() >= limit) return;
-                      MusicMetadataDto dto = buildDto(p.toFile(), base);
-                      if (matchesQuery(dto, q)) results.add(dto);
-                  });
-        } catch (IOException e) {
-            throw new RuntimeException("Error al buscar archivos: " + e.getMessage());
-        }
-        return results;
-    }
-
-    private boolean matchesQuery(MusicMetadataDto dto, String q) {
-        return contains(dto.getTitle(),  q)
-            || contains(dto.getName(),   q)
-            || contains(dto.getArtist(), q)
-            || contains(dto.getAlbum(),  q);
-    }
-
-    private boolean contains(String value, String q) {
-        return value != null && value.toLowerCase().contains(q);
     }
 
     /**
