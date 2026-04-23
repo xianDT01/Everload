@@ -7,10 +7,11 @@
        style="display:none"
        (change)="onUploadFolderSelected($event)" />
 
-<div class="lib-root">
+<div class="lib-root" [class.details-open]="detailsPanelOpen">
 
   <!-- Mobile overlay (closes drawer) -->
   <div class="mobile-overlay" *ngIf="mobileMenuOpen" (click)="closeMobileMenu()"></div>
+  <div class="details-overlay" *ngIf="detailsPanelOpen" (click)="closeDetailsPanel()"></div>
 
   <!-- ══ SIDEBAR ════════════════════════════════════════════════════════════ -->
   <nav class="lib-sidebar" [class.mobile-open]="mobileMenuOpen">
@@ -170,6 +171,16 @@
       <button class="mobile-search-btn" (click)="mobileSearchOpen = !mobileSearchOpen" [ariaLabel]="'COMMON.SEARCH' | translate">
         <svg *ngIf="!mobileSearchOpen" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         <svg *ngIf="mobileSearchOpen" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+
+      <button class="details-toggle-btn"
+              [class.active]="detailsPanelOpen"
+              (click)="toggleDetailsPanel()"
+              aria-label="Toggle now playing panel"
+              title="Now Playing">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M4 5h10v14H4V5zm12 0h4v14h-4V5zm1 3v8h2V8h-2zM6 7v10h6V7H6z"/>
+        </svg>
       </button>
 
       <!-- Edit mode toggle (admin/nas_user only) -->
@@ -629,6 +640,79 @@
 
     </div><!-- /content-scroll -->
   </div><!-- /lib-main -->
+
+  <aside class="details-panel" [class.open]="detailsPanelOpen" [attr.aria-hidden]="!detailsPanelOpen">
+    <div class="details-panel-inner">
+      <div class="details-panel-top">
+        <button class="details-close-btn" (click)="closeDetailsPanel()" [title]="'COMMON.CLOSE' | translate">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="details-cover-shell">
+        <div class="details-cover" [class.playing]="state?.playing">
+          <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" />
+          <div *ngIf="!playerHasCover()" class="details-cover-placeholder">♪</div>
+          <div class="details-cover-glow"></div>
+        </div>
+      </div>
+
+      <div class="details-meta">
+        <h2 class="details-track-title">{{ currentTrackTitle() }}</h2>
+        <div class="details-subline">
+          <span class="details-artist">{{ currentTrackArtist() }}</span>
+          <span class="details-sep">·</span>
+          <span class="details-album">{{ currentTrackAlbum() }}</span>
+        </div>
+        <div class="details-chip-row">
+          <span class="details-chip">{{ currentTrackFormat() }}</span>
+          <span class="details-chip" *ngIf="currentTrackYear()">{{ currentTrackYear() }}</span>
+          <span class="details-chip" *ngIf="state?.duration">{{ fmt(state?.duration || 0) }}</span>
+        </div>
+      </div>
+
+      <div class="details-visualizer" [class.playing]="state?.playing">
+        <div class="viz-aurora"></div>
+        <div class="viz-scanline"></div>
+        <div class="viz-grid"></div>
+        <div class="viz-waves">
+          <span class="viz-wave wave-a"></span>
+          <span class="viz-wave wave-b"></span>
+          <span class="viz-wave wave-c"></span>
+        </div>
+        <div class="viz-bars">
+          <span *ngFor="let bar of detailsVisualizerBars; let i = index"
+                class="viz-bar"
+                [ngStyle]="detailsVisualizerStyle(i)"></span>
+        </div>
+      </div>
+
+      <div class="details-progress-block" *ngIf="state?.currentTrack">
+        <div class="details-progress-meta">
+          <span>{{ fmt(state?.currentTime || 0) }}</span>
+          <span>{{ fmt(state?.duration || 0) }}</span>
+        </div>
+        <div class="details-progress-track">
+          <div class="details-progress-fill" [style.width.%]="progressPct()"></div>
+        </div>
+      </div>
+
+      <div class="details-controls" *ngIf="state?.currentTrack">
+        <button class="details-ctrl" (click)="musicService.playPrevMain()" [title]="'MUSIC.PREV' | translate">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+        </button>
+        <button class="details-ctrl details-play" (click)="musicService.mainPlayer.togglePlay()">
+          <svg *ngIf="state?.playing" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg *ngIf="!state?.playing" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="details-ctrl" (click)="musicService.playNextMain()" [title]="'MUSIC.NEXT' | translate">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2-8.14L11.03 12 8 14.14V9.86zM16 6h2v12h-2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
 
   <!-- ══ YT-DLP JOBS PANEL ════════════════════════════════════════════════════ -->
   <div class="ytjobs-panel" *ngIf="ytJobs.length > 0" (click)="$event.stopPropagation()">
