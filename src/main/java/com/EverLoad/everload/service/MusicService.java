@@ -376,6 +376,52 @@ public class MusicService {
         } catch (Exception ignored) {}
     }
 
+    // ── Search ────────────────────────────────────────────────────────────────
+
+    public List<MusicMetadataDto> searchMusic(Long pathId, String subPath, String query, int limit) {
+        Path base      = nasService.getBasePath(pathId);
+        Path startPath = (subPath != null && !subPath.isBlank())
+                ? nasService.resolveValidatedPath(pathId, subPath)
+                : nasService.resolveValidatedPath(pathId, "");
+
+        File startDir = startPath.toFile();
+        if (!startDir.exists() || !startDir.isDirectory()) return Collections.emptyList();
+
+        String lowerQuery = query.toLowerCase().trim();
+        List<MusicMetadataDto> results = new ArrayList<>();
+        searchRecursive(startDir, pathId, base, lowerQuery, results, limit);
+        return results;
+    }
+
+    private void searchRecursive(File dir, Long pathId, Path base, String query,
+                                  List<MusicMetadataDto> results, int limit) {
+        if (results.size() >= limit) return;
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        Arrays.sort(files, Comparator.comparing(f -> f.getName().toLowerCase()));
+        for (File f : files) {
+            if (results.size() >= limit) break;
+            if (f.isDirectory()) {
+                searchRecursive(f, pathId, base, query, results, limit);
+            } else if (f.isFile() && isAudio(f)) {
+                MusicMetadataDto dto = buildDto(f, base);
+                dto.setNasPathId(pathId);
+                if (matchesQuery(dto, query)) results.add(dto);
+            }
+        }
+    }
+
+    private boolean matchesQuery(MusicMetadataDto dto, String query) {
+        return containsIc(dto.getName(),   query)
+            || containsIc(dto.getTitle(),  query)
+            || containsIc(dto.getArtist(), query)
+            || containsIc(dto.getAlbum(),  query);
+    }
+
+    private boolean containsIc(String text, String query) {
+        return text != null && text.toLowerCase().contains(query);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private File resolveFile(Long pathId, String relativePath) {

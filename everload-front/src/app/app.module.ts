@@ -23,6 +23,7 @@ import { NotificationCenterComponent } from './components/notification-center/no
 import { GlobalPlayerComponent } from './components/global-player/global-player.component';
 import { PwaUpdateBannerComponent } from './components/pwa-update-banner/pwa-update-banner.component';
 import { OfflineBannerComponent } from './components/offline-banner/offline-banner.component';
+import { NowPlayingPanelComponent } from './components/now-playing-panel/now-playing-panel.component';
 // Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { MaintenanceInterceptor } from './interceptors/maintenance.interceptor';
@@ -56,6 +57,7 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
     GlobalPlayerComponent,
     PwaUpdateBannerComponent,
     OfflineBannerComponent,
+    NowPlayingPanelComponent,
   ],
   imports: [
     BrowserModule,

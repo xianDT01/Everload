@@ -41,7 +41,13 @@
       "Bash(export PATH=\"/home/xiandt/.nvm/versions/node/v18.20.8/bin:$PATH\")",
       "Bash(ng build *)",
       "Bash(./mvnw clean *)",
-      "Bash(/home/xiandt/.nvm/versions/node/v18.20.8/bin/node node_modules/.bin/tsc --noEmit)"
+      "Bash(/home/xiandt/.nvm/versions/node/v18.20.8/bin/node node_modules/.bin/tsc --noEmit)",
+      "Bash(grep -n \"getFrequencyData\\\\|getTimeDomainData\\\\|state\\\\$\\\\|PlayerState\\\\|mainPlayer\\\\|class.*Player\" /home/xiandt/Everload/everload-front/src/app/services/music.service.ts)",
+      "Bash(grep -n \"state\\\\$\\\\s*=\\\\|get state\\\\$\\\\|stateSubj\\\\|hasCoverToShow\\\\|getCoverUrlWithCache\\\\|toggleFavorite\" /home/xiandt/Everload/everload-front/src/app/services/music.service.ts)",
+      "Bash(export PATH=\"$HOME/.nvm/versions/node/v18.20.8/bin:$PATH\")",
+      "Bash(node node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/@angular/compiler-cli/bin/ngc --noEmit)",
+      "Bash(node node_modules/.bin/ng build --configuration development)"
     ]
   }
 }
