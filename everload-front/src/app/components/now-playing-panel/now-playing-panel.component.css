@@ -1,0 +1,319 @@
+/* ── Now Playing Panel — positioned at root app level ──────────────────────── */
+
+.np-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 340px;
+  z-index: 9500;
+  display: flex;
+  flex-direction: column;
+  background: #121212;
+  border-left: 1px solid #2a2a2a;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.8);
+  overflow: hidden;
+  animation: np-slide-in 0.28s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes np-slide-in {
+  from { transform: translateX(100%); opacity: 0.4; }
+  to   { transform: translateX(0);    opacity: 1;   }
+}
+
+/* Blurred background art */
+.np-bg {
+  position: absolute;
+  inset: -40px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(50px) brightness(0.22) saturate(1.5);
+  transform: scale(1.15);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.np-bg-mask {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(18,18,18,0.6)  0%,
+    rgba(18,18,18,0.3)  40%,
+    rgba(18,18,18,0.75) 75%,
+    rgba(18,18,18,0.98) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Close button */
+.np-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.np-close-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
+
+/* "Now playing" label */
+.np-label {
+  position: relative;
+  z-index: 2;
+  margin: 16px 0 0 0;
+  padding: 0 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+}
+
+/* Album art */
+.np-art-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 20px;
+  flex-shrink: 0;
+}
+
+.np-art-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  transition: opacity 0.5s;
+  opacity: 0;
+}
+.np-art-pulse { animation: np-art-pulse 2s ease-in-out infinite alternate; opacity: 1; }
+
+@keyframes np-art-pulse {
+  from { box-shadow: 0 0 24px 6px rgba(29,185,84,0.25); }
+  to   { box-shadow: 0 0 48px 18px rgba(29,185,84,0.55); }
+}
+
+.np-art {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #1c1c1c;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+}
+.np-art img { width: 100%; height: 100%; object-fit: cover; }
+.np-art-spin { animation: np-spin 12s linear infinite; }
+
+@keyframes np-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.np-art-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 30%, #2a2a2a 0%, #141414 70%);
+}
+
+.np-vinyl-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #0a0a0a;
+  border: 3px solid #333;
+  z-index: 1;
+}
+.np-vinyl-center.spinning { animation: np-spin 12s linear infinite; }
+
+/* Info column */
+.np-info-col {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.np-track-info {
+  text-align: center;
+  width: 100%;
+}
+.np-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.np-artist {
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.np-album {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Like button */
+.np-like-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, transform 0.15s;
+}
+.np-like-btn:hover { color: #fff; transform: scale(1.15); }
+.np-like-btn.liked  { color: #1db954; }
+
+/* Progress bar */
+.np-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.np-time {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+  flex-shrink: 0;
+  min-width: 28px;
+  text-align: center;
+}
+.np-progress-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  position: relative;
+  cursor: pointer;
+  transition: height 0.15s;
+}
+.np-progress-track:hover { height: 6px; }
+.np-progress-fill {
+  height: 100%;
+  background: #1db954;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.np-progress-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px; height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.np-progress-track:hover .np-progress-thumb { opacity: 1; }
+
+/* Controls */
+.np-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+.np-ctrl-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+.np-ctrl-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+.np-ctrl-btn.active { color: #1db954; }
+.np-ctrl-sm { padding: 6px; }
+.np-ctrl-play {
+  background: #fff;
+  color: #000 !important;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+.np-ctrl-play:hover { background: #e8e8e8; transform: scale(1.05); }
+
+/* Viz mode selector */
+.np-viz-mode-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+}
+.np-vizmode-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.5);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+.np-vizmode-btn:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.np-vizmode-btn.active {
+  color: #1db954;
+  border-color: #1db954;
+  background: rgba(29,185,84,0.12);
+}
+
+/* Visualizer canvas */
+.np-viz-wrap {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  padding: 4px 0;
+}
+.np-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
