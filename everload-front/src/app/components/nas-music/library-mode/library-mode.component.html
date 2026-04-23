@@ -7,7 +7,10 @@
        style="display:none"
        (change)="onUploadFolderSelected($event)" />
 
-<div class="lib-root">
+<div class="lib-root"
+     [attr.data-density]="uiPrefs.density"
+     [attr.data-rightbar-size]="uiPrefs.rightbarSize"
+     [class.spacious-ui]="uiPrefs.spaciousMode">
 
   <!-- Mobile overlay (closes drawer) -->
   <div class="mobile-overlay" *ngIf="mobileMenuOpen" (click)="closeMobileMenu()"></div>
@@ -178,6 +181,15 @@
       </button>
 
       <!-- Edit mode toggle (admin/nas_user only) -->
+      <button class="btn-settings"
+              [class.active]="settingsOpen"
+              (click)="toggleSettings($event)"
+              title="Personalizar vista">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.22-1.12.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.83 14.16a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.51.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.22 1.12-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/>
+        </svg>
+      </button>
+
       <button *ngIf="canEdit" class="btn-edit-mode" [class.active]="editMode"
               (click)="toggleEditMode(); $event.stopPropagation()"
               [title]="editMode ? ('COMMON.EXIT_EDIT' | translate) : ('COMMON.EDIT_MODE' | translate)">
@@ -188,11 +200,60 @@
       </button>
     </div>
 
+    <div *ngIf="settingsOpen" class="settings-popover" (click)="$event.stopPropagation()">
+      <div class="settings-popover-header">
+        <div>
+          <strong>Customize View</strong>
+          <p>Make the library breathe the way you like.</p>
+        </div>
+        <button class="settings-close" (click)="toggleSettings($event)" title="Cerrar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+
+      <div class="settings-group">
+        <span class="settings-label">Density</span>
+        <div class="settings-segmented">
+          <button [class.active]="uiPrefs.density === 'comfortable'" (click)="setDensity('comfortable')">Comfort</button>
+          <button [class.active]="uiPrefs.density === 'cozy'" (click)="setDensity('cozy')">Cozy</button>
+          <button [class.active]="uiPrefs.density === 'compact'" (click)="setDensity('compact')">Compact</button>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <span class="settings-label">Right Panel</span>
+        <div class="settings-segmented">
+          <button [class.active]="uiPrefs.rightbarSize === 'wide'" (click)="setRightbarSize('wide')">Wide</button>
+          <button [class.active]="uiPrefs.rightbarSize === 'normal'" (click)="setRightbarSize('normal')">Normal</button>
+          <button [class.active]="uiPrefs.rightbarSize === 'narrow'" (click)="setRightbarSize('narrow')">Narrow</button>
+        </div>
+      </div>
+
+      <div class="settings-toggles">
+        <button class="settings-toggle" [class.active]="uiPrefs.spaciousMode" (click)="toggleUiPref('spaciousMode')">
+          <span>Spacious mode</span>
+          <small>Extra air in layout</small>
+        </button>
+        <button class="settings-toggle" [class.active]="uiPrefs.showBanners" (click)="toggleUiPref('showBanners')">
+          <span>Show banners</span>
+          <small>Hero area on folder root</small>
+        </button>
+        <button class="settings-toggle" [class.active]="uiPrefs.showActionsCard" (click)="toggleUiPref('showActionsCard')">
+          <span>Quick actions</span>
+          <small>Utility shortcuts card</small>
+        </button>
+        <button class="settings-toggle" [class.active]="uiPrefs.showStatsCard" (click)="toggleUiPref('showStatsCard')">
+          <span>Library stats</span>
+          <small>Folders and tracks summary</small>
+        </button>
+      </div>
+    </div>
+
     <!-- Scrollable content -->
     <div class="content-scroll" #contentScroll>
 
       <!-- ══ BANNERS SECTION (home + folder root) ════════════════════════ -->
-      <div class="banners-section" *ngIf="currentView === 'home' || (currentView === 'folder' && !currentSubPath)">
+      <div class="banners-section" *ngIf="uiPrefs.showBanners && (currentView === 'home' || (currentView === 'folder' && !currentSubPath))">
         <div class="banners-viewport">
           <div class="banners-track" [style.transform]="'translateX(-' + (activeBannerIndex * 100) + '%)'">
             <div *ngFor="let banner of banners; let i = index"
@@ -706,7 +767,7 @@
         </div>
       </section>
 
-      <section class="rightbar-card rightbar-actions">
+      <section class="rightbar-card rightbar-actions" *ngIf="uiPrefs.showActionsCard">
         <div class="rightbar-card-header">
           <span>Quick Actions</span>
           <span class="rightbar-chip">Live</span>
@@ -748,7 +809,7 @@
         </div>
       </section>
 
-      <section class="rightbar-card rightbar-stats">
+      <section class="rightbar-card rightbar-stats" *ngIf="uiPrefs.showStatsCard">
         <div class="rightbar-card-header">
           <span>Library</span>
           <span class="rightbar-status-dot"></span>

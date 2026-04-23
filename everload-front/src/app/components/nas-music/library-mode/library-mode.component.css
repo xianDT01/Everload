@@ -35,6 +35,25 @@
   box-sizing: border-box;
 }
 
+.lib-root[data-rightbar-size="wide"] { --rightbar-w: 360px; }
+.lib-root[data-rightbar-size="normal"] { --rightbar-w: 320px; }
+.lib-root[data-rightbar-size="narrow"] { --rightbar-w: 280px; }
+
+.lib-root.spacious-ui {
+  gap: 12px;
+  padding: 12px;
+}
+
+.lib-root[data-density="compact"] {
+  gap: 4px;
+  padding: 4px;
+}
+
+.lib-root[data-density="cozy"] {
+  gap: 8px;
+  padding: 8px;
+}
+
 /* ══ SIDEBAR ════════════════════════════════════════════════════════════════ */
 .lib-sidebar {
   background: #000;
@@ -1075,6 +1094,7 @@
   z-index: 10;
   gap: 16px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .topbar-nav {
@@ -1291,6 +1311,93 @@
   align-items: center;
   gap: 16px;
   padding: 16px 24px 12px;
+}
+
+.lib-root.spacious-ui .topbar {
+  padding-left: 28px;
+  padding-right: 28px;
+}
+
+.lib-root.spacious-ui .banners-section {
+  margin: 24px 28px 12px;
+  height: 244px;
+}
+
+.lib-root.spacious-ui .content-header {
+  padding: 46px 28px 26px;
+}
+
+.lib-root.spacious-ui .action-bar {
+  padding: 18px 28px 14px;
+}
+
+.lib-root.spacious-ui .section-title {
+  padding-left: 28px;
+  padding-right: 28px;
+}
+
+.lib-root.spacious-ui .folder-grid {
+  padding: 10px 28px 28px;
+  gap: 18px;
+}
+
+.lib-root.spacious-ui .track-list {
+  padding: 0 28px 120px;
+}
+
+.lib-root[data-density="compact"] .topbar {
+  height: 56px;
+  padding: 0 16px;
+}
+
+.lib-root[data-density="compact"] .banners-section {
+  margin: 10px 16px 4px;
+  height: 150px;
+}
+
+.lib-root[data-density="compact"] .content-header {
+  min-height: 128px;
+  padding: 18px 16px 14px;
+}
+
+.lib-root[data-density="compact"] .header-art {
+  width: 100px;
+  height: 100px;
+}
+
+.lib-root[data-density="compact"] .action-bar {
+  padding: 10px 16px 8px;
+  gap: 10px;
+}
+
+.lib-root[data-density="compact"] .folder-grid {
+  padding: 6px 16px 18px;
+  gap: 12px;
+}
+
+.lib-root[data-density="compact"] .folder-card {
+  padding: 12px;
+}
+
+.lib-root[data-density="compact"] .track-list {
+  padding: 0 16px 72px;
+}
+
+.lib-root[data-density="compact"] .track-row {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.lib-root[data-density="compact"] .tr-art {
+  width: 36px;
+  height: 36px;
+}
+
+.lib-root[data-density="compact"] .lib-sidebar,
+.lib-root[data-density="compact"] .lib-main,
+.lib-root[data-density="compact"] .xp-player-shell,
+.lib-root[data-density="compact"] .rightbar-card {
+  border-radius: 10px;
 }
 
 .btn-play-all {
@@ -1825,6 +1932,33 @@
   flex-shrink: 0;
 }
 
+.btn-settings {
+  background: none;
+  border: 1px solid var(--sp-faint);
+  color: var(--sp-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 180ms;
+  flex-shrink: 0;
+}
+
+.btn-settings:hover {
+  border-color: var(--sp-muted);
+  color: var(--sp-text);
+  transform: rotate(18deg);
+}
+
+.btn-settings.active {
+  color: #fff;
+  border-color: rgba(29,185,84,0.5);
+  background: rgba(29,185,84,0.12);
+}
+
 .btn-edit-mode:hover {
   border-color: var(--sp-muted);
   color: var(--sp-text);
@@ -1837,6 +1971,132 @@
 }
 
 .edit-mode-label {
+  font-size: 11px;
+}
+
+.settings-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 18px;
+  width: min(380px, calc(100vw - 28px));
+  z-index: 40;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%),
+    rgba(18,18,18,0.98);
+  box-shadow: 0 24px 54px rgba(0,0,0,0.42);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-popover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-popover-header strong {
+  display: block;
+  color: #fff;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.settings-popover-header p {
+  margin: 0;
+  color: var(--sp-muted);
+  font-size: 12px;
+}
+
+.settings-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: var(--sp-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--sp-muted);
+  font-weight: 700;
+}
+
+.settings-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settings-segmented button,
+.settings-toggle {
+  min-width: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #fff;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.settings-segmented button {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settings-segmented button.active,
+.settings-toggle.active {
+  border-color: rgba(29,185,84,0.45);
+  background: rgba(29,185,84,0.12);
+}
+
+.settings-segmented button:hover,
+.settings-toggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,0.16);
+}
+
+.settings-toggles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-toggle {
+  text-align: left;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-toggle span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-toggle small {
+  color: var(--sp-muted);
   font-size: 11px;
 }
 
@@ -2747,6 +3007,23 @@
 
   .btn-edit-mode .edit-mode-label {
     display: none; /* icon only on mobile */
+  }
+
+  .btn-settings {
+    width: 34px;
+    height: 34px;
+  }
+
+  .settings-popover {
+    right: 10px;
+    left: 10px;
+    width: auto;
+    top: calc(100% + 8px);
+    padding: 14px;
+  }
+
+  .settings-toggles {
+    grid-template-columns: 1fr;
   }
 
   /* Full-width search when open */

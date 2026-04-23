@@ -19,6 +19,17 @@ interface NasBanner {
 }
 
 type PlayerSkin = 'xp' | 'neon' | 'sunset';
+type LayoutDensity = 'comfortable' | 'cozy' | 'compact';
+type RightbarSize = 'wide' | 'normal' | 'narrow';
+
+interface LibraryUiPrefs {
+  density: LayoutDensity;
+  rightbarSize: RightbarSize;
+  spaciousMode: boolean;
+  showBanners: boolean;
+  showActionsCard: boolean;
+  showStatsCard: boolean;
+}
 
 @Component({
   selector: 'app-library-mode',
@@ -27,6 +38,7 @@ type PlayerSkin = 'xp' | 'neon' | 'sunset';
 })
 export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly PLAYER_SKIN_KEY = 'nas_library_player_skin_v1';
+  private static readonly UI_PREFS_KEY = 'nas_library_ui_prefs_v1';
 
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
@@ -102,9 +114,23 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Mobile ────────────────────────────────────────────────────────────────
   mobileMenuOpen = false;
   mobileSearchOpen = false;
+  settingsOpen = false;
+
+  uiPrefs: LibraryUiPrefs = {
+    density: 'comfortable',
+    rightbarSize: 'wide',
+    spaciousMode: true,
+    showBanners: true,
+    showActionsCard: true,
+    showStatsCard: true,
+  };
 
   toggleMobileMenu(): void { this.mobileMenuOpen = !this.mobileMenuOpen; }
   closeMobileMenu(): void  { this.mobileMenuOpen = false; }
+  toggleSettings(event?: Event): void {
+    event?.stopPropagation();
+    this.settingsOpen = !this.settingsOpen;
+  }
 
   // ── Edit mode ─────────────────────────────────────────────────────────────
   editMode = false;
@@ -237,12 +263,45 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     } catch {}
   }
 
+  setDensity(density: LayoutDensity): void {
+    this.uiPrefs.density = density;
+    this.saveUiPrefs();
+  }
+
+  setRightbarSize(size: RightbarSize): void {
+    this.uiPrefs.rightbarSize = size;
+    this.saveUiPrefs();
+  }
+
+  toggleUiPref(key: keyof Pick<LibraryUiPrefs, 'spaciousMode' | 'showBanners' | 'showActionsCard' | 'showStatsCard'>): void {
+    this.uiPrefs[key] = !this.uiPrefs[key];
+    this.saveUiPrefs();
+  }
+
   private loadPlayerSkin(): void {
     try {
       const saved = localStorage.getItem(LibraryModeComponent.PLAYER_SKIN_KEY) as PlayerSkin | null;
       if (saved && this.availableSkins.some(s => s.id === saved)) {
         this.playerSkin = saved;
       }
+    } catch {}
+  }
+
+  private loadUiPrefs(): void {
+    try {
+      const saved = localStorage.getItem(LibraryModeComponent.UI_PREFS_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as Partial<LibraryUiPrefs>;
+      this.uiPrefs = {
+        ...this.uiPrefs,
+        ...parsed,
+      };
+    } catch {}
+  }
+
+  private saveUiPrefs(): void {
+    try {
+      localStorage.setItem(LibraryModeComponent.UI_PREFS_KEY, JSON.stringify(this.uiPrefs));
     } catch {}
   }
 
@@ -278,6 +337,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadPlayerSkin();
+    this.loadUiPrefs();
     this.loadFavoriteFolders();
     this.startBannerRotation();
     this.loadFavHistoryBanners();
@@ -889,6 +949,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   @HostListener('document:click')
   onDocumentClick(): void {
     this.activeMenuPath = null;
+    this.settingsOpen = false;
   }
 
   toggleMenu(e: Event, item: MusicMetadataDto): void {
