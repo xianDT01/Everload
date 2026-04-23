@@ -635,6 +635,94 @@
     </div><!-- /content-scroll -->
   </div><!-- /lib-main -->
 
+  <aside class="lib-rightbar">
+    <div class="rightbar-sticky">
+      <section class="xp-player-shell" [class.playing]="state?.playing" [class.idle]="!state?.currentTrack">
+        <div class="xp-titlebar">
+          <div class="xp-title-meta">
+            <span class="xp-orb"></span>
+            <span class="xp-title-text">Now Playing</span>
+          </div>
+          <div class="xp-title-actions" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <div class="xp-player-body">
+          <div class="xp-cover-stage">
+            <div class="xp-cover-halo"></div>
+            <div class="xp-cover-frame" [class.is-playing]="state?.playing">
+              <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" alt="" />
+              <div *ngIf="!playerHasCover() || !state?.currentTrack" class="xp-cover-fallback">♪</div>
+            </div>
+
+            <div class="xp-visualizer" [class.active]="state?.playing">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span>
+            </div>
+            <div class="xp-particles" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+
+          <div class="xp-track-meta">
+            <span class="xp-track-kicker">{{ currentFolderName }}</span>
+            <h3 class="xp-track-title">{{ state?.currentTrack?.title || state?.currentTrack?.name || ('MUSIC.NAS_LIBRARY_LOGO' | translate) }}</h3>
+            <p class="xp-track-artist">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</p>
+            <p class="xp-track-album">{{ state?.currentTrack?.album || '—' }}</p>
+          </div>
+
+          <div class="xp-progress-block" *ngIf="state?.currentTrack">
+            <div class="xp-progress-track">
+              <div class="xp-progress-fill"
+                   [style.width.%]="(state?.duration || 0) > 0 ? (((state?.currentTime || 0) / (state?.duration || 1)) * 100) : 0">
+              </div>
+            </div>
+            <div class="xp-progress-times">
+              <span>{{ fmt(state?.currentTime || 0) }}</span>
+              <span>{{ fmt(state?.duration || 0) }}</span>
+            </div>
+          </div>
+
+          <div class="xp-controls">
+            <button class="xp-control-btn primary" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack">
+              <svg *ngIf="state?.playing" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              <svg *ngIf="!state?.playing" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="xp-control-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle()" [title]="'MUSIC.SHUFFLE' | translate">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41ZM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5Zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13Z"/></svg>
+            </button>
+            <button class="xp-control-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat()" [title]="'MUSIC.REPEAT' | translate">
+              <span class="xp-repeat-label">{{ repeat === 'one' ? '1' : '∞' }}</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="rightbar-card rightbar-stats">
+        <div class="rightbar-card-header">
+          <span>Library</span>
+          <span class="rightbar-status-dot"></span>
+        </div>
+        <div class="rightbar-stat-grid">
+          <div class="rightbar-stat">
+            <span class="rightbar-stat-label">Folders</span>
+            <strong>{{ folders.length }}</strong>
+          </div>
+          <div class="rightbar-stat">
+            <span class="rightbar-stat-label">Tracks</span>
+            <strong>{{ tracks.length }}</strong>
+          </div>
+          <div class="rightbar-stat wide">
+            <span class="rightbar-stat-label">View</span>
+            <strong>{{ currentFolderName }}</strong>
+          </div>
+        </div>
+      </section>
+    </div>
+  </aside>
+
   <!-- ══ YT-DLP JOBS PANEL ════════════════════════════════════════════════════ -->
   <div class="ytjobs-panel" *ngIf="ytJobs.length > 0" (click)="$event.stopPropagation()">
     <div class="ytjobs-header">
