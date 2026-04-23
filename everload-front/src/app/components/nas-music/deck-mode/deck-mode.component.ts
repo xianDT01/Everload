@@ -653,7 +653,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private runNasSearch(): void {
     if (!this.selectedPathId || !this.nasSearchQuery.trim()) return;
     this.musicService.search(this.selectedPathId, undefined, this.nasSearchQuery.trim()).subscribe({
-      next: results => {
+      next: (results: MusicMetadataDto[]) => {
         this.nasSearchResults = results;
         this.nasSearchLoading = false;
         this.selectedIndex = -1;
