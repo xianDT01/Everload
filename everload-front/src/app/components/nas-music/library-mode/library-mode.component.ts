@@ -18,12 +18,15 @@ interface NasBanner {
   pathId?: number;
 }
 
+type PlayerSkin = 'xp' | 'neon' | 'sunset';
+
 @Component({
   selector: 'app-library-mode',
   templateUrl: './library-mode.component.html',
   styleUrls: ['./library-mode.component.css']
 })
 export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
+  private static readonly PLAYER_SKIN_KEY = 'nas_library_player_skin_v1';
 
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
@@ -147,6 +150,12 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Visualizer (sidebar mini) ─────────────────────────────────────────────
   vizActive = false;
+  playerSkin: PlayerSkin = 'xp';
+  readonly availableSkins: { id: PlayerSkin; label: string; hint: string }[] = [
+    { id: 'xp', label: 'XP Glass', hint: 'Blue chrome' },
+    { id: 'neon', label: 'Neon Deck', hint: 'Club pulse' },
+    { id: 'sunset', label: 'Sunset', hint: 'Warm glow' },
+  ];
   @ViewChild('vizCanvas') vizCanvas?: ElementRef<HTMLCanvasElement>;
   private vizRaf?: number;
   private vizPeaks: number[] = [];
@@ -221,6 +230,22 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.musicService.nowPlayingPanelOpen = true;
   }
 
+  setPlayerSkin(skin: PlayerSkin): void {
+    this.playerSkin = skin;
+    try {
+      localStorage.setItem(LibraryModeComponent.PLAYER_SKIN_KEY, skin);
+    } catch {}
+  }
+
+  private loadPlayerSkin(): void {
+    try {
+      const saved = localStorage.getItem(LibraryModeComponent.PLAYER_SKIN_KEY) as PlayerSkin | null;
+      if (saved && this.availableSkins.some(s => s.id === saved)) {
+        this.playerSkin = saved;
+      }
+    } catch {}
+  }
+
   // ── Active yt-dlp downloads panel ────────────────────────────────────────
   ytJobs: any[] = [];
   private pollInterval?: ReturnType<typeof setInterval>;
@@ -252,6 +277,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadPlayerSkin();
     this.loadFavoriteFolders();
     this.startBannerRotation();
     this.loadFavHistoryBanners();
