@@ -24,7 +24,6 @@ interface NasBanner {
   styleUrls: ['./library-mode.component.css']
 })
 export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
-  private static readonly DETAILS_PANEL_STORAGE_KEY = 'ev_nas_details_panel_open';
 
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
@@ -100,9 +99,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Mobile ────────────────────────────────────────────────────────────────
   mobileMenuOpen = false;
   mobileSearchOpen = false;
-  detailsPanelOpen = false;
-  detailsVisualizerBars: number[] = Array.from({ length: 28 }, () => 0.18);
-  private detailsVizRaf?: number;
 
   toggleMobileMenu(): void { this.mobileMenuOpen = !this.mobileMenuOpen; }
   closeMobileMenu(): void  { this.mobileMenuOpen = false; }
@@ -250,7 +246,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.detailsPanelOpen = this.readDetailsPanelPreference();
     this.loadFavoriteFolders();
     this.startBannerRotation();
     this.loadFavHistoryBanners();
@@ -282,8 +277,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.musicService.getFavorites().subscribe(favs => {
       this.likedItems = favs;
     });
-
-    this.startDetailsVisualizerLoop();
   }
 
   ngAfterViewInit(): void {
@@ -295,10 +288,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     clearInterval(this.bannerInterval);
     this.stopPollJobs();
     this.stopViz();
-    if (this.detailsVizRaf) {
-      cancelAnimationFrame(this.detailsVizRaf);
-      this.detailsVizRaf = undefined;
-    }
     this.intersectionObserver?.disconnect();
     this.preloadAudio.src = '';
     this.preloadAudio.load();
@@ -772,102 +761,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const t = this.state?.currentTrack;
     if (!t || !this.state?.pathId) return '';
     return this.musicService.getCoverUrlWithCache(this.state.pathId, t.path);
-  }
-
-  toggleDetailsPanel(): void {
-    this.detailsPanelOpen = !this.detailsPanelOpen;
-    this.persistDetailsPanelPreference();
-  }
-
-  closeDetailsPanel(): void {
-    if (!this.detailsPanelOpen) return;
-    this.detailsPanelOpen = false;
-    this.persistDetailsPanelPreference();
-  }
-
-  currentTrackTitle(): string {
-    return this.state?.currentTrack?.title || this.state?.currentTrack?.name || 'EverLoad';
-  }
-
-  currentTrackArtist(): string {
-    return this.state?.currentTrack?.artist || this.translate.instant('MUSIC.UNKNOWN_ARTIST');
-  }
-
-  currentTrackAlbum(): string {
-    return this.state?.currentTrack?.album || this.currentFolderName;
-  }
-
-  currentTrackFormat(): string {
-    const format = this.state?.currentTrack?.format;
-    return format ? format.toUpperCase() : 'AUDIO';
-  }
-
-  currentTrackYear(): string {
-    const lastModified = this.state?.currentTrack?.lastModified;
-    if (!lastModified) return '';
-    const year = new Date(lastModified).getFullYear();
-    return Number.isFinite(year) ? String(year) : '';
-  }
-
-  progressPct(): number {
-    const duration = this.state?.duration ?? 0;
-    if (!duration) return 0;
-    return Math.max(0, Math.min(100, ((this.state?.currentTime ?? 0) / duration) * 100));
-  }
-
-  detailsVisualizerStyle(i: number): { [key: string]: string } {
-    const level = this.detailsVisualizerBars[i] ?? 0.18;
-    return {
-      height: `${Math.max(14, Math.round(level * 100))}%`,
-      opacity: `${Math.min(1, 0.35 + level * 0.9)}`,
-      animationDelay: `${(i % 7) * 0.08}s`
-    };
-  }
-
-  private readDetailsPanelPreference(): boolean {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem(LibraryModeComponent.DETAILS_PANEL_STORAGE_KEY) === '1';
-  }
-
-  private persistDetailsPanelPreference(): void {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(LibraryModeComponent.DETAILS_PANEL_STORAGE_KEY, this.detailsPanelOpen ? '1' : '0');
-  }
-
-  private startDetailsVisualizerLoop(): void {
-    if (typeof window === 'undefined') return;
-    const tick = () => {
-      const liveData = this.musicService.mainPlayer.getFrequencyData();
-      if (this.state?.playing && liveData && liveData.length > 0) {
-        this.detailsVisualizerBars = this.sampleDetailsVisualizerBars(liveData, this.detailsVisualizerBars.length);
-      } else {
-        const now = performance.now() / 1000;
-        this.detailsVisualizerBars = this.detailsVisualizerBars.map((_, index) => {
-          const wave =
-            0.26 +
-            Math.sin(now * 2.8 + index * 0.42) * 0.12 +
-            Math.sin(now * 5.2 + index * 0.21) * 0.06;
-          return Math.max(0.14, Math.min(0.58, wave));
-        });
-      }
-      this.detailsVizRaf = requestAnimationFrame(tick);
-    };
-    tick();
-  }
-
-  private sampleDetailsVisualizerBars(data: Uint8Array, count: number): number[] {
-    const chunk = Math.max(1, Math.floor(data.length / count));
-    const bars: number[] = [];
-    for (let i = 0; i < count; i++) {
-      const start = i * chunk;
-      const end = Math.min(data.length, start + chunk);
-      let sum = 0;
-      for (let j = start; j < end; j++) sum += data[j];
-      const avg = end > start ? sum / (end - start) : 0;
-      const normalized = avg / 255;
-      bars.push(Math.max(0.12, Math.min(1, normalized * 1.45 + 0.08)));
-    }
-    return bars;
   }
 
   toggleLike(e: Event, track: MusicMetadataDto) {
