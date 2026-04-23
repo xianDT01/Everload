@@ -36,6 +36,22 @@ public class MusicController {
         }
     }
 
+    @Operation(summary = "Buscar archivos de audio recursivamente por nombre, título, artista o álbum")
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> searchMusic(@RequestParam Long pathId,
+                                         @RequestParam String query,
+                                         @RequestParam(required = false) String subPath,
+                                         @RequestParam(defaultValue = "200") int limit) {
+        try {
+            return ResponseEntity.ok(musicService.searchMusic(pathId, subPath, query, Math.min(limit, 500)));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @Operation(summary = "Listar archivos de audio con metadatos ID3 (paginado)")
     @GetMapping("/metadata")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
