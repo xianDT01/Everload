@@ -295,7 +295,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (this.fsPeaks.length !== BAR_COUNT) this.fsPeaks = new Array(BAR_COUNT).fill(0);
 
-    // Rainbow palette
+    // Baseline: bars grow up from 72% height, leaving 28% for reflection below
+    const baseline = H * 0.72;
+    const maxBarH  = baseline * 0.95;
+    const reflZone = H - baseline;         // pixels available for reflection
+
     const hueStep = 240 / BAR_COUNT;
 
     for (let i = 0; i < BAR_COUNT; i++) {
@@ -305,30 +309,29 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         value = data[di] / 255;
         value = Math.pow(value, 0.75);
       }
-      const barH = Math.max(2, value * H * 0.92);
-      const x = i * (barW + gap);
-      const hue = i * hueStep;
+      const barH = Math.max(2, value * maxBarH);
+      const x    = i * (barW + gap);
+      const hue  = i * hueStep;
 
-      // Main bar gradient
-      const grad = ctx.createLinearGradient(0, H, 0, H - barH);
-      grad.addColorStop(0, `hsla(${hue}, 100%, 55%, 0.9)`);
-      grad.addColorStop(0.6, `hsla(${hue + 30}, 100%, 65%, 0.9)`);
-      grad.addColorStop(1, `hsla(${hue + 60}, 100%, 80%, 1)`);
+      // Main bar
+      const grad = ctx.createLinearGradient(0, baseline, 0, baseline - barH);
+      grad.addColorStop(0,   `hsla(${hue},       100%, 50%, 0.9)`);
+      grad.addColorStop(0.6, `hsla(${hue + 30},  100%, 62%, 0.9)`);
+      grad.addColorStop(1,   `hsla(${hue + 60},  100%, 78%, 1)`);
       ctx.fillStyle = grad;
+      ctx.shadowColor = `hsla(${hue}, 100%, 65%, 0.7)`;
+      ctx.shadowBlur  = 10;
+      ctx.fillRect(x, baseline - barH, barW, barH);
 
-      // Glow
-      ctx.shadowColor = `hsla(${hue}, 100%, 65%, 0.8)`;
-      ctx.shadowBlur = 10;
-      ctx.fillRect(x, H - barH, barW, barH);
-
-      // Reflection (below centerline — mirror at H)
-      ctx.globalAlpha = 0.25;
-      const reflGrad = ctx.createLinearGradient(0, H, 0, H + barH * 0.4);
-      reflGrad.addColorStop(0, `hsla(${hue}, 100%, 55%, 0.6)`);
-      reflGrad.addColorStop(1, `hsla(${hue}, 100%, 55%, 0)`);
-      ctx.fillStyle = reflGrad;
+      // Reflection (mirrored downward within canvas)
+      const reflH = Math.min(barH * 0.35, reflZone);
       ctx.shadowBlur = 0;
-      ctx.fillRect(x, H, barW, barH * 0.35);
+      ctx.globalAlpha = 0.22;
+      const reflGrad = ctx.createLinearGradient(0, baseline, 0, baseline + reflH);
+      reflGrad.addColorStop(0, `hsla(${hue}, 100%, 50%, 0.7)`);
+      reflGrad.addColorStop(1, `hsla(${hue}, 100%, 50%, 0)`);
+      ctx.fillStyle = reflGrad;
+      ctx.fillRect(x, baseline, barW, reflH);
       ctx.globalAlpha = 1;
 
       // Peak dot
@@ -337,12 +340,17 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
       if (this.fsPeaks[i] > 3) {
         ctx.shadowColor = '#fff';
-        ctx.shadowBlur = 6;
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(x, H - this.fsPeaks[i] - 2, barW, 2);
+        ctx.shadowBlur  = 6;
+        ctx.fillStyle   = '#fff';
+        ctx.fillRect(x, baseline - this.fsPeaks[i] - 2, barW, 2);
       }
     }
-    ctx.shadowBlur = 0;
+
+    // Floor line
+    ctx.shadowBlur  = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath(); ctx.moveTo(0, baseline); ctx.lineTo(W, baseline); ctx.stroke();
   }
 
   private drawFsWave(ctx: CanvasRenderingContext2D, W: number, H: number): void {
@@ -356,7 +364,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     ctx.lineWidth = 2.5;
     ctx.beginPath();
 
-    const step = data ? Math.ceil(data.length / W) : 1;
     const samples = data ? Math.min(data.length, W * 2) : 0;
 
     for (let i = 0; i < (data ? samples : 0); i++) {
@@ -890,11 +897,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private runSearch(): void {
     if (!this.selectedPathId || !this.searchQuery.trim()) return;
     this.musicService.search(this.selectedPathId, undefined, this.searchQuery.trim()).subscribe({
-      next: results => {
+      next: (results: MusicMetadataDto[]) => {
         this.searchResults = results;
         this.searchLoading = false;
-        results.filter(t => !this.musicService.hasCoverToShow(t))
-               .forEach(t => this.musicService.fetchCoverIfNeeded(t));
+        results.filter((t: MusicMetadataDto) => !this.musicService.hasCoverToShow(t))
+               .forEach((t: MusicMetadataDto) => this.musicService.fetchCoverIfNeeded(t));
       },
       error: () => { this.searchLoading = false; }
     });
