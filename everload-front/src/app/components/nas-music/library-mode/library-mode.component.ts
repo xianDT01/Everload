@@ -145,11 +145,18 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ytFormat = 'mp3';
   ytDownloadingIds = new Set<string>();
 
-  // ── Visualizer ────────────────────────────────────────────────────────────
+  // ── Visualizer (sidebar mini) ─────────────────────────────────────────────
   vizActive = false;
   @ViewChild('vizCanvas') vizCanvas?: ElementRef<HTMLCanvasElement>;
   private vizRaf?: number;
   private vizPeaks: number[] = [];
+
+  // ── Fullscreen player ─────────────────────────────────────────────────────
+  fullscreenOpen = false;
+  vizMode: 'bars' | 'wave' | 'scope' = 'bars';
+  @ViewChild('fsCanvas') fsCanvas?: ElementRef<HTMLCanvasElement>;
+  private fsRaf?: number;
+  private fsPeaks: number[] = [];
 
   toggleViz(): void {
     this.vizActive = !this.vizActive;
@@ -213,6 +220,233 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     this.vizRaf = requestAnimationFrame(() => this.drawViz());
+  }
+
+  // ── Fullscreen player methods ─────────────────────────────────────────────
+
+  openFullscreen(): void {
+    this.fullscreenOpen = true;
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => this.startFsViz());
+  }
+
+  closeFullscreen(): void {
+    this.fullscreenOpen = false;
+    document.body.style.overflow = '';
+    this.stopFsViz();
+  }
+
+  onFsSeek(e: MouseEvent): void {
+    const bar = e.currentTarget as HTMLElement;
+    const pct = e.offsetX / bar.offsetWidth;
+    const duration = this.state?.duration ?? 0;
+    if (duration > 0) this.musicService.mainPlayer.seek(pct * duration);
+  }
+
+  readonly Math = Math;
+
+  cycleVizMode(): void {
+    const modes: ('bars' | 'wave' | 'scope')[] = ['bars', 'wave', 'scope'];
+    const idx = modes.indexOf(this.vizMode);
+    this.vizMode = modes[(idx + 1) % modes.length];
+  }
+
+  private startFsViz(): void {
+    this.stopFsViz();
+    this.drawFsViz();
+  }
+
+  private stopFsViz(): void {
+    if (this.fsRaf) { cancelAnimationFrame(this.fsRaf); this.fsRaf = undefined; }
+  }
+
+  private drawFsViz(): void {
+    if (!this.fullscreenOpen) return;
+    const canvas = this.fsCanvas?.nativeElement;
+    if (!canvas) { this.fsRaf = requestAnimationFrame(() => this.drawFsViz()); return; }
+
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.offsetWidth;
+    const cssH = canvas.offsetHeight;
+    if (canvas.width !== cssW * dpr || canvas.height !== cssH * dpr) {
+      canvas.width = cssW * dpr;
+      canvas.height = cssH * dpr;
+    }
+    const ctx = canvas.getContext('2d')!;
+    ctx.scale(dpr, dpr);
+    const W = cssW;
+    const H = cssH;
+
+    ctx.clearRect(0, 0, W, H);
+
+    if (this.vizMode === 'bars') this.drawFsBars(ctx, W, H);
+    else if (this.vizMode === 'wave') this.drawFsWave(ctx, W, H);
+    else this.drawFsScope(ctx, W, H);
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.fsRaf = requestAnimationFrame(() => this.drawFsViz());
+  }
+
+  private drawFsBars(ctx: CanvasRenderingContext2D, W: number, H: number): void {
+    const data = this.musicService.mainPlayer.getFrequencyData();
+    const BAR_COUNT = 80;
+    const gap = 2;
+    const barW = (W - gap * (BAR_COUNT - 1)) / BAR_COUNT;
+
+    if (this.fsPeaks.length !== BAR_COUNT) this.fsPeaks = new Array(BAR_COUNT).fill(0);
+
+    // Rainbow palette
+    const hueStep = 240 / BAR_COUNT;
+
+    for (let i = 0; i < BAR_COUNT; i++) {
+      let value = 0;
+      if (data) {
+        const di = Math.floor((i / BAR_COUNT) * data.length * 0.75);
+        value = data[di] / 255;
+        value = Math.pow(value, 0.75);
+      }
+      const barH = Math.max(2, value * H * 0.92);
+      const x = i * (barW + gap);
+      const hue = i * hueStep;
+
+      // Main bar gradient
+      const grad = ctx.createLinearGradient(0, H, 0, H - barH);
+      grad.addColorStop(0, `hsla(${hue}, 100%, 55%, 0.9)`);
+      grad.addColorStop(0.6, `hsla(${hue + 30}, 100%, 65%, 0.9)`);
+      grad.addColorStop(1, `hsla(${hue + 60}, 100%, 80%, 1)`);
+      ctx.fillStyle = grad;
+
+      // Glow
+      ctx.shadowColor = `hsla(${hue}, 100%, 65%, 0.8)`;
+      ctx.shadowBlur = 10;
+      ctx.fillRect(x, H - barH, barW, barH);
+
+      // Reflection (below centerline — mirror at H)
+      ctx.globalAlpha = 0.25;
+      const reflGrad = ctx.createLinearGradient(0, H, 0, H + barH * 0.4);
+      reflGrad.addColorStop(0, `hsla(${hue}, 100%, 55%, 0.6)`);
+      reflGrad.addColorStop(1, `hsla(${hue}, 100%, 55%, 0)`);
+      ctx.fillStyle = reflGrad;
+      ctx.shadowBlur = 0;
+      ctx.fillRect(x, H, barW, barH * 0.35);
+      ctx.globalAlpha = 1;
+
+      // Peak dot
+      if (barH > this.fsPeaks[i]) this.fsPeaks[i] = barH;
+      else this.fsPeaks[i] = Math.max(0, this.fsPeaks[i] - 1.2);
+
+      if (this.fsPeaks[i] > 3) {
+        ctx.shadowColor = '#fff';
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x, H - this.fsPeaks[i] - 2, barW, 2);
+      }
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  private drawFsWave(ctx: CanvasRenderingContext2D, W: number, H: number): void {
+    const data = this.musicService.mainPlayer.getTimeDomainData();
+    const cy = H / 2;
+
+    // Glow line
+    ctx.shadowBlur = 18;
+    ctx.shadowColor = '#00e5ff';
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+
+    const step = data ? Math.ceil(data.length / W) : 1;
+    const samples = data ? Math.min(data.length, W * 2) : 0;
+
+    for (let i = 0; i < (data ? samples : 0); i++) {
+      const x = (i / samples) * W;
+      const v = (data![i] / 128.0) - 1;
+      const y = cy + v * cy * 0.85;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    if (!data) { ctx.moveTo(0, cy); ctx.lineTo(W, cy); }
+    ctx.stroke();
+
+    // Second pass: thinner bright inner line
+    ctx.shadowBlur = 6;
+    ctx.strokeStyle = '#e0f7fa';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let i = 0; i < (data ? samples : 0); i++) {
+      const x = (i / samples) * W;
+      const v = (data![i] / 128.0) - 1;
+      const y = cy + v * cy * 0.85;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    if (!data) { ctx.moveTo(0, cy); ctx.lineTo(W, cy); }
+    ctx.stroke();
+
+    // Mirror reflection below
+    ctx.globalAlpha = 0.3;
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < (data ? samples : 0); i++) {
+      const x = (i / samples) * W;
+      const v = (data![i] / 128.0) - 1;
+      const y = cy - v * cy * 0.85;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    if (!data) { ctx.moveTo(0, cy); ctx.lineTo(W, cy); }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }
+
+  private drawFsScope(ctx: CanvasRenderingContext2D, W: number, H: number): void {
+    const data = this.musicService.mainPlayer.getTimeDomainData();
+    const cy = H / 2;
+    const samples = data ? Math.min(data.length, W * 2) : 0;
+
+    // Filled area gradient
+    const areaGrad = ctx.createLinearGradient(0, 0, 0, H);
+    areaGrad.addColorStop(0, 'rgba(29,185,84,0)');
+    areaGrad.addColorStop(0.4, 'rgba(29,185,84,0.55)');
+    areaGrad.addColorStop(0.5, 'rgba(29,185,84,0.8)');
+    areaGrad.addColorStop(0.6, 'rgba(29,185,84,0.55)');
+    areaGrad.addColorStop(1, 'rgba(29,185,84,0)');
+
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    for (let i = 0; i < samples; i++) {
+      const x = (i / samples) * W;
+      const v = (data![i] / 128.0) - 1;
+      const y = cy + v * cy * 0.85;
+      ctx.lineTo(x, y);
+    }
+    if (!data || samples === 0) ctx.lineTo(W, cy);
+    ctx.lineTo(W, cy);
+    ctx.closePath();
+    ctx.fillStyle = areaGrad;
+    ctx.fill();
+
+    // Glowing outline
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = '#1db954';
+    ctx.strokeStyle = '#1db954';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < samples; i++) {
+      const x = (i / samples) * W;
+      const v = (data![i] / 128.0) - 1;
+      const y = cy + v * cy * 0.85;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    if (!data || samples === 0) { ctx.moveTo(0, cy); ctx.lineTo(W, cy); }
+    ctx.stroke();
+
+    // Center line
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(29,185,84,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
   }
 
   // ── Active yt-dlp downloads panel ────────────────────────────────────────
@@ -288,9 +522,16 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     clearInterval(this.bannerInterval);
     this.stopPollJobs();
     this.stopViz();
+    this.stopFsViz();
+    if (this.fullscreenOpen) document.body.style.overflow = '';
     this.intersectionObserver?.disconnect();
     this.preloadAudio.src = '';
     this.preloadAudio.load();
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.fullscreenOpen) this.closeFullscreen();
   }
 
   private setupIntersectionObserver(): void {
@@ -648,7 +889,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private runSearch(): void {
     if (!this.selectedPathId || !this.searchQuery.trim()) return;
-    this.musicService.search(this.selectedPathId, this.currentSubPath || undefined, this.searchQuery.trim()).subscribe({
+    this.musicService.search(this.selectedPathId, undefined, this.searchQuery.trim()).subscribe({
       next: results => {
         this.searchResults = results;
         this.searchLoading = false;
