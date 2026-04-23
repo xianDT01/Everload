@@ -89,44 +89,20 @@
       </ul>
     </div>
 
-    <!-- Now playing widget -->
+    <!-- Now playing mini widget -->
     <div class="sidebar-now-playing" *ngIf="state?.currentTrack">
-
-      <!-- Cover art -->
-      <div class="snp-cover" [class.playing]="state?.playing">
-        <img *ngIf="playerHasCover()" [src]="playerCoverUrl()"
-             (error)="$any($event.target).style.display='none'" />
-        <div *ngIf="!playerHasCover()" class="snp-cover-placeholder">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="rgba(255,255,255,0.3)">
-            <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
-          </svg>
-        </div>
-        <!-- pulsing ring while playing -->
-        <div class="snp-pulse" *ngIf="state?.playing"></div>
+      <div class="snp-art" [class.spinning]="state?.playing">
+        <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" />
+        <div *ngIf="!playerHasCover()" class="snp-art-placeholder">♪</div>
       </div>
-
-      <!-- Track info + controls row -->
-      <div class="snp-bottom">
-        <div class="snp-info">
-          <span class="snp-title">{{ state?.currentTrack?.title || state?.currentTrack?.name }}</span>
-          <span class="snp-artist">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
-        </div>
-        <div class="snp-actions">
-          <button class="snp-play" (click)="musicService.mainPlayer.togglePlay()" [title]="state?.playing ? 'Pausar' : 'Reproducir'">
-            <svg *ngIf="state?.playing" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-            <svg *ngIf="!state?.playing" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-          </button>
-          <button class="snp-viz-btn" (click)="toggleViz()" [class.active]="vizActive" title="Visualizador">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 18h2v-6H3v6zm4 0h2V6H7v12zm4 0h2v-9h-2v9zm4 0h2v-3h-2v3zm4-7h2v-2h-2v2z"/>
-            </svg>
-          </button>
-        </div>
+      <div class="snp-info">
+        <span class="snp-title">{{ state?.currentTrack?.title || state?.currentTrack?.name }}</span>
+        <span class="snp-artist">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
       </div>
-
-      <!-- Visualizer canvas -->
-      <canvas #vizCanvas class="viz-canvas" [hidden]="!vizActive" width="216" height="72"></canvas>
-
+      <button class="snp-play" (click)="musicService.mainPlayer.togglePlay()">
+        <svg *ngIf="state?.playing" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        <svg *ngIf="!state?.playing" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
     </div>
 
   </nav>
@@ -162,7 +138,7 @@
         <input class="search-input" type="text" [(ngModel)]="searchQuery"
                (ngModelChange)="onSearchChange()"
                [placeholder]="'MUSIC.SEARCH_PLACEHOLDER_LIB' | translate" />
-        <button class="search-clear" *ngIf="searchQuery" (click)="searchQuery = ''; onSearchChange()">
+        <button class="search-clear" *ngIf="searchQuery" (click)="searchQuery = ''">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </div>
@@ -604,11 +580,6 @@
              class="load-more-hint">
           {{ tracks.length }} / {{ totalTracks }}
         </div>
-      </div>
-
-      <!-- Spinner búsqueda recursiva -->
-      <div *ngIf="searchLoading" class="page-loading-spinner" style="justify-content:center;padding:24px 0">
-        <span class="spinner-dot"></span><span class="spinner-dot"></span><span class="spinner-dot"></span>
       </div>
 
       <!-- Empty state -->

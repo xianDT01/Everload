@@ -130,72 +130,45 @@
   color: var(--sp-muted);
 }
 
-/* ── Now-playing widget ─────────────────────────────────────────────────── */
+/* Sidebar now-playing widget */
 .sidebar-now-playing {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
   margin: 8px;
   background: var(--sp-surface-2);
   border-radius: var(--sp-radius);
-  overflow: hidden;
+  min-height: 60px;
 }
 
-/* Cover art */
-.snp-cover {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
+.snp-art {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   overflow: hidden;
-  background: #000;
+  flex-shrink: 0;
+  background: var(--sp-surface);
 }
 
-.snp-cover img {
+.snp-art img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
-  transition: transform 600ms ease;
 }
 
-.snp-cover.playing img {
-  animation: snp-float 6s ease-in-out infinite;
+.snp-art.spinning img {
+  animation: spin 8s linear infinite;
 }
 
-@keyframes snp-float {
-  0%, 100% { transform: scale(1.00); }
-  50%       { transform: scale(1.04); }
-}
-
-.snp-cover-placeholder {
+.snp-art-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--sp-surface);
-}
-
-/* Pulsing glow ring while playing */
-.snp-pulse {
-  position: absolute;
-  inset: 0;
-  border-radius: 0;
-  box-shadow: inset 0 0 0 3px var(--sp-green);
-  animation: snp-pulse 2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes snp-pulse {
-  0%, 100% { opacity: 0.25; }
-  50%       { opacity: 0.7;  }
-}
-
-/* Bottom row: info + buttons */
-.snp-bottom {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  font-size: 16px;
+  color: var(--sp-muted);
 }
 
 .snp-info {
@@ -206,7 +179,7 @@
 }
 
 .snp-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -222,38 +195,19 @@
   text-overflow: ellipsis;
 }
 
-.snp-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.snp-play,
-.snp-viz-btn {
+.snp-play {
   background: none;
   border: none;
   color: var(--sp-muted);
   cursor: pointer;
-  padding: 5px;
+  padding: 4px;
   display: flex;
   align-items: center;
   border-radius: 50%;
-  transition: color 150ms, background 150ms;
+  transition: color 150ms;
 }
 
-.snp-play:hover,
-.snp-viz-btn:hover { color: var(--sp-text); background: rgba(255,255,255,0.08); }
-
-.snp-viz-btn.active { color: var(--sp-green); }
-
-/* WMP-style visualizer canvas */
-.viz-canvas {
-  display: block;
-  width: 100%;
-  height: 72px;
-  background: #000;
-}
+.snp-play:hover { color: var(--sp-text); }
 
 /* ══ MAIN ════════════════════════════════════════════════════════════════════ */
 .lib-main {
