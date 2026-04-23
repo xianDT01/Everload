@@ -551,8 +551,23 @@
       <div class="browser-section" *ngIf="browserTab === 'nas'">
         <div class="browser-main">
 
-          <!-- Breadcrumb toolbar -->
-          <div class="browser-toolbar breadcrumb-bar">
+          <!-- Search bar -->
+          <div class="browser-toolbar nas-search-bar">
+            <svg class="nas-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input class="nas-search-input" type="text"
+                   [(ngModel)]="nasSearchQuery"
+                   (ngModelChange)="onNasSearchChange()"
+                   [placeholder]="'MUSIC.SEARCH_PLACEHOLDER_LIB' | translate" />
+            <button *ngIf="nasSearchQuery" class="nas-search-clear" (click)="clearNasSearch()">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+            <span *ngIf="nasSearchLoading" class="nas-search-spinner"></span>
+          </div>
+
+          <!-- Breadcrumb toolbar (hidden while searching) -->
+          <div class="browser-toolbar breadcrumb-bar" *ngIf="!nasSearchQuery">
             <button class="brow-btn" (click)="goUp()" [disabled]="isRoot" [title]="'MUSIC.DJ_BACK_TITLE' | translate">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
@@ -580,26 +595,48 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of folders" class="brow-folder" (click)="navigate(item)">
-                  <td class="bc-icon">📁</td>
-                  <td class="bc-name" colspan="3">{{ item.name }}</td>
-                  <td></td>
-                </tr>
-                <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i" (dblclick)="loadToIdleDeck(item)">
-                  <td class="bc-icon">🎵</td>
-                  <td class="bc-name">{{ item.title || item.name }}</td>
-                  <td class="bc-artist">{{ item.artist || '—' }}</td>
-                  <td class="bc-dur">{{ fmt(item.duration) }}</td>
-                  <td class="bc-load">
-                    <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
-                    <button class="load-b" (click)="loadNas('B', item)">▲ B</button>
-                    <button class="queue-a" (click)="addToQueue('A', item, selectedPathId!)" [title]="('COMMON.ADD' | translate) + ' ' + ('COMMON.QUEUE' | translate) + ' A'">+A</button>
-                    <button class="queue-b" (click)="addToQueue('B', item, selectedPathId!)" [title]="('COMMON.ADD' | translate) + ' ' + ('COMMON.QUEUE' | translate) + ' B'">+B</button>
-                  </td>
-                </tr>
-                <tr *ngIf="items.length === 0">
-                  <td colspan="5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
-                </tr>
+                <!-- Search results -->
+                <ng-container *ngIf="nasSearchResults !== null">
+                  <tr *ngFor="let item of nasSearchResults; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i" (dblclick)="loadToIdleDeck(item)">
+                    <td class="bc-icon">🎵</td>
+                    <td class="bc-name">{{ item.title || item.name }}</td>
+                    <td class="bc-artist">{{ item.artist || '—' }}</td>
+                    <td class="bc-dur">{{ fmt(item.duration) }}</td>
+                    <td class="bc-load">
+                      <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
+                      <button class="load-b" (click)="loadNas('B', item)">▲ B</button>
+                      <button class="queue-a" (click)="addToQueue('A', item, selectedPathId!)" [title]="('COMMON.ADD' | translate) + ' ' + ('COMMON.QUEUE' | translate) + ' A'">+A</button>
+                      <button class="queue-b" (click)="addToQueue('B', item, selectedPathId!)" [title]="('COMMON.ADD' | translate) + ' ' + ('COMMON.QUEUE' | translate) + ' B'">+B</button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="nasSearchResults.length === 0 && !nasSearchLoading">
+                    <td colspan="5" class="brow-empty">{{ 'MUSIC.SEARCH_NO_RESULTS_FOR' | translate }} "{{ nasSearchQuery }}"</td>
+                  </tr>
+                </ng-container>
+
+                <!-- Normal folder / track listing -->
+                <ng-container *ngIf="nasSearchResults === null">
+                  <tr *ngFor="let item of folders" class="brow-folder" (click)="navigate(item)">
+                    <td class="bc-icon">📁</td>
+                    <td class="bc-name" colspan="3">{{ item.name }}</td>
+                    <td></td>
+                  </tr>
+                  <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i" (dblclick)="loadToIdleDeck(item)">
+                    <td class="bc-icon">🎵</td>
+                    <td class="bc-name">{{ item.title || item.name }}</td>
+                    <td class="bc-artist">{{ item.artist || '—' }}</td>
+                    <td class="bc-dur">{{ fmt(item.duration) }}</td>
+                    <td class="bc-load">
+                      <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
+                      <button class="load-b" (click)="loadNas('B', item)">▲ B</button>
+                      <button class="queue-a" (click)="addToQueue('A', item, selectedPathId!)" [title]="('COMMON.ADD' | translate) + ' ' + ('COMMON.QUEUE' | translate) + ' A'">+A</button>
+                      <button class="queue-b" (click)="addToQueue('B', item, selectedPathId!)" [title]="('COMMON.ADD' | translate) + ' ' + ('COMMON.QUEUE' | translate) + ' B'">+B</button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="items.length === 0">
+                    <td colspan="5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
+                  </tr>
+                </ng-container>
               </tbody>
             </table>
           </div>

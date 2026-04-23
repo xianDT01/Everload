@@ -175,7 +175,7 @@ export class DeckPlayer {
       this.delayGain.gain.value = 0.5; // Feedback
 
       this.analyserNode = this.audioCtx.createAnalyser();
-      this.analyserNode.fftSize = 128;
+      this.analyserNode.fftSize = 2048;
       this.analyserNode.smoothingTimeConstant = 0.8;
 
       // Routing: source -> EQ -> ComboFilter -> [Dry / Wet(Delay)] -> Analyser -> Destination
@@ -389,6 +389,13 @@ export class DeckPlayer {
     }
     this.analyserNode.getByteFrequencyData(this.analyserData);
     return this.analyserData;
+  }
+
+  getTimeDomainData(): Uint8Array | null {
+    if (!this.analyserNode) return null;
+    const buf = new Uint8Array(this.analyserNode.fftSize);
+    this.analyserNode.getByteTimeDomainData(buf);
+    return buf;
   }
 
   setEq(band: 'low' | 'mid' | 'high', dB: number) {
