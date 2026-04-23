@@ -721,12 +721,6 @@ export class MusicService {
     return this.http.get<PagedMusicResult>(url);
   }
 
-  search(pathId: number, subPath: string | undefined, query: string, limit = 200): Observable<MusicMetadataDto[]> {
-    let url = `${this.api}/search?pathId=${pathId}&query=${encodeURIComponent(query)}&limit=${limit}`;
-    if (subPath) url += `&subPath=${encodeURIComponent(subPath)}`;
-    return this.http.get<MusicMetadataDto[]>(url);
-  }
-
   getStreamUrl(pathId: number, trackPath: string): string {
     const token = this.auth.getToken();
     return `${this.api}/stream?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}`;

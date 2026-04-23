@@ -43,9 +43,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   repeat: 'none' | 'one' | 'all' = 'none';
   queueIndex = -1;
   searchQuery = '';
-  searchResults: MusicMetadataDto[] | null = null;
-  searchLoading = false;
-  private searchDebounce?: ReturnType<typeof setTimeout>;
   likedSortBy: 'date' | 'title' | 'artist' = 'date';
 
   private static readonly RANDOM_GRADIENTS = [
@@ -145,76 +142,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ytFormat = 'mp3';
   ytDownloadingIds = new Set<string>();
 
-  // ── Visualizer ────────────────────────────────────────────────────────────
-  vizActive = false;
-  @ViewChild('vizCanvas') vizCanvas?: ElementRef<HTMLCanvasElement>;
-  private vizRaf?: number;
-  private vizPeaks: number[] = [];
-
-  toggleViz(): void {
-    this.vizActive = !this.vizActive;
-    if (this.vizActive) this.startViz();
-    else this.stopViz();
-  }
-
-  private startViz(): void {
-    this.stopViz();
-    this.drawViz();
-  }
-
-  private stopViz(): void {
-    if (this.vizRaf) { cancelAnimationFrame(this.vizRaf); this.vizRaf = undefined; }
-  }
-
-  private drawViz(): void {
-    const canvas = this.vizCanvas?.nativeElement;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const data = this.musicService.mainPlayer.getFrequencyData();
-    const W = canvas.width;
-    const H = canvas.height;
-    const bins = data ? data.length : 0;
-    const BAR_COUNT = Math.min(bins, 48);
-    const gap = 2;
-    const barW = Math.floor((W - gap * (BAR_COUNT - 1)) / BAR_COUNT);
-
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, W, H);
-
-    if (!data) { this.vizRaf = requestAnimationFrame(() => this.drawViz()); return; }
-
-    if (this.vizPeaks.length !== BAR_COUNT) this.vizPeaks = new Array(BAR_COUNT).fill(0);
-
-    for (let i = 0; i < BAR_COUNT; i++) {
-      const value = data[i] / 255;
-      const barH = Math.max(2, Math.floor(value * H));
-      const x = i * (barW + gap);
-
-      // Gradient per-bar: green → yellow → red
-      const grad = ctx.createLinearGradient(0, H, 0, H - barH);
-      grad.addColorStop(0,    '#00e676');
-      grad.addColorStop(0.5,  '#ffea00');
-      grad.addColorStop(0.8,  '#ff6d00');
-      grad.addColorStop(1,    '#d50000');
-      ctx.fillStyle = grad;
-      ctx.fillRect(x, H - barH, barW, barH);
-
-      // Peak dot
-      if (barH > this.vizPeaks[i]) this.vizPeaks[i] = barH;
-      else this.vizPeaks[i] = Math.max(0, this.vizPeaks[i] - 1.5);
-
-      if (this.vizPeaks[i] > 2) {
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(x, H - this.vizPeaks[i] - 2, barW, 2);
-      }
-    }
-
-    this.vizRaf = requestAnimationFrame(() => this.drawViz());
-  }
-
   // ── Active yt-dlp downloads panel ────────────────────────────────────────
   ytJobs: any[] = [];
   private pollInterval?: ReturnType<typeof setInterval>;
@@ -287,7 +214,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.subs.forEach(s => s.unsubscribe());
     clearInterval(this.bannerInterval);
     this.stopPollJobs();
-    this.stopViz();
     this.intersectionObserver?.disconnect();
     this.preloadAudio.src = '';
     this.preloadAudio.load();
@@ -344,7 +270,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.selectedPathId = this.paths[banner.pathIndex].id;
       this.currentSubPath = banner.subPath || '';
       this.searchQuery = '';
-      this.searchResults = null;
       this.load();
     } else {
       this.pendingAutoPlay = false;
@@ -439,7 +364,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedPathId = null;
     this.currentSubPath = '';
     this.searchQuery = '';
-    this.searchResults = null;
     this.items = [];
     this.load();
   }
@@ -459,7 +383,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedPathId = id;
     this.currentSubPath = '';
     this.searchQuery = '';
-    this.searchResults = null;
     this.load();
   }
 
@@ -605,8 +528,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   navigate(item: MusicMetadataDto) {
     if (!item.directory) return;
     this.currentSubPath = item.path;
-    this.searchQuery = '';
-    this.searchResults = null;
     this.load();
   }
 
@@ -615,8 +536,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const parts = this.currentSubPath.split(/[/\\]/).filter(Boolean);
     parts.pop();
     this.currentSubPath = parts.join('/');
-    this.searchQuery = '';
-    this.searchResults = null;
     this.load();
   }
 
@@ -631,32 +550,19 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get filteredTracks(): MusicMetadataDto[] {
-    if (this.searchResults !== null) return this.searchResults;
-    return this.tracks;
+    if (!this.searchQuery.trim()) return this.tracks;
+    const q = this.searchQuery.trim().toLowerCase();
+    return this.tracks.filter(t =>
+      (t.title  || t.name  || '').toLowerCase().includes(q) ||
+      (t.artist || '').toLowerCase().includes(q) ||
+      (t.album  || '').toLowerCase().includes(q)
+    );
   }
 
   onSearchChange(): void {
-    clearTimeout(this.searchDebounce);
-    if (!this.searchQuery.trim()) {
-      this.searchResults = null;
-      this.searchLoading = false;
-      return;
+    if (this.searchQuery.trim() && !this.allTracksLoaded) {
+      this.loadAllRemainingPages();
     }
-    this.searchLoading = true;
-    this.searchDebounce = setTimeout(() => this.runSearch(), 400);
-  }
-
-  private runSearch(): void {
-    if (!this.selectedPathId || !this.searchQuery.trim()) return;
-    this.musicService.search(this.selectedPathId, this.currentSubPath || undefined, this.searchQuery.trim()).subscribe({
-      next: results => {
-        this.searchResults = results;
-        this.searchLoading = false;
-        results.filter(t => !this.musicService.hasCoverToShow(t))
-               .forEach(t => this.musicService.fetchCoverIfNeeded(t));
-      },
-      error: () => { this.searchLoading = false; }
-    });
   }
 
   get breadcrumbs(): string[] {
@@ -1049,7 +955,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedPathId = fav.pathId;
     this.currentSubPath = fav.subPath;
     this.searchQuery = '';
-    this.searchResults = null;
     this.closeMobileMenu();
     this.load();
   }
