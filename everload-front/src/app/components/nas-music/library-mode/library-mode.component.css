@@ -130,45 +130,72 @@
   color: var(--sp-muted);
 }
 
-/* Sidebar now-playing widget */
+/* ── Now-playing widget ─────────────────────────────────────────────────── */
 .sidebar-now-playing {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  flex-direction: column;
   margin: 8px;
   background: var(--sp-surface-2);
   border-radius: var(--sp-radius);
-  min-height: 60px;
-}
-
-.snp-art {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
   overflow: hidden;
-  flex-shrink: 0;
-  background: var(--sp-surface);
 }
 
-.snp-art img {
+/* Cover art */
+.snp-cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #000;
+}
+
+.snp-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+  transition: transform 600ms ease;
 }
 
-.snp-art.spinning img {
-  animation: spin 8s linear infinite;
+.snp-cover.playing img {
+  animation: snp-float 6s ease-in-out infinite;
 }
 
-.snp-art-placeholder {
+@keyframes snp-float {
+  0%, 100% { transform: scale(1.00); }
+  50%       { transform: scale(1.04); }
+}
+
+.snp-cover-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  color: var(--sp-muted);
+  background: var(--sp-surface);
+}
+
+/* Pulsing glow ring while playing */
+.snp-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 3px var(--sp-green);
+  animation: snp-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes snp-pulse {
+  0%, 100% { opacity: 0.25; }
+  50%       { opacity: 0.7;  }
+}
+
+/* Bottom row: info + buttons */
+.snp-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
 }
 
 .snp-info {
@@ -179,7 +206,7 @@
 }
 
 .snp-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -195,19 +222,38 @@
   text-overflow: ellipsis;
 }
 
-.snp-play {
+.snp-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.snp-play,
+.snp-viz-btn {
   background: none;
   border: none;
   color: var(--sp-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 5px;
   display: flex;
   align-items: center;
   border-radius: 50%;
-  transition: color 150ms;
+  transition: color 150ms, background 150ms;
 }
 
-.snp-play:hover { color: var(--sp-text); }
+.snp-play:hover,
+.snp-viz-btn:hover { color: var(--sp-text); background: rgba(255,255,255,0.08); }
+
+.snp-viz-btn.active { color: var(--sp-green); }
+
+/* WMP-style visualizer canvas */
+.viz-canvas {
+  display: block;
+  width: 100%;
+  height: 72px;
+  background: #000;
+}
 
 /* ══ MAIN ════════════════════════════════════════════════════════════════════ */
 .lib-main {
