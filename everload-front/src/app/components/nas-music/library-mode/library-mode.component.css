@@ -2918,7 +2918,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   FULLSCREEN PLAYER
+   NOW PLAYING PANEL (slide-in desde la derecha, estilo Spotify)
 ══════════════════════════════════════════════════════════════════════════ */
 
 .snp-expand-btn {
@@ -2928,212 +2928,197 @@
 }
 .snp-expand-btn:hover { color: #fff; }
 
+/* Panel contenedor */
 .fs-overlay {
-  position: fixed; inset: 0; z-index: 9999;
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 340px;
+  z-index: 9000;
   display: flex; flex-direction: column;
+  background: #121212;
+  border-left: 1px solid #2a2a2a;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.7);
   overflow: hidden;
-  animation: fs-fade-in 0.35s ease;
+  animation: panel-slide-in 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes fs-fade-in {
-  from { opacity: 0; transform: scale(1.02); }
-  to   { opacity: 1; transform: scale(1); }
+@keyframes panel-slide-in {
+  from { transform: translateX(100%); opacity: 0.5; }
+  to   { transform: translateX(0);    opacity: 1;   }
 }
 
-/* Blurred background */
+/* Fondo con portada desenfocada */
 .fs-bg {
   position: absolute; inset: -40px;
   background-size: cover; background-position: center;
-  filter: blur(60px) brightness(0.35) saturate(1.6);
-  transform: scale(1.1);
-  z-index: 0;
+  filter: blur(50px) brightness(0.25) saturate(1.5);
+  transform: scale(1.15);
+  z-index: 0; pointer-events: none;
 }
 .fs-bg-mask {
   position: absolute; inset: 0;
   background: linear-gradient(180deg,
-    rgba(0,0,0,0.45) 0%,
-    rgba(0,0,0,0.2) 50%,
-    rgba(0,0,0,0.8) 85%,
-    rgba(0,0,0,0.97) 100%);
-  z-index: 1;
+    rgba(18,18,18,0.55) 0%,
+    rgba(18,18,18,0.3)  40%,
+    rgba(18,18,18,0.75) 75%,
+    rgba(18,18,18,0.98) 100%);
+  z-index: 1; pointer-events: none;
 }
 
-/* Close button */
+/* Header del panel */
 .fs-close-btn {
-  position: absolute; top: 20px; right: 24px; z-index: 10;
-  background: rgba(255,255,255,0.1); border: none; color: #fff;
-  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  position: absolute; top: 14px; right: 14px; z-index: 10;
+  background: rgba(255,255,255,0.08); border: none; color: rgba(255,255,255,0.7);
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: background 0.2s;
-  backdrop-filter: blur(4px);
+  transition: background 0.2s, color 0.2s;
 }
-.fs-close-btn:hover { background: rgba(255,255,255,0.22); }
+.fs-close-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
 
-/* Body layout */
+/* Cuerpo: columna vertical centrada */
 .fs-body {
   position: relative; z-index: 2;
-  flex: 1; display: flex;
-  align-items: center; justify-content: center;
-  gap: 60px; padding: 40px 80px 10px;
-  overflow: hidden;
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center;
+  padding: 52px 24px 16px;
+  gap: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
 }
+.fs-body::-webkit-scrollbar { display: none; }
 
-/* Art */
+/* Arte del álbum */
 .fs-art-wrap {
   position: relative; flex-shrink: 0;
-  width: 280px; height: 280px;
+  width: 220px; height: 220px;
   display: flex; align-items: center; justify-content: center;
 }
-
 .fs-art-glow {
-  position: absolute; inset: -20px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(29,185,84,0.25) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.5s;
+  position: absolute; inset: -16px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(29,185,84,0.3) 0%, transparent 70%);
+  opacity: 0; transition: opacity 0.5s;
 }
 .fs-art-pulse {
   opacity: 1;
-  animation: art-glow-pulse 2s ease-in-out infinite;
+  animation: art-glow-pulse 2.2s ease-in-out infinite;
 }
 @keyframes art-glow-pulse {
-  0%, 100% { transform: scale(1);   opacity: 0.6; }
-  50%       { transform: scale(1.1); opacity: 1;   }
+  0%, 100% { transform: scale(1);    opacity: 0.5; }
+  50%       { transform: scale(1.08); opacity: 1;   }
 }
-
 .fs-art {
-  width: 260px; height: 260px; border-radius: 50%;
+  width: 200px; height: 200px; border-radius: 50%;
   overflow: hidden; position: relative;
-  box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 20px rgba(29,185,84,0.2);
-  transition: box-shadow 0.4s;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.9), 0 0 24px rgba(29,185,84,0.15);
 }
 .fs-art img { width: 100%; height: 100%; object-fit: cover; }
 .fs-art-placeholder {
   width: 100%; height: 100%;
-  background: #1a1a1a; display: flex; align-items: center; justify-content: center;
+  background: #1e1e1e; display: flex; align-items: center; justify-content: center;
 }
-.fs-art-spin {
-  animation: vinyl-spin 8s linear infinite;
-}
+.fs-art-spin { animation: vinyl-spin 8s linear infinite; }
 @keyframes vinyl-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-
 .fs-vinyl-center {
   position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 28px; height: 28px; border-radius: 50%;
-  background: radial-gradient(circle, #333 40%, #111 100%);
-  border: 3px solid #555;
-  pointer-events: none;
-}
-.fs-vinyl-center.spinning::after {
-  content: '';
-  position: absolute; inset: 4px; border-radius: 50%;
-  background: radial-gradient(circle, #555 0%, #222 100%);
+  width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle, #2a2a2a 40%, #111 100%);
+  border: 2px solid #444; pointer-events: none;
 }
 
-/* Info column */
+/* Info — ocupa todo el ancho del panel */
 .fs-info-col {
-  flex: 1; min-width: 0; max-width: 420px;
-  display: flex; flex-direction: column; gap: 20px;
+  width: 100%;
+  display: flex; flex-direction: column; gap: 14px;
+  align-items: stretch;
 }
-.fs-track-info { display: flex; flex-direction: column; gap: 4px; }
+.fs-track-info {
+  display: flex; flex-direction: column; gap: 3px;
+}
 .fs-title {
-  font-size: clamp(22px, 3vw, 36px); font-weight: 800;
-  color: #fff; margin: 0; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  font-size: 17px; font-weight: 700; color: #fff; margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.fs-artist { font-size: 18px; color: rgba(255,255,255,0.75); margin: 0; }
-.fs-album  { font-size: 13px; color: rgba(255,255,255,0.4);  margin: 0; }
+.fs-artist { font-size: 13px; color: rgba(255,255,255,0.65); margin: 0; }
+.fs-album  { font-size: 11px; color: rgba(255,255,255,0.35); margin: 0; }
 
 /* Like */
 .fs-like-btn {
-  background: none; border: none; cursor: pointer;
-  color: rgba(255,255,255,0.5); padding: 0; width: fit-content;
-  transition: color 0.2s, transform 0.2s;
+  background: none; border: none; cursor: pointer; align-self: flex-start;
+  color: rgba(255,255,255,0.4); padding: 0;
+  transition: color 0.2s, transform 0.15s;
 }
-.fs-like-btn:hover   { color: #fff; transform: scale(1.15); }
-.fs-like-btn.liked   { color: #1db954; }
+.fs-like-btn:hover { color: #fff; transform: scale(1.15); }
+.fs-like-btn.liked { color: #1db954; }
 
-/* Progress */
+/* Barra de progreso */
 .fs-progress-wrap {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 8px; width: 100%;
 }
-.fs-time { font-size: 12px; color: rgba(255,255,255,0.5); width: 36px; text-align: center; flex-shrink: 0; }
+.fs-time { font-size: 11px; color: rgba(255,255,255,0.4); width: 30px; text-align: center; flex-shrink: 0; }
 .fs-progress-track {
-  flex: 1; height: 4px; background: rgba(255,255,255,0.2);
+  flex: 1; height: 3px; background: rgba(255,255,255,0.18);
   border-radius: 2px; cursor: pointer; position: relative;
   transition: height 0.15s;
 }
-.fs-progress-track:hover { height: 6px; }
+.fs-progress-track:hover { height: 5px; }
 .fs-progress-fill {
-  height: 100%; background: #1db954; border-radius: 2px;
-  pointer-events: none;
+  height: 100%; background: #1db954; border-radius: 2px; pointer-events: none;
 }
 .fs-progress-thumb {
   position: absolute; top: 50%; transform: translate(-50%, -50%);
-  width: 12px; height: 12px; border-radius: 50%; background: #fff;
+  width: 10px; height: 10px; border-radius: 50%; background: #fff;
   pointer-events: none; opacity: 0; transition: opacity 0.15s;
 }
 .fs-progress-track:hover .fs-progress-thumb { opacity: 1; }
 
-/* Controls */
+/* Controles */
 .fs-controls {
-  display: flex; align-items: center; justify-content: center; gap: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%;
 }
 .fs-ctrl-btn {
-  background: none; border: none; color: rgba(255,255,255,0.7);
+  background: none; border: none; color: rgba(255,255,255,0.65);
   cursor: pointer; padding: 6px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  transition: color 0.2s, transform 0.15s;
+  transition: color 0.18s, transform 0.14s;
 }
 .fs-ctrl-btn:hover      { color: #fff; transform: scale(1.1); }
 .fs-ctrl-btn.active     { color: #1db954; }
-.fs-ctrl-btn.fs-ctrl-sm { opacity: 0.7; }
+.fs-ctrl-btn.fs-ctrl-sm { opacity: 0.65; }
 .fs-ctrl-play {
   background: #fff; color: #000 !important;
-  width: 56px; height: 56px; border-radius: 50%;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  width: 48px; height: 48px; border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
 }
-.fs-ctrl-play:hover { transform: scale(1.06); background: #f0f0f0; }
+.fs-ctrl-play:hover { transform: scale(1.07); }
 
-/* Viz mode row */
+/* Selector modo visualizador */
 .fs-viz-mode-row {
-  display: flex; align-items: center; gap: 8px;
-  justify-content: center;
+  display: flex; align-items: center; gap: 6px; width: 100%;
 }
 .fs-vizmode-btn {
-  display: flex; align-items: center; gap: 5px;
-  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.5); font-size: 11px;
-  padding: 5px 12px; border-radius: 20px; cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.45); font-size: 10px;
+  padding: 5px 0; border-radius: 16px; cursor: pointer;
+  transition: background 0.18s, color 0.18s;
 }
-.fs-vizmode-btn:hover  { background: rgba(255,255,255,0.15); color: #fff; }
-.fs-vizmode-btn.active { background: rgba(29,185,84,0.2); border-color: #1db954; color: #1db954; }
+.fs-vizmode-btn:hover  { background: rgba(255,255,255,0.12); color: #ddd; }
+.fs-vizmode-btn.active { background: rgba(29,185,84,0.18); border-color: #1db954; color: #1db954; }
 
-/* Canvas viz */
+/* Canvas visualizador */
 .fs-viz-wrap {
   position: relative; z-index: 2;
-  width: 100%; height: 160px; flex-shrink: 0;
-  padding: 0 0 0 0;
+  width: 100%; height: 130px; flex-shrink: 0;
 }
 .fs-canvas {
-  width: 100%; height: 100%;
-  display: block;
+  width: 100%; height: 100%; display: block;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 700px) {
-  .fs-body {
-    flex-direction: column;
-    padding: 60px 24px 10px;
-    gap: 24px;
-  }
-  .fs-art-wrap { width: 180px; height: 180px; }
-  .fs-art      { width: 160px; height: 160px; }
-  .fs-info-col { max-width: 100%; align-items: center; text-align: center; }
-  .fs-title    { font-size: 20px; }
+@media (max-width: 400px) {
+  .fs-overlay { width: 100%; }
 }
