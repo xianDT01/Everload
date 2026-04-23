@@ -637,7 +637,10 @@
 
   <aside class="lib-rightbar">
     <div class="rightbar-sticky">
-      <section class="xp-player-shell" [class.playing]="state?.playing" [class.idle]="!state?.currentTrack">
+      <section class="xp-player-shell"
+               [attr.data-skin]="playerSkin"
+               [class.playing]="state?.playing"
+               [class.idle]="!state?.currentTrack">
         <div class="xp-titlebar">
           <div class="xp-title-meta">
             <span class="xp-orb"></span>
@@ -696,7 +699,52 @@
             <button class="xp-control-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat()" [title]="'MUSIC.REPEAT' | translate">
               <span class="xp-repeat-label">{{ repeat === 'one' ? '1' : '∞' }}</span>
             </button>
+            <button class="xp-control-btn" [class.active]="vizActive" (click)="toggleViz()" title="Visualizer">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h2v-6H3v6Zm4 0h2V6H7v12Zm4 0h2v-9h-2v9Zm4 0h2v-3h-2v3Zm4-7h2v-2h-2v2Z"/></svg>
+            </button>
           </div>
+        </div>
+      </section>
+
+      <section class="rightbar-card rightbar-actions">
+        <div class="rightbar-card-header">
+          <span>Quick Actions</span>
+          <span class="rightbar-chip">Live</span>
+        </div>
+        <div class="rightbar-action-grid">
+          <button class="rightbar-action-btn" (click)="toggleViz()" [class.active]="vizActive">
+            <span>Visualizer</span>
+            <small>{{ vizActive ? 'On' : 'Off' }}</small>
+          </button>
+          <button class="rightbar-action-btn" (click)="openNowPlayingPanel()">
+            <span>Full Panel</span>
+            <small>Expand</small>
+          </button>
+          <button class="rightbar-action-btn" (click)="musicService.toggleShuffle()" [class.active]="shuffle">
+            <span>Shuffle</span>
+            <small>{{ shuffle ? 'Active' : 'Ready' }}</small>
+          </button>
+          <button class="rightbar-action-btn" (click)="musicService.toggleRepeat()" [class.active]="repeat !== 'none'">
+            <span>Repeat</span>
+            <small>{{ repeat === 'none' ? 'Off' : repeat }}</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="rightbar-card rightbar-skins">
+        <div class="rightbar-card-header">
+          <span>Skins</span>
+          <span class="rightbar-chip">{{ playerSkin }}</span>
+        </div>
+        <div class="rightbar-skin-list">
+          <button *ngFor="let skin of availableSkins"
+                  class="rightbar-skin-btn"
+                  [class.active]="playerSkin === skin.id"
+                  [attr.data-skin]="skin.id"
+                  (click)="setPlayerSkin(skin.id)">
+            <span class="rightbar-skin-label">{{ skin.label }}</span>
+            <small class="rightbar-skin-hint">{{ skin.hint }}</small>
+          </button>
         </div>
       </section>
 
