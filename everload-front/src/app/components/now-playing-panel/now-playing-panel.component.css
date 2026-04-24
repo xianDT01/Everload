@@ -4,8 +4,82 @@
   position: fixed;
   inset: 0;
   z-index: 9490;
-  background: radial-gradient(circle at center, rgba(24, 74, 163, 0.14) 0%, rgba(5, 9, 20, 0.72) 68%);
-  backdrop-filter: blur(6px);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.16) 0%, transparent 22%),
+    linear-gradient(180deg, #6ba0ef 0%, #8ab5f6 34%, #6ea2ef 35%, #4a7fd8 100%);
+}
+
+.np-desktop-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 9490;
+}
+
+.np-desktop-taskbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9491;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  background: linear-gradient(180deg, #3e92ff 0%, #215fd3 100%);
+  border-top: 1px solid rgba(255,255,255,0.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
+}
+
+.np-desktop-taskbar.hidden {
+  display: none;
+}
+
+.np-start-btn {
+  min-width: 90px;
+  height: 30px;
+  border-radius: 16px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #51bf41 0%, #2e8f21 100%);
+  color: #fff8c8;
+  font-size: 22px;
+  font-style: italic;
+  font-weight: 700;
+  text-transform: lowercase;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
+}
+
+.np-taskband {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.np-task-chip {
+  min-width: 120px;
+  height: 28px;
+  padding: 0 14px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255,255,255,0.22);
+  color: #eef6ff;
+  font-size: 13px;
+}
+
+.np-task-chip.active {
+  background: rgba(255,255,255,0.34);
+  color: #fff;
+}
+
+.np-system-tray {
+  margin-left: auto;
+  color: #fff;
+  font-size: 13px;
 }
 
 .np-panel {
@@ -40,6 +114,16 @@
     inset 0 0 0 1px rgba(255,255,255,0.2);
   background:
     linear-gradient(180deg, rgba(242,248,255,0.94) 0%, rgba(216,231,255,0.94) 5%, rgba(165,198,246,0.98) 5.1%, rgba(55,100,203,0.96) 8%, rgba(195,221,255,0.28) 8.2%, rgba(233,245,255,0.96) 8.4%, rgba(207,228,255,0.98) 100%);
+}
+
+.np-panel.np-panel-desktop.np-panel-fullscreen {
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  transform: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
 
 @keyframes np-slide-in {
@@ -107,6 +191,13 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
 }
 
+.wmp-fullscreen-btn {
+  color: #265291;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .wmp-close-btn {
   padding: 0;
   cursor: pointer;
@@ -169,14 +260,43 @@
 
 .wmp-content {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(240px, 0.9fr);
-  gap: 18px;
+  grid-template-columns: 122px minmax(0, 1.8fr) minmax(250px, 0.85fr);
+  gap: 12px;
   flex: 1;
   min-height: 0;
-  padding: 16px;
+  padding: 14px;
   background:
     radial-gradient(circle at top left, rgba(109, 183, 255, 0.22) 0%, transparent 30%),
     linear-gradient(180deg, rgba(236,245,255,0.96) 0%, rgba(199,222,255,0.96) 100%);
+}
+
+.wmp-leftnav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(248,252,255,0.94) 0%, rgba(220,236,255,0.92) 100%);
+  border: 1px solid rgba(126, 164, 220, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.88);
+}
+
+.wmp-nav-item {
+  min-height: 50px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.6);
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(225,236,255,0.96) 100%);
+  color: #2a4f84;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.wmp-nav-item.active {
+  color: #0d3570;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(196,218,255,0.96) 100%);
 }
 
 .wmp-stage,
@@ -198,67 +318,6 @@
   min-height: 0;
 }
 
-.wmp-stage-top {
-  display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
-  gap: 18px;
-  align-items: center;
-}
-
-.wmp-art-shell {
-  padding: 10px;
-  border-radius: 26px;
-  background: linear-gradient(180deg, rgba(102, 154, 235, 0.24) 0%, rgba(255,255,255,0.85) 100%);
-}
-
-.wmp-art-frame {
-  aspect-ratio: 1;
-  border-radius: 22px;
-  padding: 12px;
-  background: linear-gradient(180deg, #edf7ff 0%, #b8d9ff 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.95),
-    inset 0 -2px 0 rgba(44, 85, 165, 0.35),
-    0 18px 30px rgba(42, 69, 119, 0.18);
-}
-
-.wmp-art-frame.playing {
-  animation: wmp-float 4.5s ease-in-out infinite;
-}
-
-@keyframes wmp-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-
-.wmp-art-frame img,
-.wmp-art-fallback {
-  width: 100%;
-  height: 100%;
-  border-radius: 16px;
-}
-
-.wmp-art-frame img {
-  display: block;
-  object-fit: cover;
-}
-
-.wmp-art-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 72px;
-  color: rgba(33, 82, 148, 0.45);
-  background: linear-gradient(180deg, #eef6ff 0%, #b8d9ff 100%);
-}
-
-.wmp-track-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .wmp-kicker,
 .wmp-side-label {
   font-size: 11px;
@@ -268,27 +327,66 @@
   color: #3767b6;
 }
 
-.wmp-track-copy h2 {
-  margin: 0;
-  font-size: 30px;
-  line-height: 1.03;
-  color: #12396f;
-  word-break: break-word;
+.wmp-visual-screen {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid #1b2b50;
 }
 
-.wmp-track-copy p,
-.wmp-track-copy small {
-  margin: 0;
-  color: #365989;
+.wmp-screen-copy {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  right: 14px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  pointer-events: none;
 }
 
-.wmp-track-copy p {
-  font-size: 18px;
-  font-weight: 600;
+.wmp-screen-copy span {
+  color: rgba(255,255,255,0.82);
+  font-size: 17px;
 }
 
-.wmp-track-copy small {
-  font-size: 13px;
+.wmp-screen-copy strong {
+  color: #fff;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.08;
+}
+
+.wmp-stage .np-canvas {
+  min-height: 0;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.wmp-stage-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wmp-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #06120d 0%, #050805 100%);
+  color: #9dd244;
+  font-size: 12px;
 }
 
 .wmp-seekbar {
@@ -328,23 +426,7 @@
 }
 
 .wmp-viz-box {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
-  flex: 1;
-}
-
-.wmp-viz-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.wmp-viz-head strong {
-  color: #234b83;
-  font-size: 14px;
+  display: none;
 }
 
 .wmp-viz-tabs {
@@ -382,6 +464,69 @@
   flex-direction: column;
   gap: 14px;
   min-height: 0;
+}
+
+.wmp-side-now {
+  padding: 0;
+  overflow: hidden;
+}
+
+.wmp-side-topbar {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(180deg, #7f9be1 0%, #617cc6 100%);
+}
+
+.wmp-side-album {
+  padding: 16px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.wmp-side-art {
+  width: 170px;
+  height: 170px;
+  border-radius: 2px;
+  background: #425286;
+  border: 1px solid rgba(255,255,255,0.16);
+  overflow: hidden;
+}
+
+.wmp-side-art img,
+.wmp-side-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+.wmp-side-art img {
+  display: block;
+  object-fit: cover;
+}
+
+.wmp-side-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  color: rgba(255,255,255,0.45);
+}
+
+.wmp-side-trackline {
+  width: 100%;
+  padding: 4px 6px;
+  background: #091109;
+  color: #a3dc49;
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wmp-side-card {
@@ -447,6 +592,17 @@
   color: #29558f;
   background: linear-gradient(180deg, rgba(249,252,255,0.95) 0%, rgba(221,236,255,0.92) 100%);
   border-top: 1px solid rgba(113, 155, 214, 0.45);
+}
+
+@media (max-width: 1260px) {
+  .wmp-content {
+    grid-template-columns: 108px minmax(0, 1fr) 230px;
+  }
+
+  .wmp-side-art {
+    width: 148px;
+    height: 148px;
+  }
 }
 
 /* ── Mobile legacy panel ─────────────────────────────────────────────────── */
