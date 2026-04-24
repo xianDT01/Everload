@@ -3,6 +3,7 @@ import { HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../services/music.service';
 import { NasPath, NasService } from '../../services/nas.service';
+import { ChatService } from '../../services/chat.service';
 
 @Component({
   selector: 'app-now-playing-panel',
@@ -27,8 +28,18 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   desktopStartOpen = false;
   desktopExplorerOpen = true;
+  messengerOpen = false;
+  messengerBuzzing = false;
+  playerMinimized = false;
+  explorerMinimized = false;
+  messengerMinimized = false;
+  activeDesktopWindow: 'player' | 'explorer' | 'messenger' = 'player';
   desktopPanelPosition = { x: 0, y: 0 };
+  desktopPanelSize = { width: 1060, height: 690 };
   explorerWindowPosition = { x: 132, y: 84 };
+  explorerWindowSize = { width: 560, height: 420 };
+  messengerWindowPosition = { x: 220, y: 112 };
+  messengerWindowSize = { width: 760, height: 560 };
   explorerPaths: NasPath[] = [];
   explorerPathId: number | null = null;
   explorerSubPath = '';
@@ -37,12 +48,23 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   explorerLoading = false;
   explorerError = '';
   private clockTimer?: number;
-  private dragState: { target: 'player' | 'explorer'; offsetX: number; offsetY: number } | null = null;
+  private dragState: { target: 'player' | 'explorer' | 'messenger'; offsetX: number; offsetY: number } | null = null;
+  private resizeState: {
+    target: 'player' | 'explorer' | 'messenger';
+    startX: number;
+    startY: number;
+    startWidth: number;
+    startHeight: number;
+    startLeft: number;
+    startTop: number;
+    edgeX: 'left' | 'right';
+    edgeY: 'top' | 'bottom';
+  } | null = null;
 
   private subs: Subscription[] = [];
   private wasOpen = false;
 
-  constructor(public musicService: MusicService, private nasService: NasService) {}
+  constructor(public musicService: MusicService, private nasService: NasService, private chatService: ChatService) {}
 
   ngOnInit(): void {
     this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => { this.state = s; }));
@@ -53,12 +75,17 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.updateTaskbarClock();
     this.resetDesktopWindowPositions();
     this.clockTimer = window.setInterval(() => this.updateTaskbarClock(), 30000);
+    this.subs.push(this.chatService.newMessageAlert$.subscribe(() => {
+      if (this.messengerOpen && !this.messengerMinimized) this.playMsnMessageReceived();
+      else this.playMsnMessageReceived();
+    }));
   }
 
   ngAfterViewChecked(): void {
     const open = this.musicService.nowPlayingPanelOpen;
     if (open && !this.wasOpen) {
       this.wasOpen = true;
+      this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Startup.mp3', 0.7);
       requestAnimationFrame(() => this.startViz());
     } else if (!open && this.wasOpen) {
       this.wasOpen = false;
@@ -84,6 +111,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     return {
       left: `${this.desktopPanelPosition.x}px`,
       top: `${this.desktopPanelPosition.y}px`,
+      width: `${this.desktopPanelSize.width}px`,
+      height: `${this.desktopPanelSize.height}px`,
+      zIndex: this.activeDesktopWindow === 'player' ? '9501' : '9498',
       transform: 'none'
     };
   }
@@ -91,13 +121,30 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (this.isFullscreen) return {};
     return {
       left: `${this.explorerWindowPosition.x}px`,
-      top: `${this.explorerWindowPosition.y}px`
+      top: `${this.explorerWindowPosition.y}px`,
+      width: `${this.explorerWindowSize.width}px`,
+      height: `${this.explorerWindowSize.height}px`,
+      zIndex: this.activeDesktopWindow === 'explorer' ? '9502' : '9497'
+    };
+  }
+  get messengerWindowStyle(): Record<string, string> {
+    if (this.isFullscreen) return {};
+    return {
+      left: `${this.messengerWindowPosition.x}px`,
+      top: `${this.messengerWindowPosition.y}px`,
+      width: `${this.messengerWindowSize.width}px`,
+      height: `${this.messengerWindowSize.height}px`,
+      zIndex: this.activeDesktopWindow === 'messenger' ? '9503' : '9496'
     };
   }
 
   close(): void {
+    this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Shutdown.mp3', 0.7);
     this.musicService.nowPlayingPanelOpen = false;
     this.desktopStartOpen = false;
+    this.playerMinimized = false;
+    this.explorerMinimized = false;
+    this.messengerMinimized = false;
     this.stopViz();
   }
 
@@ -111,19 +158,28 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   @HostListener('document:mousemove', ['$event'])
   onDocumentMouseMove(event: MouseEvent): void {
-    if (!this.dragState || this.isFullscreen) return;
+    if (this.isFullscreen) return;
+    if (this.resizeState) {
+      this.handleWindowResize(event);
+      return;
+    }
+    if (this.dragState) {
     const nextX = event.clientX - this.dragState.offsetX;
     const nextY = event.clientY - this.dragState.offsetY;
     if (this.dragState.target === 'player') {
-      this.desktopPanelPosition = this.clampWindowPosition(nextX, nextY, this.getPlayerWindowSize());
+      this.desktopPanelPosition = this.clampWindowPosition(nextX, nextY, this.desktopPanelSize);
+    } else if (this.dragState.target === 'explorer') {
+      this.explorerWindowPosition = this.clampWindowPosition(nextX, nextY, this.explorerWindowSize);
     } else {
-      this.explorerWindowPosition = this.clampWindowPosition(nextX, nextY, this.getExplorerWindowSize());
+      this.messengerWindowPosition = this.clampWindowPosition(nextX, nextY, this.messengerWindowSize);
     }
+  }
   }
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
     this.dragState = null;
+    this.resizeState = null;
   }
 
   async toggleFullscreen(): Promise<void> {
@@ -360,9 +416,19 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.desktopStartOpen = !this.desktopStartOpen;
   }
 
-  beginWindowDrag(event: MouseEvent, target: 'player' | 'explorer'): void {
+  focusWindow(target: 'player' | 'explorer' | 'messenger'): void {
+    this.activeDesktopWindow = target;
+    this.desktopStartOpen = false;
+  }
+
+  beginWindowDrag(event: MouseEvent, target: 'player' | 'explorer' | 'messenger'): void {
     if (this.isFullscreen) return;
-    const position = target === 'player' ? this.desktopPanelPosition : this.explorerWindowPosition;
+    this.focusWindow(target);
+    const position = target === 'player'
+      ? this.desktopPanelPosition
+      : target === 'explorer'
+        ? this.explorerWindowPosition
+        : this.messengerWindowPosition;
     this.dragState = {
       target,
       offsetX: event.clientX - position.x,
@@ -371,20 +437,117 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     event.preventDefault();
   }
 
+  beginWindowResize(
+    event: MouseEvent,
+    target: 'player' | 'explorer' | 'messenger',
+    edgeX: 'left' | 'right',
+    edgeY: 'top' | 'bottom'
+  ): void {
+    if (this.isFullscreen) return;
+    this.focusWindow(target);
+    const position = target === 'player'
+      ? this.desktopPanelPosition
+      : target === 'explorer'
+        ? this.explorerWindowPosition
+        : this.messengerWindowPosition;
+    const size = target === 'player'
+      ? this.desktopPanelSize
+      : target === 'explorer'
+        ? this.explorerWindowSize
+        : this.messengerWindowSize;
+    this.resizeState = {
+      target,
+      startX: event.clientX,
+      startY: event.clientY,
+      startWidth: size.width,
+      startHeight: size.height,
+      startLeft: position.x,
+      startTop: position.y,
+      edgeX,
+      edgeY
+    };
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   openExplorerWindow(): void {
     this.desktopExplorerOpen = true;
+    this.explorerMinimized = false;
+    this.activeDesktopWindow = 'explorer';
     this.desktopStartOpen = false;
     this.ensureExplorerContext();
   }
 
   closeExplorerWindow(): void {
     this.desktopExplorerOpen = false;
+    this.explorerMinimized = false;
     this.desktopStartOpen = false;
+  }
+
+  openMessengerWindow(): void {
+    const wasOpen = this.messengerOpen;
+    this.messengerOpen = true;
+    this.messengerMinimized = false;
+    this.activeDesktopWindow = 'messenger';
+    this.desktopStartOpen = false;
+    if (!wasOpen) this.playMsnOnline();
+  }
+
+  closeMessengerWindow(): void {
+    this.messengerOpen = false;
+    this.messengerMinimized = false;
+    if (this.activeDesktopWindow === 'messenger') {
+      this.activeDesktopWindow = this.desktopExplorerOpen ? 'explorer' : 'player';
+    }
+  }
+
+  minimizeWindow(target: 'player' | 'explorer' | 'messenger'): void {
+    if (target === 'player') this.playerMinimized = true;
+    if (target === 'explorer') this.explorerMinimized = true;
+    if (target === 'messenger') this.messengerMinimized = true;
+    if (this.activeDesktopWindow === target) {
+      if (target !== 'player' && !this.playerMinimized) this.activeDesktopWindow = 'player';
+      else if (target !== 'explorer' && this.desktopExplorerOpen && !this.explorerMinimized) this.activeDesktopWindow = 'explorer';
+      else if (target !== 'messenger' && this.messengerOpen && !this.messengerMinimized) this.activeDesktopWindow = 'messenger';
+    }
+  }
+
+  toggleTaskWindow(target: 'player' | 'explorer' | 'messenger'): void {
+    if (target === 'player') {
+      this.playerMinimized = !this.playerMinimized;
+      if (!this.playerMinimized) this.focusWindow('player');
+      return;
+    }
+    if (target === 'explorer') {
+      if (!this.desktopExplorerOpen) {
+        this.openExplorerWindow();
+        return;
+      }
+      this.explorerMinimized = !this.explorerMinimized;
+      if (!this.explorerMinimized) this.focusWindow('explorer');
+      return;
+    }
+    if (!this.messengerOpen) {
+      this.openMessengerWindow();
+      return;
+    }
+    this.messengerMinimized = !this.messengerMinimized;
+    if (!this.messengerMinimized) this.focusWindow('messenger');
+  }
+
+  triggerMessengerBuzz(): void {
+    this.focusWindow('messenger');
+    this.messengerBuzzing = true;
+    window.setTimeout(() => {
+      this.messengerBuzzing = false;
+    }, 560);
+    this.playMessengerBuzzInspired();
   }
 
   openCurrentTrackFolder(): void {
     this.desktopStartOpen = false;
     this.desktopExplorerOpen = true;
+    this.activeDesktopWindow = 'explorer';
     this.ensureExplorerContext(true);
   }
 
@@ -598,12 +761,18 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   private resetDesktopWindowPositions(): void {
     if (typeof window === 'undefined') return;
-    const player = this.getPlayerWindowSize();
+    const player = this.getDefaultPlayerWindowSize();
+    const explorer = this.getDefaultExplorerWindowSize();
+    const messenger = this.getDefaultMessengerWindowSize();
+    this.desktopPanelSize = player;
     this.desktopPanelPosition = {
       x: Math.max(24, Math.round((window.innerWidth - player.width) / 2)),
       y: Math.max(24, Math.round((window.innerHeight - player.height) / 2) - 12)
     };
-    this.explorerWindowPosition = this.clampWindowPosition(132, 84, this.getExplorerWindowSize());
+    this.explorerWindowSize = explorer;
+    this.explorerWindowPosition = this.clampWindowPosition(132, 84, explorer);
+    this.messengerWindowSize = messenger;
+    this.messengerWindowPosition = this.clampWindowPosition(220, 112, messenger);
   }
 
   private clampAllWindows(): void {
@@ -611,13 +780,21 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.desktopPanelPosition = this.clampWindowPosition(
       this.desktopPanelPosition.x,
       this.desktopPanelPosition.y,
-      this.getPlayerWindowSize()
+      this.desktopPanelSize
     );
     this.explorerWindowPosition = this.clampWindowPosition(
       this.explorerWindowPosition.x,
       this.explorerWindowPosition.y,
-      this.getExplorerWindowSize()
+      this.explorerWindowSize
     );
+    this.messengerWindowPosition = this.clampWindowPosition(
+      this.messengerWindowPosition.x,
+      this.messengerWindowPosition.y,
+      this.messengerWindowSize
+    );
+    this.desktopPanelSize = this.clampWindowSize('player', this.desktopPanelSize.width, this.desktopPanelSize.height);
+    this.explorerWindowSize = this.clampWindowSize('explorer', this.explorerWindowSize.width, this.explorerWindowSize.height);
+    this.messengerWindowSize = this.clampWindowSize('messenger', this.messengerWindowSize.width, this.messengerWindowSize.height);
   }
 
   private clampWindowPosition(x: number, y: number, size: { width: number; height: number }): { x: number; y: number } {
@@ -631,7 +808,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     };
   }
 
-  private getPlayerWindowSize(): { width: number; height: number } {
+  private getDefaultPlayerWindowSize(): { width: number; height: number } {
     if (typeof window === 'undefined') return { width: 1060, height: 690 };
     return {
       width: Math.min(1060, window.innerWidth - 64),
@@ -639,12 +816,67 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     };
   }
 
-  private getExplorerWindowSize(): { width: number; height: number } {
+  private getDefaultExplorerWindowSize(): { width: number; height: number } {
     if (typeof window === 'undefined') return { width: 560, height: 420 };
     return {
       width: Math.min(560, window.innerWidth - 200),
       height: Math.min(420, window.innerHeight - 180)
     };
+  }
+
+  private getDefaultMessengerWindowSize(): { width: number; height: number } {
+    if (typeof window === 'undefined') return { width: 760, height: 560 };
+    return {
+      width: Math.min(760, window.innerWidth - 120),
+      height: Math.min(560, window.innerHeight - 120)
+    };
+  }
+
+  private clampWindowSize(target: 'player' | 'explorer' | 'messenger', width: number, height: number): { width: number; height: number } {
+    if (typeof window === 'undefined') return { width, height };
+    const taskbarHeight = this.isFullscreen ? 0 : 44;
+    const minWidth = target === 'player' ? 760 : target === 'messenger' ? 560 : 420;
+    const minHeight = target === 'player' ? 500 : target === 'messenger' ? 420 : 300;
+    const maxWidth = Math.max(minWidth, window.innerWidth - 16);
+    const maxHeight = Math.max(minHeight, window.innerHeight - taskbarHeight - 16);
+    return {
+      width: Math.min(Math.max(minWidth, width), maxWidth),
+      height: Math.min(Math.max(minHeight, height), maxHeight)
+    };
+  }
+
+  private handleWindowResize(event: MouseEvent): void {
+    if (!this.resizeState) return;
+    const state = this.resizeState;
+    const deltaX = event.clientX - state.startX;
+    const deltaY = event.clientY - state.startY;
+
+    let nextWidth = state.startWidth + (state.edgeX === 'right' ? deltaX : -deltaX);
+    let nextHeight = state.startHeight + (state.edgeY === 'bottom' ? deltaY : -deltaY);
+    const clampedSize = this.clampWindowSize(state.target, nextWidth, nextHeight);
+    nextWidth = clampedSize.width;
+    nextHeight = clampedSize.height;
+
+    let nextLeft = state.startLeft;
+    let nextTop = state.startTop;
+    if (state.edgeX === 'left') {
+      nextLeft = state.startLeft + (state.startWidth - nextWidth);
+    }
+    if (state.edgeY === 'top') {
+      nextTop = state.startTop + (state.startHeight - nextHeight);
+    }
+
+    const clampedPosition = this.clampWindowPosition(nextLeft, nextTop, { width: nextWidth, height: nextHeight });
+    if (state.target === 'player') {
+      this.desktopPanelSize = { width: nextWidth, height: nextHeight };
+      this.desktopPanelPosition = clampedPosition;
+    } else if (state.target === 'explorer') {
+      this.explorerWindowSize = { width: nextWidth, height: nextHeight };
+      this.explorerWindowPosition = clampedPosition;
+    } else {
+      this.messengerWindowSize = { width: nextWidth, height: nextHeight };
+      this.messengerWindowPosition = clampedPosition;
+    }
   }
 
   private uploadExplorerFiles(files: File[], relativePaths?: string[]): void {
@@ -662,5 +894,30 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.explorerError = err.error?.error || 'No se pudo subir el contenido.';
       }
     });
+  }
+
+  private playSound(url: string, volume = 1): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const audio = new Audio(url);
+      audio.volume = Math.max(0, Math.min(1, volume));
+      audio.play().catch(() => {});
+    } catch {}
+  }
+
+  private playMsnMessageReceived(): void {
+    this.playSound('assets/Windows%20songs/messenger-tono-mensaje-.mp3', 0.8);
+  }
+
+  playMsnMessageSent(): void {
+    this.playSound('assets/Windows%20songs/messenger-tono-mensaje-.mp3', 0.5);
+  }
+
+  private playMsnOnline(): void {
+    this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Logon.mp3', 0.7);
+  }
+
+  private playMessengerBuzzInspired(): void {
+    this.playSound('assets/Windows%20songs/Zumbido%20messenger.mp3', 0.9);
   }
 }
