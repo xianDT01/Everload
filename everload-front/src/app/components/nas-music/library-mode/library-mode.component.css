@@ -59,6 +59,10 @@
   grid-template-columns: var(--sidebar-w) var(--sidebar-resizer-w) minmax(0, 1fr);
 }
 
+.lib-root.mobile-player-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 /* ══ SIDEBAR ════════════════════════════════════════════════════════════════ */
 .lib-sidebar {
   background: #000;
@@ -457,6 +461,67 @@
   gap: 12px;
   scrollbar-width: thin;
   scrollbar-color: var(--sp-faint) transparent;
+}
+
+.mobile-player-btn,
+.mobile-player-only-header {
+  display: none;
+}
+
+.mobile-player-only-header {
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+}
+
+.mobile-player-only-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mobile-player-only-copy strong {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mobile-player-only-copy small {
+  color: var(--sp-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.mobile-player-only-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-player-only-action {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: var(--sp-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.mobile-player-only-action:hover,
+.mobile-player-only-action.active {
+  background: rgba(29,185,84,0.16);
+  border-color: rgba(29,185,84,0.45);
+  transform: translateY(-1px);
 }
 
 .xp-player-shell,
@@ -2870,7 +2935,7 @@
 
 .mini-controls {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -3063,7 +3128,7 @@
 }
 
 .focus-controls {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .focus-utility-grid {
@@ -4389,6 +4454,59 @@
     background: rgba(255, 255, 255, 0.08);
   }
 
+  .mobile-player-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--sp-muted);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: color 150ms, background 150ms;
+  }
+
+  .mobile-player-btn:hover,
+  .mobile-player-btn.active {
+    color: var(--sp-text);
+    background: rgba(29, 185, 84, 0.18);
+  }
+
+  .lib-root.mobile-player-only {
+    display: block;
+    padding: 0;
+    gap: 0;
+  }
+
+  .lib-root.mobile-player-only .lib-sidebar,
+  .lib-root.mobile-player-only .lib-main,
+  .lib-root.mobile-player-only .sidebar-resizer,
+  .lib-root.mobile-player-only .mobile-overlay {
+    display: none;
+  }
+
+  .lib-root.mobile-player-only .lib-rightbar {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+    background: var(--sp-bg);
+  }
+
+  .lib-root.mobile-player-only .rightbar-sticky {
+    height: 100%;
+    gap: 10px;
+    padding-bottom: calc(var(--player-h) + 28px + env(safe-area-inset-bottom));
+  }
+
+  .lib-root.mobile-player-only .mobile-player-only-header {
+    display: flex;
+  }
+
   /* Hide breadcrumbs — replaced by folder name in header */
   .breadcrumbs {
     display: none;
@@ -4437,6 +4555,13 @@
   /* Full-width search when open */
   .topbar.mobile-search-open .topbar-nav {
     flex: 0 0 auto;
+  }
+
+  .lib-root.mobile-player-only .xp-player-shell,
+  .lib-root.mobile-player-only .mini-panel,
+  .lib-root.mobile-player-only .studio-panel,
+  .lib-root.mobile-player-only .focus-panel {
+    min-height: auto;
   }
 
   /* ─── Content header: vertical, centered ─────────────────────────────── */
@@ -4689,6 +4814,119 @@
   /* Now playing widget — hide in sidebar (mini player covers it) */
   .sidebar-now-playing {
     display: none;
+  }
+}
+
+@media (max-width: 768px) and (max-height: 760px) {
+  .lib-root.mobile-player-only .rightbar-sticky {
+    gap: 8px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .lib-root.mobile-player-only .mobile-player-only-header {
+    padding: 8px 10px;
+  }
+
+  .lib-root.mobile-player-only .mobile-player-only-copy strong {
+    font-size: 12px;
+  }
+
+  .lib-root.mobile-player-only .mobile-player-only-copy small {
+    font-size: 11px;
+    line-height: 1.25;
+  }
+
+  .lib-root.mobile-player-only .xp-player-body,
+  .lib-root.mobile-player-only .mini-panel,
+  .lib-root.mobile-player-only .studio-panel,
+  .lib-root.mobile-player-only .focus-panel {
+    gap: 10px;
+  }
+
+  .lib-root.mobile-player-only .xp-player-body {
+    padding: 10px;
+  }
+
+  .lib-root.mobile-player-only .xp-cover-stage {
+    min-height: 132px;
+  }
+
+  .lib-root.mobile-player-only .xp-cover-frame {
+    width: min(100%, 124px);
+    padding: 7px;
+  }
+
+  .lib-root.mobile-player-only .xp-track-title {
+    font-size: 16px;
+  }
+
+  .lib-root.mobile-player-only .xp-track-artist,
+  .lib-root.mobile-player-only .xp-track-album,
+  .lib-root.mobile-player-only .xp-progress-times,
+  .lib-root.mobile-player-only .mini-artist,
+  .lib-root.mobile-player-only .studio-artist,
+  .lib-root.mobile-player-only .focus-track-meta span {
+    font-size: 12px;
+  }
+
+  .lib-root.mobile-player-only .xp-controls {
+    gap: 6px;
+  }
+
+  .lib-root.mobile-player-only .xp-control-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+  }
+
+  .lib-root.mobile-player-only .xp-control-btn.primary {
+    width: 46px;
+  }
+
+  .lib-root.mobile-player-only .mini-controls {
+    gap: 6px;
+  }
+
+  .lib-root.mobile-player-only .mini-btn {
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .lib-root.mobile-player-only .studio-art-wrap {
+    margin-bottom: 2px;
+  }
+
+  .lib-root.mobile-player-only .studio-art-disc {
+    width: 180px;
+    height: 180px;
+  }
+
+  .lib-root.mobile-player-only .studio-controls {
+    gap: 6px;
+  }
+
+  .lib-root.mobile-player-only .studio-ctrl-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .lib-root.mobile-player-only .studio-ctrl-play {
+    width: 54px;
+    height: 54px;
+  }
+
+  .lib-root.mobile-player-only .focus-panel {
+    padding: 14px;
+  }
+
+  .lib-root.mobile-player-only .focus-controls {
+    gap: 8px;
+  }
+
+  .lib-root.mobile-player-only .focus-btn {
+    min-height: 38px;
+    padding-inline: 8px;
+    font-size: 11px;
   }
 }
 

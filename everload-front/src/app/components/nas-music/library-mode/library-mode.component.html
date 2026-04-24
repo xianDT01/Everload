@@ -13,6 +13,7 @@
      [style.--sidebar-w.px]="sidebarCollapsed ? 88 : sidebarWidth"
      [class.sidebar-collapsed]="sidebarCollapsed"
      [class.rightbar-hidden]="!uiPrefs.showRightbar"
+     [class.mobile-player-only]="mobilePlayerOnlyActive"
      [class.spacious-ui]="uiPrefs.spaciousMode">
 
   <!-- Mobile overlay (closes drawer) -->
@@ -192,6 +193,12 @@
       <button class="mobile-search-btn" (click)="mobileSearchOpen = !mobileSearchOpen" [ariaLabel]="'COMMON.SEARCH' | translate">
         <svg *ngIf="!mobileSearchOpen" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
         <svg *ngIf="mobileSearchOpen" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+      <button class="mobile-player-btn"
+              (click)="toggleMobilePlayerOnly(undefined, $event)"
+              [class.active]="mobilePlayerOnlyActive"
+              [title]="'MUSIC.UI_MOBILE_PLAYER_ONLY' | translate">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v12H3V5zm2 2v8h14V7H5zm5 10h4v2h-4z"/></svg>
       </button>
 
       <!-- Edit mode toggle (admin/nas_user only) -->
@@ -697,6 +704,21 @@
 
   <aside class="lib-rightbar" *ngIf="uiPrefs.showRightbar">
     <div class="rightbar-sticky">
+      <div class="mobile-player-only-header" *ngIf="mobilePlayerOnlyActive">
+        <div class="mobile-player-only-copy">
+          <strong>{{ 'MUSIC.UI_PLAYER_VIEW' | translate }}</strong>
+          <small>{{ 'MUSIC.UI_MOBILE_PLAYER_ONLY_HINT' | translate }}</small>
+        </div>
+        <div class="mobile-player-only-actions">
+          <button class="mobile-player-only-action" (click)="toggleSettings($event)" [class.active]="settingsOpen" [title]="'MUSIC.UI_CUSTOMIZE_LIBRARY' | translate">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.22-1.12.53-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.83 14.16a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.51.41 1.05.72 1.63.94l.36 2.54a.5.5 0 0 0 .49.42h3.8a.5.5 0 0 0 .49-.42l.36-2.54c.58-.22 1.12-.53 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg>
+          </button>
+          <button class="mobile-player-only-action" (click)="toggleMobilePlayerOnly(false, $event)" [title]="'MUSIC.UI_BACK_TO_LIBRARY' | translate">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
+      </div>
+
       <section *ngIf="uiPrefs.rightPanelMode === 'mini'" class="mini-panel">
         <div class="mini-panel-top">
           <div class="mini-art" [class.playing]="state?.playing">
@@ -717,12 +739,18 @@
         </div>
 
         <div class="mini-controls">
+          <button class="mini-btn" (click)="musicService.playPrevMain()" [disabled]="!state?.currentTrack">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+          </button>
           <button class="mini-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle()">Shf</button>
           <button class="mini-btn mini-btn-play" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack">
             <svg *ngIf="!state?.playing" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             <svg *ngIf="state?.playing" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
           <button class="mini-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat()">{{ repeat === 'one' ? '1' : '∞' }}</button>
+          <button class="mini-btn" (click)="musicService.playNextMain()" [disabled]="!state?.currentTrack">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
+          </button>
           <button class="mini-btn" (click)="openNowPlayingPanel()">Full</button>
         </div>
       </section>
@@ -780,9 +808,15 @@
           </div>
 
           <div class="xp-controls">
+            <button class="xp-control-btn" (click)="musicService.playPrevMain()" [disabled]="!state?.currentTrack">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
             <button class="xp-control-btn primary" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack">
               <svg *ngIf="state?.playing" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
               <svg *ngIf="!state?.playing" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button class="xp-control-btn" (click)="musicService.playNextMain()" [disabled]="!state?.currentTrack">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
             </button>
             <button class="xp-control-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle()" [title]="'MUSIC.SHUFFLE' | translate">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41ZM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5Zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13Z"/></svg>
@@ -832,6 +866,9 @@
         </div>
 
         <div class="studio-controls">
+          <button class="studio-ctrl-btn" (click)="musicService.playPrevMain()" [disabled]="!state?.currentTrack">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+          </button>
           <button class="studio-ctrl-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
           </button>
@@ -842,6 +879,9 @@
           <button class="studio-ctrl-btn studio-ctrl-play" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack">
             <svg *ngIf="!state?.playing" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             <svg *ngIf="state?.playing" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <button class="studio-ctrl-btn" (click)="musicService.playNextMain()" [disabled]="!state?.currentTrack">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
           </button>
           <button class="studio-ctrl-btn" (click)="toggleViz()" [class.active]="vizActive">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h2v-6H3v6zm4 0h2V6H7v12zm4 0h2v-9h-2v9zm4 0h2v-3h-2v3zm4-7h2v-2h-2v2z"/></svg>
@@ -893,9 +933,15 @@
         </div>
 
         <div class="focus-controls">
+          <button class="focus-btn" (click)="musicService.playPrevMain()" [disabled]="!state?.currentTrack">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+          </button>
           <button class="focus-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle()">{{ 'MUSIC.SHUFFLE' | translate }}</button>
           <button class="focus-btn focus-btn-play" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack">
             {{ state?.playing ? 'Pause' : 'Play' }}
+          </button>
+          <button class="focus-btn" (click)="musicService.playNextMain()" [disabled]="!state?.currentTrack">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
           </button>
           <button class="focus-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat()">{{ 'MUSIC.REPEAT' | translate }}</button>
         </div>
@@ -917,7 +963,7 @@
         </div>
       </section>
 
-      <ng-container *ngIf="uiPrefs.rightPanelMode === 'cards'">
+      <ng-container *ngIf="uiPrefs.rightPanelMode === 'cards' && !mobilePlayerOnlyActive">
         <ng-container *ngFor="let card of orderedRightbarCards">
           <section class="rightbar-card rightbar-actions" *ngIf="card.id === 'actions' && isCardVisible('actions')">
             <div class="rightbar-card-header">
@@ -1100,6 +1146,10 @@
           <button class="settings-toggle" [class.active]="uiPrefs.showRightbar" (click)="toggleUiPref('showRightbar')">
             <span>{{ 'MUSIC.UI_SHOW_RIGHT_PANEL' | translate }}</span>
             <small>{{ 'MUSIC.UI_SHOW_RIGHT_PANEL_HINT' | translate }}</small>
+          </button>
+          <button class="settings-toggle" [class.active]="uiPrefs.mobilePlayerOnly" (click)="toggleUiPref('mobilePlayerOnly')">
+            <span>{{ 'MUSIC.UI_MOBILE_PLAYER_ONLY' | translate }}</span>
+            <small>{{ 'MUSIC.UI_MOBILE_PLAYER_ONLY_HINT' | translate }}</small>
           </button>
           <button class="settings-toggle" [class.active]="uiPrefs.rememberContextLayout" (click)="toggleUiPref('rememberContextLayout')">
             <span>{{ 'MUSIC.UI_REMEMBER_CONTEXT' | translate }}</span>
