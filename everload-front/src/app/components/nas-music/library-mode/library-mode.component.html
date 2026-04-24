@@ -10,19 +10,28 @@
 <div class="lib-root"
      [attr.data-density]="uiPrefs.density"
      [attr.data-rightbar-size]="uiPrefs.rightbarSize"
+     [style.--sidebar-w.px]="sidebarCollapsed ? 88 : sidebarWidth"
+     [class.sidebar-collapsed]="sidebarCollapsed"
+     [class.rightbar-hidden]="!uiPrefs.showRightbar"
      [class.spacious-ui]="uiPrefs.spaciousMode">
 
   <!-- Mobile overlay (closes drawer) -->
   <div class="mobile-overlay" *ngIf="mobileMenuOpen" (click)="closeMobileMenu()"></div>
 
   <!-- ══ SIDEBAR ════════════════════════════════════════════════════════════ -->
-  <nav class="lib-sidebar" [class.mobile-open]="mobileMenuOpen">
+  <nav class="lib-sidebar" [class.mobile-open]="mobileMenuOpen" [class.collapsed]="sidebarCollapsed">
 
     <div class="sidebar-logo">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="#1db954">
         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
       </svg>
-      <span>{{ 'MUSIC.NAS_LIBRARY_LOGO' | translate }}</span>
+      <span class="sidebar-brand">{{ 'MUSIC.NAS_LIBRARY_LOGO' | translate }}</span>
+      <button class="sidebar-collapse-btn"
+              (click)="toggleSidebarCollapsed($event)"
+              [title]="sidebarCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'">
+        <svg *ngIf="!sidebarCollapsed" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        <svg *ngIf="sidebarCollapsed" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m8.59 16.59 1.41 1.41L16 12 10 6 8.59 7.41 13.17 12z"/></svg>
+      </button>
       <button class="sidebar-close-btn" (click)="closeMobileMenu()" [ariaLabel]="'COMMON.CLOSE_MENU' | translate">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
       </button>
@@ -87,6 +96,9 @@
             class="collection-item"
             [class.active]="currentView === 'folder' && p.id === selectedPathId && !currentSubPath"
             (click)="selectPath(p.id)">
+          <div class="collection-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
+          </div>
           <span class="collection-name-only">{{ p.name }}</span>
         </li>
       </ul>
@@ -138,6 +150,8 @@
     </div>
 
   </nav>
+
+  <div class="sidebar-resizer" (mousedown)="startSidebarResize($event)" aria-hidden="true"></div>
 
   <!-- ══ MAIN ════════════════════════════════════════════════════════════════ -->
   <div class="lib-main">
@@ -198,55 +212,6 @@
         </svg>
         <span *ngIf="editMode" class="edit-mode-label">{{ 'COMMON.EDIT' | translate }}</span>
       </button>
-    </div>
-
-    <div *ngIf="settingsOpen" class="settings-popover" (click)="$event.stopPropagation()">
-      <div class="settings-popover-header">
-        <div>
-          <strong>Customize View</strong>
-          <p>Make the library breathe the way you like.</p>
-        </div>
-        <button class="settings-close" (click)="toggleSettings($event)" title="Cerrar">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
-      </div>
-
-      <div class="settings-group">
-        <span class="settings-label">Density</span>
-        <div class="settings-segmented">
-          <button [class.active]="uiPrefs.density === 'comfortable'" (click)="setDensity('comfortable')">Comfort</button>
-          <button [class.active]="uiPrefs.density === 'cozy'" (click)="setDensity('cozy')">Cozy</button>
-          <button [class.active]="uiPrefs.density === 'compact'" (click)="setDensity('compact')">Compact</button>
-        </div>
-      </div>
-
-      <div class="settings-group">
-        <span class="settings-label">Right Panel</span>
-        <div class="settings-segmented">
-          <button [class.active]="uiPrefs.rightbarSize === 'wide'" (click)="setRightbarSize('wide')">Wide</button>
-          <button [class.active]="uiPrefs.rightbarSize === 'normal'" (click)="setRightbarSize('normal')">Normal</button>
-          <button [class.active]="uiPrefs.rightbarSize === 'narrow'" (click)="setRightbarSize('narrow')">Narrow</button>
-        </div>
-      </div>
-
-      <div class="settings-toggles">
-        <button class="settings-toggle" [class.active]="uiPrefs.spaciousMode" (click)="toggleUiPref('spaciousMode')">
-          <span>Spacious mode</span>
-          <small>Extra air in layout</small>
-        </button>
-        <button class="settings-toggle" [class.active]="uiPrefs.showBanners" (click)="toggleUiPref('showBanners')">
-          <span>Show banners</span>
-          <small>Hero area on folder root</small>
-        </button>
-        <button class="settings-toggle" [class.active]="uiPrefs.showActionsCard" (click)="toggleUiPref('showActionsCard')">
-          <span>Quick actions</span>
-          <small>Utility shortcuts card</small>
-        </button>
-        <button class="settings-toggle" [class.active]="uiPrefs.showStatsCard" (click)="toggleUiPref('showStatsCard')">
-          <span>Library stats</span>
-          <small>Folders and tracks summary</small>
-        </button>
-      </div>
     </div>
 
     <!-- Scrollable content -->
@@ -334,6 +299,40 @@
             <span *ngIf="folders.length > 0">{{ folders.length }} {{ (folders.length !== 1 ? 'MUSIC.COUNT_FOLDER_PLUR' : 'MUSIC.COUNT_FOLDER_SING') | translate }}</span>
             <span class="dot" *ngIf="folders.length > 0 && tracks.length > 0">·</span>
             <span *ngIf="tracks.length > 0">{{ tracks.length }} {{ tracks.length === 1 ? ('MUSIC.COUNT_SONG_SING' | translate) : ('MUSIC.COUNT_SONGS' | translate) }}</span>
+          </div>
+          <div class="hero-panel-info">
+            <div class="hero-panel-card hero-panel-card-main" *ngIf="state?.currentTrack as currentTrack">
+              <span class="hero-panel-label">{{ 'MUSIC.UI_NOW_PLAYING' | translate }}</span>
+              <strong>{{ currentTrack.title || currentTrack.name || '—' }}</strong>
+              <small>{{ heroPrimaryMeta }}<span *ngIf="heroSecondaryMeta"> · {{ heroSecondaryMeta }}</span></small>
+            </div>
+            <div class="hero-panel-card">
+              <span class="hero-panel-label">{{ 'MUSIC.UI_TRACK_DETAILS' | translate }}</span>
+              <div class="hero-panel-tags">
+                <span *ngIf="state?.currentTrack?.duration">{{ fmt(state?.currentTrack?.duration || 0) }}</span>
+                <span *ngIf="state?.currentTrack?.format">{{ state?.currentTrack?.format }}</span>
+                <span *ngIf="state?.currentTrack?.bpm">{{ state?.currentTrack?.bpm }} BPM</span>
+                <span *ngIf="state?.currentTrack?.size">{{ formatBytes(state?.currentTrack?.size) }}</span>
+                <span *ngIf="!state?.currentTrack">{{ 'MUSIC.UI_WAITING_PLAYBACK' | translate }}</span>
+              </div>
+            </div>
+            <div class="hero-panel-card">
+              <span class="hero-panel-label">{{ 'MUSIC.UI_LIBRARY_PULSE' | translate }}</span>
+              <div class="hero-panel-stats">
+                <div>
+                  <strong>{{ filteredTracks.length || tracks.length }}</strong>
+                  <small>{{ 'MUSIC.UI_TRACKS' | translate }}</small>
+                </div>
+                <div>
+                  <strong>{{ filteredFolders.length || folders.length }}</strong>
+                  <small>{{ 'MUSIC.UI_FOLDERS' | translate }}</small>
+                </div>
+                <div>
+                  <strong>{{ shuffle ? 'On' : repeat === 'none' ? 'Off' : repeat }}</strong>
+                  <small>{{ shuffle ? ('MUSIC.SHUFFLE' | translate) : ('MUSIC.REPEAT' | translate) }}</small>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -696,9 +695,40 @@
     </div><!-- /content-scroll -->
   </div><!-- /lib-main -->
 
-  <aside class="lib-rightbar">
+  <aside class="lib-rightbar" *ngIf="uiPrefs.showRightbar">
     <div class="rightbar-sticky">
-      <section class="xp-player-shell"
+      <section *ngIf="uiPrefs.rightPanelMode === 'mini'" class="mini-panel">
+        <div class="mini-panel-top">
+          <div class="mini-art" [class.playing]="state?.playing">
+            <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" alt="" />
+            <div *ngIf="!playerHasCover() || !state?.currentTrack" class="mini-art-fallback">♪</div>
+          </div>
+          <div class="mini-meta">
+            <span class="mini-kicker">{{ currentFolderName }}</span>
+            <strong class="mini-title">{{ state?.currentTrack?.title || state?.currentTrack?.name || 'Now Playing' }}</strong>
+            <span class="mini-artist">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
+          </div>
+        </div>
+
+        <div class="mini-progress" *ngIf="state?.currentTrack">
+          <div class="mini-progress-fill"
+               [style.width.%]="(state?.duration || 0) > 0 ? (((state?.currentTime || 0) / (state?.duration || 1)) * 100) : 0">
+          </div>
+        </div>
+
+        <div class="mini-controls">
+          <button class="mini-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle()">Shf</button>
+          <button class="mini-btn mini-btn-play" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack">
+            <svg *ngIf="!state?.playing" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg *ngIf="state?.playing" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          </button>
+          <button class="mini-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat()">{{ repeat === 'one' ? '1' : '∞' }}</button>
+          <button class="mini-btn" (click)="openNowPlayingPanel()">Full</button>
+        </div>
+      </section>
+
+      <section *ngIf="uiPrefs.rightPanelMode === 'cards'"
+               class="xp-player-shell"
                [attr.data-skin]="playerSkin"
                [class.playing]="state?.playing"
                [class.idle]="!state?.currentTrack">
@@ -767,68 +797,183 @@
         </div>
       </section>
 
-      <section class="rightbar-card rightbar-actions" *ngIf="uiPrefs.showActionsCard">
-        <div class="rightbar-card-header">
-          <span>Quick Actions</span>
-          <span class="rightbar-chip">Live</span>
+      <section *ngIf="uiPrefs.rightPanelMode === 'studio'" class="studio-panel" [attr.data-variant]="uiPrefs.studioVariant">
+        <div class="studio-label-row">
+          <span class="studio-label">Reproduciendo ahora</span>
+          <button class="studio-close-btn" (click)="openNowPlayingPanel()" title="Abrir panel completo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+            </svg>
+          </button>
         </div>
-        <div class="rightbar-action-grid">
-          <button class="rightbar-action-btn" (click)="toggleViz()" [class.active]="vizActive">
-            <span>Visualizer</span>
-            <small>{{ vizActive ? 'On' : 'Off' }}</small>
+
+        <div class="studio-art-wrap">
+          <div class="studio-art-disc" [class.playing]="state?.playing">
+            <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" alt="" />
+            <div *ngIf="!playerHasCover() || !state?.currentTrack" class="studio-art-fallback">♪</div>
+            <span class="studio-disc-center"></span>
+          </div>
+        </div>
+
+        <div class="studio-track-info">
+          <div class="studio-divider"></div>
+          <p class="studio-title">{{ state?.currentTrack?.title || state?.currentTrack?.name || '—' }}</p>
+          <p class="studio-artist">{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</p>
+        </div>
+
+        <div class="studio-progress-wrap" *ngIf="state?.currentTrack">
+          <span class="studio-time">{{ fmt(state?.currentTime || 0) }}</span>
+          <div class="studio-progress-track">
+            <div class="studio-progress-fill"
+                 [style.width.%]="(state?.duration || 0) > 0 ? (((state?.currentTime || 0) / (state?.duration || 1)) * 100) : 0">
+            </div>
+          </div>
+          <span class="studio-time">{{ fmt(state?.duration || 0) }}</span>
+        </div>
+
+        <div class="studio-controls">
+          <button class="studio-ctrl-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
           </button>
-          <button class="rightbar-action-btn" (click)="openNowPlayingPanel()">
-            <span>Full Panel</span>
-            <small>Expand</small>
+          <button class="studio-ctrl-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat()">
+            <svg *ngIf="repeat !== 'one'" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+            <svg *ngIf="repeat === 'one'" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z"/></svg>
           </button>
-          <button class="rightbar-action-btn" (click)="musicService.toggleShuffle()" [class.active]="shuffle">
-            <span>Shuffle</span>
-            <small>{{ shuffle ? 'Active' : 'Ready' }}</small>
+          <button class="studio-ctrl-btn studio-ctrl-play" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack">
+            <svg *ngIf="!state?.playing" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg *ngIf="state?.playing" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
-          <button class="rightbar-action-btn" (click)="musicService.toggleRepeat()" [class.active]="repeat !== 'none'">
-            <span>Repeat</span>
-            <small>{{ repeat === 'none' ? 'Off' : repeat }}</small>
+          <button class="studio-ctrl-btn" (click)="toggleViz()" [class.active]="vizActive">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h2v-6H3v6zm4 0h2V6H7v12zm4 0h2v-9h-2v9zm4 0h2v-3h-2v3zm4-7h2v-2h-2v2z"/></svg>
           </button>
+        </div>
+
+        <div class="studio-viz-mode-row">
+          <button class="studio-vizmode-btn active">Barras</button>
+          <button class="studio-vizmode-btn">Onda</button>
+          <button class="studio-vizmode-btn">Espectro</button>
+        </div>
+
+        <div class="studio-ambient-line"></div>
+      </section>
+
+      <section *ngIf="uiPrefs.rightPanelMode === 'focus'" class="focus-panel" [attr.data-skin]="playerSkin">
+        <div class="focus-panel-head">
+          <span class="focus-label">{{ 'MUSIC.UI_VISUALIZER_FOCUS' | translate }}</span>
+          <span class="focus-chip">{{ vizActive ? ('MUSIC.UI_LIVE' | translate) : ('MUSIC.UI_READY' | translate) }}</span>
+        </div>
+
+        <div class="focus-cover-zone" [class.playing]="state?.playing">
+          <div class="focus-cover-ring"></div>
+          <div class="focus-cover-ring secondary"></div>
+          <div class="focus-cover-core">
+            <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" alt="" />
+            <div *ngIf="!playerHasCover() || !state?.currentTrack" class="focus-cover-fallback">♪</div>
+          </div>
+        </div>
+
+        <div class="focus-track-meta">
+          <strong>{{ state?.currentTrack?.title || state?.currentTrack?.name || 'Now Playing' }}</strong>
+          <span>{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
+        </div>
+
+        <div class="focus-progress" *ngIf="state?.currentTrack">
+          <div class="focus-progress-fill"
+               [style.width.%]="(state?.duration || 0) > 0 ? (((state?.currentTime || 0) / (state?.duration || 1)) * 100) : 0">
+          </div>
+        </div>
+
+        <div class="focus-controls">
+          <button class="focus-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle()">{{ 'MUSIC.SHUFFLE' | translate }}</button>
+          <button class="focus-btn focus-btn-play" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack">
+            {{ state?.playing ? 'Pause' : 'Play' }}
+          </button>
+          <button class="focus-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat()">{{ 'MUSIC.REPEAT' | translate }}</button>
+        </div>
+
+        <div class="focus-utility-grid">
+          <button class="focus-utility-btn" [class.active]="vizActive" (click)="toggleViz()">
+            <span>{{ 'MUSIC.UI_VISUALIZER' | translate }}</span>
+            <small>{{ vizActive ? ('MUSIC.UI_ON' | translate) : ('MUSIC.UI_OFF' | translate) }}</small>
+          </button>
+          <button class="focus-utility-btn" (click)="openNowPlayingPanel()">
+            <span>{{ 'MUSIC.UI_FULL_PANEL' | translate }}</span>
+            <small>{{ 'MUSIC.UI_EXPAND' | translate }}</small>
+          </button>
+        </div>
+
+        <div class="focus-spectrum" [class.active]="vizActive || state?.playing">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span><span></span>
         </div>
       </section>
 
-      <section class="rightbar-card rightbar-skins">
-        <div class="rightbar-card-header">
-          <span>Skins</span>
-          <span class="rightbar-chip">{{ playerSkin }}</span>
-        </div>
-        <div class="rightbar-skin-list">
-          <button *ngFor="let skin of availableSkins"
-                  class="rightbar-skin-btn"
-                  [class.active]="playerSkin === skin.id"
-                  [attr.data-skin]="skin.id"
-                  (click)="setPlayerSkin(skin.id)">
-            <span class="rightbar-skin-label">{{ skin.label }}</span>
-            <small class="rightbar-skin-hint">{{ skin.hint }}</small>
-          </button>
-        </div>
-      </section>
+      <ng-container *ngIf="uiPrefs.rightPanelMode === 'cards'">
+        <ng-container *ngFor="let card of orderedRightbarCards">
+          <section class="rightbar-card rightbar-actions" *ngIf="card.id === 'actions' && isCardVisible('actions')">
+            <div class="rightbar-card-header">
+              <span>{{ 'MUSIC.UI_QUICK_ACTIONS' | translate }}</span>
+              <span class="rightbar-chip">{{ 'MUSIC.UI_LIVE' | translate }}</span>
+            </div>
+            <div class="rightbar-action-grid">
+              <button class="rightbar-action-btn" (click)="toggleViz()" [class.active]="vizActive">
+                <span>{{ 'MUSIC.UI_VISUALIZER' | translate }}</span>
+                <small>{{ vizActive ? ('MUSIC.UI_ON' | translate) : ('MUSIC.UI_OFF' | translate) }}</small>
+              </button>
+              <button class="rightbar-action-btn" (click)="openNowPlayingPanel()">
+                <span>{{ 'MUSIC.UI_FULL_PANEL' | translate }}</span>
+                <small>{{ 'MUSIC.UI_EXPAND' | translate }}</small>
+              </button>
+              <button class="rightbar-action-btn" (click)="musicService.toggleShuffle()" [class.active]="shuffle">
+                <span>{{ 'MUSIC.SHUFFLE' | translate }}</span>
+                <small>{{ shuffle ? ('MUSIC.UI_ACTIVE' | translate) : ('MUSIC.UI_READY' | translate) }}</small>
+              </button>
+              <button class="rightbar-action-btn" (click)="musicService.toggleRepeat()" [class.active]="repeat !== 'none'">
+                <span>{{ 'MUSIC.REPEAT' | translate }}</span>
+                <small>{{ repeat === 'none' ? ('MUSIC.UI_OFF' | translate) : repeat }}</small>
+              </button>
+            </div>
+          </section>
 
-      <section class="rightbar-card rightbar-stats" *ngIf="uiPrefs.showStatsCard">
-        <div class="rightbar-card-header">
-          <span>Library</span>
-          <span class="rightbar-status-dot"></span>
-        </div>
-        <div class="rightbar-stat-grid">
-          <div class="rightbar-stat">
-            <span class="rightbar-stat-label">Folders</span>
-            <strong>{{ folders.length }}</strong>
-          </div>
-          <div class="rightbar-stat">
-            <span class="rightbar-stat-label">Tracks</span>
-            <strong>{{ tracks.length }}</strong>
-          </div>
-          <div class="rightbar-stat wide">
-            <span class="rightbar-stat-label">View</span>
-            <strong>{{ currentFolderName }}</strong>
-          </div>
-        </div>
-      </section>
+          <section class="rightbar-card rightbar-skins" *ngIf="card.id === 'skins' && isCardVisible('skins')">
+            <div class="rightbar-card-header">
+              <span>{{ 'MUSIC.UI_SKINS' | translate }}</span>
+              <span class="rightbar-chip">{{ playerSkin }}</span>
+            </div>
+            <div class="rightbar-skin-list">
+              <button *ngFor="let skin of availableSkins"
+                      class="rightbar-skin-btn"
+                      [class.active]="playerSkin === skin.id"
+                      [attr.data-skin]="skin.id"
+                      (click)="setPlayerSkin(skin.id)">
+                <span class="rightbar-skin-label">{{ skin.label }}</span>
+                <small class="rightbar-skin-hint">{{ skin.hint }}</small>
+              </button>
+            </div>
+          </section>
+
+          <section class="rightbar-card rightbar-stats" *ngIf="card.id === 'stats' && isCardVisible('stats')">
+            <div class="rightbar-card-header">
+              <span>{{ 'MUSIC.NAS_LIBRARY_LOGO' | translate }}</span>
+              <span class="rightbar-status-dot"></span>
+            </div>
+            <div class="rightbar-stat-grid">
+              <div class="rightbar-stat">
+                <span class="rightbar-stat-label">{{ 'MUSIC.UI_FOLDERS' | translate }}</span>
+                <strong>{{ folders.length }}</strong>
+              </div>
+              <div class="rightbar-stat">
+                <span class="rightbar-stat-label">{{ 'MUSIC.UI_TRACKS' | translate }}</span>
+                <strong>{{ tracks.length }}</strong>
+              </div>
+              <div class="rightbar-stat wide">
+                <span class="rightbar-stat-label">View</span>
+                <strong>{{ currentFolderName }}</strong>
+              </div>
+            </div>
+          </section>
+        </ng-container>
+      </ng-container>
     </div>
   </aside>
 
@@ -884,6 +1029,215 @@
     </ul>
   </div>
 </div><!-- /lib-root -->
+
+<div *ngIf="settingsOpen" class="settings-modal-backdrop" (click)="toggleSettings($event)">
+  <div class="settings-modal" (click)="$event.stopPropagation()">
+    <div class="settings-modal-header">
+      <div>
+        <strong>{{ 'MUSIC.UI_CUSTOMIZE_LIBRARY' | translate }}</strong>
+        <p>Choose what should appear in the right panel and how airy the layout feels.</p>
+      </div>
+      <button class="settings-close" (click)="toggleSettings($event)" title="Cerrar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+
+    <div class="settings-modal-body">
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h3>{{ 'MUSIC.UI_LAYOUT' | translate }}</h3>
+          <p>{{ 'MUSIC.UI_LAYOUT_HINT' | translate }}</p>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-label">{{ 'MUSIC.UI_PRESETS' | translate }}</span>
+          <div class="settings-presets">
+            <button class="settings-preset-btn" (click)="applyLayoutPreset('balanced')">{{ 'MUSIC.UI_PRESET_BALANCED' | translate }}</button>
+            <button class="settings-preset-btn" (click)="applyLayoutPreset('minimal')">{{ 'MUSIC.UI_PRESET_MINIMAL' | translate }}</button>
+            <button class="settings-preset-btn" (click)="applyLayoutPreset('showcase')">{{ 'MUSIC.UI_PRESET_SHOWCASE' | translate }}</button>
+            <button class="settings-preset-btn" (click)="applyLayoutPreset('studio')">{{ 'MUSIC.UI_PRESET_STUDIO' | translate }}</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-label">{{ 'MUSIC.UI_DENSITY' | translate }}</span>
+          <div class="settings-segmented">
+            <button [class.active]="uiPrefs.density === 'comfortable'" (click)="setDensity('comfortable')">{{ 'MUSIC.UI_DENSITY_COMFORT' | translate }}</button>
+            <button [class.active]="uiPrefs.density === 'cozy'" (click)="setDensity('cozy')">{{ 'MUSIC.UI_DENSITY_COZY' | translate }}</button>
+            <button [class.active]="uiPrefs.density === 'compact'" (click)="setDensity('compact')">{{ 'MUSIC.UI_DENSITY_COMPACT' | translate }}</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-label">{{ 'MUSIC.UI_RIGHT_PANEL' | translate }}</span>
+          <div class="settings-segmented">
+            <button [class.active]="uiPrefs.rightbarSize === 'wide'" (click)="setRightbarSize('wide')">{{ 'MUSIC.UI_SIZE_WIDE' | translate }}</button>
+            <button [class.active]="uiPrefs.rightbarSize === 'normal'" (click)="setRightbarSize('normal')">{{ 'MUSIC.UI_SIZE_NORMAL' | translate }}</button>
+            <button [class.active]="uiPrefs.rightbarSize === 'narrow'" (click)="setRightbarSize('narrow')">{{ 'MUSIC.UI_SIZE_NARROW' | translate }}</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-label">{{ 'MUSIC.UI_PANEL_STYLE' | translate }}</span>
+          <div class="settings-segmented settings-segmented-quad">
+            <button [class.active]="uiPrefs.rightPanelMode === 'mini'" (click)="setRightPanelMode('mini')">{{ 'MUSIC.UI_MODE_MINI' | translate }}</button>
+            <button [class.active]="uiPrefs.rightPanelMode === 'cards'" (click)="setRightPanelMode('cards')">{{ 'MUSIC.UI_MODE_CARDS' | translate }}</button>
+            <button [class.active]="uiPrefs.rightPanelMode === 'studio'" (click)="setRightPanelMode('studio')">{{ 'MUSIC.UI_MODE_STUDIO' | translate }}</button>
+            <button [class.active]="uiPrefs.rightPanelMode === 'focus'" (click)="setRightPanelMode('focus')">{{ 'MUSIC.UI_MODE_FOCUS' | translate }}</button>
+          </div>
+        </div>
+
+        <div class="settings-toggles">
+          <button class="settings-toggle" [class.active]="uiPrefs.showRightbar" (click)="toggleUiPref('showRightbar')">
+            <span>{{ 'MUSIC.UI_SHOW_RIGHT_PANEL' | translate }}</span>
+            <small>{{ 'MUSIC.UI_SHOW_RIGHT_PANEL_HINT' | translate }}</small>
+          </button>
+          <button class="settings-toggle" [class.active]="uiPrefs.rememberContextLayout" (click)="toggleUiPref('rememberContextLayout')">
+            <span>{{ 'MUSIC.UI_REMEMBER_CONTEXT' | translate }}</span>
+            <small>{{ 'MUSIC.UI_REMEMBER_CONTEXT_HINT' | translate:{ name: currentFolderName } }}</small>
+          </button>
+          <button class="settings-toggle" [class.active]="uiPrefs.spaciousMode" (click)="toggleUiPref('spaciousMode')">
+            <span>{{ 'MUSIC.UI_SPACIOUS_MODE' | translate }}</span>
+            <small>{{ 'MUSIC.UI_SPACIOUS_MODE_HINT' | translate }}</small>
+          </button>
+          <button class="settings-toggle" [class.active]="uiPrefs.showBanners" (click)="toggleUiPref('showBanners')">
+            <span>{{ 'MUSIC.UI_SHOW_BANNERS' | translate }}</span>
+            <small>{{ 'MUSIC.UI_SHOW_BANNERS_HINT' | translate }}</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h3>{{ 'MUSIC.UI_CUSTOM_PRESETS' | translate }}</h3>
+          <p>{{ 'MUSIC.UI_CUSTOM_PRESETS_HINT' | translate }}</p>
+        </div>
+
+        <div class="settings-custom-preset-actions">
+          <button class="settings-preset-btn settings-preset-primary" (click)="saveCurrentAsCustomPreset()">
+            {{ 'MUSIC.UI_SAVE_CURRENT_SETUP' | translate }}
+          </button>
+          <button class="settings-preset-btn" *ngIf="defaultPresetId" (click)="setDefaultCustomPreset(null)">
+            {{ 'MUSIC.UI_CLEAR_DEFAULT' | translate }}
+          </button>
+        </div>
+
+        <div class="settings-custom-presets" *ngIf="sortedCustomPresets.length > 0; else noCustomPresets">
+          <div class="settings-custom-preset-card" *ngFor="let preset of sortedCustomPresets" [class.is-default]="preset.id === defaultPresetId">
+            <div class="settings-custom-preset-copy">
+              <strong>{{ preset.name }}</strong>
+              <small>{{ preset.id === defaultPresetId ? ('MUSIC.UI_DEFAULT_AT_STARTUP' | translate) : ('MUSIC.UI_SAVED_PRESET' | translate) }}</small>
+            </div>
+            <div class="settings-custom-preset-meta">
+              <span>{{ getRightPanelModeLabel(preset.uiPrefs.rightPanelMode) }}</span>
+              <span>{{ getPlayerSkinLabel(preset.playerSkin) }}</span>
+            </div>
+            <div class="settings-custom-preset-buttons">
+              <button class="settings-order-btn" (click)="applyCustomPreset(preset)">{{ 'COMMON.APPLY' | translate }}</button>
+              <button class="settings-order-btn" (click)="renameCustomPreset(preset)">{{ 'COMMON.RENAME' | translate }}</button>
+              <button class="settings-order-btn" (click)="setDefaultCustomPreset(preset)" [disabled]="preset.id === defaultPresetId">{{ 'MUSIC.UI_DEFAULT' | translate }}</button>
+              <button class="settings-order-btn danger" (click)="deleteCustomPreset(preset)">{{ 'COMMON.DELETE' | translate }}</button>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noCustomPresets>
+          <div class="settings-panel-note">
+            <strong>{{ 'MUSIC.UI_NO_CUSTOM_PRESETS' | translate }}</strong>
+            <p>{{ 'MUSIC.UI_NO_CUSTOM_PRESETS_HINT' | translate }}</p>
+          </div>
+        </ng-template>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h3>{{ 'MUSIC.UI_RIGHT_PANEL_MODULES' | translate }}</h3>
+          <p>{{ 'MUSIC.UI_RIGHT_PANEL_MODULES_HINT' | translate }}</p>
+        </div>
+
+        <div class="settings-toggles settings-toggles-stack" *ngIf="uiPrefs.rightPanelMode === 'cards'; else studioModeInfo">
+          <button class="settings-toggle" [class.active]="uiPrefs.showActionsCard" (click)="toggleUiPref('showActionsCard')">
+            <span>{{ 'MUSIC.UI_QUICK_ACTIONS_CARD' | translate }}</span>
+            <small>{{ 'MUSIC.UI_QUICK_ACTIONS_CARD_HINT' | translate }}</small>
+          </button>
+          <button class="settings-toggle" [class.active]="uiPrefs.showSkinsCard" (click)="toggleUiPref('showSkinsCard')">
+            <span>{{ 'MUSIC.UI_SKINS_CARD' | translate }}</span>
+            <small>{{ 'MUSIC.UI_SKINS_CARD_HINT' | translate }}</small>
+          </button>
+          <button class="settings-toggle" [class.active]="uiPrefs.showStatsCard" (click)="toggleUiPref('showStatsCard')">
+            <span>{{ 'MUSIC.UI_LIBRARY_STATS_CARD' | translate }}</span>
+            <small>{{ 'MUSIC.UI_LIBRARY_STATS_CARD_HINT' | translate }}</small>
+          </button>
+
+          <div class="settings-card-order">
+            <div class="settings-card-order-head">
+              <strong>{{ 'MUSIC.UI_CARD_ORDER' | translate }}</strong>
+              <small>{{ 'MUSIC.UI_CARD_ORDER_HINT' | translate }}</small>
+            </div>
+            <div class="settings-card-order-list">
+              <div class="settings-card-order-item"
+                   *ngFor="let card of orderedRightbarCards"
+                   [class.dragging]="draggedCardId === card.id"
+                   draggable="true"
+                   (dragstart)="onCardDragStart(card.id)"
+                   (dragend)="onCardDragEnd()"
+                   (dragover)="$event.preventDefault()"
+                   (drop)="onCardDrop(card.id)">
+                <div class="settings-card-copy">
+                  <span>{{ card.label | translate }}</span>
+                  <small>{{ card.hint | translate }}</small>
+                </div>
+                <div class="settings-card-order-actions">
+                  <span class="settings-drag-handle" aria-hidden="true">::</span>
+                  <button class="settings-order-btn" (click)="moveCard(card.id, 'up')" [disabled]="!canMoveCard(card.id, 'up')">{{ 'COMMON.UP' | translate }}</button>
+                  <button class="settings-order-btn" (click)="moveCard(card.id, 'down')" [disabled]="!canMoveCard(card.id, 'down')">{{ 'COMMON.DOWN' | translate }}</button>
+                </div>
+              </div>
+            </div>
+            <button class="settings-reset-context-btn" (click)="resetCurrentContextLayout()">
+              {{ 'MUSIC.UI_RESET_LAYOUT_FOR' | translate:{ name: currentFolderName } }}
+            </button>
+          </div>
+        </div>
+        <ng-template #studioModeInfo>
+          <div class="settings-panel-note">
+            <strong>{{ uiPrefs.rightPanelMode === 'mini' ? ('MUSIC.UI_MODE_MINI_ACTIVE' | translate) : uiPrefs.rightPanelMode === 'focus' ? ('MUSIC.UI_MODE_FOCUS_ACTIVE' | translate) : ('MUSIC.UI_MODE_STUDIO_ACTIVE' | translate) }}</strong>
+            <p *ngIf="uiPrefs.rightPanelMode === 'mini'">{{ 'MUSIC.UI_MODE_MINI_HINT' | translate }}</p>
+            <p *ngIf="uiPrefs.rightPanelMode === 'studio'">{{ 'MUSIC.UI_MODE_STUDIO_HINT' | translate }}</p>
+            <p *ngIf="uiPrefs.rightPanelMode === 'focus'">{{ 'MUSIC.UI_MODE_FOCUS_HINT' | translate }}</p>
+          </div>
+        </ng-template>
+      </section>
+
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h3>{{ 'MUSIC.UI_SKIN' | translate }}</h3>
+          <p>{{ uiPrefs.rightPanelMode === 'studio' ? ('MUSIC.UI_SKIN_HINT_STUDIO' | translate) : ('MUSIC.UI_SKIN_HINT' | translate) }}</p>
+        </div>
+
+        <div class="rightbar-skin-list settings-skin-list">
+          <button *ngFor="let skin of availableSkins"
+                  class="rightbar-skin-btn"
+                  [class.active]="playerSkin === skin.id"
+                  [attr.data-skin]="skin.id"
+                  (click)="setPlayerSkin(skin.id)">
+            <span class="rightbar-skin-label">{{ skin.label | translate }}</span>
+            <small class="rightbar-skin-hint">{{ skin.hint | translate }}</small>
+          </button>
+        </div>
+
+        <div class="settings-group" *ngIf="uiPrefs.rightPanelMode === 'studio'">
+          <span class="settings-label">{{ 'MUSIC.UI_STUDIO_VARIANT' | translate }}</span>
+          <div class="settings-segmented settings-segmented-triple">
+            <button [class.active]="uiPrefs.studioVariant === 'vinyl'" (click)="setStudioVariant('vinyl')">{{ 'MUSIC.UI_VARIANT_VINYL' | translate }}</button>
+            <button [class.active]="uiPrefs.studioVariant === 'orb'" (click)="setStudioVariant('orb')">{{ 'MUSIC.UI_VARIANT_ORB' | translate }}</button>
+            <button [class.active]="uiPrefs.studioVariant === 'glass'" (click)="setStudioVariant('glass')">{{ 'MUSIC.UI_VARIANT_GLASS' | translate }}</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
 
 <!-- ══ DIALOGS ════════════════════════════════════════════════════════════════ -->
 <div *ngIf="dialog.type" class="modal-backdrop" (click)="closeDialog()">

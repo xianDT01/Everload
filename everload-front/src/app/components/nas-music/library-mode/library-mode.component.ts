@@ -21,14 +21,31 @@ interface NasBanner {
 type PlayerSkin = 'xp' | 'neon' | 'sunset';
 type LayoutDensity = 'comfortable' | 'cozy' | 'compact';
 type RightbarSize = 'wide' | 'normal' | 'narrow';
+type RightPanelMode = 'mini' | 'cards' | 'studio' | 'focus';
+type StudioVariant = 'vinyl' | 'orb' | 'glass';
+type RightbarCardId = 'actions' | 'skins' | 'stats';
 
 interface LibraryUiPrefs {
   density: LayoutDensity;
   rightbarSize: RightbarSize;
+  rightPanelMode: RightPanelMode;
+  studioVariant: StudioVariant;
+  showRightbar: boolean;
+  rememberContextLayout: boolean;
   spaciousMode: boolean;
   showBanners: boolean;
   showActionsCard: boolean;
+  showSkinsCard: boolean;
   showStatsCard: boolean;
+  cardOrder: RightbarCardId[];
+}
+
+interface LibraryCustomPreset {
+  id: string;
+  name: string;
+  uiPrefs: LibraryUiPrefs;
+  playerSkin: PlayerSkin;
+  createdAt: number;
 }
 
 @Component({
@@ -39,6 +56,10 @@ interface LibraryUiPrefs {
 export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly PLAYER_SKIN_KEY = 'nas_library_player_skin_v1';
   private static readonly UI_PREFS_KEY = 'nas_library_ui_prefs_v1';
+  private static readonly CONTEXT_UI_PREFS_KEY = 'nas_library_context_ui_prefs_v1';
+  private static readonly CUSTOM_PRESETS_KEY = 'nas_library_custom_presets_v1';
+  private static readonly DEFAULT_PRESET_KEY = 'nas_library_default_preset_v1';
+  private static readonly SIDEBAR_PREFS_KEY = 'nas_library_sidebar_prefs_v1';
 
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
@@ -115,21 +136,113 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   mobileMenuOpen = false;
   mobileSearchOpen = false;
   settingsOpen = false;
+  sidebarWidth = 240;
+  sidebarCollapsed = false;
+  private sidebarResizing = false;
+  private readonly MIN_SIDEBAR_WIDTH = 88;
+  private readonly MAX_SIDEBAR_WIDTH = 360;
 
   uiPrefs: LibraryUiPrefs = {
     density: 'comfortable',
     rightbarSize: 'wide',
+    rightPanelMode: 'cards',
+    studioVariant: 'vinyl',
+    showRightbar: true,
+    rememberContextLayout: true,
     spaciousMode: true,
     showBanners: true,
     showActionsCard: true,
+    showSkinsCard: true,
     showStatsCard: true,
+    cardOrder: ['actions', 'skins', 'stats'],
   };
+  private globalUiPrefs: LibraryUiPrefs = { ...this.uiPrefs };
+  private contextUiPrefs: Record<string, Partial<LibraryUiPrefs>> = {};
+  draggedCardId: RightbarCardId | null = null;
+  customPresets: LibraryCustomPreset[] = [];
+  defaultPresetId: string | null = null;
+
+  readonly rightbarCards: { id: RightbarCardId; label: string; hint: string }[] = [
+    { id: 'actions', label: 'MUSIC.UI_QUICK_ACTIONS', hint: 'MUSIC.UI_QUICK_ACTIONS_HINT' },
+    { id: 'skins', label: 'MUSIC.UI_SKINS', hint: 'MUSIC.UI_SKINS_HINT' },
+    { id: 'stats', label: 'MUSIC.NAS_LIBRARY_LOGO', hint: 'MUSIC.UI_LIBRARY_STATS_HINT' },
+  ];
+
+  get sortedCustomPresets(): LibraryCustomPreset[] {
+    return [...this.customPresets].sort((a, b) => {
+      if (a.id === this.defaultPresetId) return -1;
+      if (b.id === this.defaultPresetId) return 1;
+      return b.createdAt - a.createdAt;
+    });
+  }
+
+  getRightPanelModeLabel(mode: RightPanelMode): string {
+    const keyMap: Record<RightPanelMode, string> = {
+      mini: 'MUSIC.UI_MODE_MINI',
+      cards: 'MUSIC.UI_MODE_CARDS',
+      studio: 'MUSIC.UI_MODE_STUDIO',
+      focus: 'MUSIC.UI_MODE_FOCUS',
+    };
+    return this.translate.instant(keyMap[mode]);
+  }
+
+  getPlayerSkinLabel(skin: PlayerSkin): string {
+    const keyMap: Record<PlayerSkin, string> = {
+      xp: 'MUSIC.UI_SKIN_XP',
+      neon: 'MUSIC.UI_SKIN_NEON',
+      sunset: 'MUSIC.UI_SKIN_SUNSET',
+    };
+    return this.translate.instant(keyMap[skin]);
+  }
 
   toggleMobileMenu(): void { this.mobileMenuOpen = !this.mobileMenuOpen; }
   closeMobileMenu(): void  { this.mobileMenuOpen = false; }
   toggleSettings(event?: Event): void {
     event?.stopPropagation();
     this.settingsOpen = !this.settingsOpen;
+  }
+
+  toggleSidebarCollapsed(event?: Event): void {
+    event?.stopPropagation();
+    this.sidebarCollapsed = !this.sidebarCollapsed;
+    if (!this.sidebarCollapsed && this.sidebarWidth < 180) {
+      this.sidebarWidth = 240;
+    }
+    this.saveSidebarPrefs();
+  }
+
+  startSidebarResize(event: MouseEvent): void {
+    if (window.innerWidth <= 768) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.sidebarResizing = true;
+  }
+
+  private clampSidebarWidth(width: number): number {
+    return Math.min(this.MAX_SIDEBAR_WIDTH, Math.max(this.MIN_SIDEBAR_WIDTH, width));
+  }
+
+  private loadSidebarPrefs(): void {
+    try {
+      const saved = localStorage.getItem(LibraryModeComponent.SIDEBAR_PREFS_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as Partial<{ width: number; collapsed: boolean }>;
+      if (typeof parsed.width === 'number') {
+        this.sidebarWidth = this.clampSidebarWidth(parsed.width);
+      }
+      if (typeof parsed.collapsed === 'boolean') {
+        this.sidebarCollapsed = parsed.collapsed;
+      }
+    } catch {}
+  }
+
+  private saveSidebarPrefs(): void {
+    try {
+      localStorage.setItem(LibraryModeComponent.SIDEBAR_PREFS_KEY, JSON.stringify({
+        width: this.sidebarWidth,
+        collapsed: this.sidebarCollapsed,
+      }));
+    } catch {}
   }
 
   // ── Edit mode ─────────────────────────────────────────────────────────────
@@ -178,9 +291,9 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   vizActive = false;
   playerSkin: PlayerSkin = 'xp';
   readonly availableSkins: { id: PlayerSkin; label: string; hint: string }[] = [
-    { id: 'xp', label: 'XP Glass', hint: 'Blue chrome' },
-    { id: 'neon', label: 'Neon Deck', hint: 'Club pulse' },
-    { id: 'sunset', label: 'Sunset', hint: 'Warm glow' },
+    { id: 'xp', label: 'MUSIC.UI_SKIN_XP', hint: 'MUSIC.UI_SKIN_XP_HINT' },
+    { id: 'neon', label: 'MUSIC.UI_SKIN_NEON', hint: 'MUSIC.UI_SKIN_NEON_HINT' },
+    { id: 'sunset', label: 'MUSIC.UI_SKIN_SUNSET', hint: 'MUSIC.UI_SKIN_SUNSET_HINT' },
   ];
   @ViewChild('vizCanvas') vizCanvas?: ElementRef<HTMLCanvasElement>;
   private vizRaf?: number;
@@ -273,9 +386,215 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.saveUiPrefs();
   }
 
-  toggleUiPref(key: keyof Pick<LibraryUiPrefs, 'spaciousMode' | 'showBanners' | 'showActionsCard' | 'showStatsCard'>): void {
+  setRightPanelMode(mode: RightPanelMode): void {
+    this.uiPrefs.rightPanelMode = mode;
+    this.saveUiPrefs();
+  }
+
+  setStudioVariant(variant: StudioVariant): void {
+    this.uiPrefs.studioVariant = variant;
+    this.saveUiPrefs();
+  }
+
+  applyLayoutPreset(preset: 'balanced' | 'minimal' | 'showcase' | 'studio'): void {
+    if (preset === 'balanced') {
+      this.uiPrefs = {
+        ...this.uiPrefs,
+        density: 'comfortable',
+        rightbarSize: 'normal',
+        rightPanelMode: 'cards',
+        studioVariant: 'vinyl',
+        showRightbar: true,
+        rememberContextLayout: true,
+        spaciousMode: true,
+        showBanners: true,
+        showActionsCard: true,
+        showSkinsCard: true,
+        showStatsCard: true,
+        cardOrder: ['actions', 'skins', 'stats'],
+      };
+    } else if (preset === 'minimal') {
+      this.uiPrefs = {
+        ...this.uiPrefs,
+        density: 'compact',
+        rightbarSize: 'narrow',
+        rightPanelMode: 'mini',
+        studioVariant: 'glass',
+        showRightbar: true,
+        rememberContextLayout: true,
+        spaciousMode: false,
+        showBanners: false,
+        showActionsCard: false,
+        showSkinsCard: false,
+        showStatsCard: false,
+        cardOrder: ['actions', 'skins', 'stats'],
+      };
+    } else if (preset === 'showcase') {
+      this.uiPrefs = {
+        ...this.uiPrefs,
+        density: 'comfortable',
+        rightbarSize: 'wide',
+        rightPanelMode: 'cards',
+        studioVariant: 'orb',
+        showRightbar: true,
+        rememberContextLayout: true,
+        spaciousMode: true,
+        showBanners: true,
+        showActionsCard: true,
+        showSkinsCard: true,
+        showStatsCard: false,
+        cardOrder: ['skins', 'actions', 'stats'],
+      };
+    } else if (preset === 'studio') {
+      this.uiPrefs = {
+        ...this.uiPrefs,
+        density: 'cozy',
+        rightbarSize: 'normal',
+        rightPanelMode: 'studio',
+        studioVariant: 'vinyl',
+        showRightbar: true,
+        rememberContextLayout: true,
+        spaciousMode: false,
+        showBanners: false,
+        showActionsCard: false,
+        showSkinsCard: false,
+        showStatsCard: false,
+        cardOrder: ['actions', 'skins', 'stats'],
+      };
+    }
+    this.saveUiPrefs();
+  }
+
+  toggleUiPref(key: keyof Pick<LibraryUiPrefs, 'showRightbar' | 'rememberContextLayout' | 'spaciousMode' | 'showBanners' | 'showActionsCard' | 'showSkinsCard' | 'showStatsCard'>): void {
     this.uiPrefs[key] = !this.uiPrefs[key];
     this.saveUiPrefs();
+  }
+
+  get orderedRightbarCards(): { id: RightbarCardId; label: string; hint: string }[] {
+    const order = this.uiPrefs.cardOrder ?? [];
+    const sorted = [...this.rightbarCards].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    return sorted;
+  }
+
+  isCardVisible(cardId: RightbarCardId): boolean {
+    if (cardId === 'actions') return this.uiPrefs.showActionsCard;
+    if (cardId === 'skins') return this.uiPrefs.showSkinsCard;
+    return this.uiPrefs.showStatsCard;
+  }
+
+  moveCard(cardId: RightbarCardId, direction: 'up' | 'down'): void {
+    const currentOrder = [...(this.uiPrefs.cardOrder ?? ['actions', 'skins', 'stats'])];
+    const index = currentOrder.indexOf(cardId);
+    if (index < 0) return;
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentOrder.length) return;
+
+    [currentOrder[index], currentOrder[targetIndex]] = [currentOrder[targetIndex], currentOrder[index]];
+    this.uiPrefs.cardOrder = currentOrder;
+    this.saveUiPrefs();
+  }
+
+  onCardDragStart(cardId: RightbarCardId): void {
+    this.draggedCardId = cardId;
+  }
+
+  onCardDragEnd(): void {
+    this.draggedCardId = null;
+  }
+
+  onCardDrop(targetCardId: RightbarCardId): void {
+    if (!this.draggedCardId || this.draggedCardId === targetCardId) {
+      this.draggedCardId = null;
+      return;
+    }
+
+    const currentOrder = [...(this.uiPrefs.cardOrder ?? ['actions', 'skins', 'stats'])];
+    const draggedIndex = currentOrder.indexOf(this.draggedCardId);
+    const targetIndex = currentOrder.indexOf(targetCardId);
+    if (draggedIndex < 0 || targetIndex < 0) {
+      this.draggedCardId = null;
+      return;
+    }
+
+    currentOrder.splice(draggedIndex, 1);
+    currentOrder.splice(targetIndex, 0, this.draggedCardId);
+    this.uiPrefs.cardOrder = currentOrder;
+    this.draggedCardId = null;
+    this.saveUiPrefs();
+  }
+
+  saveCurrentAsCustomPreset(): void {
+    const suggestedName = `${this.currentFolderName} ${this.translate.instant('MUSIC.UI_PRESET_SUFFIX')}`.trim();
+    const name = window.prompt(this.translate.instant('MUSIC.UI_PRESET_NAME_PROMPT'), suggestedName)?.trim();
+    if (!name) return;
+
+    const preset: LibraryCustomPreset = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      uiPrefs: {
+        ...this.uiPrefs,
+        cardOrder: [...this.uiPrefs.cardOrder],
+      },
+      playerSkin: this.playerSkin,
+      createdAt: Date.now(),
+    };
+
+    this.customPresets = [preset, ...this.customPresets];
+    this.saveCustomPresets();
+  }
+
+  applyCustomPreset(preset: LibraryCustomPreset): void {
+    this.uiPrefs = {
+      ...preset.uiPrefs,
+      cardOrder: [...preset.uiPrefs.cardOrder],
+    };
+    this.playerSkin = preset.playerSkin;
+
+    try {
+      localStorage.setItem(LibraryModeComponent.PLAYER_SKIN_KEY, preset.playerSkin);
+    } catch {}
+
+    this.saveUiPrefs();
+  }
+
+  renameCustomPreset(preset: LibraryCustomPreset): void {
+    const name = window.prompt(this.translate.instant('MUSIC.UI_PRESET_RENAME_PROMPT'), preset.name)?.trim();
+    if (!name || name === preset.name) return;
+
+    this.customPresets = this.customPresets.map(item => item.id === preset.id ? { ...item, name } : item);
+    this.saveCustomPresets();
+  }
+
+  deleteCustomPreset(preset: LibraryCustomPreset): void {
+    const confirmed = window.confirm(this.translate.instant('MUSIC.UI_PRESET_DELETE_CONFIRM', { name: preset.name }));
+    if (!confirmed) return;
+
+    this.customPresets = this.customPresets.filter(item => item.id !== preset.id);
+    if (this.defaultPresetId === preset.id) {
+      this.defaultPresetId = null;
+      try {
+        localStorage.removeItem(LibraryModeComponent.DEFAULT_PRESET_KEY);
+      } catch {}
+    }
+    this.saveCustomPresets();
+  }
+
+  setDefaultCustomPreset(preset: LibraryCustomPreset | null): void {
+    this.defaultPresetId = preset?.id ?? null;
+    try {
+      if (this.defaultPresetId) {
+        localStorage.setItem(LibraryModeComponent.DEFAULT_PRESET_KEY, this.defaultPresetId);
+      } else {
+        localStorage.removeItem(LibraryModeComponent.DEFAULT_PRESET_KEY);
+      }
+    } catch {}
+  }
+
+  canMoveCard(cardId: RightbarCardId, direction: 'up' | 'down'): boolean {
+    const index = (this.uiPrefs.cardOrder ?? []).indexOf(cardId);
+    if (index < 0) return false;
+    return direction === 'up' ? index > 0 : index < (this.uiPrefs.cardOrder.length - 1);
   }
 
   private loadPlayerSkin(): void {
@@ -290,19 +609,141 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadUiPrefs(): void {
     try {
       const saved = localStorage.getItem(LibraryModeComponent.UI_PREFS_KEY);
-      if (!saved) return;
-      const parsed = JSON.parse(saved) as Partial<LibraryUiPrefs>;
-      this.uiPrefs = {
-        ...this.uiPrefs,
-        ...parsed,
-      };
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<LibraryUiPrefs>;
+        const parsedOrder = Array.isArray(parsed.cardOrder)
+          ? parsed.cardOrder.filter((id): id is RightbarCardId => ['actions', 'skins', 'stats'].includes(id))
+          : [];
+        this.uiPrefs = {
+          ...this.uiPrefs,
+          ...parsed,
+          cardOrder: parsedOrder.length === this.rightbarCards.length
+            ? parsedOrder
+            : this.uiPrefs.cardOrder,
+        };
+      }
+      this.globalUiPrefs = { ...this.uiPrefs };
     } catch {}
+
+    try {
+      const savedContexts = localStorage.getItem(LibraryModeComponent.CONTEXT_UI_PREFS_KEY);
+      this.contextUiPrefs = savedContexts ? JSON.parse(savedContexts) : {};
+    } catch {
+      this.contextUiPrefs = {};
+    }
   }
 
   private saveUiPrefs(): void {
     try {
+      this.globalUiPrefs = { ...this.uiPrefs };
       localStorage.setItem(LibraryModeComponent.UI_PREFS_KEY, JSON.stringify(this.uiPrefs));
     } catch {}
+
+    this.saveCurrentContextUiPrefs();
+  }
+
+  private loadCustomPresets(): void {
+    try {
+      const saved = localStorage.getItem(LibraryModeComponent.CUSTOM_PRESETS_KEY);
+      const parsed = saved ? JSON.parse(saved) as LibraryCustomPreset[] : [];
+      this.customPresets = Array.isArray(parsed) ? parsed.map(preset => ({
+        ...preset,
+        uiPrefs: {
+          ...this.uiPrefs,
+          ...preset.uiPrefs,
+          cardOrder: Array.isArray(preset.uiPrefs?.cardOrder) && preset.uiPrefs.cardOrder.length === this.rightbarCards.length
+            ? [...preset.uiPrefs.cardOrder]
+            : [...this.uiPrefs.cardOrder],
+        },
+      })) : [];
+    } catch {
+      this.customPresets = [];
+    }
+
+    try {
+      this.defaultPresetId = localStorage.getItem(LibraryModeComponent.DEFAULT_PRESET_KEY);
+    } catch {
+      this.defaultPresetId = null;
+    }
+  }
+
+  private saveCustomPresets(): void {
+    try {
+      localStorage.setItem(LibraryModeComponent.CUSTOM_PRESETS_KEY, JSON.stringify(this.customPresets));
+    } catch {}
+  }
+
+  private applyDefaultCustomPreset(): void {
+    if (!this.defaultPresetId) return;
+    const preset = this.customPresets.find(item => item.id === this.defaultPresetId);
+    if (!preset) return;
+    this.uiPrefs = {
+      ...preset.uiPrefs,
+      cardOrder: [...preset.uiPrefs.cardOrder],
+    };
+    this.playerSkin = preset.playerSkin;
+  }
+
+  private currentUiContextKey(): string {
+    if (this.currentView === 'folder') {
+      return `folder:${this.selectedPathId ?? 'none'}:${this.currentSubPath || '/'}`;
+    }
+    return `view:${this.currentView}`;
+  }
+
+  private applyUiPrefsForCurrentContext(): void {
+    const basePrefs: LibraryUiPrefs = {
+      ...this.globalUiPrefs,
+      cardOrder: [...this.globalUiPrefs.cardOrder],
+    };
+
+    if (!basePrefs.rememberContextLayout) {
+      this.uiPrefs = basePrefs;
+      return;
+    }
+
+    const contextPrefs = this.contextUiPrefs[this.currentUiContextKey()];
+    const parsedOrder = Array.isArray(contextPrefs?.cardOrder)
+      ? contextPrefs.cardOrder.filter((id): id is RightbarCardId => ['actions', 'skins', 'stats'].includes(id))
+      : [];
+
+    this.uiPrefs = {
+      ...basePrefs,
+      ...(contextPrefs ?? {}),
+      cardOrder: parsedOrder.length === this.rightbarCards.length ? parsedOrder : basePrefs.cardOrder,
+    };
+  }
+
+  private saveCurrentContextUiPrefs(): void {
+    const currentKey = this.currentUiContextKey();
+    if (!this.uiPrefs.rememberContextLayout) {
+      if (this.contextUiPrefs[currentKey]) {
+        delete this.contextUiPrefs[currentKey];
+        try {
+          localStorage.setItem(LibraryModeComponent.CONTEXT_UI_PREFS_KEY, JSON.stringify(this.contextUiPrefs));
+        } catch {}
+      }
+      return;
+    }
+
+    this.contextUiPrefs[currentKey] = {
+      ...this.uiPrefs,
+      cardOrder: [...this.uiPrefs.cardOrder],
+    };
+    try {
+      localStorage.setItem(LibraryModeComponent.CONTEXT_UI_PREFS_KEY, JSON.stringify(this.contextUiPrefs));
+    } catch {}
+  }
+
+  resetCurrentContextLayout(): void {
+    delete this.contextUiPrefs[this.currentUiContextKey()];
+    try {
+      localStorage.setItem(LibraryModeComponent.CONTEXT_UI_PREFS_KEY, JSON.stringify(this.contextUiPrefs));
+    } catch {}
+    this.uiPrefs = {
+      ...this.globalUiPrefs,
+      cardOrder: [...this.globalUiPrefs.cardOrder],
+    };
   }
 
   // ── Active yt-dlp downloads panel ────────────────────────────────────────
@@ -336,8 +777,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadSidebarPrefs();
     this.loadPlayerSkin();
     this.loadUiPrefs();
+    this.loadCustomPresets();
+    this.applyDefaultCustomPreset();
     this.loadFavoriteFolders();
     this.startBannerRotation();
     this.loadFavHistoryBanners();
@@ -438,6 +882,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.currentSubPath = banner.subPath || '';
       this.searchQuery = '';
       this.searchResults = null;
+      this.applyUiPrefsForCurrentContext();
       this.load();
     } else {
       this.pendingAutoPlay = false;
@@ -533,6 +978,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.currentSubPath = '';
     this.searchQuery = '';
     this.searchResults = null;
+    this.applyUiPrefsForCurrentContext();
     this.items = [];
     this.load();
   }
@@ -553,6 +999,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.currentSubPath = '';
     this.searchQuery = '';
     this.searchResults = null;
+    this.applyUiPrefsForCurrentContext();
     this.load();
   }
 
@@ -700,6 +1147,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.currentSubPath = item.path;
     this.searchQuery = '';
     this.searchResults = null;
+    this.applyUiPrefsForCurrentContext();
     this.load();
   }
 
@@ -710,6 +1158,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.currentSubPath = parts.join('/');
     this.searchQuery = '';
     this.searchResults = null;
+    this.applyUiPrefsForCurrentContext();
     this.load();
   }
 
@@ -787,6 +1236,33 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     }
     const parts = this.currentSubPath.split(/[/\\]/).filter(Boolean);
     return parts[parts.length - 1] || this.translate.instant('MUSIC.SIDEBAR_LIBRARY');
+  }
+
+  formatBytes(bytes?: number | null): string {
+    if (!bytes || bytes <= 0) return '—';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex++;
+    }
+    return `${value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
+  }
+
+  get heroPrimaryMeta(): string {
+    const track = this.state?.currentTrack;
+    if (track?.artist) return track.artist;
+    if (this.currentView === 'liked') return this.translate.instant('MUSIC.VIEW_LIKED');
+    if (this.currentView === 'history') return this.translate.instant('MUSIC.VIEW_HISTORY');
+    return this.getPathName(this.selectedPathId);
+  }
+
+  get heroSecondaryMeta(): string {
+    const track = this.state?.currentTrack;
+    if (track?.album) return track.album;
+    if (this.currentSubPath) return this.currentSubPath;
+    return this.translate.instant('MUSIC.SIDEBAR_LIBRARY');
   }
 
   sortLikedBy(sort: 'date' | 'title' | 'artist') {
@@ -950,6 +1426,21 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   onDocumentClick(): void {
     this.activeMenuPath = null;
     this.settingsOpen = false;
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onDocumentMouseMove(event: MouseEvent): void {
+    if (!this.sidebarResizing) return;
+    const nextWidth = this.clampSidebarWidth(event.clientX);
+    this.sidebarCollapsed = nextWidth <= 110;
+    this.sidebarWidth = nextWidth;
+  }
+
+  @HostListener('document:mouseup')
+  onDocumentMouseUp(): void {
+    if (!this.sidebarResizing) return;
+    this.sidebarResizing = false;
+    this.saveSidebarPrefs();
   }
 
   toggleMenu(e: Event, item: MusicMetadataDto): void {
@@ -1145,6 +1636,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.searchQuery = '';
     this.searchResults = null;
     this.closeMobileMenu();
+    this.applyUiPrefsForCurrentContext();
     this.load();
   }
 
