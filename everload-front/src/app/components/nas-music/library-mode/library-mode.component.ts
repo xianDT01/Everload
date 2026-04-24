@@ -398,10 +398,6 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.vizRaf = requestAnimationFrame(() => this.drawViz());
   }
 
-  openNowPlayingPanel(): void {
-    this.musicService.nowPlayingPanelOpen = true;
-  }
-
   setPlayerSkin(skin: PlayerSkin): void {
     this.playerSkin = skin;
     try {
@@ -1240,7 +1236,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private runSearch(): void {
     if (!this.selectedPathId || !this.searchQuery.trim()) return;
-    this.musicService.search(this.selectedPathId, undefined, this.searchQuery.trim()).subscribe({
+    const subPath = this.currentSubPath || undefined;
+    this.musicService.search(this.selectedPathId, subPath, this.searchQuery.trim()).subscribe({
       next: (results: MusicMetadataDto[]) => {
         this.searchResults = results;
         this.searchLoading = false;
@@ -1325,8 +1322,9 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   playTrack(track: MusicMetadataDto) {
     const pid = track.nasPathId ?? this.selectedPathId;
     if (pid === null || pid === undefined) return;
-    const idx = this.tracks.findIndex(t => t.path === track.path);
-    this.musicService.setQueue(pid, this.tracks, Math.max(0, idx));
+    const queueTracks = this.filteredTracks;
+    const idx = queueTracks.findIndex(t => t.path === track.path);
+    this.musicService.setQueue(pid, queueTracks, Math.max(0, idx));
   }
 
   isCurrentTrack(track: MusicMetadataDto): boolean {
@@ -1464,10 +1462,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Edit mode ─────────────────────────────────────────────────────────────
 
   get canEdit(): boolean {
-    return this.authService.hasNasAccess();
+    return this.authService.canManageNas();
   }
 
   toggleEditMode(): void {
+    if (!this.canEdit) return;
     this.editMode = !this.editMode;
     this.activeMenuPath = null;
   }
@@ -1505,6 +1504,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   openRename(e: Event, item: MusicMetadataDto): void {
     e.stopPropagation();
+    if (!this.canEdit) return;
     this.activeMenuPath = null;
     // For files, strip extension from the display name so the user edits only the stem;
     // the backend always preserves the original extension automatically.
@@ -1518,28 +1518,33 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   openDelete(e: Event, item: MusicMetadataDto): void {
     e.stopPropagation();
+    if (!this.canEdit) return;
     this.activeMenuPath = null;
     this.dialog = { type: 'delete', item, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   openMove(e: Event, item: MusicMetadataDto): void {
     e.stopPropagation();
+    if (!this.canEdit) return;
     this.activeMenuPath = null;
     this.dialog = { type: 'move', item, value: this.currentSubPath, title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   openMetadata(e: Event, track: MusicMetadataDto): void {
     e.stopPropagation();
+    if (!this.canEdit) return;
     this.activeMenuPath = null;
     this.dialog = { type: 'metadata', item: track, value: '', title: track.title || track.name, artist: track.artist || '', album: (track as any).album || '', year: (track as any).year || '', loading: false, error: '' };
   }
 
   openCreateFolder(): void {
+    if (!this.canEdit) return;
     this.dialog = { type: 'createFolder', item: null, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
 
   openCover(e: Event, folder: MusicMetadataDto): void {
     e.stopPropagation();
+    if (!this.canEdit) return;
     this.activeMenuPath = null;
     this.dialog = { type: 'cover', item: folder, value: '', title: '', artist: '', album: '', year: '', loading: false, error: '' };
   }
@@ -1555,6 +1560,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   fingerprintTrack(e: Event, track: MusicMetadataDto): void {
     e.stopPropagation();
+    if (!this.canEdit) return;
     this.activeMenuPath = null;
     const pid = this.selectedPathId!;
     this.fingerprintingPaths.add(track.path);
@@ -1588,6 +1594,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   confirmRename(): void {
+    if (!this.canEdit) return;
     const item = this.dialog.item!;
     const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;
     if (!this.dialog.value.trim()) return;
@@ -1599,6 +1606,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   confirmDelete(): void {
+    if (!this.canEdit) return;
     const item = this.dialog.item!;
     const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;
     this.dialog.loading = true;
@@ -1609,6 +1617,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   confirmMove(): void {
+    if (!this.canEdit) return;
     const item = this.dialog.item!;
     const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;
     this.dialog.loading = true;
@@ -1619,6 +1628,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   confirmMetadata(): void {
+    if (!this.canEdit) return;
     const track = this.dialog.item!;
     const pid = (track.nasPathId != null ? track.nasPathId : this.selectedPathId)!;
     this.dialog.loading = true;
@@ -1629,6 +1639,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   confirmCreateFolder(): void {
+    if (!this.canEdit) return;
     if (!this.selectedPathId || !this.dialog.value.trim()) return;
     this.dialog.loading = true;
     this.nasService.mkdir(this.selectedPathId, this.dialog.value.trim(), this.currentSubPath).subscribe({
@@ -1638,6 +1649,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onCoverFileSelected(e: Event): void {
+    if (!this.canEdit) return;
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file || !this.dialog.item) return;
@@ -1743,6 +1755,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Upload ────────────────────────────────────────────────────────────────
 
   onUploadFilesSelected(event: Event): void {
+    if (!this.canEdit) return;
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     input.value = '';
@@ -1751,6 +1764,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onUploadFolderSelected(event: Event): void {
+    if (!this.canEdit) return;
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     input.value = '';
@@ -1761,6 +1775,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private startUpload(files: File[], relativePaths?: string[]): void {
+    if (!this.canEdit) return;
     this.uploadState = { active: true, progress: 0, status: 'uploading', results: [], totalFiles: files.length };
 
     this.uploadSub = this.nasService.uploadFiles(

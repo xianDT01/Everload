@@ -161,6 +161,8 @@ public class ChatService {
         MessageType msgType = MessageType.TEXT;
         if ("YOUTUBE_SHARE".equals(request.getMessageType())) {
             msgType = MessageType.YOUTUBE_SHARE;
+        } else if ("BUZZ".equals(request.getMessageType())) {
+            msgType = MessageType.BUZZ;
         }
 
         ChatMessage replyTo = null;
@@ -605,6 +607,8 @@ public class ChatService {
             ChatMessage lm = lastMessages.get(0);
             String preview = lm.getMessageType() == MessageType.YOUTUBE_SHARE
                     ? "🎬 " + (lm.getVideoTitle() != null ? truncate(lm.getVideoTitle(), 40) : "Vídeo de YouTube")
+                    : lm.getMessageType() == MessageType.BUZZ
+                    ? "Zumbido"
                     : truncate(lm.getContent(), 50);
             lastMessage = lm.getSender().getUsername() + ": " + preview;
             lastMessageTime = lm.getSentAt();
@@ -681,11 +685,13 @@ public class ChatService {
             ChatMessage rt = m.getReplyTo();
             builder.replyToId(rt.getId())
                    .replyToSender(rt.getSender().getUsername())
-                   .replyToContent(truncate(
-                       rt.getMessageType() == MessageType.YOUTUBE_SHARE
-                           ? "🎬 " + (rt.getVideoTitle() != null ? rt.getVideoTitle() : "Vídeo")
-                           : rt.getContent(),
-                       120
+	                   .replyToContent(truncate(
+	                       rt.getMessageType() == MessageType.YOUTUBE_SHARE
+	                           ? "🎬 " + (rt.getVideoTitle() != null ? rt.getVideoTitle() : "Vídeo")
+	                           : rt.getMessageType() == MessageType.BUZZ
+	                           ? "Zumbido"
+	                           : rt.getContent(),
+	                       120
                    ));
         }
 
@@ -708,6 +714,8 @@ public class ChatService {
             ChatMessage lm = lastMsgs.get(0);
             String preview = lm.getMessageType() == MessageType.YOUTUBE_SHARE
                     ? "🎬 " + (lm.getVideoTitle() != null ? truncate(lm.getVideoTitle(), 40) : "Vídeo de YouTube")
+                    : lm.getMessageType() == MessageType.BUZZ
+                    ? "Zumbido"
                     : truncate(lm.getContent(), 50);
             lastMessage = lm.getSender().getUsername() + ": " + preview;
             lastMessageTime = lm.getSentAt();

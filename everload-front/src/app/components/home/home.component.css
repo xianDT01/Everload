@@ -16,7 +16,7 @@ html, body {
   background: transparent;
   color: white;
   text-align: center;
-  padding: 15px;
+  padding: 12px 15px;
   animation: fadeIn 1s ease-in-out;
 }
 
@@ -50,9 +50,9 @@ html, body {
 .main-cards-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-top: 15px;
-  margin-bottom: 20px;
+  gap: 18px;
+  margin-top: 12px;
+  margin-bottom: 16px;
   width: 100%;
   max-width: 1000px;
   animation: fadeInUp 2.2s ease-out;
@@ -64,7 +64,7 @@ html, body {
   overflow: hidden;
   text-decoration: none;
   color: white;
-  height: 200px;
+  height: 186px;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
   display: flex;
@@ -292,9 +292,9 @@ html, body {
 .social-cards-container {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  margin-top: 5px;
-  margin-bottom: 30px;
+  gap: 14px;
+  margin-top: 4px;
+  margin-bottom: 8px;
   width: 100%;
   max-width: 900px;
   animation: fadeInUp 2.4s ease-out;
@@ -306,7 +306,7 @@ html, body {
   overflow: hidden;
   text-decoration: none;
   color: white;
-  height: 140px;
+  height: 124px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease;
   display: flex;
@@ -315,6 +315,7 @@ html, body {
   padding: 16px;
   cursor: pointer;
   text-align: left;
+  border: none;
 }
 
 .social-card:hover {
@@ -374,6 +375,63 @@ html, body {
 .ig-bg { background: url('/assets/ig_bg.png') center/cover; }
 .sp-bg { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%230a1c10'/%3E%3Cpath d='M-50,150 Q100,50 200,100 T450,20' stroke='%231db954' stroke-width='8' stroke-linecap='round' fill='none' opacity='0.8'/%3E%3Cpath d='M-50,180 Q100,90 200,140 T450,60' stroke='%231ed760' stroke-width='4' stroke-linecap='round' fill='none' opacity='0.6'/%3E%3Cpath d='M-50,210 Q100,130 200,180 T450,100' stroke='%231db954' stroke-width='5' stroke-linecap='round' fill='none' opacity='0.4'/%3E%3C/svg%3E") center/cover; }
 .tk-bg { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 200'%3E%3Crect width='400' height='200' fill='%230b0b0b'/%3E%3Cpath d='M100,0 L200,200 M250,0 L150,200 M50,0 L350,200' stroke='%2369c9d0' stroke-width='4' stroke-dasharray='10, 15, 50, 10' opacity='0.7'/%3E%3Cpath d='M120,0 L220,200 M270,0 L170,200 M70,0 L370,200' stroke='%23ee1d52' stroke-width='4' stroke-dasharray='20, 10, 30, 5' opacity='0.7'/%3E%3C/svg%3E") center/cover; }
+
+.windows-mode-card {
+  grid-column: 1 / -1;
+  height: 82px;
+  padding: 14px 18px;
+  font: inherit;
+}
+
+.windows-mode-card .card-overlay {
+  background:
+    linear-gradient(90deg, rgba(10, 45, 125, 0.9) 0%, rgba(10, 62, 170, 0.55) 48%, rgba(34, 126, 42, 0.6) 100%),
+    linear-gradient(to top, rgba(0,0,0,0.72), rgba(255,255,255,0.04));
+}
+
+.windows-mode-card:hover .card-overlay {
+  background:
+    linear-gradient(90deg, rgba(8, 38, 112, 0.8) 0%, rgba(16, 90, 205, 0.45) 48%, rgba(43, 150, 55, 0.48) 100%),
+    linear-gradient(to top, rgba(0,0,0,0.58), rgba(255,255,255,0.08));
+}
+
+.windows-bg {
+  background:
+    radial-gradient(circle at 48% 78%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 20%, transparent 38%),
+    radial-gradient(ellipse at 64% 105%, #78d85e 0%, #49a437 34%, transparent 35%),
+    linear-gradient(180deg, #7fb9ff 0%, #a9d5ff 42%, #75c760 43%, #4b9e35 100%);
+}
+
+.windows-card-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.windows-logo {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  padding: 4px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 22px rgba(0,0,0,0.35);
+  transform: skewY(-8deg);
+  flex: none;
+}
+
+.windows-logo i:nth-child(1) { background: #f35325; }
+.windows-logo i:nth-child(2) { background: #81bc06; }
+.windows-logo i:nth-child(3) { background: #05a6f0; }
+.windows-logo i:nth-child(4) { background: #ffba08; }
+
+.windows-logo i {
+  display: block;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+}
 
 /* ══ ANIMACIONES ══════════════════════════════════════════════════════════ */
 @keyframes fadeInUp {
