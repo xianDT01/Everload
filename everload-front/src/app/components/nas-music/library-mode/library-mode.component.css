@@ -4507,6 +4507,18 @@
     display: flex;
   }
 
+  .lib-root.mobile-player-only .mobile-player-only-header {
+    flex-wrap: wrap;
+  }
+
+  .lib-root.mobile-player-only .mobile-player-only-copy {
+    flex: 1 1 100%;
+  }
+
+  .lib-root.mobile-player-only .mobile-player-only-actions {
+    margin-left: auto;
+  }
+
   /* Hide breadcrumbs — replaced by folder name in header */
   .breadcrumbs {
     display: none;
