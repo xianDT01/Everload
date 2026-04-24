@@ -24,6 +24,7 @@ import { GlobalPlayerComponent } from './components/global-player/global-player.
 import { PwaUpdateBannerComponent } from './components/pwa-update-banner/pwa-update-banner.component';
 import { OfflineBannerComponent } from './components/offline-banner/offline-banner.component';
 import { NowPlayingPanelComponent } from './components/now-playing-panel/now-playing-panel.component';
+import { ChatModule } from './components/chat/chat.module';
 // Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { MaintenanceInterceptor } from './interceptors/maintenance.interceptor';
@@ -65,6 +66,7 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
     FormsModule,
     ReactiveFormsModule,
     HttpClientModule,
+    ChatModule,
     TranslateModule.forRoot({
       defaultLanguage: 'es',
       loader: {

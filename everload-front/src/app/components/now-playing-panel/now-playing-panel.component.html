@@ -18,6 +18,10 @@
           <span class="np-desktop-icon-glyph xp"></span>
           <span>My Computer</span>
         </button>
+        <button class="np-desktop-icon" (click)="openMessengerWindow()">
+          <span class="np-desktop-icon-glyph messenger"></span>
+          <span>Messenger</span>
+        </button>
       </div>
     </div>
   </div>
@@ -45,6 +49,13 @@
           <span>Ir a la carpeta de la cancion actual</span>
         </div>
       </button>
+      <button class="np-start-item" (click)="openMessengerWindow()">
+        <span class="np-start-item-icon messenger"></span>
+        <div>
+          <strong>Messenger</strong>
+          <span>Abrir el chat de Everload como MSN</span>
+        </div>
+      </button>
       <button class="np-start-item" (click)="toggleFullscreen()">
         <span class="np-start-item-icon player"></span>
         <div>
@@ -62,13 +73,16 @@
     </div>
   </div>
 
-  <div class="np-explorer-window" *ngIf="desktopExplorerOpen && !isFullscreen" (click)="$event.stopPropagation()" [ngStyle]="explorerWindowStyle">
+  <div class="np-explorer-window" *ngIf="desktopExplorerOpen && !isFullscreen && !explorerMinimized" (click)="focusWindow('explorer'); $event.stopPropagation()" [ngStyle]="explorerWindowStyle">
     <div class="np-explorer-titlebar" (mousedown)="beginWindowDrag($event, 'explorer')">
       <div class="np-explorer-titlecopy">
         <span class="np-start-item-icon folder"></span>
         <strong>NAS Explorer</strong>
       </div>
-      <button class="np-explorer-close" (click)="closeExplorerWindow()">×</button>
+      <div class="np-window-titleactions">
+        <button class="np-window-min-btn" (click)="minimizeWindow('explorer')" title="Minimizar">_</button>
+        <button class="np-explorer-close" (click)="closeExplorerWindow()">×</button>
+      </div>
     </div>
     <div class="np-explorer-menubar">
       <span>File</span>
@@ -169,6 +183,46 @@
     </div>
     <input #uploadFilesInput type="file" multiple hidden (change)="onExplorerFilesSelected($event)" />
     <input #uploadFolderInput type="file" multiple webkitdirectory hidden (change)="onExplorerFolderSelected($event)" />
+    <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'explorer', 'left', 'top')"></span>
+    <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'explorer', 'right', 'top')"></span>
+    <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'explorer', 'left', 'bottom')"></span>
+    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'explorer', 'right', 'bottom')"></span>
+  </div>
+
+  <div class="np-messenger-window" *ngIf="messengerOpen && !isFullscreen && !messengerMinimized" (click)="focusWindow('messenger'); $event.stopPropagation()" [class.is-buzzing]="messengerBuzzing" [ngStyle]="messengerWindowStyle">
+    <div class="np-msn-titlebar" (mousedown)="beginWindowDrag($event, 'messenger')">
+      <div class="np-msn-titlecopy">
+        <span class="np-msn-logo"></span>
+        <strong>MSN Messenger</strong>
+      </div>
+      <div class="np-msn-winctrls">
+        <button class="np-msn-wcbtn" (click)="minimizeWindow('messenger')" title="Minimizar">_</button>
+        <button class="np-msn-wcbtn close" (click)="closeMessengerWindow()">×</button>
+      </div>
+    </div>
+    <div class="np-msn-menubar">
+      <span>File</span>
+      <span>Contacts</span>
+      <span>Actions</span>
+      <span>Tools</span>
+      <span>Help</span>
+    </div>
+    <div class="np-msn-me">
+      <div class="np-msn-me-pic"></div>
+      <div class="np-msn-me-info">
+        <strong>Everload User</strong>
+        <span class="np-msn-me-status"><span class="np-msn-dot"></span>Available</span>
+        <em>What are you doing today?</em>
+      </div>
+      <button class="np-msn-buzz-btn" (click)="triggerMessengerBuzz()" title="Send a Buzz!">Buzz!</button>
+    </div>
+    <div class="np-messenger-chatwrap">
+      <app-chat (messageSent)="playMsnMessageSent()"></app-chat>
+    </div>
+    <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'messenger', 'left', 'top')"></span>
+    <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'messenger', 'right', 'top')"></span>
+    <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'messenger', 'left', 'bottom')"></span>
+    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'messenger', 'right', 'bottom')"></span>
   </div>
 
   <div class="np-desktop-taskbar" [class.hidden]="isFullscreen">
@@ -179,21 +233,34 @@
       <span>start</span>
     </button>
     <div class="np-taskband">
-      <button class="np-task-chip" (click)="openCurrentTrackFolder()">My Music</button>
-      <button class="np-task-chip" [class.active]="desktopExplorerOpen" (click)="desktopExplorerOpen ? closeExplorerWindow() : openExplorerWindow()">NAS Explorer</button>
-      <button class="np-task-chip active">Windows Media Player</button>
+      <button class="np-task-chip" (click)="openCurrentTrackFolder()" title="My Music">
+        <span class="np-task-icon music"></span>
+        <span>My Music</span>
+      </button>
+      <button class="np-task-chip" [class.active]="desktopExplorerOpen && activeDesktopWindow === 'explorer' && !explorerMinimized" (click)="toggleTaskWindow('explorer')" title="NAS Explorer">
+        <span class="np-task-icon folder"></span>
+        <span>NAS Explorer</span>
+      </button>
+      <button class="np-task-chip" [class.active]="messengerOpen && activeDesktopWindow === 'messenger' && !messengerMinimized" (click)="toggleTaskWindow('messenger')" title="Messenger">
+        <span class="np-task-icon messenger"></span>
+        <span>Messenger</span>
+      </button>
+      <button class="np-task-chip" [class.active]="activeDesktopWindow === 'player' && !playerMinimized" (click)="toggleTaskWindow('player')" title="Windows Media Player">
+        <span class="np-task-icon player"></span>
+        <span>Windows Media Player</span>
+      </button>
     </div>
-    <div class="np-system-tray">{{ taskbarClock }}</div>
     <div class="np-taskbar-volume">
       <button class="np-volume-btn" (click)="nudgeDesktopVolume(-10)" title="Bajar volumen">-</button>
       <span class="np-volume-icon">🔊</span>
       <input type="range" min="0" max="100" [value]="currentVolumePercent" (input)="setDesktopVolume($any($event.target).value)" />
       <button class="np-volume-btn" (click)="nudgeDesktopVolume(10)" title="Subir volumen">+</button>
     </div>
+    <div class="np-system-tray">{{ taskbarClock }}</div>
   </div>
 </div>
 
-<div class="np-panel" *ngIf="isOpen" (click)="$event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" [ngStyle]="desktopPanelStyle" #desktopPanel>
+<div class="np-panel" *ngIf="isOpen && !playerMinimized" (click)="focusWindow('player'); $event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" [ngStyle]="desktopPanelStyle" #desktopPanel>
   <ng-container *ngIf="isDesktopWmp; else mobilePanel">
     <div class="wmp-window">
       <div class="wmp-titlebar" (mousedown)="beginWindowDrag($event, 'player')">
@@ -205,6 +272,7 @@
           <strong>Windows Media Player</strong>
         </div>
         <div class="wmp-title-actions">
+          <button class="wmp-close-btn wmp-minimize-btn" (click)="minimizeWindow('player')" title="Minimizar">_</button>
           <span></span><span></span><span></span>
           <button class="wmp-close-btn wmp-fullscreen-btn" (click)="toggleFullscreen()" [title]="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
             <svg *ngIf="!isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm0-7h2V5h-5v2h3v3z"/></svg>
@@ -332,6 +400,10 @@
         <span>{{ state?.pathId != null ? 'NAS' : 'LOCAL' }}</span>
       </div>
     </div>
+    <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'player', 'left', 'top')"></span>
+    <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'player', 'right', 'top')"></span>
+    <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'player', 'left', 'bottom')"></span>
+    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'player', 'right', 'bottom')"></span>
   </ng-container>
 
   <ng-template #mobilePanel>
