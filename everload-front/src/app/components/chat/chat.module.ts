@@ -26,5 +26,8 @@ const routes: Routes = [
     TranslateModule,
     RouterModule.forChild(routes),
   ],
+  exports: [
+    ChatComponent,
+  ]
 })
 export class ChatModule {}

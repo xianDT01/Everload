@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener, Output, EventEmitter } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ChatService, ChatGroupDto, ChatMessageDto, ActiveUser, YoutubeSharePayload, MemberDto } from '../../services/chat.service';
 import { NotificationService } from '../../services/notification.service';
@@ -12,6 +12,7 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./chat.component.css']
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @Output() messageSent = new EventEmitter<void>();
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
 
   groups: ChatGroupDto[] = [];
@@ -290,6 +291,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.chatService.sendMessage(this.selectedGroup.id, content, replyId).subscribe({
       next: msg => {
+        this.messageSent.emit();
         this.messages = [...this.messages, msg];
         this.shouldScrollToBottom = true;
 
