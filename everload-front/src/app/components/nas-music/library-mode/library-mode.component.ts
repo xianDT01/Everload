@@ -18,11 +18,12 @@ interface NasBanner {
   pathId?: number;
 }
 
-type PlayerSkin = 'xp' | 'neon' | 'sunset';
+type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify';
 type LayoutDensity = 'comfortable' | 'cozy' | 'compact';
 type RightbarSize = 'wide' | 'normal' | 'narrow';
 type RightPanelMode = 'mini' | 'cards' | 'studio' | 'focus';
 type StudioVariant = 'vinyl' | 'orb' | 'glass';
+type StudioVizMode = 'bars' | 'wave' | 'spectrum';
 type RightbarCardId = 'actions' | 'skins' | 'stats';
 
 interface LibraryUiPrefs {
@@ -191,6 +192,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       xp: 'MUSIC.UI_SKIN_XP',
       neon: 'MUSIC.UI_SKIN_NEON',
       sunset: 'MUSIC.UI_SKIN_SUNSET',
+      spotify: 'MUSIC.UI_SKIN_SPOTIFY',
     };
     return this.translate.instant(keyMap[skin]);
   }
@@ -294,10 +296,12 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     { id: 'xp', label: 'MUSIC.UI_SKIN_XP', hint: 'MUSIC.UI_SKIN_XP_HINT' },
     { id: 'neon', label: 'MUSIC.UI_SKIN_NEON', hint: 'MUSIC.UI_SKIN_NEON_HINT' },
     { id: 'sunset', label: 'MUSIC.UI_SKIN_SUNSET', hint: 'MUSIC.UI_SKIN_SUNSET_HINT' },
+    { id: 'spotify', label: 'MUSIC.UI_SKIN_SPOTIFY', hint: 'MUSIC.UI_SKIN_SPOTIFY_HINT' },
   ];
   @ViewChild('vizCanvas') vizCanvas?: ElementRef<HTMLCanvasElement>;
   private vizRaf?: number;
   private vizPeaks: number[] = [];
+  studioVizMode: StudioVizMode = 'bars';
 
   // ── Now playing panel (rendered at app root level via NowPlayingPanelComponent) ──
 
@@ -394,6 +398,10 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   setStudioVariant(variant: StudioVariant): void {
     this.uiPrefs.studioVariant = variant;
     this.saveUiPrefs();
+  }
+
+  setStudioVizMode(mode: StudioVizMode): void {
+    this.studioVizMode = mode;
   }
 
   applyLayoutPreset(preset: 'balanced' | 'minimal' | 'showcase' | 'studio'): void {
