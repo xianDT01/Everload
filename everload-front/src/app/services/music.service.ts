@@ -925,15 +925,33 @@ export class MusicService {
     }
   }
 
+  private resolveQueueIndex(): number {
+    const q = this.queueSubj.value;
+    const currentTrackPath = this.mainPlayer.state.currentTrack?.path;
+
+    if (q.index >= 0 && q.index < q.tracks.length) {
+      const indexedTrack = q.tracks[q.index];
+      if (!currentTrackPath || indexedTrack?.path === currentTrackPath) return q.index;
+    }
+
+    if (currentTrackPath) {
+      const actualIndex = q.tracks.findIndex(track => track.path === currentTrackPath);
+      if (actualIndex >= 0) return actualIndex;
+    }
+
+    return q.index;
+  }
+
   playNextMain() {
     const q = this.queueSubj.value;
+    const currentIndex = this.resolveQueueIndex();
     if (this._repeat === 'one') {
       this.mainPlayer.seek(0);
       this.mainPlayer.play();
       return;
     }
     if (this._shuffle) {
-      const pos = this.shuffleOrder.indexOf(q.index);
+      const pos = this.shuffleOrder.indexOf(currentIndex);
       const next = pos + 1;
       if (next < this.shuffleOrder.length) {
         this.setQueue(q.pathId, q.tracks, this.shuffleOrder[next]);
@@ -942,8 +960,8 @@ export class MusicService {
         this.setQueue(q.pathId, q.tracks, this.shuffleOrder[0]);
       }
     } else {
-      if (q.index < q.tracks.length - 1) {
-        this.setQueue(q.pathId, q.tracks, q.index + 1);
+      if (currentIndex < q.tracks.length - 1) {
+        this.setQueue(q.pathId, q.tracks, currentIndex + 1);
       } else if (this._repeat === 'all') {
         this.setQueue(q.pathId, q.tracks, 0);
       }
@@ -952,12 +970,13 @@ export class MusicService {
 
   playPrevMain() {
     const q = this.queueSubj.value;
+    const currentIndex = this.resolveQueueIndex();
     if (this._shuffle) {
-      const pos = this.shuffleOrder.indexOf(q.index);
+      const pos = this.shuffleOrder.indexOf(currentIndex);
       if (pos > 0) this.setQueue(q.pathId, q.tracks, this.shuffleOrder[pos - 1]);
       else this.mainPlayer.seek(0);
-    } else if (q.index > 0) {
-      this.setQueue(q.pathId, q.tracks, q.index - 1);
+    } else if (currentIndex > 0) {
+      this.setQueue(q.pathId, q.tracks, currentIndex - 1);
     } else {
       this.mainPlayer.seek(0);
     }

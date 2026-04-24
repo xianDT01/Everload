@@ -812,5 +812,7 @@
   "MUSIC.UI_SKIN_NEON": "Neon Deck",
   "MUSIC.UI_SKIN_NEON_HINT": "Club pulse",
   "MUSIC.UI_SKIN_SUNSET": "Sunset",
-  "MUSIC.UI_SKIN_SUNSET_HINT": "Warm glow"
+  "MUSIC.UI_SKIN_SUNSET_HINT": "Warm glow",
+  "MUSIC.UI_SKIN_SPOTIFY": "Spotify Aura",
+  "MUSIC.UI_SKIN_SPOTIFY_HINT": "Clean green"
 }
