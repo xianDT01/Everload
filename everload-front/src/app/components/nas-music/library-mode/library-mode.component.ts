@@ -32,6 +32,7 @@ interface LibraryUiPrefs {
   rightPanelMode: RightPanelMode;
   studioVariant: StudioVariant;
   showRightbar: boolean;
+  mobilePlayerOnly: boolean;
   rememberContextLayout: boolean;
   spaciousMode: boolean;
   showBanners: boolean;
@@ -137,6 +138,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   mobileMenuOpen = false;
   mobileSearchOpen = false;
   settingsOpen = false;
+  isMobileViewport = false;
   sidebarWidth = 240;
   sidebarCollapsed = false;
   private sidebarResizing = false;
@@ -149,6 +151,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     rightPanelMode: 'cards',
     studioVariant: 'vinyl',
     showRightbar: true,
+    mobilePlayerOnly: false,
     rememberContextLayout: true,
     spaciousMode: true,
     showBanners: true,
@@ -202,6 +205,26 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   toggleSettings(event?: Event): void {
     event?.stopPropagation();
     this.settingsOpen = !this.settingsOpen;
+  }
+
+  get mobilePlayerOnlyActive(): boolean {
+    return this.isMobileViewport && this.uiPrefs.mobilePlayerOnly;
+  }
+
+  toggleMobilePlayerOnly(force?: boolean, event?: Event): void {
+    event?.stopPropagation();
+    this.uiPrefs.mobilePlayerOnly = typeof force === 'boolean' ? force : !this.uiPrefs.mobilePlayerOnly;
+    if (this.uiPrefs.mobilePlayerOnly) {
+      this.uiPrefs.showRightbar = true;
+      this.mobileMenuOpen = false;
+      this.mobileSearchOpen = false;
+      this.settingsOpen = false;
+    }
+    this.saveUiPrefs();
+  }
+
+  private updateViewportState(): void {
+    this.isMobileViewport = typeof window !== 'undefined' ? window.innerWidth <= 768 : false;
   }
 
   toggleSidebarCollapsed(event?: Event): void {
@@ -413,6 +436,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         rightPanelMode: 'cards',
         studioVariant: 'vinyl',
         showRightbar: true,
+        mobilePlayerOnly: false,
         rememberContextLayout: true,
         spaciousMode: true,
         showBanners: true,
@@ -429,6 +453,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         rightPanelMode: 'mini',
         studioVariant: 'glass',
         showRightbar: true,
+        mobilePlayerOnly: false,
         rememberContextLayout: true,
         spaciousMode: false,
         showBanners: false,
@@ -445,6 +470,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         rightPanelMode: 'cards',
         studioVariant: 'orb',
         showRightbar: true,
+        mobilePlayerOnly: false,
         rememberContextLayout: true,
         spaciousMode: true,
         showBanners: true,
@@ -461,6 +487,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         rightPanelMode: 'studio',
         studioVariant: 'vinyl',
         showRightbar: true,
+        mobilePlayerOnly: false,
         rememberContextLayout: true,
         spaciousMode: false,
         showBanners: false,
@@ -473,8 +500,14 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.saveUiPrefs();
   }
 
-  toggleUiPref(key: keyof Pick<LibraryUiPrefs, 'showRightbar' | 'rememberContextLayout' | 'spaciousMode' | 'showBanners' | 'showActionsCard' | 'showSkinsCard' | 'showStatsCard'>): void {
+  toggleUiPref(key: keyof Pick<LibraryUiPrefs, 'showRightbar' | 'mobilePlayerOnly' | 'rememberContextLayout' | 'spaciousMode' | 'showBanners' | 'showActionsCard' | 'showSkinsCard' | 'showStatsCard'>): void {
     this.uiPrefs[key] = !this.uiPrefs[key];
+    if (key === 'mobilePlayerOnly' && this.uiPrefs.mobilePlayerOnly) {
+      this.uiPrefs.showRightbar = true;
+      this.mobileMenuOpen = false;
+      this.mobileSearchOpen = false;
+      this.settingsOpen = false;
+    }
     this.saveUiPrefs();
   }
 
@@ -785,6 +818,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.updateViewportState();
     this.loadSidebarPrefs();
     this.loadPlayerSkin();
     this.loadUiPrefs();
@@ -1449,6 +1483,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.sidebarResizing) return;
     this.sidebarResizing = false;
     this.saveSidebarPrefs();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.updateViewportState();
   }
 
   toggleMenu(e: Event, item: MusicMetadataDto): void {
