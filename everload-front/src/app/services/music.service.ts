@@ -535,6 +535,7 @@ export class MusicService {
   get repeat()  { return this._repeat; }
 
   nowPlayingPanelOpen = false;
+  globalPlayerHidden = false;
 
   coverOverrideMap = new Map<string, string>();
   /** Emite el trackPath cada vez que se guarda una portada nueva (iTunes o manual) */

@@ -14,7 +14,7 @@
 <div class="main-content-layout" [ngClass]="musicService.mainPlayer.state.currentTrack ? 'player-' + playerMode : ''">
   <router-outlet></router-outlet>
 </div>
-<app-global-player [mode]="playerMode"></app-global-player>
+<app-global-player *ngIf="!musicService.globalPlayerHidden" [mode]="playerMode"></app-global-player>
 <app-now-playing-panel></app-now-playing-panel>
 <app-notification-toast></app-notification-toast>
 <app-pwa-update-banner></app-pwa-update-banner>
