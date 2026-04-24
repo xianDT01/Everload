@@ -26,6 +26,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   desktopStartOpen = false;
   desktopExplorerOpen = true;
+  desktopPanelPosition = { x: 0, y: 0 };
+  explorerWindowPosition = { x: 132, y: 84 };
   explorerPaths: NasPath[] = [];
   explorerPathId: number | null = null;
   explorerSubPath = '';
@@ -33,6 +35,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   explorerLoading = false;
   explorerError = '';
   private clockTimer?: number;
+  private dragState: { target: 'player' | 'explorer'; offsetX: number; offsetY: number } | null = null;
 
   private subs: Subscription[] = [];
   private wasOpen = false;
@@ -46,6 +49,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.musicService.getFavorites().subscribe({ next: favs => { this.likedItems = favs; } });
     this.loadExplorerPaths();
     this.updateTaskbarClock();
+    this.resetDesktopWindowPositions();
     this.clockTimer = window.setInterval(() => this.updateTaskbarClock(), 30000);
   }
 
@@ -73,6 +77,21 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   get isFullscreen(): boolean {
     return typeof document !== 'undefined' && !!document.fullscreenElement;
   }
+  get desktopPanelStyle(): Record<string, string> {
+    if (!this.isDesktopWmp || this.isFullscreen) return {};
+    return {
+      left: `${this.desktopPanelPosition.x}px`,
+      top: `${this.desktopPanelPosition.y}px`,
+      transform: 'none'
+    };
+  }
+  get explorerWindowStyle(): Record<string, string> {
+    if (this.isFullscreen) return {};
+    return {
+      left: `${this.explorerWindowPosition.x}px`,
+      top: `${this.explorerWindowPosition.y}px`
+    };
+  }
 
   close(): void {
     this.musicService.nowPlayingPanelOpen = false;
@@ -82,6 +101,28 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   @HostListener('document:keydown.escape')
   onEscape(): void { if (this.isOpen) this.close(); }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.clampAllWindows();
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onDocumentMouseMove(event: MouseEvent): void {
+    if (!this.dragState || this.isFullscreen) return;
+    const nextX = event.clientX - this.dragState.offsetX;
+    const nextY = event.clientY - this.dragState.offsetY;
+    if (this.dragState.target === 'player') {
+      this.desktopPanelPosition = this.clampWindowPosition(nextX, nextY, this.getPlayerWindowSize());
+    } else {
+      this.explorerWindowPosition = this.clampWindowPosition(nextX, nextY, this.getExplorerWindowSize());
+    }
+  }
+
+  @HostListener('document:mouseup')
+  onDocumentMouseUp(): void {
+    this.dragState = null;
+  }
 
   async toggleFullscreen(): Promise<void> {
     if (typeof document === 'undefined') return;
@@ -317,6 +358,17 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.desktopStartOpen = !this.desktopStartOpen;
   }
 
+  beginWindowDrag(event: MouseEvent, target: 'player' | 'explorer'): void {
+    if (this.isFullscreen) return;
+    const position = target === 'player' ? this.desktopPanelPosition : this.explorerWindowPosition;
+    this.dragState = {
+      target,
+      offsetX: event.clientX - position.x,
+      offsetY: event.clientY - position.y
+    };
+    event.preventDefault();
+  }
+
   openExplorerWindow(): void {
     this.desktopExplorerOpen = true;
     this.desktopStartOpen = false;
@@ -431,5 +483,56 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   private updateTaskbarClock(): void {
     const now = new Date();
     this.taskbarClock = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  private resetDesktopWindowPositions(): void {
+    if (typeof window === 'undefined') return;
+    const player = this.getPlayerWindowSize();
+    this.desktopPanelPosition = {
+      x: Math.max(24, Math.round((window.innerWidth - player.width) / 2)),
+      y: Math.max(24, Math.round((window.innerHeight - player.height) / 2) - 12)
+    };
+    this.explorerWindowPosition = this.clampWindowPosition(132, 84, this.getExplorerWindowSize());
+  }
+
+  private clampAllWindows(): void {
+    if (typeof window === 'undefined' || !this.isDesktopWmp) return;
+    this.desktopPanelPosition = this.clampWindowPosition(
+      this.desktopPanelPosition.x,
+      this.desktopPanelPosition.y,
+      this.getPlayerWindowSize()
+    );
+    this.explorerWindowPosition = this.clampWindowPosition(
+      this.explorerWindowPosition.x,
+      this.explorerWindowPosition.y,
+      this.getExplorerWindowSize()
+    );
+  }
+
+  private clampWindowPosition(x: number, y: number, size: { width: number; height: number }): { x: number; y: number } {
+    if (typeof window === 'undefined') return { x, y };
+    const taskbarHeight = this.isFullscreen ? 0 : 44;
+    const maxX = Math.max(8, window.innerWidth - size.width - 8);
+    const maxY = Math.max(8, window.innerHeight - size.height - taskbarHeight - 8);
+    return {
+      x: Math.min(Math.max(8, x), maxX),
+      y: Math.min(Math.max(8, y), maxY)
+    };
+  }
+
+  private getPlayerWindowSize(): { width: number; height: number } {
+    if (typeof window === 'undefined') return { width: 1060, height: 690 };
+    return {
+      width: Math.min(1060, window.innerWidth - 64),
+      height: Math.min(690, window.innerHeight - 70)
+    };
+  }
+
+  private getExplorerWindowSize(): { width: number; height: number } {
+    if (typeof window === 'undefined') return { width: 560, height: 420 };
+    return {
+      width: Math.min(560, window.innerWidth - 200),
+      height: Math.min(420, window.innerHeight - 180)
+    };
   }
 }

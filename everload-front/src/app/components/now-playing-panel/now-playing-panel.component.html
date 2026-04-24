@@ -58,8 +58,8 @@
     </div>
   </div>
 
-  <div class="np-explorer-window" *ngIf="desktopExplorerOpen && !isFullscreen" (click)="$event.stopPropagation()">
-    <div class="np-explorer-titlebar">
+  <div class="np-explorer-window" *ngIf="desktopExplorerOpen && !isFullscreen" (click)="$event.stopPropagation()" [ngStyle]="explorerWindowStyle">
+    <div class="np-explorer-titlebar" (mousedown)="beginWindowDrag($event, 'explorer')">
       <div class="np-explorer-titlecopy">
         <span class="np-start-item-icon folder"></span>
         <strong>NAS Explorer</strong>
@@ -117,7 +117,12 @@
   </div>
 
   <div class="np-desktop-taskbar" [class.hidden]="isFullscreen">
-    <button class="np-start-btn" (click)="toggleStartMenu()">start</button>
+    <button class="np-start-btn" (click)="toggleStartMenu()">
+      <span class="np-windows-flag" aria-hidden="true">
+        <i></i><i></i><i></i><i></i>
+      </span>
+      <span>start</span>
+    </button>
     <div class="np-taskband">
       <button class="np-task-chip" (click)="openCurrentTrackFolder()">My Music</button>
       <button class="np-task-chip" [class.active]="desktopExplorerOpen" (click)="desktopExplorerOpen ? closeExplorerWindow() : openExplorerWindow()">NAS Explorer</button>
@@ -127,12 +132,15 @@
   </div>
 </div>
 
-<div class="np-panel" *ngIf="isOpen" (click)="$event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" #desktopPanel>
+<div class="np-panel" *ngIf="isOpen" (click)="$event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" [ngStyle]="desktopPanelStyle" #desktopPanel>
   <ng-container *ngIf="isDesktopWmp; else mobilePanel">
     <div class="wmp-window">
-      <div class="wmp-titlebar">
+      <div class="wmp-titlebar" (mousedown)="beginWindowDrag($event, 'player')">
         <div class="wmp-title-copy">
-          <span class="wmp-title-orb"></span>
+          <span class="wmp-title-orb">
+            <span class="wmp-title-orb-ring"></span>
+            <span class="wmp-title-orb-play"></span>
+          </span>
           <strong>Windows Media Player</strong>
         </div>
         <div class="wmp-title-actions">
