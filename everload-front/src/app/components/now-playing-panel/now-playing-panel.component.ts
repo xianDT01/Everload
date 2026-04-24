@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../services/music.service';
+import { NasPath, NasService } from '../../services/nas.service';
 
 @Component({
   selector: 'app-now-playing-panel',
@@ -21,17 +22,31 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   likedItems: any[] = [];
   readonly Math = Math;
+  taskbarClock = '';
+
+  desktopStartOpen = false;
+  desktopExplorerOpen = true;
+  explorerPaths: NasPath[] = [];
+  explorerPathId: number | null = null;
+  explorerSubPath = '';
+  explorerItems: MusicMetadataDto[] = [];
+  explorerLoading = false;
+  explorerError = '';
+  private clockTimer?: number;
 
   private subs: Subscription[] = [];
   private wasOpen = false;
 
-  constructor(public musicService: MusicService) {}
+  constructor(public musicService: MusicService, private nasService: NasService) {}
 
   ngOnInit(): void {
     this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => { this.state = s; }));
     this.subs.push(this.musicService.shuffle$.subscribe(v => { this.shuffle = v; }));
     this.subs.push(this.musicService.repeat$.subscribe(v => { this.repeat = v; }));
     this.musicService.getFavorites().subscribe({ next: favs => { this.likedItems = favs; } });
+    this.loadExplorerPaths();
+    this.updateTaskbarClock();
+    this.clockTimer = window.setInterval(() => this.updateTaskbarClock(), 30000);
   }
 
   ngAfterViewChecked(): void {
@@ -48,6 +63,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   ngOnDestroy(): void {
     this.subs.forEach(s => s.unsubscribe());
     this.stopViz();
+    if (this.clockTimer) window.clearInterval(this.clockTimer);
   }
 
   get isOpen(): boolean { return this.musicService.nowPlayingPanelOpen; }
@@ -60,6 +76,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   close(): void {
     this.musicService.nowPlayingPanelOpen = false;
+    this.desktopStartOpen = false;
     this.stopViz();
   }
 
@@ -294,5 +311,125 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
     ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(29,185,84,0.3)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+  }
+
+  toggleStartMenu(): void {
+    this.desktopStartOpen = !this.desktopStartOpen;
+  }
+
+  openExplorerWindow(): void {
+    this.desktopExplorerOpen = true;
+    this.desktopStartOpen = false;
+    this.ensureExplorerContext();
+  }
+
+  closeExplorerWindow(): void {
+    this.desktopExplorerOpen = false;
+    this.desktopStartOpen = false;
+  }
+
+  openCurrentTrackFolder(): void {
+    this.desktopStartOpen = false;
+    this.desktopExplorerOpen = true;
+    this.ensureExplorerContext(true);
+  }
+
+  selectExplorerPath(pathId: number): void {
+    if (this.explorerPathId === pathId && !this.explorerSubPath && this.explorerItems.length) return;
+    this.explorerPathId = pathId;
+    this.explorerSubPath = '';
+    this.loadExplorerItems();
+  }
+
+  openExplorerFolder(item: MusicMetadataDto): void {
+    if (!item.directory) return;
+    this.explorerSubPath = item.path;
+    this.loadExplorerItems();
+  }
+
+  goExplorerUp(): void {
+    if (!this.explorerSubPath) return;
+    const parts = this.explorerSubPath.split(/[/\\]/).filter(Boolean);
+    parts.pop();
+    this.explorerSubPath = parts.join('/');
+    this.loadExplorerItems();
+  }
+
+  playExplorerTrack(track: MusicMetadataDto): void {
+    if (!this.explorerPathId || track.directory) return;
+    const tracks = this.explorerItems.filter(item => !item.directory);
+    const index = tracks.findIndex(item => item.path === track.path);
+    this.musicService.setQueue(this.explorerPathId, tracks, Math.max(0, index));
+  }
+
+  get explorerFolders(): MusicMetadataDto[] {
+    return this.explorerItems.filter(item => item.directory);
+  }
+
+  get explorerTracks(): MusicMetadataDto[] {
+    return this.explorerItems.filter(item => !item.directory);
+  }
+
+  get explorerPathName(): string {
+    return this.explorerPaths.find(path => path.id === this.explorerPathId)?.name || 'NAS';
+  }
+
+  get explorerCrumbs(): string[] {
+    return this.explorerSubPath.split(/[/\\]/).filter(Boolean);
+  }
+
+  private loadExplorerPaths(): void {
+    this.nasService.getPaths().subscribe({
+      next: (paths) => {
+        this.explorerPaths = paths;
+        this.ensureExplorerContext();
+      },
+      error: () => {
+        this.explorerError = 'No se pudo cargar el NAS Explorer.';
+      }
+    });
+  }
+
+  private ensureExplorerContext(forceCurrentTrackFolder = false): void {
+    if (!this.explorerPaths.length) return;
+
+    const playerPathId = this.state?.pathId ?? null;
+    if ((forceCurrentTrackFolder || this.explorerPathId == null) && playerPathId != null) {
+      this.explorerPathId = playerPathId;
+      if (forceCurrentTrackFolder && this.state?.currentTrack?.path) {
+        const parts = this.state.currentTrack.path.split(/[/\\]/).filter(Boolean);
+        parts.pop();
+        this.explorerSubPath = parts.join('/');
+      }
+      this.loadExplorerItems();
+      return;
+    }
+
+    if (this.explorerPathId == null) {
+      this.explorerPathId = this.explorerPaths[0].id;
+      this.loadExplorerItems();
+    }
+  }
+
+  private loadExplorerItems(): void {
+    if (this.explorerPathId == null) return;
+    this.explorerLoading = true;
+    this.explorerError = '';
+    this.musicService.browse(this.explorerPathId, this.explorerSubPath, 0, 250).subscribe({
+      next: (result) => {
+        this.explorerItems = result.items;
+        this.explorerLoading = false;
+      },
+      error: () => {
+        this.explorerItems = [];
+        this.explorerLoading = false;
+        this.explorerError = 'No se pudo abrir esta carpeta del NAS.';
+      }
+    });
+  }
+
+  private updateTaskbarClock(): void {
+    const now = new Date();
+    this.taskbarClock = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 }
