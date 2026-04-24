@@ -31,7 +31,7 @@ export interface ChatMessageDto {
   senderUsername: string;
   senderAvatarUrl?: string;
   content: string;
-  messageType: 'TEXT' | 'YOUTUBE_SHARE';
+  messageType: 'TEXT' | 'YOUTUBE_SHARE' | 'BUZZ';
   videoId?: string;
   videoTitle?: string;
   thumbnailUrl?: string;
@@ -193,6 +193,13 @@ export class ChatService implements OnDestroy {
       videoTitle: payload.videoTitle,
       thumbnailUrl: payload.thumbnailUrl,
       channelTitle: payload.channelTitle
+    });
+  }
+
+  sendBuzz(groupId: number): Observable<ChatMessageDto> {
+    return this.http.post<ChatMessageDto>(`${this.BASE}/api/chat/groups/${groupId}/messages`, {
+      content: 'Zumbido',
+      messageType: 'BUZZ'
     });
   }
 

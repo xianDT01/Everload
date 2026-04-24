@@ -75,6 +75,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     localStorage.setItem('language', lang);
   }
 
+  openWindowsMode(): void {
+    this.musicService.nowPlayingPanelOpen = true;
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);

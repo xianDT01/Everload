@@ -211,6 +211,18 @@
             <p class="card-desc">{{ 'DOWNLOAD_TIKTOK' | translate }}</p>
           </div>
         </a>
+
+        <button class="social-card windows-mode-card" type="button" (click)="openWindowsMode()" [attr.aria-label]="'HOME.WINDOWS_MODE_ARIA' | translate">
+          <div class="card-bg windows-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content windows-card-content">
+            <span class="windows-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <div>
+              <h2 class="card-title">{{ 'HOME.WINDOWS_MODE_TITLE' | translate }}</h2>
+              <p class="card-desc">{{ 'HOME.WINDOWS_MODE_DESC' | translate }}</p>
+            </div>
+          </div>
+        </button>
       </section>
 
     </div>

@@ -293,11 +293,11 @@
   z-index: 9496;
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
+  border-radius: 7px 7px 0 0;
   overflow: hidden;
-  border: 1px solid #0A4CC0;
-  box-shadow: 0 6px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.22);
-  background: #FFFFFF;
+  border: 1px solid #003c9d;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.32);
+  background: #d7e8ff;
 }
 
 .np-messenger-window.is-buzzing {
@@ -325,7 +325,7 @@
   justify-content: space-between;
   padding: 5px 8px 5px 10px;
   color: #fff;
-  background: linear-gradient(180deg, #74b2ff 0%, #2b6bd8 48%, #1648C0 49%, #1952CC 100%);
+  background: linear-gradient(180deg, #2a83ff 0%, #0b5ee9 44%, #0043bf 45%, #0b51d3 100%);
   cursor: move;
   user-select: none;
   border-bottom: 1px solid #0836A0;
@@ -388,6 +388,38 @@
   font-family: Tahoma, Verdana, sans-serif;
 }
 
+.np-msn-max-btn {
+  display: inline-grid;
+  place-items: center;
+}
+
+.np-msn-max-btn span {
+  width: 10px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-top-width: 3px;
+  display: block;
+}
+
+.np-msn-max-btn span.restore {
+  position: relative;
+  width: 9px;
+  height: 7px;
+  transform: translate(-1px, 1px);
+}
+
+.np-msn-max-btn span.restore::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: -5px;
+  width: 9px;
+  height: 7px;
+  border: 2px solid currentColor;
+  border-top-width: 3px;
+  background: #cfe3ff;
+}
+
 .np-msn-wcbtn.close {
   color: #960000;
 }
@@ -421,8 +453,8 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #EAF3FF 100%);
-  border-bottom: 2px solid #3169C6;
+  background: linear-gradient(180deg, #d9ecff 0%, #9fc9f2 100%);
+  border-bottom: 1px solid #4f86c7;
 }
 
 .np-msn-me-pic {
@@ -487,7 +519,7 @@
   font-size: 11px;
   font-style: italic;
   font-family: Tahoma, Verdana, sans-serif;
-  color: #555;
+  color: #1d4f88;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -521,30 +553,30 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #fff;
+  background: #eaf4ff;
 }
 
 .np-messenger-chatwrap ::ng-deep .chat-container {
   height: 100%;
   min-height: 0;
-  --cc-bg: #ffffff;
-  --cc-sidebar-bg: #F2F6FB;
-  --cc-main-bg: #ffffff;
-  --cc-header-bg: #D8E8F8;
-  --cc-input-area-bg: #F0F4FA;
+  --cc-bg: #d7e8ff;
+  --cc-sidebar-bg: #c6ddf7;
+  --cc-main-bg: #eef7ff;
+  --cc-header-bg: linear-gradient(180deg, #b9dcff 0%, #73aee7 100%);
+  --cc-input-area-bg: #c7ddf6;
   --cc-input-bg: #ffffff;
   --cc-input-border: rgba(90, 130, 195, 0.38);
-  --cc-own-bubble: linear-gradient(180deg, #E5F0FF 0%, #C8DCFF 100%);
-  --cc-own-bubble-text: #08205A;
-  --cc-other-bubble: #ffffff;
-  --cc-other-bubble-border: rgba(150, 175, 215, 0.32);
+  --cc-own-bubble: linear-gradient(180deg, #d8ecff 0%, #9fc7f1 100%);
+  --cc-own-bubble-text: #05245e;
+  --cc-other-bubble: #fff8d6;
+  --cc-other-bubble-border: #d6b95d;
   --cc-other-bubble-text: #1A1A1A;
   --cc-accent: #0066CC;
   --cc-active-bg: rgba(0, 95, 205, 0.12);
   --cc-active-border: #3C88EE;
   --cc-send-btn: linear-gradient(180deg, #5EA0FF 0%, #1A5ED4 100%);
   --cc-send-shadow: rgba(0, 80, 200, 0.22);
-  --cc-search-bar-bg: #EAF0FB;
+  --cc-search-bar-bg: #b9d5f2;
   font-family: Tahoma, Verdana, sans-serif;
   font-size: 11px;
 }
@@ -564,14 +596,14 @@
 .np-messenger-chatwrap ::ng-deep .chat-sidebar {
   width: 170px;
   min-width: 170px;
-  border-right: 1px solid #C0CEDE;
-  background: #F2F6FB;
+  border-right: 1px solid #6f9fd0;
+  background: #c6ddf7;
 }
 
 .np-messenger-chatwrap ::ng-deep .sidebar-header,
 .np-messenger-chatwrap ::ng-deep .chat-header {
-  background: linear-gradient(180deg, #D0E4F8 0%, #BACED8 100%);
-  border-bottom: 1px solid #9AB8D8;
+  background: linear-gradient(180deg, #b9dcff 0%, #73aee7 100%);
+  border-bottom: 1px solid #4e86c2;
 }
 
 .np-messenger-chatwrap ::ng-deep .sidebar-title,
@@ -618,13 +650,41 @@
 }
 
 .np-messenger-chatwrap ::ng-deep .messages-area {
-  background: #FFFFFF;
+  background: #eef7ff;
 }
 
 .np-messenger-chatwrap ::ng-deep .message-bubble {
   border-radius: 6px;
   box-shadow: none;
   border: 1px solid rgba(140, 170, 215, 0.22);
+}
+
+.np-messenger-chatwrap ::ng-deep .own-bubble {
+  color: #05245e;
+  border-color: #7aa8dd;
+}
+
+.np-messenger-chatwrap ::ng-deep .other-bubble {
+  color: #221600;
+  border-color: #d6b95d;
+}
+
+.np-messenger-chatwrap ::ng-deep .msg-sender,
+.np-messenger-chatwrap ::ng-deep .group-name,
+.np-messenger-chatwrap ::ng-deep .group-preview,
+.np-messenger-chatwrap ::ng-deep .chat-header-subtitle,
+.np-messenger-chatwrap ::ng-deep .msg-time {
+  color: #174d88;
+}
+
+.np-messenger-chatwrap ::ng-deep .message-input {
+  color: #111;
+}
+
+.np-messenger-chatwrap ::ng-deep .buzz-message {
+  background: #fff4a6;
+  border-color: #d4a937;
+  color: #5c3a00;
 }
 
 .np-messenger-chatwrap ::ng-deep .msg-text,
@@ -701,7 +761,8 @@
   gap: 6px;
 }
 
-.np-window-min-btn {
+.np-window-min-btn,
+.np-window-max-btn {
   width: 24px;
   height: 22px;
   padding: 0;
@@ -712,6 +773,39 @@
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
+}
+
+.np-window-max-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.np-window-max-btn span {
+  width: 11px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-top-width: 3px;
+  display: block;
+}
+
+.np-window-max-btn span.restore {
+  position: relative;
+  width: 10px;
+  height: 8px;
+  transform: translate(-1px, 1px);
+}
+
+.np-window-max-btn span.restore::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: -5px;
+  width: 10px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-top-width: 3px;
+  background: rgba(217, 232, 255, 0.95);
 }
 
 .np-explorer-menubar {
@@ -1024,7 +1118,7 @@
 .np-taskband {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   flex: 1;
 }
@@ -1032,22 +1126,44 @@
 .np-task-chip {
   min-width: 120px;
   height: 28px;
-  padding: 0 14px;
-  border-radius: 6px;
+  max-width: 210px;
+  padding: 0 10px;
+  border-radius: 3px;
   display: inline-flex;
   align-items: center;
-  background: rgba(255,255,255,0.22);
+  background: linear-gradient(180deg, rgba(101,167,255,0.95) 0%, rgba(38,98,215,0.95) 100%);
   color: #eef6ff;
   font-size: 13px;
-  border: none;
+  border: 1px solid rgba(10, 52, 151, 0.75);
   cursor: pointer;
   gap: 8px;
   justify-content: flex-start;
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.35), inset -1px -1px 0 rgba(0,0,0,0.2);
 }
 
 .np-task-chip.active {
-  background: rgba(255,255,255,0.34);
+  background: linear-gradient(180deg, #1a55c8 0%, #0b3eaa 100%);
   color: #fff;
+  box-shadow: inset 1px 1px 4px rgba(0,0,0,0.45), inset -1px -1px 0 rgba(255,255,255,0.16);
+}
+
+.np-task-chip.minimized {
+  background: linear-gradient(180deg, rgba(89,151,238,0.8) 0%, rgba(32,85,190,0.8) 100%);
+  color: rgba(255,255,255,0.86);
+}
+
+.np-task-chip-quick {
+  min-width: 40px;
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.np-task-chip-quick span:last-child {
+  display: none;
 }
 
 .np-task-icon {
@@ -1272,34 +1388,43 @@
   gap: 6px;
 }
 
-.wmp-title-actions span,
 .wmp-close-btn {
   width: 22px;
   height: 20px;
   border-radius: 5px;
-  border: 1px solid rgba(255,255,255,0.38);
-  background: linear-gradient(180deg, rgba(255,255,255,0.84) 0%, rgba(195,220,255,0.6) 100%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.75);
+  border: 1px solid rgba(255,255,255,0.72);
+  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.55), inset -1px -1px 0 rgba(0,0,0,0.22);
 }
 
 .wmp-fullscreen-btn {
-  color: #265291;
+  color: #fff;
+  background: linear-gradient(180deg, #8db9ff 0%, #3d7ff0 44%, #1550d3 45%, #0b3ead 100%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .wmp-minimize-btn {
-  color: #2b5696;
+  color: #fff;
+  background: linear-gradient(180deg, #8db9ff 0%, #3d7ff0 44%, #1550d3 45%, #0b3ead 100%);
 }
 
 .wmp-close-btn {
   padding: 0;
   cursor: pointer;
-  color: #9b1f18;
+  color: #fff;
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
+}
+
+.wmp-close-btn:not(.wmp-minimize-btn):not(.wmp-fullscreen-btn) {
+  background: linear-gradient(180deg, #ffb18f 0%, #f06a3a 44%, #d33a1c 45%, #a91d0d 100%);
+}
+
+.wmp-minimize-btn,
+.wmp-fullscreen-btn {
+  font-size: 14px;
 }
 
 .wmp-menubar {

@@ -28,7 +28,7 @@ public class NasController {
 
     @Operation(summary = "Listar rutas NAS configuradas")
     @GetMapping("/paths")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<NasPathDto>> getPaths() {
         return ResponseEntity.ok(nasService.getAllPaths());
     }
@@ -60,7 +60,7 @@ public class NasController {
 
     @Operation(summary = "Listar archivos en una ruta NAS")
     @GetMapping("/browse/{pathId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> browse(@PathVariable Long pathId,
                                     @RequestParam(required = false) String subPath) {
         try {
@@ -171,7 +171,7 @@ public class NasController {
 
     @Operation(summary = "Descargar archivo de música")
     @GetMapping("/browse/{pathId}/download")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public void downloadFile(@PathVariable Long pathId,
                              @RequestParam String relativePath,
                              HttpServletResponse response) throws IOException {
@@ -186,7 +186,7 @@ public class NasController {
 
     @Operation(summary = "Descargar carpeta como ZIP")
     @GetMapping("/browse/{pathId}/download-zip")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public void downloadFolderZip(@PathVariable Long pathId,
                                   @RequestParam String relativePath,
                                   HttpServletResponse response) throws IOException {

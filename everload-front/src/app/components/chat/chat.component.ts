@@ -13,6 +13,7 @@ import { Subscription } from 'rxjs';
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @Output() messageSent = new EventEmitter<void>();
+  @Output() buzzReceived = new EventEmitter<ChatMessageDto>();
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
 
   groups: ChatGroupDto[] = [];
@@ -225,7 +226,13 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       const lastNew   = msgs.length > 0 ? msgs[msgs.length - 1].id : -1;
       const changed = lastNew !== lastKnown || msgs.length !== this.messages.length;
       if (changed) {
+        const incomingBuzz = msgs.find(msg =>
+          msg.id > lastKnown &&
+          msg.messageType === 'BUZZ' &&
+          !this.isOwnMessage(msg)
+        );
         this.messages = msgs;
+        if (incomingBuzz) this.buzzReceived.emit(incomingBuzz);
         if (!this.userScrolledUp) {
           this.shouldScrollToBottom = true;
           // We're at the bottom = actively reading, mark as read
@@ -531,6 +538,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   replyPreview(msg: ChatMessageDto): string {
     if (msg.messageType === 'YOUTUBE_SHARE') return '🎬 ' + (msg.videoTitle || 'YouTube');
+    if (msg.messageType === 'BUZZ') return 'Zumbido';
     return msg.content.length > 80 ? msg.content.slice(0, 80) + '…' : msg.content;
   }
 
@@ -684,6 +692,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   isYoutubeShare(msg: ChatMessageDto): boolean {
     return msg.messageType === 'YOUTUBE_SHARE';
+  }
+
+  isBuzz(msg: ChatMessageDto): boolean {
+    return msg.messageType === 'BUZZ';
   }
 
   downloadFromChat(videoId: string, type: 'video' | 'music'): void {

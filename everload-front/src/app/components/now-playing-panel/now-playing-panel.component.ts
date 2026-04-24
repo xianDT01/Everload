@@ -3,7 +3,8 @@ import { HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../services/music.service';
 import { NasPath, NasService } from '../../services/nas.service';
-import { ChatService } from '../../services/chat.service';
+import { ChatMessageDto, ChatService } from '../../services/chat.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-now-playing-panel',
@@ -33,13 +34,23 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   playerMinimized = false;
   explorerMinimized = false;
   messengerMinimized = false;
+  explorerMaximized = false;
+  messengerMaximized = false;
   activeDesktopWindow: 'player' | 'explorer' | 'messenger' = 'player';
   desktopPanelPosition = { x: 0, y: 0 };
   desktopPanelSize = { width: 1060, height: 690 };
   explorerWindowPosition = { x: 132, y: 84 };
   explorerWindowSize = { width: 560, height: 420 };
+  private explorerRestoreWindow = {
+    position: { x: 132, y: 84 },
+    size: { width: 560, height: 420 }
+  };
   messengerWindowPosition = { x: 220, y: 112 };
   messengerWindowSize = { width: 760, height: 560 };
+  private messengerRestoreWindow = {
+    position: { x: 220, y: 112 },
+    size: { width: 760, height: 560 }
+  };
   explorerPaths: NasPath[] = [];
   explorerPathId: number | null = null;
   explorerSubPath = '';
@@ -64,7 +75,12 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   private subs: Subscription[] = [];
   private wasOpen = false;
 
-  constructor(public musicService: MusicService, private nasService: NasService, private chatService: ChatService) {}
+  constructor(
+    public musicService: MusicService,
+    private nasService: NasService,
+    private chatService: ChatService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => { this.state = s; }));
@@ -75,9 +91,13 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.updateTaskbarClock();
     this.resetDesktopWindowPositions();
     this.clockTimer = window.setInterval(() => this.updateTaskbarClock(), 30000);
-    this.subs.push(this.chatService.newMessageAlert$.subscribe(() => {
-      if (this.messengerOpen && !this.messengerMinimized) this.playMsnMessageReceived();
-      else this.playMsnMessageReceived();
+    this.subs.push(this.chatService.newMessageAlert$.subscribe(alert => {
+      if (!this.canPlayWindowsChatSound()) return;
+      if (alert.content === 'Zumbido') {
+        this.showIncomingMessengerBuzz();
+        return;
+      }
+      this.playMsnMessageReceived();
     }));
   }
 
@@ -137,6 +157,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       zIndex: this.activeDesktopWindow === 'messenger' ? '9503' : '9496'
     };
   }
+  get canManageNas(): boolean {
+    return this.authService.canManageNas();
+  }
 
   close(): void {
     this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Shutdown.mp3', 0.7);
@@ -146,6 +169,10 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.explorerMinimized = false;
     this.messengerMinimized = false;
     this.stopViz();
+  }
+
+  onDesktopBackdropClick(): void {
+    this.desktopStartOpen = false;
   }
 
   @HostListener('document:keydown.escape')
@@ -423,6 +450,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   beginWindowDrag(event: MouseEvent, target: 'player' | 'explorer' | 'messenger'): void {
     if (this.isFullscreen) return;
+    if (target === 'explorer' && this.explorerMaximized) return;
+    if (target === 'messenger' && this.messengerMaximized) return;
     this.focusWindow(target);
     const position = target === 'player'
       ? this.desktopPanelPosition
@@ -444,6 +473,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     edgeY: 'top' | 'bottom'
   ): void {
     if (this.isFullscreen) return;
+    if (target === 'explorer' && this.explorerMaximized) return;
+    if (target === 'messenger' && this.messengerMaximized) return;
     this.focusWindow(target);
     const position = target === 'player'
       ? this.desktopPanelPosition
@@ -481,7 +512,42 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   closeExplorerWindow(): void {
     this.desktopExplorerOpen = false;
     this.explorerMinimized = false;
+    this.explorerMaximized = false;
     this.desktopStartOpen = false;
+  }
+
+  closePlayerWindow(): void {
+    this.playerMinimized = true;
+    if (this.activeDesktopWindow === 'player') {
+      if (this.desktopExplorerOpen && !this.explorerMinimized) this.activeDesktopWindow = 'explorer';
+      else if (this.messengerOpen && !this.messengerMinimized) this.activeDesktopWindow = 'messenger';
+    }
+  }
+
+  toggleExplorerMaximize(): void {
+    if (typeof window === 'undefined') return;
+    this.focusWindow('explorer');
+    if (this.explorerMaximized) {
+      this.explorerWindowSize = this.clampWindowSize(
+        'explorer',
+        this.explorerRestoreWindow.size.width,
+        this.explorerRestoreWindow.size.height
+      );
+      this.explorerWindowPosition = this.clampWindowPosition(
+        this.explorerRestoreWindow.position.x,
+        this.explorerRestoreWindow.position.y,
+        this.explorerWindowSize
+      );
+      this.explorerMaximized = false;
+      return;
+    }
+
+    this.explorerRestoreWindow = {
+      position: { ...this.explorerWindowPosition },
+      size: { ...this.explorerWindowSize }
+    };
+    this.explorerMaximized = true;
+    this.applyExplorerMaximizedBounds();
   }
 
   openMessengerWindow(): void {
@@ -496,9 +562,36 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   closeMessengerWindow(): void {
     this.messengerOpen = false;
     this.messengerMinimized = false;
+    this.messengerMaximized = false;
     if (this.activeDesktopWindow === 'messenger') {
       this.activeDesktopWindow = this.desktopExplorerOpen ? 'explorer' : 'player';
     }
+  }
+
+  toggleMessengerMaximize(): void {
+    if (typeof window === 'undefined') return;
+    this.focusWindow('messenger');
+    if (this.messengerMaximized) {
+      this.messengerWindowSize = this.clampWindowSize(
+        'messenger',
+        this.messengerRestoreWindow.size.width,
+        this.messengerRestoreWindow.size.height
+      );
+      this.messengerWindowPosition = this.clampWindowPosition(
+        this.messengerRestoreWindow.position.x,
+        this.messengerRestoreWindow.position.y,
+        this.messengerWindowSize
+      );
+      this.messengerMaximized = false;
+      return;
+    }
+
+    this.messengerRestoreWindow = {
+      position: { ...this.messengerWindowPosition },
+      size: { ...this.messengerWindowSize }
+    };
+    this.messengerMaximized = true;
+    this.applyMessengerMaximizedBounds();
   }
 
   minimizeWindow(target: 'player' | 'explorer' | 'messenger'): void {
@@ -537,6 +630,26 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   triggerMessengerBuzz(): void {
     this.focusWindow('messenger');
+    this.runMessengerBuzz();
+    const groupId = this.chatService.currentPollGroupId;
+    if (groupId !== null) {
+      this.chatService.sendBuzz(groupId).subscribe({ error: () => {} });
+    }
+  }
+
+  onMessengerBuzzReceived(_message: ChatMessageDto): void {
+    if (!this.canPlayWindowsChatSound()) return;
+    this.showIncomingMessengerBuzz();
+  }
+
+  private showIncomingMessengerBuzz(): void {
+    if (!this.messengerOpen) this.openMessengerWindow();
+    this.messengerMinimized = false;
+    this.focusWindow('messenger');
+    this.runMessengerBuzz();
+  }
+
+  private runMessengerBuzz(): void {
     this.messengerBuzzing = true;
     window.setTimeout(() => {
       this.messengerBuzzing = false;
@@ -607,6 +720,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   createExplorerFolder(): void {
+    if (!this.canManageNas) return;
     if (this.explorerPathId == null) return;
     const folderName = window.prompt('Nombre de la nueva carpeta');
     if (!folderName?.trim()) return;
@@ -621,6 +735,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   renameExplorerItem(): void {
+    if (!this.canManageNas) return;
     const item = this.explorerSelectedItem;
     if (!item || this.explorerPathId == null) return;
     const nextName = window.prompt('Nuevo nombre', item.name);
@@ -636,6 +751,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   moveExplorerItem(): void {
+    if (!this.canManageNas) return;
     const item = this.explorerSelectedItem;
     if (!item || this.explorerPathId == null) return;
     const destination = window.prompt('Mover a carpeta', this.explorerSubPath || '');
@@ -651,6 +767,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   deleteExplorerItem(): void {
+    if (!this.canManageNas) return;
     const item = this.explorerSelectedItem;
     if (!item || this.explorerPathId == null) return;
     const ok = window.confirm(`Eliminar ${item.directory ? 'la carpeta' : 'el archivo'} "${item.name}"?`);
@@ -669,6 +786,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   onExplorerFilesSelected(event: Event): void {
+    if (!this.canManageNas) return;
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     input.value = '';
@@ -677,6 +795,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   onExplorerFolderSelected(event: Event): void {
+    if (!this.canManageNas) return;
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files || []);
     input.value = '';
@@ -782,19 +901,51 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       this.desktopPanelPosition.y,
       this.desktopPanelSize
     );
-    this.explorerWindowPosition = this.clampWindowPosition(
-      this.explorerWindowPosition.x,
-      this.explorerWindowPosition.y,
-      this.explorerWindowSize
-    );
-    this.messengerWindowPosition = this.clampWindowPosition(
-      this.messengerWindowPosition.x,
-      this.messengerWindowPosition.y,
-      this.messengerWindowSize
-    );
+    if (this.explorerMaximized) {
+      this.applyExplorerMaximizedBounds();
+    } else {
+      this.explorerWindowPosition = this.clampWindowPosition(
+        this.explorerWindowPosition.x,
+        this.explorerWindowPosition.y,
+        this.explorerWindowSize
+      );
+    }
+    if (this.messengerMaximized) {
+      this.applyMessengerMaximizedBounds();
+    } else {
+      this.messengerWindowPosition = this.clampWindowPosition(
+        this.messengerWindowPosition.x,
+        this.messengerWindowPosition.y,
+        this.messengerWindowSize
+      );
+    }
     this.desktopPanelSize = this.clampWindowSize('player', this.desktopPanelSize.width, this.desktopPanelSize.height);
-    this.explorerWindowSize = this.clampWindowSize('explorer', this.explorerWindowSize.width, this.explorerWindowSize.height);
-    this.messengerWindowSize = this.clampWindowSize('messenger', this.messengerWindowSize.width, this.messengerWindowSize.height);
+    if (!this.explorerMaximized) {
+      this.explorerWindowSize = this.clampWindowSize('explorer', this.explorerWindowSize.width, this.explorerWindowSize.height);
+    }
+    if (!this.messengerMaximized) {
+      this.messengerWindowSize = this.clampWindowSize('messenger', this.messengerWindowSize.width, this.messengerWindowSize.height);
+    }
+  }
+
+  private applyExplorerMaximizedBounds(): void {
+    if (typeof window === 'undefined') return;
+    const taskbarHeight = this.isFullscreen ? 0 : 40;
+    this.explorerWindowPosition = { x: 0, y: 0 };
+    this.explorerWindowSize = {
+      width: window.innerWidth,
+      height: Math.max(300, window.innerHeight - taskbarHeight)
+    };
+  }
+
+  private applyMessengerMaximizedBounds(): void {
+    if (typeof window === 'undefined') return;
+    const taskbarHeight = this.isFullscreen ? 0 : 40;
+    this.messengerWindowPosition = { x: 0, y: 0 };
+    this.messengerWindowSize = {
+      width: window.innerWidth,
+      height: Math.max(420, window.innerHeight - taskbarHeight)
+    };
   }
 
   private clampWindowPosition(x: number, y: number, size: { width: number; height: number }): { x: number; y: number } {
@@ -880,6 +1031,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   private uploadExplorerFiles(files: File[], relativePaths?: string[]): void {
+    if (!this.canManageNas) return;
     if (this.explorerPathId == null) return;
     this.explorerLoading = true;
     this.explorerError = '';
@@ -905,19 +1057,27 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     } catch {}
   }
 
+  private canPlayWindowsChatSound(): boolean {
+    return this.isOpen && this.isDesktopWmp;
+  }
+
   private playMsnMessageReceived(): void {
+    if (!this.canPlayWindowsChatSound()) return;
     this.playSound('assets/Windows%20songs/messenger-tono-mensaje-.mp3', 0.8);
   }
 
   playMsnMessageSent(): void {
+    if (!this.canPlayWindowsChatSound()) return;
     this.playSound('assets/Windows%20songs/messenger-tono-mensaje-.mp3', 0.5);
   }
 
   private playMsnOnline(): void {
+    if (!this.canPlayWindowsChatSound()) return;
     this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Logon.mp3', 0.7);
   }
 
   private playMessengerBuzzInspired(): void {
+    if (!this.canPlayWindowsChatSound()) return;
     this.playSound('assets/Windows%20songs/Zumbido%20messenger.mp3', 0.9);
   }
 }

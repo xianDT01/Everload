@@ -1,5 +1,5 @@
 <div class="np-desktop-shell" *ngIf="isOpen && isDesktopWmp">
-  <div class="np-desktop-backdrop" (click)="close()">
+  <div class="np-desktop-backdrop" (click)="onDesktopBackdropClick()">
     <div class="np-desktop-wallpaper">
       <div class="np-desktop-icons" (click)="$event.stopPropagation()">
         <button class="np-desktop-icon" (click)="openExplorerWindow()">
@@ -8,7 +8,7 @@
         </button>
         <button class="np-desktop-icon" (click)="openCurrentTrackFolder()">
           <span class="np-desktop-icon-glyph music"></span>
-          <span>My Music</span>
+          <span>{{ 'WINDOWS.MY_MUSIC' | translate }}</span>
         </button>
         <button class="np-desktop-icon" (click)="desktopStartOpen = false">
           <span class="np-desktop-icon-glyph player"></span>
@@ -16,7 +16,7 @@
         </button>
         <button class="np-desktop-icon" (click)="toggleFullscreen()">
           <span class="np-desktop-icon-glyph xp"></span>
-          <span>My Computer</span>
+          <span>{{ 'WINDOWS.MY_COMPUTER' | translate }}</span>
         </button>
         <button class="np-desktop-icon" (click)="openMessengerWindow()">
           <span class="np-desktop-icon-glyph messenger"></span>
@@ -39,35 +39,35 @@
         <span class="np-start-item-icon folder"></span>
         <div>
           <strong>NAS Explorer</strong>
-          <span>Abrir carpetas y canciones del NAS</span>
+          <span>{{ 'WINDOWS.START_NAS_EXPLORER_DESC' | translate }}</span>
         </div>
       </button>
       <button class="np-start-item" (click)="openCurrentTrackFolder()">
         <span class="np-start-item-icon music"></span>
         <div>
-          <strong>Now Playing Folder</strong>
-          <span>Ir a la carpeta de la cancion actual</span>
+          <strong>{{ 'WINDOWS.START_NOW_PLAYING_FOLDER' | translate }}</strong>
+          <span>{{ 'WINDOWS.START_NOW_PLAYING_DESC' | translate }}</span>
         </div>
       </button>
       <button class="np-start-item" (click)="openMessengerWindow()">
         <span class="np-start-item-icon messenger"></span>
         <div>
           <strong>Messenger</strong>
-          <span>Abrir el chat de Everload como MSN</span>
+          <span>{{ 'WINDOWS.START_MESSENGER_DESC' | translate }}</span>
         </div>
       </button>
       <button class="np-start-item" (click)="toggleFullscreen()">
         <span class="np-start-item-icon player"></span>
         <div>
-          <strong>{{ isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa' }}</strong>
-          <span>Modo theatre como Windows Media Player</span>
+          <strong>{{ isFullscreen ? ('WINDOWS.START_EXIT_FULLSCREEN' | translate) : ('WINDOWS.START_FULLSCREEN' | translate) }}</strong>
+          <span>{{ 'WINDOWS.START_THEATRE_DESC' | translate }}</span>
         </div>
       </button>
       <button class="np-start-item danger" (click)="close()">
         <span class="np-start-item-icon shutdown"></span>
         <div>
-          <strong>Cerrar</strong>
-          <span>Salir de la ventana Now Playing</span>
+          <strong>{{ 'WINDOWS.START_CLOSE' | translate }}</strong>
+          <span>{{ 'WINDOWS.START_CLOSE_DESC' | translate }}</span>
         </div>
       </button>
     </div>
@@ -79,45 +79,51 @@
         <span class="np-start-item-icon folder"></span>
         <strong>NAS Explorer</strong>
       </div>
-      <div class="np-window-titleactions">
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
         <button class="np-window-min-btn" (click)="minimizeWindow('explorer')" title="Minimizar">_</button>
+        <button class="np-window-max-btn" (click)="toggleExplorerMaximize()" [title]="explorerMaximized ? 'Restaurar' : 'Maximizar'">
+          <span *ngIf="!explorerMaximized"></span>
+          <span *ngIf="explorerMaximized" class="restore"></span>
+        </button>
         <button class="np-explorer-close" (click)="closeExplorerWindow()">×</button>
       </div>
     </div>
     <div class="np-explorer-menubar">
-      <span>File</span>
-      <span>Edit</span>
-      <span>View</span>
-      <span>Favorites</span>
-      <span>Tools</span>
-      <span>Help</span>
+      <span>{{ 'WINDOWS.MENU_FILE' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_EDIT' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_VIEW' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_FAVORITES' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_TOOLS' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_HELP' | translate }}</span>
     </div>
     <div class="np-explorer-toolbar">
-      <button class="np-explorer-nav" (click)="goExplorerUp()" [disabled]="!explorerSubPath">Back</button>
-      <button class="np-explorer-nav" (click)="createExplorerFolder()">New Folder</button>
-      <button class="np-explorer-nav" (click)="renameExplorerItem()" [disabled]="!explorerSelectedItem">Rename</button>
-      <button class="np-explorer-nav" (click)="moveExplorerItem()" [disabled]="!explorerSelectedItem">Move</button>
-      <button class="np-explorer-nav danger" (click)="deleteExplorerItem()" [disabled]="!explorerSelectedItem">Delete</button>
-      <button class="np-explorer-nav" (click)="uploadFilesInput.click()">Upload Files</button>
-      <button class="np-explorer-nav" (click)="uploadFolderInput.click()">Upload Folder</button>
+      <button class="np-explorer-nav" (click)="goExplorerUp()" [disabled]="!explorerSubPath">{{ 'WINDOWS.NAV_BACK' | translate }}</button>
+      <ng-container *ngIf="canManageNas">
+        <button class="np-explorer-nav" (click)="createExplorerFolder()">{{ 'WINDOWS.NAV_NEW_FOLDER' | translate }}</button>
+        <button class="np-explorer-nav" (click)="renameExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.NAV_RENAME' | translate }}</button>
+        <button class="np-explorer-nav" (click)="moveExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.NAV_MOVE' | translate }}</button>
+        <button class="np-explorer-nav danger" (click)="deleteExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.NAV_DELETE' | translate }}</button>
+        <button class="np-explorer-nav" (click)="uploadFilesInput.click()">{{ 'WINDOWS.NAV_UPLOAD_FILES' | translate }}</button>
+        <button class="np-explorer-nav" (click)="uploadFolderInput.click()">{{ 'WINDOWS.NAV_UPLOAD_FOLDER' | translate }}</button>
+      </ng-container>
       <div class="np-explorer-location">{{ explorerPathName }}<span *ngIf="explorerSubPath"> / {{ explorerSubPath }}</span></div>
     </div>
     <div class="np-explorer-body">
       <aside class="np-explorer-sidebar xp">
-        <div class="np-explorer-sidegroup">
-          <h4>System Tasks</h4>
-          <button class="np-explorer-sideaction" (click)="createExplorerFolder()">Create a new folder</button>
-          <button class="np-explorer-sideaction" (click)="uploadFilesInput.click()">Upload files</button>
-          <button class="np-explorer-sideaction" (click)="uploadFolderInput.click()">Upload folder</button>
+        <div class="np-explorer-sidegroup" *ngIf="canManageNas">
+          <h4>{{ 'WINDOWS.SIDE_SYSTEM_TASKS' | translate }}</h4>
+          <button class="np-explorer-sideaction" (click)="createExplorerFolder()">{{ 'WINDOWS.SIDE_CREATE_FOLDER' | translate }}</button>
+          <button class="np-explorer-sideaction" (click)="uploadFilesInput.click()">{{ 'WINDOWS.NAV_UPLOAD_FILES' | translate }}</button>
+          <button class="np-explorer-sideaction" (click)="uploadFolderInput.click()">{{ 'WINDOWS.NAV_UPLOAD_FOLDER' | translate }}</button>
+        </div>
+        <div class="np-explorer-sidegroup" *ngIf="canManageNas">
+          <h4>{{ 'WINDOWS.SIDE_FILE_TASKS' | translate }}</h4>
+          <button class="np-explorer-sideaction" (click)="renameExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.SIDE_RENAME_ITEM' | translate }}</button>
+          <button class="np-explorer-sideaction" (click)="moveExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.SIDE_MOVE_ITEM' | translate }}</button>
+          <button class="np-explorer-sideaction danger" (click)="deleteExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.SIDE_DELETE_ITEM' | translate }}</button>
         </div>
         <div class="np-explorer-sidegroup">
-          <h4>File and Folder Tasks</h4>
-          <button class="np-explorer-sideaction" (click)="renameExplorerItem()" [disabled]="!explorerSelectedItem">Rename this item</button>
-          <button class="np-explorer-sideaction" (click)="moveExplorerItem()" [disabled]="!explorerSelectedItem">Move this item</button>
-          <button class="np-explorer-sideaction danger" (click)="deleteExplorerItem()" [disabled]="!explorerSelectedItem">Delete this item</button>
-        </div>
-        <div class="np-explorer-sidegroup">
-          <h4>Other Places</h4>
+          <h4>{{ 'WINDOWS.SIDE_OTHER_PLACES' | translate }}</h4>
           <button
             class="np-explorer-path"
             *ngFor="let path of explorerPaths"
@@ -127,10 +133,10 @@
           </button>
         </div>
         <div class="np-explorer-sidegroup details" *ngIf="explorerSelectedItem as selected">
-          <h4>Details</h4>
+          <h4>{{ 'WINDOWS.SIDE_DETAILS' | translate }}</h4>
           <div class="np-explorer-sidecopy">
             <strong>{{ selected.title || selected.name }}</strong>
-            <span>{{ selected.directory ? 'Folder' : (selected.artist || 'Audio file') }}</span>
+            <span>{{ selected.directory ? ('WINDOWS.TYPE_FOLDER' | translate) : (selected.artist || ('WINDOWS.TYPE_AUDIO' | translate)) }}</span>
             <span *ngIf="!selected.directory">{{ fmt(selected.duration) }}</span>
           </div>
         </div>
@@ -144,7 +150,7 @@
           </ng-container>
         </div>
 
-        <div class="np-explorer-state" *ngIf="explorerLoading">Cargando carpeta...</div>
+        <div class="np-explorer-state" *ngIf="explorerLoading">{{ 'WINDOWS.STATE_LOADING' | translate }}</div>
         <div class="np-explorer-state error" *ngIf="!explorerLoading && explorerError">{{ explorerError }}</div>
 
         <div class="np-explorer-list" *ngIf="!explorerLoading && !explorerError">
@@ -157,9 +163,9 @@
             <span class="icon folder"></span>
             <div class="copy">
               <strong>{{ folder.name }}</strong>
-              <span>Carpeta del NAS</span>
+              <span>{{ 'WINDOWS.NAS_FOLDER' | translate }}</span>
             </div>
-            <span class="meta">Folder</span>
+            <span class="meta">{{ 'WINDOWS.TYPE_FOLDER' | translate }}</span>
           </button>
 
           <button
@@ -172,21 +178,23 @@
             <span class="icon track"></span>
             <div class="copy">
               <strong>{{ track.title || track.name }}</strong>
-              <span>{{ track.artist || 'Artista desconocido' }}</span>
+              <span>{{ track.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
             </div>
             <span class="meta">{{ fmt(track.duration) }}</span>
           </button>
 
-          <div class="np-explorer-state" *ngIf="!explorerFolders.length && !explorerTracks.length">Esta carpeta esta vacia.</div>
+          <div class="np-explorer-state" *ngIf="!explorerFolders.length && !explorerTracks.length">{{ 'WINDOWS.STATE_EMPTY' | translate }}</div>
         </div>
       </section>
     </div>
     <input #uploadFilesInput type="file" multiple hidden (change)="onExplorerFilesSelected($event)" />
     <input #uploadFolderInput type="file" multiple webkitdirectory hidden (change)="onExplorerFolderSelected($event)" />
-    <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'explorer', 'left', 'top')"></span>
-    <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'explorer', 'right', 'top')"></span>
-    <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'explorer', 'left', 'bottom')"></span>
-    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'explorer', 'right', 'bottom')"></span>
+    <ng-container *ngIf="!explorerMaximized">
+      <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'explorer', 'left', 'top')"></span>
+      <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'explorer', 'right', 'top')"></span>
+      <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'explorer', 'left', 'bottom')"></span>
+      <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'explorer', 'right', 'bottom')"></span>
+    </ng-container>
   </div>
 
   <div class="np-messenger-window" *ngIf="messengerOpen && !isFullscreen && !messengerMinimized" (click)="focusWindow('messenger'); $event.stopPropagation()" [class.is-buzzing]="messengerBuzzing" [ngStyle]="messengerWindowStyle">
@@ -195,34 +203,43 @@
         <span class="np-msn-logo"></span>
         <strong>MSN Messenger</strong>
       </div>
-      <div class="np-msn-winctrls">
+      <div class="np-msn-winctrls" (mousedown)="$event.stopPropagation()">
         <button class="np-msn-wcbtn" (click)="minimizeWindow('messenger')" title="Minimizar">_</button>
+        <button class="np-msn-wcbtn np-msn-max-btn" (click)="toggleMessengerMaximize()" [title]="messengerMaximized ? 'Restaurar' : 'Maximizar'">
+          <span *ngIf="!messengerMaximized"></span>
+          <span *ngIf="messengerMaximized" class="restore"></span>
+        </button>
         <button class="np-msn-wcbtn close" (click)="closeMessengerWindow()">×</button>
       </div>
     </div>
     <div class="np-msn-menubar">
-      <span>File</span>
-      <span>Contacts</span>
-      <span>Actions</span>
-      <span>Tools</span>
-      <span>Help</span>
+      <span>{{ 'WINDOWS.MENU_FILE' | translate }}</span>
+      <span>{{ 'WINDOWS.MSN_MENU_CONTACTS' | translate }}</span>
+      <span>{{ 'WINDOWS.MSN_MENU_ACTIONS' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_TOOLS' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_HELP' | translate }}</span>
     </div>
     <div class="np-msn-me">
       <div class="np-msn-me-pic"></div>
       <div class="np-msn-me-info">
         <strong>Everload User</strong>
-        <span class="np-msn-me-status"><span class="np-msn-dot"></span>Available</span>
-        <em>What are you doing today?</em>
+        <span class="np-msn-me-status"><span class="np-msn-dot"></span>{{ 'WINDOWS.MSN_STATUS_AVAILABLE' | translate }}</span>
+        <em>{{ 'WINDOWS.MSN_WHAT_ARE_YOU_DOING' | translate }}</em>
       </div>
-      <button class="np-msn-buzz-btn" (click)="triggerMessengerBuzz()" title="Send a Buzz!">Buzz!</button>
+      <button class="np-msn-buzz-btn" (click)="triggerMessengerBuzz()" [title]="'WINDOWS.MSN_BUZZ_TOOLTIP' | translate">{{ 'WINDOWS.MSN_BUZZ' | translate }}</button>
     </div>
     <div class="np-messenger-chatwrap">
-      <app-chat (messageSent)="playMsnMessageSent()"></app-chat>
+      <app-chat
+        (messageSent)="playMsnMessageSent()"
+        (buzzReceived)="onMessengerBuzzReceived($event)">
+      </app-chat>
     </div>
-    <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'messenger', 'left', 'top')"></span>
-    <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'messenger', 'right', 'top')"></span>
-    <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'messenger', 'left', 'bottom')"></span>
-    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'messenger', 'right', 'bottom')"></span>
+    <ng-container *ngIf="!messengerMaximized">
+      <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'messenger', 'left', 'top')"></span>
+      <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'messenger', 'right', 'top')"></span>
+      <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'messenger', 'left', 'bottom')"></span>
+      <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'messenger', 'right', 'bottom')"></span>
+    </ng-container>
   </div>
 
   <div class="np-desktop-taskbar" [class.hidden]="isFullscreen">
@@ -230,31 +247,45 @@
       <span class="np-windows-flag" aria-hidden="true">
         <i></i><i></i><i></i><i></i>
       </span>
-      <span>start</span>
+      <span>{{ 'WINDOWS.TASKBAR_START' | translate }}</span>
     </button>
     <div class="np-taskband">
-      <button class="np-task-chip" (click)="openCurrentTrackFolder()" title="My Music">
+      <button class="np-task-chip np-task-chip-quick" (click)="openCurrentTrackFolder()" [title]="'WINDOWS.MY_MUSIC' | translate">
         <span class="np-task-icon music"></span>
-        <span>My Music</span>
+        <span>{{ 'WINDOWS.MY_MUSIC' | translate }}</span>
       </button>
-      <button class="np-task-chip" [class.active]="desktopExplorerOpen && activeDesktopWindow === 'explorer' && !explorerMinimized" (click)="toggleTaskWindow('explorer')" title="NAS Explorer">
+      <button class="np-task-chip"
+              *ngIf="desktopExplorerOpen"
+              [class.active]="activeDesktopWindow === 'explorer' && !explorerMinimized"
+              [class.minimized]="explorerMinimized"
+              (click)="toggleTaskWindow('explorer')"
+              title="NAS Explorer">
         <span class="np-task-icon folder"></span>
         <span>NAS Explorer</span>
       </button>
-      <button class="np-task-chip" [class.active]="messengerOpen && activeDesktopWindow === 'messenger' && !messengerMinimized" (click)="toggleTaskWindow('messenger')" title="Messenger">
+      <button class="np-task-chip"
+              *ngIf="messengerOpen"
+              [class.active]="activeDesktopWindow === 'messenger' && !messengerMinimized"
+              [class.minimized]="messengerMinimized"
+              (click)="toggleTaskWindow('messenger')"
+              title="Messenger">
         <span class="np-task-icon messenger"></span>
         <span>Messenger</span>
       </button>
-      <button class="np-task-chip" [class.active]="activeDesktopWindow === 'player' && !playerMinimized" (click)="toggleTaskWindow('player')" title="Windows Media Player">
+      <button class="np-task-chip"
+              [class.active]="activeDesktopWindow === 'player' && !playerMinimized"
+              [class.minimized]="playerMinimized"
+              (click)="toggleTaskWindow('player')"
+              title="Windows Media Player">
         <span class="np-task-icon player"></span>
         <span>Windows Media Player</span>
       </button>
     </div>
     <div class="np-taskbar-volume">
-      <button class="np-volume-btn" (click)="nudgeDesktopVolume(-10)" title="Bajar volumen">-</button>
+      <button class="np-volume-btn" (click)="nudgeDesktopVolume(-10)" [title]="'WINDOWS.TASKBAR_VOLUME_DOWN' | translate">-</button>
       <span class="np-volume-icon">🔊</span>
       <input type="range" min="0" max="100" [value]="currentVolumePercent" (input)="setDesktopVolume($any($event.target).value)" />
-      <button class="np-volume-btn" (click)="nudgeDesktopVolume(10)" title="Subir volumen">+</button>
+      <button class="np-volume-btn" (click)="nudgeDesktopVolume(10)" [title]="'WINDOWS.TASKBAR_VOLUME_UP' | translate">+</button>
     </div>
     <div class="np-system-tray">{{ taskbarClock }}</div>
   </div>
@@ -273,21 +304,20 @@
         </div>
         <div class="wmp-title-actions">
           <button class="wmp-close-btn wmp-minimize-btn" (click)="minimizeWindow('player')" title="Minimizar">_</button>
-          <span></span><span></span><span></span>
           <button class="wmp-close-btn wmp-fullscreen-btn" (click)="toggleFullscreen()" [title]="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
             <svg *ngIf="!isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm0-7h2V5h-5v2h3v3z"/></svg>
             <svg *ngIf="isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-4v4h-2v-6h6v2zM5 11h6v6H9v-4H5v-2zm4-4v4H7V5h6v2H9zm6 0v4h2V7h4V5h-6z"/></svg>
           </button>
-          <button class="wmp-close-btn" (click)="close()" title="Cerrar (ESC)">×</button>
+          <button class="wmp-close-btn" (click)="closePlayerWindow()" title="Cerrar ventana">×</button>
         </div>
       </div>
 
       <div class="wmp-menubar">
-        <span>Archivo</span>
-        <span>Ver</span>
-        <span>Reproducir</span>
-        <span>Herramientas</span>
-        <span>Ayuda</span>
+        <span>{{ 'WINDOWS.MENU_FILE' | translate }}</span>
+        <span>{{ 'WINDOWS.MENU_VIEW' | translate }}</span>
+        <span>{{ 'WINDOWS.WMP_MENU_PLAY' | translate }}</span>
+        <span>{{ 'WINDOWS.MENU_TOOLS' | translate }}</span>
+        <span>{{ 'WINDOWS.MENU_HELP' | translate }}</span>
       </div>
 
       <div class="wmp-toolbar">
@@ -315,12 +345,12 @@
 
       <div class="wmp-content">
         <nav class="wmp-leftnav">
-          <button class="wmp-nav-item active">Now Playing</button>
-          <button class="wmp-nav-item" (click)="openExplorerWindow()">Media Library</button>
-          <button class="wmp-nav-item" (click)="openCurrentTrackFolder()">My Music</button>
-          <button class="wmp-nav-item" (click)="vizMode = 'bars'">Bars</button>
-          <button class="wmp-nav-item" (click)="vizMode = 'wave'">Waves</button>
-          <button class="wmp-nav-item" (click)="vizMode = 'scope'">Full Screen Effects</button>
+          <button class="wmp-nav-item active">{{ 'WINDOWS.WMP_NAV_NOW_PLAYING' | translate }}</button>
+          <button class="wmp-nav-item" (click)="openExplorerWindow()">{{ 'WINDOWS.WMP_NAV_LIBRARY' | translate }}</button>
+          <button class="wmp-nav-item" (click)="openCurrentTrackFolder()">{{ 'WINDOWS.MY_MUSIC' | translate }}</button>
+          <button class="wmp-nav-item" (click)="vizMode = 'bars'">{{ 'WINDOWS.WMP_NAV_BARS' | translate }}</button>
+          <button class="wmp-nav-item" (click)="vizMode = 'wave'">{{ 'WINDOWS.WMP_NAV_WAVES' | translate }}</button>
+          <button class="wmp-nav-item" (click)="vizMode = 'scope'">{{ 'WINDOWS.WMP_NAV_SCOPE' | translate }}</button>
         </nav>
 
         <section class="wmp-stage">
