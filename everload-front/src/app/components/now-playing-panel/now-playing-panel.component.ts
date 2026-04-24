@@ -15,6 +15,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   vizMode: 'bars' | 'wave' | 'scope' = 'bars';
   @ViewChild('panelCanvas') panelCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('desktopPanel') desktopPanel?: ElementRef<HTMLElement>;
   private panelRaf?: number;
   private panelPeaks: number[] = [];
 
@@ -53,6 +54,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   get isDesktopWmp(): boolean {
     return typeof window !== 'undefined' && window.innerWidth >= 980;
   }
+  get isFullscreen(): boolean {
+    return typeof document !== 'undefined' && !!document.fullscreenElement;
+  }
 
   close(): void {
     this.musicService.nowPlayingPanelOpen = false;
@@ -61,6 +65,18 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   @HostListener('document:keydown.escape')
   onEscape(): void { if (this.isOpen) this.close(); }
+
+  async toggleFullscreen(): Promise<void> {
+    if (typeof document === 'undefined') return;
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {});
+      return;
+    }
+    const target = this.desktopPanel?.nativeElement;
+    if (target?.requestFullscreen) {
+      await target.requestFullscreen().catch(() => {});
+    }
+  }
 
   onSeek(e: MouseEvent): void {
     const bar = e.currentTarget as HTMLElement;

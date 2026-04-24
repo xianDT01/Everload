@@ -1,6 +1,16 @@
-<div class="np-desktop-backdrop" *ngIf="isOpen && isDesktopWmp" (click)="close()"></div>
+<div class="np-desktop-shell" *ngIf="isOpen && isDesktopWmp">
+  <div class="np-desktop-backdrop" (click)="close()"></div>
+  <div class="np-desktop-taskbar" [class.hidden]="isFullscreen">
+    <div class="np-start-btn">start</div>
+    <div class="np-taskband">
+      <span class="np-task-chip">My Music</span>
+      <span class="np-task-chip active">Windows Media Player</span>
+    </div>
+    <div class="np-system-tray">21:39</div>
+  </div>
+</div>
 
-<div class="np-panel" *ngIf="isOpen" (click)="$event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp">
+<div class="np-panel" *ngIf="isOpen" (click)="$event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" #desktopPanel>
   <ng-container *ngIf="isDesktopWmp; else mobilePanel">
     <div class="wmp-window">
       <div class="wmp-titlebar">
@@ -10,6 +20,10 @@
         </div>
         <div class="wmp-title-actions">
           <span></span><span></span><span></span>
+          <button class="wmp-close-btn wmp-fullscreen-btn" (click)="toggleFullscreen()" [title]="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
+            <svg *ngIf="!isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm0-7h2V5h-5v2h3v3z"/></svg>
+            <svg *ngIf="isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-4v4h-2v-6h6v2zM5 11h6v6H9v-4H5v-2zm4-4v4H7V5h6v2H9zm6 0v4h2V7h4V5h-6z"/></svg>
+          </button>
           <button class="wmp-close-btn" (click)="close()" title="Cerrar (ESC)">×</button>
         </div>
       </div>
@@ -46,46 +60,59 @@
       </div>
 
       <div class="wmp-content">
+        <nav class="wmp-leftnav">
+          <button class="wmp-nav-item active">Now Playing</button>
+          <button class="wmp-nav-item">Media Guide</button>
+          <button class="wmp-nav-item">Copy from CD</button>
+          <button class="wmp-nav-item">Media Library</button>
+          <button class="wmp-nav-item">Radio Tuner</button>
+          <button class="wmp-nav-item">Skin Chooser</button>
+        </nav>
+
         <section class="wmp-stage">
-          <div class="wmp-stage-top">
-            <div class="wmp-art-shell">
-              <div class="wmp-art-frame" [class.playing]="state?.playing">
-                <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" (error)="$any($event.target).style.display='none'" />
-                <div *ngIf="!playerHasCover()" class="wmp-art-fallback">♪</div>
-              </div>
-            </div>
-
-            <div class="wmp-track-copy">
-              <span class="wmp-kicker">{{ 'MUSIC.UI_NOW_PLAYING' | translate }}</span>
-              <h2>{{ state?.currentTrack?.title || state?.currentTrack?.name || '—' }}</h2>
-              <p>{{ state?.currentTrack?.artist || 'Artista desconocido' }}</p>
-              <small>{{ state?.currentTrack?.album || 'NAS Library' }}</small>
-            </div>
-          </div>
-
-          <div class="wmp-seekbar">
-            <span>{{ fmt(state?.currentTime || 0) }}</span>
-            <div class="wmp-seek-track" (click)="onSeek($event)">
-              <div class="wmp-seek-fill" [style.width.%]="(state?.currentTime || 0) / (state?.duration || 1) * 100"></div>
-              <div class="wmp-seek-thumb" [style.left.%]="(state?.currentTime || 0) / (state?.duration || 1) * 100"></div>
-            </div>
-            <span>{{ fmt(state?.duration || 0) }}</span>
-          </div>
-
-          <div class="wmp-viz-box">
-            <div class="wmp-viz-head">
-              <strong>Visualizaciones</strong>
-              <div class="wmp-viz-tabs">
-                <button [class.active]="vizMode === 'bars'" (click)="vizMode = 'bars'">Barras</button>
-                <button [class.active]="vizMode === 'wave'" (click)="vizMode = 'wave'">Onda</button>
-                <button [class.active]="vizMode === 'scope'" (click)="vizMode = 'scope'">Scope</button>
-              </div>
+          <div class="wmp-visual-screen">
+            <div class="wmp-screen-copy">
+              <span>{{ state?.currentTrack?.artist || 'TradeSend' }}</span>
+              <strong>{{ state?.currentTrack?.title || state?.currentTrack?.name || 'Trance - 009 Sound System Dreamscape' }}</strong>
             </div>
             <canvas #panelCanvas class="np-canvas"></canvas>
+          </div>
+
+          <div class="wmp-stage-bottom">
+            <div class="wmp-status-strip">
+              <span>Playing: {{ state?.currentTrack?.format || '214 kb/s' }}</span>
+              <span>{{ vizMode | uppercase }}</span>
+            </div>
+            <div class="wmp-seekbar">
+              <span>{{ fmt(state?.currentTime || 0) }}</span>
+              <div class="wmp-seek-track" (click)="onSeek($event)">
+                <div class="wmp-seek-fill" [style.width.%]="(state?.currentTime || 0) / (state?.duration || 1) * 100"></div>
+                <div class="wmp-seek-thumb" [style.left.%]="(state?.currentTime || 0) / (state?.duration || 1) * 100"></div>
+              </div>
+              <span>{{ fmt(state?.duration || 0) }}</span>
+            </div>
+            <div class="wmp-viz-tabs">
+              <button [class.active]="vizMode === 'bars'" (click)="vizMode = 'bars'">Barras</button>
+              <button [class.active]="vizMode === 'wave'" (click)="vizMode = 'wave'">Onda</button>
+              <button [class.active]="vizMode === 'scope'" (click)="vizMode = 'scope'">Scope</button>
+            </div>
           </div>
         </section>
 
         <aside class="wmp-sidepane">
+          <div class="wmp-side-card wmp-side-now">
+            <div class="wmp-side-topbar">
+              <span>Now Playing</span>
+            </div>
+            <div class="wmp-side-album">
+              <div class="wmp-side-art">
+                <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" (error)="$any($event.target).style.display='none'" />
+                <div *ngIf="!playerHasCover()" class="wmp-side-fallback">♪</div>
+              </div>
+              <div class="wmp-side-trackline">{{ state?.currentTrack?.title || state?.currentTrack?.name || 'Trance - 009 Sound System...' }}</div>
+            </div>
+          </div>
+
           <div class="wmp-side-card">
             <span class="wmp-side-label">{{ 'MUSIC.UI_TRACK_DETAILS' | translate }}</span>
             <ul>
@@ -110,7 +137,7 @@
       </div>
 
       <div class="wmp-statusbar">
-        <span>Now Playing</span>
+        <span>Total Time: {{ fmt(state?.duration || 0) }}</span>
         <span>{{ state?.pathId != null ? 'NAS' : 'LOCAL' }}</span>
       </div>
     </div>
