@@ -849,12 +849,21 @@
         </div>
 
         <div class="studio-viz-mode-row">
-          <button class="studio-vizmode-btn active">Barras</button>
-          <button class="studio-vizmode-btn">Onda</button>
-          <button class="studio-vizmode-btn">Espectro</button>
+          <button class="studio-vizmode-btn" [class.active]="studioVizMode === 'bars'" (click)="setStudioVizMode('bars')">Barras</button>
+          <button class="studio-vizmode-btn" [class.active]="studioVizMode === 'wave'" (click)="setStudioVizMode('wave')">Onda</button>
+          <button class="studio-vizmode-btn" [class.active]="studioVizMode === 'spectrum'" (click)="setStudioVizMode('spectrum')">Espectro</button>
         </div>
 
-        <div class="studio-ambient-line"></div>
+        <div class="studio-ambient-visual" [attr.data-mode]="studioVizMode" [class.active]="vizActive || state?.playing">
+          <div class="studio-ambient-bars" *ngIf="studioVizMode === 'bars'">
+            <span></span><span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="studio-ambient-wave" *ngIf="studioVizMode === 'wave'">
+            <span></span>
+          </div>
+          <div class="studio-ambient-line" *ngIf="studioVizMode === 'spectrum'"></div>
+        </div>
       </section>
 
       <section *ngIf="uiPrefs.rightPanelMode === 'focus'" class="focus-panel" [attr.data-skin]="playerSkin">
@@ -946,8 +955,8 @@
                       [class.active]="playerSkin === skin.id"
                       [attr.data-skin]="skin.id"
                       (click)="setPlayerSkin(skin.id)">
-                <span class="rightbar-skin-label">{{ skin.label }}</span>
-                <small class="rightbar-skin-hint">{{ skin.hint }}</small>
+                <span class="rightbar-skin-label">{{ skin.label | translate }}</span>
+                <small class="rightbar-skin-hint">{{ skin.hint | translate }}</small>
               </button>
             </div>
           </section>
