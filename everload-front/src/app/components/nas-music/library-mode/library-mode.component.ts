@@ -220,11 +220,17 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.mobileSearchOpen = false;
       this.settingsOpen = false;
     }
+    this.syncGlobalPlayerVisibility();
     this.saveUiPrefs();
   }
 
   private updateViewportState(): void {
     this.isMobileViewport = typeof window !== 'undefined' ? window.innerWidth <= 768 : false;
+    this.syncGlobalPlayerVisibility();
+  }
+
+  private syncGlobalPlayerVisibility(): void {
+    this.musicService.globalPlayerHidden = this.mobilePlayerOnlyActive;
   }
 
   toggleSidebarCollapsed(event?: Event): void {
@@ -508,6 +514,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.mobileSearchOpen = false;
       this.settingsOpen = false;
     }
+    this.syncGlobalPlayerVisibility();
     this.saveUiPrefs();
   }
 
@@ -862,6 +869,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.musicService.globalPlayerHidden = false;
     this.subs.forEach(s => s.unsubscribe());
     clearInterval(this.bannerInterval);
     this.stopPollJobs();

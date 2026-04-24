@@ -50,6 +50,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   get isOpen(): boolean { return this.musicService.nowPlayingPanelOpen; }
+  get isDesktopWmp(): boolean {
+    return typeof window !== 'undefined' && window.innerWidth >= 980;
+  }
 
   close(): void {
     this.musicService.nowPlayingPanelOpen = false;
