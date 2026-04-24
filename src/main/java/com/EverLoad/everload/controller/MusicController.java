@@ -27,7 +27,7 @@ public class MusicController {
 
     @Operation(summary = "Canciones aleatorias con portada para el panel de inicio")
     @GetMapping("/random")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getRandomTracks(@RequestParam(defaultValue = "3") int count) {
         try {
             return ResponseEntity.ok(musicService.getRandomTracks(Math.min(count, 10)));
@@ -38,7 +38,7 @@ public class MusicController {
 
     @Operation(summary = "Buscar archivos de audio recursivamente por nombre, título, artista o álbum")
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> searchMusic(@RequestParam Long pathId,
                                          @RequestParam String query,
                                          @RequestParam(required = false) String subPath,
@@ -54,7 +54,7 @@ public class MusicController {
 
     @Operation(summary = "Listar archivos de audio con metadatos ID3 (paginado)")
     @GetMapping("/metadata")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> browseMusic(@RequestParam Long pathId,
                                          @RequestParam(required = false) String subPath,
                                          @RequestParam(defaultValue = "0") int page,
@@ -105,7 +105,7 @@ public class MusicController {
      */
     @Operation(summary = "Streaming de audio con soporte Accept-Ranges")
     @GetMapping("/stream")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public void streamAudio(@RequestParam Long pathId,
                             @RequestParam String subPath,
                             @RequestHeader(value = "Range", required = false) String rangeHeader,
@@ -125,7 +125,7 @@ public class MusicController {
 
     @Operation(summary = "Carátula embebida en los tags ID3 del archivo de audio")
     @GetMapping("/cover")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> getCoverArt(@RequestParam Long pathId,
                                               @RequestParam String subPath) {
         try {
@@ -150,7 +150,7 @@ public class MusicController {
 
     @Operation(summary = "Carátula del primer archivo de audio encontrado en la carpeta")
     @GetMapping("/folder-cover")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<byte[]> getFolderCoverArt(@RequestParam Long pathId,
                                                     @RequestParam(required = false, defaultValue = "") String subPath) {
         try {

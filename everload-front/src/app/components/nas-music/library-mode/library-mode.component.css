@@ -379,7 +379,6 @@
 .lib-root.sidebar-collapsed .fav-folder-thumb-icon,
 .lib-root.sidebar-collapsed .snp-info,
 .lib-root.sidebar-collapsed .snp-viz-btn,
-.lib-root.sidebar-collapsed .snp-expand-btn,
 .lib-root.sidebar-collapsed .viz-canvas {
   display: none;
 }
@@ -3297,19 +3296,6 @@
   font-weight: 700;
 }
 
-.studio-close-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.75);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
 .studio-art-wrap {
   padding-top: 8px;
 }
@@ -5756,14 +5742,3 @@
   0%, 70% { opacity: 1; }
   100%     { opacity: 0; }
 }
-
-/* ══════════════════════════════════════════════════════════════════════════
-   NOW PLAYING PANEL (slide-in desde la derecha, estilo Spotify)
-══════════════════════════════════════════════════════════════════════════ */
-
-.snp-expand-btn {
-  background: none; border: none; color: rgba(255,255,255,0.45);
-  cursor: pointer; padding: 4px; display: flex; align-items: center;
-  border-radius: 4px; transition: color 0.2s;
-}
-.snp-expand-btn:hover { color: #fff; }

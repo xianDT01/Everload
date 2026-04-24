@@ -204,7 +204,7 @@
               </div>
 
               <!-- Mensaje de texto normal -->
-              <div *ngIf="!isYoutubeShare(msg)"
+              <div *ngIf="!isYoutubeShare(msg) && !isBuzz(msg)"
                 class="message-bubble"
                 [class.own-bubble]="isOwnMessage(msg)"
                 [class.other-bubble]="!isOwnMessage(msg)">
@@ -221,6 +221,11 @@
                     <button class="msg-inline-btn" (click)="copyMessage(msg)" [title]="'CHAT.COPY_MESSAGE' | translate">⎘</button>
                   </span>
                 </div>
+              </div>
+
+              <div *ngIf="isBuzz(msg)" class="buzz-message" [class.own-buzz]="isOwnMessage(msg)">
+                <span>{{ isOwnMessage(msg) ? 'Has enviado un zumbido' : msg.senderUsername + ' te ha enviado un zumbido' }}</span>
+                <small>{{ formatMessageTime(msg.sentAt) }}</small>
               </div>
 
               <!-- Tarjeta rich de YouTube -->

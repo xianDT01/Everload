@@ -131,6 +131,10 @@ export class AuthService {
     return role === 'ADMIN' || role === 'NAS_USER';
   }
 
+  canManageNas(): boolean {
+    return this.hasNasAccess();
+  }
+
   isPending(): boolean {
     return this.getCurrentUser()?.status === 'PENDING';
   }
