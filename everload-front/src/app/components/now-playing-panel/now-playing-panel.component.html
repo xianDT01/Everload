@@ -14,6 +14,10 @@
           <span class="np-desktop-icon-glyph player"></span>
           <span>Windows Media Player</span>
         </button>
+        <button class="np-desktop-icon" (click)="toggleFullscreen()">
+          <span class="np-desktop-icon-glyph xp"></span>
+          <span>My Computer</span>
+        </button>
       </div>
     </div>
   </div>
@@ -66,19 +70,56 @@
       </div>
       <button class="np-explorer-close" (click)="closeExplorerWindow()">×</button>
     </div>
+    <div class="np-explorer-menubar">
+      <span>File</span>
+      <span>Edit</span>
+      <span>View</span>
+      <span>Favorites</span>
+      <span>Tools</span>
+      <span>Help</span>
+    </div>
     <div class="np-explorer-toolbar">
-      <button class="np-explorer-nav" (click)="goExplorerUp()" [disabled]="!explorerSubPath">Up</button>
+      <button class="np-explorer-nav" (click)="goExplorerUp()" [disabled]="!explorerSubPath">Back</button>
+      <button class="np-explorer-nav" (click)="createExplorerFolder()">New Folder</button>
+      <button class="np-explorer-nav" (click)="renameExplorerItem()" [disabled]="!explorerSelectedItem">Rename</button>
+      <button class="np-explorer-nav" (click)="moveExplorerItem()" [disabled]="!explorerSelectedItem">Move</button>
+      <button class="np-explorer-nav danger" (click)="deleteExplorerItem()" [disabled]="!explorerSelectedItem">Delete</button>
+      <button class="np-explorer-nav" (click)="uploadFilesInput.click()">Upload Files</button>
+      <button class="np-explorer-nav" (click)="uploadFolderInput.click()">Upload Folder</button>
       <div class="np-explorer-location">{{ explorerPathName }}<span *ngIf="explorerSubPath"> / {{ explorerSubPath }}</span></div>
     </div>
     <div class="np-explorer-body">
-      <aside class="np-explorer-sidebar">
-        <button
-          class="np-explorer-path"
-          *ngFor="let path of explorerPaths"
-          [class.active]="explorerPathId === path.id"
-          (click)="selectExplorerPath(path.id)">
-          {{ path.name }}
-        </button>
+      <aside class="np-explorer-sidebar xp">
+        <div class="np-explorer-sidegroup">
+          <h4>System Tasks</h4>
+          <button class="np-explorer-sideaction" (click)="createExplorerFolder()">Create a new folder</button>
+          <button class="np-explorer-sideaction" (click)="uploadFilesInput.click()">Upload files</button>
+          <button class="np-explorer-sideaction" (click)="uploadFolderInput.click()">Upload folder</button>
+        </div>
+        <div class="np-explorer-sidegroup">
+          <h4>File and Folder Tasks</h4>
+          <button class="np-explorer-sideaction" (click)="renameExplorerItem()" [disabled]="!explorerSelectedItem">Rename this item</button>
+          <button class="np-explorer-sideaction" (click)="moveExplorerItem()" [disabled]="!explorerSelectedItem">Move this item</button>
+          <button class="np-explorer-sideaction danger" (click)="deleteExplorerItem()" [disabled]="!explorerSelectedItem">Delete this item</button>
+        </div>
+        <div class="np-explorer-sidegroup">
+          <h4>Other Places</h4>
+          <button
+            class="np-explorer-path"
+            *ngFor="let path of explorerPaths"
+            [class.active]="explorerPathId === path.id"
+            (click)="selectExplorerPath(path.id)">
+            {{ path.name }}
+          </button>
+        </div>
+        <div class="np-explorer-sidegroup details" *ngIf="explorerSelectedItem as selected">
+          <h4>Details</h4>
+          <div class="np-explorer-sidecopy">
+            <strong>{{ selected.title || selected.name }}</strong>
+            <span>{{ selected.directory ? 'Folder' : (selected.artist || 'Audio file') }}</span>
+            <span *ngIf="!selected.directory">{{ fmt(selected.duration) }}</span>
+          </div>
+        </div>
       </aside>
       <section class="np-explorer-content">
         <div class="np-explorer-breadcrumbs">
@@ -93,15 +134,27 @@
         <div class="np-explorer-state error" *ngIf="!explorerLoading && explorerError">{{ explorerError }}</div>
 
         <div class="np-explorer-list" *ngIf="!explorerLoading && !explorerError">
-          <button class="np-explorer-item folder" *ngFor="let folder of explorerFolders" (click)="openExplorerFolder(folder)">
+          <button
+            class="np-explorer-item folder"
+            *ngFor="let folder of explorerFolders"
+            (click)="selectExplorerItem(folder)"
+            (dblclick)="openExplorerFolder(folder)"
+            [class.selected]="isExplorerItemSelected(folder)">
             <span class="icon folder"></span>
             <div class="copy">
               <strong>{{ folder.name }}</strong>
               <span>Carpeta del NAS</span>
             </div>
+            <span class="meta">Folder</span>
           </button>
 
-          <button class="np-explorer-item track" *ngFor="let track of explorerTracks" (click)="playExplorerTrack(track)" [class.active]="state?.currentTrack?.path === track.path">
+          <button
+            class="np-explorer-item track"
+            *ngFor="let track of explorerTracks"
+            (click)="selectExplorerItem(track)"
+            (dblclick)="playExplorerTrack(track)"
+            [class.active]="state?.currentTrack?.path === track.path"
+            [class.selected]="isExplorerItemSelected(track)">
             <span class="icon track"></span>
             <div class="copy">
               <strong>{{ track.title || track.name }}</strong>
@@ -114,6 +167,8 @@
         </div>
       </section>
     </div>
+    <input #uploadFilesInput type="file" multiple hidden (change)="onExplorerFilesSelected($event)" />
+    <input #uploadFolderInput type="file" multiple webkitdirectory hidden (change)="onExplorerFolderSelected($event)" />
   </div>
 
   <div class="np-desktop-taskbar" [class.hidden]="isFullscreen">
@@ -129,6 +184,12 @@
       <button class="np-task-chip active">Windows Media Player</button>
     </div>
     <div class="np-system-tray">{{ taskbarClock }}</div>
+    <div class="np-taskbar-volume">
+      <button class="np-volume-btn" (click)="nudgeDesktopVolume(-10)" title="Bajar volumen">-</button>
+      <span class="np-volume-icon">🔊</span>
+      <input type="range" min="0" max="100" [value]="currentVolumePercent" (input)="setDesktopVolume($any($event.target).value)" />
+      <button class="np-volume-btn" (click)="nudgeDesktopVolume(10)" title="Subir volumen">+</button>
+    </div>
   </div>
 </div>
 
@@ -263,6 +324,11 @@
 
       <div class="wmp-statusbar">
         <span>Total Time: {{ fmt(state?.duration || 0) }}</span>
+        <div class="wmp-volume-strip">
+          <span>Volume</span>
+          <input type="range" min="0" max="100" [value]="currentVolumePercent" (input)="setDesktopVolume($any($event.target).value)" />
+          <strong>{{ currentVolumePercent }}%</strong>
+        </div>
         <span>{{ state?.pathId != null ? 'NAS' : 'LOCAL' }}</span>
       </div>
     </div>

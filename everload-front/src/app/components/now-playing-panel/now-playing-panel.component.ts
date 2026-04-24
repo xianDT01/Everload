@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../services/music.service';
 import { NasPath, NasService } from '../../services/nas.service';
@@ -32,6 +33,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   explorerPathId: number | null = null;
   explorerSubPath = '';
   explorerItems: MusicMetadataDto[] = [];
+  explorerSelectedPath: string | null = null;
   explorerLoading = false;
   explorerError = '';
   private clockTimer?: number;
@@ -396,6 +398,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   openExplorerFolder(item: MusicMetadataDto): void {
     if (!item.directory) return;
     this.explorerSubPath = item.path;
+    this.explorerSelectedPath = null;
     this.loadExplorerItems();
   }
 
@@ -404,6 +407,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const parts = this.explorerSubPath.split(/[/\\]/).filter(Boolean);
     parts.pop();
     this.explorerSubPath = parts.join('/');
+    this.explorerSelectedPath = null;
     this.loadExplorerItems();
   }
 
@@ -412,6 +416,110 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const tracks = this.explorerItems.filter(item => !item.directory);
     const index = tracks.findIndex(item => item.path === track.path);
     this.musicService.setQueue(this.explorerPathId, tracks, Math.max(0, index));
+  }
+
+  selectExplorerItem(item: MusicMetadataDto): void {
+    this.explorerSelectedPath = item.path;
+  }
+
+  isExplorerItemSelected(item: MusicMetadataDto): boolean {
+    return this.explorerSelectedPath === item.path;
+  }
+
+  get explorerSelectedItem(): MusicMetadataDto | null {
+    return this.explorerItems.find(item => item.path === this.explorerSelectedPath) || null;
+  }
+
+  get currentVolumePercent(): number {
+    return Math.round((this.state?.volume ?? 1) * 100);
+  }
+
+  setDesktopVolume(value: number | string): void {
+    const numeric = typeof value === 'string' ? Number(value) : value;
+    this.musicService.mainPlayer.setVolume(Math.max(0, Math.min(1, numeric / 100)));
+  }
+
+  nudgeDesktopVolume(delta: number): void {
+    this.setDesktopVolume(this.currentVolumePercent + delta);
+  }
+
+  createExplorerFolder(): void {
+    if (this.explorerPathId == null) return;
+    const folderName = window.prompt('Nombre de la nueva carpeta');
+    if (!folderName?.trim()) return;
+    this.explorerLoading = true;
+    this.nasService.mkdir(this.explorerPathId, folderName.trim(), this.explorerSubPath || undefined).subscribe({
+      next: () => this.loadExplorerItems(),
+      error: (err) => {
+        this.explorerLoading = false;
+        this.explorerError = err.error?.error || 'No se pudo crear la carpeta.';
+      }
+    });
+  }
+
+  renameExplorerItem(): void {
+    const item = this.explorerSelectedItem;
+    if (!item || this.explorerPathId == null) return;
+    const nextName = window.prompt('Nuevo nombre', item.name);
+    if (!nextName?.trim() || nextName.trim() === item.name) return;
+    this.explorerLoading = true;
+    this.nasService.rename(this.explorerPathId, item.path, nextName.trim()).subscribe({
+      next: () => this.loadExplorerItems(),
+      error: (err) => {
+        this.explorerLoading = false;
+        this.explorerError = err.error?.error || 'No se pudo renombrar.';
+      }
+    });
+  }
+
+  moveExplorerItem(): void {
+    const item = this.explorerSelectedItem;
+    if (!item || this.explorerPathId == null) return;
+    const destination = window.prompt('Mover a carpeta', this.explorerSubPath || '');
+    if (destination === null) return;
+    this.explorerLoading = true;
+    this.nasService.move(this.explorerPathId, item.path, destination.trim()).subscribe({
+      next: () => this.loadExplorerItems(),
+      error: (err) => {
+        this.explorerLoading = false;
+        this.explorerError = err.error?.error || 'No se pudo mover.';
+      }
+    });
+  }
+
+  deleteExplorerItem(): void {
+    const item = this.explorerSelectedItem;
+    if (!item || this.explorerPathId == null) return;
+    const ok = window.confirm(`Eliminar ${item.directory ? 'la carpeta' : 'el archivo'} "${item.name}"?`);
+    if (!ok) return;
+    this.explorerLoading = true;
+    this.nasService.deleteFile(this.explorerPathId, item.path).subscribe({
+      next: () => {
+        this.explorerSelectedPath = null;
+        this.loadExplorerItems();
+      },
+      error: (err) => {
+        this.explorerLoading = false;
+        this.explorerError = err.error?.error || 'No se pudo eliminar.';
+      }
+    });
+  }
+
+  onExplorerFilesSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length || this.explorerPathId == null) return;
+    this.uploadExplorerFiles(files);
+  }
+
+  onExplorerFolderSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length || this.explorerPathId == null) return;
+    const relativePaths = files.map(file => (file as any).webkitRelativePath || file.name);
+    this.uploadExplorerFiles(files, relativePaths);
   }
 
   get explorerFolders(): MusicMetadataDto[] {
@@ -470,6 +578,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.musicService.browse(this.explorerPathId, this.explorerSubPath, 0, 250).subscribe({
       next: (result) => {
         this.explorerItems = result.items;
+        if (this.explorerSelectedPath && !this.explorerItems.some(item => item.path === this.explorerSelectedPath)) {
+          this.explorerSelectedPath = null;
+        }
         this.explorerLoading = false;
       },
       error: () => {
@@ -534,5 +645,22 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       width: Math.min(560, window.innerWidth - 200),
       height: Math.min(420, window.innerHeight - 180)
     };
+  }
+
+  private uploadExplorerFiles(files: File[], relativePaths?: string[]): void {
+    if (this.explorerPathId == null) return;
+    this.explorerLoading = true;
+    this.explorerError = '';
+    this.nasService.uploadFiles(this.explorerPathId, this.explorerSubPath || undefined, files, relativePaths).subscribe({
+      next: (event: any) => {
+        if (event.type === HttpEventType.Response) {
+          this.loadExplorerItems();
+        }
+      },
+      error: (err) => {
+        this.explorerLoading = false;
+        this.explorerError = err.error?.error || 'No se pudo subir el contenido.';
+      }
+    });
   }
 }
