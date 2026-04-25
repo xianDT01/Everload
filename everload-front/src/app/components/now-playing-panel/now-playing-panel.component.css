@@ -13,9 +13,37 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  background-size: cover;
+  background-position: center;
   background:
     radial-gradient(circle at 50% 78%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 22%, transparent 40%),
     linear-gradient(180deg, #7eb4ff 0%, #9bcbff 40%, #90d973 41%, #59aa39 100%);
+}
+
+.np-desktop-wallpaper.np-wallpaper-midnight {
+  background:
+    radial-gradient(circle at 72% 18%, rgba(255,255,255,0.78) 0 2px, transparent 3px),
+    radial-gradient(circle at 24% 28%, rgba(255,255,255,0.55) 0 1px, transparent 2px),
+    radial-gradient(circle at 52% 46%, rgba(83, 155, 255, 0.34) 0%, transparent 28%),
+    linear-gradient(180deg, #06163d 0%, #123a7c 54%, #071a43 100%);
+}
+
+.np-desktop-wallpaper.np-wallpaper-sunset {
+  background:
+    radial-gradient(circle at 72% 22%, #fff0a8 0%, #ff9d54 13%, transparent 24%),
+    linear-gradient(180deg, #4b6fd8 0%, #f18b68 48%, #2f7c65 49%, #174a3b 100%);
+}
+
+.np-desktop-wallpaper.np-wallpaper-forest {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255,255,255,0.55) 0%, transparent 18%),
+    linear-gradient(180deg, #8cc9ff 0%, #b8e2ff 38%, #2d8b54 39%, #0f4f35 100%);
+}
+
+.np-desktop-wallpaper.np-wallpaper-custom {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .np-desktop-wallpaper::before {
@@ -36,6 +64,11 @@
   height: 34%;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0.05) 34%, transparent 60%);
+}
+
+.np-desktop-wallpaper:not(.np-wallpaper-xp)::before,
+.np-desktop-wallpaper:not(.np-wallpaper-xp)::after {
+  display: none;
 }
 
 .np-desktop-shell {
@@ -132,6 +165,14 @@
 .np-desktop-icon-glyph.xp,
 .np-desktop-icon-glyph.messenger,
 .np-start-item-icon.messenger,
+.np-desktop-icon-glyph.youtube,
+.np-start-item-icon.youtube,
+.np-desktop-icon-glyph.minesweeper,
+.np-start-item-icon.minesweeper,
+.np-desktop-icon-glyph.wallpaper,
+.np-start-item-icon.wallpaper,
+.np-task-icon.youtube,
+.np-task-icon.minesweeper,
 .np-task-icon.messenger {
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, #ffffff 0%, #bfe4ff 35%, #5398ff 70%, #1e4cb8 100%);
@@ -167,6 +208,60 @@
   display: grid;
   place-items: center;
   font-size: 12px;
+}
+
+.np-desktop-icon-glyph.wallpaper::before,
+.np-start-item-icon.wallpaper::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 3px;
+  background:
+    linear-gradient(135deg, transparent 50%, #4bb14a 50%),
+    linear-gradient(180deg, #9fd4ff 0%, #d9f0ff 100%);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.9);
+}
+
+.np-desktop-icon-glyph.youtube,
+.np-start-item-icon.youtube,
+.np-task-icon.youtube {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #ffb4b4 32%, #f01919 72%, #9a0000 100%);
+}
+
+.np-desktop-icon-glyph.youtube::before,
+.np-start-item-icon.youtube::before,
+.np-task-icon.youtube::before {
+  content: '▶';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.np-desktop-icon-glyph.minesweeper,
+.np-start-item-icon.minesweeper,
+.np-task-icon.minesweeper {
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.34) 0 2px, transparent 2px 8px),
+    linear-gradient(180deg, #f3f3f3 0%, #b8b8b8 100%);
+  box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #777;
+}
+
+.np-desktop-icon-glyph.minesweeper::before,
+.np-start-item-icon.minesweeper::before,
+.np-task-icon.minesweeper::before {
+  content: '✹';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #111;
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .np-start-menu {
@@ -279,6 +374,7 @@
   z-index: 9497;
   width: min(560px, calc(100vw - 200px));
   height: min(420px, calc(100vh - 180px));
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   border-radius: 12px;
@@ -288,9 +384,131 @@
   background: linear-gradient(180deg, #f6fbff 0%, #dcecff 100%);
 }
 
+.np-wallpaper-window {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 9504;
+  width: min(540px, calc(100vw - 48px));
+  max-height: min(620px, calc(100vh - 72px));
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid rgba(57, 100, 177, 0.88);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f6fbff 0%, #dcecff 100%);
+  box-shadow: 0 18px 42px rgba(0,0,0,0.42);
+}
+
+.np-wallpaper-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  padding: 8px 12px;
+  color: #fff;
+  background: linear-gradient(180deg, #69a7ff 0%, #2a62d2 100%);
+  user-select: none;
+}
+
+.np-wallpaper-titlecopy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.np-wallpaper-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.np-wallpaper-choice {
+  min-width: 0;
+  padding: 8px;
+  display: grid;
+  grid-template-rows: 96px auto;
+  gap: 8px;
+  border: 1px solid rgba(106, 145, 210, 0.28);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.72);
+  color: #1a4378;
+  text-align: left;
+  cursor: pointer;
+}
+
+.np-wallpaper-choice.active {
+  border-color: #2a62d2;
+  background: linear-gradient(180deg, #ffffff 0%, #cfe3ff 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.85);
+}
+
+.np-wallpaper-choice strong {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-wallpaper-preview {
+  display: block;
+  border-radius: 6px;
+  border: 1px solid rgba(60, 96, 160, 0.28);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.np-wallpaper-preview.xp {
+  background:
+    radial-gradient(circle at 50% 78%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 22%, transparent 40%),
+    linear-gradient(180deg, #7eb4ff 0%, #9bcbff 40%, #90d973 41%, #59aa39 100%);
+}
+
+.np-wallpaper-preview.midnight {
+  background:
+    radial-gradient(circle at 52% 46%, rgba(83, 155, 255, 0.34) 0%, transparent 28%),
+    linear-gradient(180deg, #06163d 0%, #123a7c 54%, #071a43 100%);
+}
+
+.np-wallpaper-preview.sunset {
+  background:
+    radial-gradient(circle at 72% 22%, #fff0a8 0%, #ff9d54 13%, transparent 24%),
+    linear-gradient(180deg, #4b6fd8 0%, #f18b68 48%, #2f7c65 49%, #174a3b 100%);
+}
+
+.np-wallpaper-preview.forest {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255,255,255,0.55) 0%, transparent 18%),
+    linear-gradient(180deg, #8cc9ff 0%, #b8e2ff 38%, #2d8b54 39%, #0f4f35 100%);
+}
+
+.np-wallpaper-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: none;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(116, 153, 214, 0.4);
+  background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(225,238,255,0.88) 100%);
+}
+
+.np-wallpaper-error {
+  flex: 1 1 100%;
+  color: #982317;
+  font-size: 12px;
+}
+
 .np-messenger-window {
   position: fixed;
   z-index: 9496;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   border-radius: 7px 7px 0 0;
@@ -298,6 +516,371 @@
   border: 1px solid #003c9d;
   box-shadow: 0 6px 28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.32);
   background: #d7e8ff;
+}
+
+.np-youtube-window {
+  position: fixed;
+  z-index: 9495;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid #7c0000;
+  box-shadow: 0 16px 38px rgba(0,0,0,0.45);
+  background: linear-gradient(180deg, #fff6f6 0%, #ffe0e0 100%);
+}
+
+.np-youtube-titlebar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  color: #fff;
+  background: linear-gradient(180deg, #ff6f6f 0%, #d11212 48%, #9a0000 49%, #c20b0b 100%);
+  cursor: move;
+  user-select: none;
+}
+
+.np-youtube-titlecopy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 12px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+}
+
+.np-youtube-body {
+  min-height: 0;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(190px, 0.9fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  overflow: auto;
+}
+
+.np-youtube-form {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.np-youtube-logo {
+  align-self: flex-start;
+  min-width: 54px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0;
+  background: linear-gradient(180deg, #ff3b3b 0%, #a60000 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.45);
+}
+
+.np-youtube-form label,
+.np-youtube-options label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #5c1010;
+  font-size: 12px;
+  font-family: Tahoma, Verdana, sans-serif;
+}
+
+.np-youtube-form input,
+.np-youtube-form select {
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #bc8f8f;
+  border-radius: 4px;
+  background: #fff;
+  color: #240000;
+  font-family: Tahoma, Verdana, sans-serif;
+}
+
+.np-youtube-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.np-youtube-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.np-youtube-primary,
+.np-youtube-secondary {
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 5px;
+  font-family: Tahoma, Verdana, sans-serif;
+  cursor: pointer;
+}
+
+.np-youtube-primary {
+  border: 1px solid #8f0000;
+  color: #fff;
+  background: linear-gradient(180deg, #ff5a5a 0%, #b50000 100%);
+}
+
+.np-youtube-secondary {
+  border: 1px solid #b98b8b;
+  color: #6c1010;
+  background: linear-gradient(180deg, #ffffff 0%, #ffd8d8 100%);
+}
+
+.np-youtube-error {
+  margin: 0;
+  color: #982317;
+  font-size: 12px;
+}
+
+.np-youtube-preview {
+  min-width: 0;
+  min-height: 160px;
+  border: 1px solid rgba(154, 0, 0, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #3a0505;
+}
+
+.np-youtube-preview img,
+.np-youtube-empty {
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 800;
+  background: linear-gradient(135deg, #490000 0%, #d41212 100%);
+}
+
+.np-youtube-queue {
+  grid-column: 1 / -1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(154, 0, 0, 0.2);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.58);
+  overflow: auto;
+}
+
+.np-youtube-queue-title {
+  color: #6c1010;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.np-youtube-download {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.78);
+  color: #300;
+}
+
+.np-youtube-download strong,
+.np-youtube-download span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-youtube-download span {
+  font-size: 11px;
+  color: #7b3030;
+}
+
+.np-youtube-progress {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #f3caca;
+}
+
+.np-youtube-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff6969 0%, #b90000 100%);
+}
+
+.np-youtube-empty-list {
+  color: #7b3030;
+  font-size: 12px;
+}
+
+.np-mines-window {
+  position: fixed;
+  z-index: 9494;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #063a9c;
+  border-radius: 7px 7px 0 0;
+  background: #c0c0c0;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.42);
+}
+
+.np-mines-titlebar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 7px 5px 9px;
+  color: #fff;
+  background: linear-gradient(180deg, #2a83ff 0%, #0b5ee9 44%, #0043bf 45%, #0b51d3 100%);
+  cursor: move;
+  user-select: none;
+}
+
+.np-mines-titlecopy {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 12px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+}
+
+.np-mines-body {
+  flex: 1;
+  min-height: 0;
+  padding: 10px;
+  background: #c0c0c0;
+  border-top: 1px solid #e7e7e7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-family: Tahoma, Verdana, sans-serif;
+}
+
+.np-mines-toolbar {
+  width: 100%;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px;
+  box-sizing: border-box;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  background: #c0c0c0;
+}
+
+.np-mines-counter {
+  min-width: 50px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border: 2px inset #808080;
+  background: #110000;
+  color: #ff1d1d;
+  font-family: 'Courier New', monospace;
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.np-mines-face {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  background: #c0c0c0;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.np-mines-face:active {
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.np-mines-board {
+  border: 3px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  background: #808080;
+}
+
+.np-mines-row {
+  display: flex;
+}
+
+.np-mines-cell {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 2px solid;
+  border-color: #ffffff #808080 #808080 #ffffff;
+  background: #c0c0c0;
+  color: #000;
+  font-family: Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.np-mines-cell.revealed {
+  border: 1px solid #808080;
+  background: #bdbdbd;
+  cursor: default;
+}
+
+.np-mines-cell.flagged {
+  color: #c00000;
+}
+
+.np-mines-cell.mine {
+  background: #ff6060;
+  color: #000;
+}
+
+.np-mines-cell[data-near="1"] { color: #0000ff; }
+.np-mines-cell[data-near="2"] { color: #008000; }
+.np-mines-cell[data-near="3"] { color: #ff0000; }
+.np-mines-cell[data-near="4"] { color: #000080; }
+.np-mines-cell[data-near="5"] { color: #800000; }
+.np-mines-cell[data-near="6"] { color: #008080; }
+.np-mines-cell[data-near="7"] { color: #000; }
+.np-mines-cell[data-near="8"] { color: #808080; }
+
+.np-mines-status {
+  width: 100%;
+  min-height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 3px 6px;
+  box-sizing: border-box;
+  border: 2px inset #808080;
+  background: #dcdcdc;
+  color: #222;
+  font-size: 11px;
+  text-align: center;
 }
 
 .np-messenger-window.is-buzzing {
@@ -832,10 +1415,11 @@
 }
 
 .np-explorer-toolbar {
-  display: grid;
-  grid-template-columns: repeat(7, auto) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+  flex: none;
   padding: 8px 12px;
   border-bottom: 1px solid rgba(116, 153, 214, 0.4);
   background: linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(225,238,255,0.88) 100%);
@@ -861,6 +1445,7 @@
 }
 
 .np-explorer-location {
+  flex: 1 1 180px;
   min-width: 0;
   padding: 7px 10px;
   border-radius: 8px;
@@ -878,12 +1463,15 @@
   grid-template-columns: 210px minmax(0, 1fr);
   min-height: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .np-explorer-sidebar {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow: auto;
   padding: 12px 10px;
   border-right: 1px solid rgba(116, 153, 214, 0.32);
   background: linear-gradient(180deg, rgba(231,240,255,0.92) 0%, rgba(210,227,252,0.92) 100%);
@@ -954,8 +1542,10 @@
 
 .np-explorer-content {
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .np-explorer-breadcrumbs {
@@ -1272,6 +1862,7 @@
   bottom: 0;
   width: 340px;
   z-index: 9500;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   background: #121212;

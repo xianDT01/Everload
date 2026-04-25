@@ -1,6 +1,6 @@
 <div class="np-desktop-shell" *ngIf="isOpen && isDesktopWmp">
   <div class="np-desktop-backdrop" (click)="onDesktopBackdropClick()">
-    <div class="np-desktop-wallpaper">
+    <div class="np-desktop-wallpaper" [ngClass]="desktopWallpaperClass" [ngStyle]="desktopWallpaperStyle">
       <div class="np-desktop-icons" (click)="$event.stopPropagation()">
         <button class="np-desktop-icon" (click)="openExplorerWindow()">
           <span class="np-desktop-icon-glyph folder"></span>
@@ -21,6 +21,18 @@
         <button class="np-desktop-icon" (click)="openMessengerWindow()">
           <span class="np-desktop-icon-glyph messenger"></span>
           <span>Messenger</span>
+        </button>
+        <button class="np-desktop-icon" (click)="openYoutubeDownloader()">
+          <span class="np-desktop-icon-glyph youtube"></span>
+          <span>YouTube XP</span>
+        </button>
+        <button class="np-desktop-icon" (click)="openMinesweeper()">
+          <span class="np-desktop-icon-glyph minesweeper"></span>
+          <span>{{ 'WINDOWS.MINESWEEPER' | translate }}</span>
+        </button>
+        <button class="np-desktop-icon" (click)="openWallpaperSettings()">
+          <span class="np-desktop-icon-glyph wallpaper"></span>
+          <span>Fondo</span>
         </button>
       </div>
     </div>
@@ -56,11 +68,32 @@
           <span>{{ 'WINDOWS.START_MESSENGER_DESC' | translate }}</span>
         </div>
       </button>
+      <button class="np-start-item" (click)="openYoutubeDownloader()">
+        <span class="np-start-item-icon youtube"></span>
+        <div>
+          <strong>YouTube XP Downloader</strong>
+          <span>{{ 'WINDOWS.YOUTUBE_XP_DESC' | translate }}</span>
+        </div>
+      </button>
+      <button class="np-start-item" (click)="openMinesweeper()">
+        <span class="np-start-item-icon minesweeper"></span>
+        <div>
+          <strong>{{ 'WINDOWS.MINESWEEPER' | translate }}</strong>
+          <span>{{ 'WINDOWS.MINESWEEPER_DESC' | translate }}</span>
+        </div>
+      </button>
       <button class="np-start-item" (click)="toggleFullscreen()">
         <span class="np-start-item-icon player"></span>
         <div>
           <strong>{{ isFullscreen ? ('WINDOWS.START_EXIT_FULLSCREEN' | translate) : ('WINDOWS.START_FULLSCREEN' | translate) }}</strong>
           <span>{{ 'WINDOWS.START_THEATRE_DESC' | translate }}</span>
+        </div>
+      </button>
+      <button class="np-start-item" (click)="openWallpaperSettings()">
+        <span class="np-start-item-icon wallpaper"></span>
+        <div>
+          <strong>{{ 'WINDOWS.WALLPAPER_START' | translate }}</strong>
+          <span>{{ 'WINDOWS.WALLPAPER_START_DESC' | translate }}</span>
         </div>
       </button>
       <button class="np-start-item danger" (click)="close()">
@@ -71,6 +104,41 @@
         </div>
       </button>
     </div>
+  </div>
+
+  <div class="np-wallpaper-window" *ngIf="wallpaperSettingsOpen && !isFullscreen" (click)="$event.stopPropagation()">
+    <div class="np-wallpaper-titlebar">
+      <div class="np-wallpaper-titlecopy">
+        <span class="np-start-item-icon wallpaper"></span>
+        <strong>{{ 'WINDOWS.WALLPAPER_TITLE' | translate }}</strong>
+      </div>
+      <button class="np-explorer-close" (click)="closeWallpaperSettings()">×</button>
+    </div>
+    <div class="np-wallpaper-body">
+      <button
+        class="np-wallpaper-choice"
+        *ngFor="let wallpaper of wallpaperOptions"
+        [class.active]="selectedWallpaper === wallpaper.id"
+        (click)="selectWallpaper(wallpaper.id)">
+        <span class="np-wallpaper-preview" [ngClass]="wallpaper.previewClass"></span>
+        <strong>{{ wallpaper.name }}</strong>
+      </button>
+
+      <button
+        class="np-wallpaper-choice"
+        *ngIf="customWallpaperUrl"
+        [class.active]="selectedWallpaper === 'custom'"
+        (click)="selectWallpaper('custom')">
+        <span class="np-wallpaper-preview custom" [style.background-image]="'url(' + customWallpaperUrl + ')'"></span>
+        <strong>{{ 'WINDOWS.WALLPAPER_MY_IMAGE' | translate }}</strong>
+      </button>
+    </div>
+    <div class="np-wallpaper-actions">
+      <button class="np-explorer-nav" (click)="wallpaperInput.click()">{{ 'WINDOWS.WALLPAPER_UPLOAD_BTN' | translate }}</button>
+      <button class="np-explorer-nav" (click)="resetWallpaper()">{{ 'WINDOWS.WALLPAPER_RESTORE' | translate }}</button>
+      <span class="np-wallpaper-error" *ngIf="wallpaperUploadError">{{ wallpaperUploadError }}</span>
+    </div>
+    <input #wallpaperInput type="file" accept="image/*" hidden (change)="onWallpaperUpload($event)" />
   </div>
 
   <div class="np-explorer-window" *ngIf="desktopExplorerOpen && !isFullscreen && !explorerMinimized" (click)="focusWindow('explorer'); $event.stopPropagation()" [ngStyle]="explorerWindowStyle">
@@ -242,6 +310,126 @@
     </ng-container>
   </div>
 
+  <div class="np-youtube-window" *ngIf="youtubeDownloaderOpen && !isFullscreen && !youtubeDownloaderMinimized" (click)="focusWindow('youtube'); $event.stopPropagation()" [ngStyle]="youtubeWindowStyle">
+    <div class="np-youtube-titlebar" (mousedown)="beginWindowDrag($event, 'youtube')">
+      <div class="np-youtube-titlecopy">
+        <span class="np-start-item-icon youtube"></span>
+        <strong>YouTube XP Downloader</strong>
+      </div>
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
+        <button class="np-window-min-btn" (click)="minimizeWindow('youtube')" title="Minimizar">_</button>
+        <button class="np-window-max-btn" (click)="toggleYoutubeMaximize()" [title]="youtubeDownloaderMaximized ? 'Restaurar' : 'Maximizar'">
+          <span *ngIf="!youtubeDownloaderMaximized"></span>
+          <span *ngIf="youtubeDownloaderMaximized" class="restore"></span>
+        </button>
+        <button class="np-explorer-close" (click)="closeYoutubeDownloader()">×</button>
+      </div>
+    </div>
+    <div class="np-youtube-body">
+      <section class="np-youtube-form">
+        <div class="np-youtube-logo">XP</div>
+        <label>
+          <span>{{ 'WINDOWS.YOUTUBE_XP_LINK' | translate }}</span>
+          <input type="url" [(ngModel)]="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." />
+        </label>
+        <div class="np-youtube-options">
+          <label>
+            <span>{{ 'WINDOWS.YOUTUBE_XP_TYPE' | translate }}</span>
+            <select [(ngModel)]="youtubeDownloadType">
+              <option value="music">{{ 'WINDOWS.YOUTUBE_XP_AUDIO' | translate }}</option>
+              <option value="video">{{ 'WINDOWS.YOUTUBE_XP_VIDEO' | translate }}</option>
+            </select>
+          </label>
+          <label *ngIf="youtubeDownloadType === 'video'">
+            <span>{{ 'WINDOWS.YOUTUBE_XP_QUALITY' | translate }}</span>
+            <select [(ngModel)]="youtubeResolution">
+              <option value="360">360p</option>
+              <option value="480">480p</option>
+              <option value="720">720p</option>
+              <option value="1080">1080p</option>
+            </select>
+          </label>
+        </div>
+        <div class="np-youtube-actions">
+          <button class="np-youtube-primary" (click)="startYoutubeDownload()">{{ 'WINDOWS.YOUTUBE_XP_DOWNLOAD' | translate }}</button>
+          <button class="np-youtube-secondary" *ngIf="youtubeDownloading" (click)="cancelYoutubeDownload()">{{ 'WINDOWS.YOUTUBE_XP_CANCEL' | translate }}</button>
+          <button class="np-youtube-secondary" *ngIf="canManageNas" (click)="saveYoutubeAudioToNas()">{{ 'WINDOWS.YOUTUBE_XP_SAVE_NAS' | translate }}</button>
+        </div>
+        <p class="np-youtube-error" *ngIf="youtubeError">{{ youtubeError }}</p>
+      </section>
+
+      <aside class="np-youtube-preview">
+        <img *ngIf="youtubeThumbUrl; else youtubeEmptyPreview" [src]="youtubeThumbUrl" alt="YouTube preview" />
+        <ng-template #youtubeEmptyPreview>
+          <div class="np-youtube-empty">YouTube</div>
+        </ng-template>
+      </aside>
+
+      <section class="np-youtube-queue">
+        <div class="np-youtube-queue-title">{{ 'WINDOWS.YOUTUBE_XP_DOWNLOADS' | translate }}</div>
+        <div class="np-youtube-download" *ngFor="let item of youtubeDownloads">
+          <div>
+            <strong>{{ item.filename || item.videoId }}</strong>
+            <span>{{ item.type === 'music' ? ('WINDOWS.YOUTUBE_XP_AUDIO' | translate) : ('WINDOWS.YOUTUBE_XP_VIDEO' | translate) }} · {{ item.status }}</span>
+          </div>
+          <div class="np-youtube-progress">
+            <span [style.width.%]="item.progress"></span>
+          </div>
+        </div>
+        <div class="np-youtube-empty-list" *ngIf="!youtubeDownloads.length">{{ 'WINDOWS.YOUTUBE_XP_EMPTY' | translate }}</div>
+      </section>
+    </div>
+    <ng-container *ngIf="!youtubeDownloaderMaximized">
+      <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'youtube', 'left', 'top')"></span>
+      <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'youtube', 'right', 'top')"></span>
+      <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'youtube', 'left', 'bottom')"></span>
+      <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'youtube', 'right', 'bottom')"></span>
+    </ng-container>
+  </div>
+
+  <div class="np-mines-window" *ngIf="minesweeperOpen && !isFullscreen && !minesweeperMinimized" (click)="focusWindow('minesweeper'); $event.stopPropagation()" [ngStyle]="minesweeperWindowStyle">
+    <div class="np-mines-titlebar" (mousedown)="beginWindowDrag($event, 'minesweeper')">
+      <div class="np-mines-titlecopy">
+        <span class="np-start-item-icon minesweeper"></span>
+        <strong>{{ 'WINDOWS.MINESWEEPER' | translate }}</strong>
+      </div>
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
+        <button class="np-window-min-btn" (click)="minimizeWindow('minesweeper')" title="Minimizar">_</button>
+        <button class="np-explorer-close" (click)="closeMinesweeper()">×</button>
+      </div>
+    </div>
+    <div class="np-mines-body">
+      <div class="np-mines-toolbar">
+        <span class="np-mines-counter">{{ minesFlagsLeft | number:'3.0-0' }}</span>
+        <button class="np-mines-face" (click)="resetMinesweeper()" [title]="'WINDOWS.MINESWEEPER_NEW_GAME' | translate">{{ minesFace }}</button>
+        <span class="np-mines-counter">{{ minesElapsed | number:'3.0-0' }}</span>
+      </div>
+      <div class="np-mines-board">
+        <div class="np-mines-row" *ngFor="let row of minesBoard">
+          <button
+            class="np-mines-cell"
+            *ngFor="let cell of row"
+            [class.revealed]="cell.revealed"
+            [class.mine]="cell.revealed && cell.mine"
+            [class.flagged]="cell.flagged"
+            [attr.data-near]="cell.revealed && !cell.mine && cell.adjacent ? cell.adjacent : null"
+            (click)="revealMineCell(cell)"
+            (contextmenu)="toggleMineFlag($event, cell)">
+            <ng-container *ngIf="cell.revealed && cell.mine">✹</ng-container>
+            <ng-container *ngIf="cell.flagged && !cell.revealed">⚑</ng-container>
+            <ng-container *ngIf="cell.revealed && !cell.mine && cell.adjacent">{{ cell.adjacent }}</ng-container>
+          </button>
+        </div>
+      </div>
+      <div class="np-mines-status">
+        <span *ngIf="minesStatus === 'ready'">{{ 'WINDOWS.MINESWEEPER_STATUS_READY' | translate }}</span>
+        <span *ngIf="minesStatus === 'playing'">{{ 'WINDOWS.MINESWEEPER_STATUS_PLAYING' | translate }}</span>
+        <span *ngIf="minesStatus === 'won'">{{ 'WINDOWS.MINESWEEPER_STATUS_WON' | translate }}</span>
+        <span *ngIf="minesStatus === 'lost'">{{ 'WINDOWS.MINESWEEPER_STATUS_LOST' | translate }}</span>
+      </div>
+    </div>
+  </div>
+
   <div class="np-desktop-taskbar" [class.hidden]="isFullscreen">
     <button class="np-start-btn" (click)="toggleStartMenu()">
       <span class="np-windows-flag" aria-hidden="true">
@@ -271,6 +459,24 @@
               title="Messenger">
         <span class="np-task-icon messenger"></span>
         <span>Messenger</span>
+      </button>
+      <button class="np-task-chip"
+              *ngIf="youtubeDownloaderOpen"
+              [class.active]="activeDesktopWindow === 'youtube' && !youtubeDownloaderMinimized"
+              [class.minimized]="youtubeDownloaderMinimized"
+              (click)="toggleTaskWindow('youtube')"
+              title="YouTube XP Downloader">
+        <span class="np-task-icon youtube"></span>
+        <span>YouTube XP</span>
+      </button>
+      <button class="np-task-chip"
+              *ngIf="minesweeperOpen"
+              [class.active]="activeDesktopWindow === 'minesweeper' && !minesweeperMinimized"
+              [class.minimized]="minesweeperMinimized"
+              (click)="toggleTaskWindow('minesweeper')"
+              [title]="'WINDOWS.MINESWEEPER' | translate">
+        <span class="np-task-icon minesweeper"></span>
+        <span>{{ 'WINDOWS.MINESWEEPER' | translate }}</span>
       </button>
       <button class="np-task-chip"
               [class.active]="activeDesktopWindow === 'player' && !playerMinimized"
