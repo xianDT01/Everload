@@ -447,20 +447,41 @@ hr {
 .users-table tr:last-child td { border-bottom: none; }
 .users-table tr:hover td { background: rgba(255,255,255,0.04); }
 
+.active-users-table th:first-child,
+.active-users-table td:first-child {
+  width: 52px;
+}
+
+.active-users-table th:nth-child(4),
+.active-users-table td:nth-child(4) {
+  width: 180px;
+}
+
+.active-users-table th:nth-child(5),
+.active-users-table td:nth-child(5) {
+  width: 180px;
+}
+
+.active-users-table th:nth-child(6),
+.active-users-table td:nth-child(6) {
+  width: 190px;
+}
+
 .role-select {
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.15);
   color: #fff;
-  border-radius: 6px;
-  padding: 5px 8px;
+  border-radius: 8px;
+  padding: 7px 10px;
   font-size: 0.82rem;
-  max-width: 130px;
+  min-width: 150px;
+  max-width: 170px;
 }
 
 .actions-cell {
   display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
   align-items: center;
 }
 
@@ -481,8 +502,8 @@ hr {
   background: rgba(255,77,77,0.12);
   border: 1px solid rgba(255,77,77,0.28);
   color: #f87171;
-  border-radius: 6px;
-  padding: 5px 9px;
+  border-radius: 8px;
+  padding: 7px 11px;
   font-size: 0.78rem;
   cursor: pointer;
   transition: background 0.2s;
@@ -491,16 +512,22 @@ hr {
 .btn-reject:hover { background: rgba(255,77,77,0.25); }
 
 .btn-del {
-  background: none;
-  border: none;
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
   cursor: pointer;
   font-size: 1rem;
-  opacity: 0.45;
-  transition: opacity 0.2s;
+  opacity: 0.55;
+  transition: opacity 0.2s, background 0.2s, border-color 0.2s;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: 8px;
 }
-.btn-del:hover { opacity: 1; background: rgba(255,77,77,0.1); }
+.btn-del:hover {
+  opacity: 1;
+  background: rgba(255,77,77,0.12);
+  border-color: rgba(255,77,77,0.22);
+}
 
 .empty-state {
   color: rgba(255,255,255,0.35);
@@ -1326,6 +1353,32 @@ hr {
   align-items: center;
 }
 
+.audit-clear-btn {
+  white-space: nowrap;
+}
+
+.audit-clear-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.audit-message {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(72, 187, 120, 0.35);
+  border-radius: 8px;
+  background: rgba(72, 187, 120, 0.12);
+  color: #9ae6b4;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.audit-message.error {
+  border-color: rgba(245, 101, 101, 0.4);
+  background: rgba(245, 101, 101, 0.12);
+  color: #feb2b2;
+}
+
 .audit-search-input {
   background: #2d3748;
   border: 1px solid #4a5568;
@@ -1418,10 +1471,16 @@ hr {
 /* ── Presence indicators (admin panel) ─────────────────────────────────── */
 
 .presence-cell {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 12px;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  width: fit-content;
 }
 
 .admin-presence-dot {
@@ -1432,11 +1491,17 @@ hr {
   flex-shrink: 0;
 }
 
-.admin-presence-dot.admin-online  { background: #22c55e; }
+.admin-presence-dot.admin-online  {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+}
 .admin-presence-dot.admin-offline { background: #6b7280; }
 
 .admin-presence-label { color: #9ca3af; }
-.admin-presence-label.admin-online-label { color: #22c55e; font-weight: 600; }
+.admin-presence-label.admin-online-label {
+  color: #22c55e;
+  font-weight: 700;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    THEME PICKER
@@ -1790,6 +1855,102 @@ hr {
   padding-top: 2px;
 }
 
+/* ── GitHub Token ─────────────────────────────────────────────────── */
+
+.github-token-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  margin-bottom: 0.5rem;
+}
+
+.github-token-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.github-token-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.github-token-optional {
+  font-weight: 400;
+  color: var(--admin-text-muted);
+  font-size: 0.82rem;
+}
+
+.github-token-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.github-token-input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  font-size: 0.88rem;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.github-token-input:focus {
+  border-color: var(--admin-accent, #1db954);
+}
+
+.btn-icon-toggle {
+  background: none;
+  border: 1px solid var(--admin-border);
+  border-radius: 7px;
+  padding: 7px 9px;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.btn-icon-toggle:hover {
+  color: var(--admin-text);
+  border-color: var(--admin-text-muted);
+}
+
+.github-token-instructions {
+  font-size: 0.82rem;
+  color: var(--admin-text-muted);
+  line-height: 1.55;
+  border-top: 1px solid var(--admin-border);
+  padding-top: 0.6rem;
+}
+
+.github-token-instructions p { margin: 0 0 0.4rem; }
+
+.github-token-instructions ol {
+  margin: 0.25rem 0 0.4rem 1.2rem;
+  padding: 0;
+}
+
+.github-token-instructions li { margin-bottom: 0.25rem; }
+
+.github-token-instructions code {
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 0.82rem;
+}
+
 /* ── Update ───────────────────────────────────────────────────────── */
 
 .update-result {
@@ -1834,6 +1995,43 @@ hr {
   gap: 0.75rem;
   padding-top: 0.5rem;
   border-top: 1px solid var(--admin-border);
+}
+
+.prepare-update-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.warn-countdown-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.warn-countdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ff9800;
+}
+
+.warn-countdown-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 152, 0, 0.15);
+  overflow: hidden;
+}
+
+.warn-countdown-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: #ff9800;
+  transition: width 1s linear;
 }
 
 .prepare-update-msg {
@@ -1954,4 +2152,3 @@ hr {
   .modal-actions { flex-direction: column; }
   .modal-actions .btn { width: 100%; text-align: center; }
 }
-

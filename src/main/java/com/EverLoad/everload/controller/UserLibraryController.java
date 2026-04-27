@@ -41,7 +41,7 @@ public class UserLibraryController {
 
     @Operation(summary = "Obtener pistas favoritas del usuario")
     @GetMapping("/favorites")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<List<FavoriteTrack>> getFavorites(@AuthenticationPrincipal UserDetails userDetails) {
         User user = getAuthenticatedUser(userDetails);
         List<FavoriteTrack> favorites = favoriteTrackRepository.findByUser(user, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -50,7 +50,7 @@ public class UserLibraryController {
 
     @Operation(summary = "Añadir o quitar pista de favoritos (toggle)")
     @PostMapping("/favorites/toggle")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<?> toggleFavorite(@AuthenticationPrincipal UserDetails userDetails,
                                             @RequestBody FavoriteTrack dto) {
         User user = getAuthenticatedUser(userDetails);
@@ -69,7 +69,7 @@ public class UserLibraryController {
 
     @Operation(summary = "Comprobar si una pista es favorita")
     @GetMapping("/favorites/check")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<?> checkFavorite(@AuthenticationPrincipal UserDetails userDetails,
                                            @RequestParam String trackPath,
                                            @RequestParam Long nasPathId) {
@@ -82,7 +82,7 @@ public class UserLibraryController {
 
     @Operation(summary = "Obtener historial de reproducción reciente")
     @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<List<PlaybackHistory>> getHistory(@AuthenticationPrincipal UserDetails userDetails,
                                                             @RequestParam(defaultValue = "50") int limit) {
         User user = getAuthenticatedUser(userDetails);
@@ -92,7 +92,7 @@ public class UserLibraryController {
 
     @Operation(summary = "Registrar reproducción en el historial")
     @PostMapping("/history")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<?> addHistory(@AuthenticationPrincipal UserDetails userDetails,
                                         @RequestBody PlaybackHistory dto) {
         User user = getAuthenticatedUser(userDetails);
@@ -101,4 +101,3 @@ public class UserLibraryController {
         return ResponseEntity.ok(Map.of("message", "History recorded"));
     }
 }
-

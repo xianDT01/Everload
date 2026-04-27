@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/co
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 import { NasService, NasPath } from '../../services/nas.service';
+import { AuthService } from '../../services/auth.service';
 
 // ── Sistema tab interfaces ─────────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ interface AdminConfig {
   clientSecret: string;
   apiKey: string;
   acoustidApiKey: string;
+  githubToken: string;
 }
 
 interface DownloadHistoryDto {
@@ -122,7 +124,8 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     return '';
   })();
 
-  config: AdminConfig = { clientId: '', clientSecret: '', apiKey: '', acoustidApiKey: '' };
+  config: AdminConfig = { clientId: '', clientSecret: '', apiKey: '', acoustidApiKey: '', githubToken: '' };
+  showGithubToken = false;
   intervalId: any;
   mensaje = '';
   cargando = false;
@@ -167,7 +170,8 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   constructor(
     private http: HttpClient,
     private translate: TranslateService,
-    private nasService: NasService
+    private nasService: NasService,
+    private authService: AuthService
   ) {
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
@@ -198,6 +202,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+    if (this.warnCountdownInterval) { clearInterval(this.warnCountdownInterval); this.warnCountdownInterval = null; }
   }
 
   changeLanguage(lang: string) {
@@ -341,6 +346,10 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       next: () => {
         this.userMsg = this.translate.instant('ADMIN.ROLE_CHANGED', { username: user.username, role });
         user.role = role;
+        const current = this.authService.getCurrentUser();
+        if (current && current.username === user.username) {
+          this.authService.updateStoredUser({ role: role as 'ADMIN' | 'NAS_USER' | 'BASIC_USER' });
+        }
       },
       error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_ROLE_ERROR')
     });
@@ -520,10 +529,14 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   auditTotalElements = 0;
   auditSearch = '';
   auditLoading = false;
+  auditClearing = false;
+  auditMessage = '';
+  auditMessageError = false;
   readonly AUDIT_PAGE_SIZE = 50;
 
   loadAuditLogs(page = 0): void {
     this.auditLoading = true;
+    this.auditMessage = '';
     let url = `${this.BASE}/api/admin/audit?page=${page}&size=${this.AUDIT_PAGE_SIZE}`;
     if (this.auditSearch.trim()) url += `&search=${encodeURIComponent(this.auditSearch.trim())}`;
     this.http.get<any>(url).subscribe({
@@ -535,6 +548,32 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
         this.auditLoading = false;
       },
       error: () => { this.auditLoading = false; }
+    });
+  }
+
+  clearAuditLogs(): void {
+    const confirmed = window.confirm(this.translate.instant('ADMIN.AUDIT_CLEAR_CONFIRM'));
+    if (!confirmed) return;
+
+    this.auditClearing = true;
+    this.auditMessage = '';
+    this.http.delete<{ deleted: number }>(`${this.BASE}/api/admin/audit`).subscribe({
+      next: response => {
+        const deleted = response?.deleted ?? 0;
+        this.auditLogs = [];
+        this.auditPage = 0;
+        this.auditTotalPages = 0;
+        this.auditTotalElements = 0;
+        this.auditSearch = '';
+        this.auditMessageError = false;
+        this.auditMessage = this.translate.instant('ADMIN.AUDIT_CLEAR_SUCCESS', { count: deleted });
+        this.auditClearing = false;
+      },
+      error: () => {
+        this.auditMessageError = true;
+        this.auditMessage = this.translate.instant('ADMIN.AUDIT_CLEAR_ERROR');
+        this.auditClearing = false;
+      }
     });
   }
 
@@ -738,6 +777,8 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   systemMsg = '';
   prepareUpdateMsg = '';
   prepareUpdateLoading = false;
+  warnCountdown = 0;
+  private warnCountdownInterval: any = null;
 
   loadSystemInfo(): void {
     this.systemLoading = true;
@@ -770,6 +811,35 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
         this.systemMsg = '❌ ' + this.translate.instant('ADMIN.UPDATE_CONNECT_ERROR');
       }
     });
+  }
+
+  warnAndPrepare(): void {
+    this.prepareUpdateMsg = '';
+    this.http.post<any>(`${this.BASE}/api/admin/system/warn-maintenance`, { minutes: 1 }).subscribe({
+      next: () => {
+        this.warnCountdown = 60;
+        this.warnCountdownInterval = setInterval(() => {
+          this.warnCountdown--;
+          if (this.warnCountdown <= 0) {
+            clearInterval(this.warnCountdownInterval);
+            this.warnCountdownInterval = null;
+            this.warnCountdown = 0;
+            this.prepareUpdate();
+          }
+        }, 1000);
+      },
+      error: () => {
+        this.prepareUpdateMsg = '❌ ' + this.translate.instant('ADMIN.WARN_MAINTENANCE_ERROR');
+      }
+    });
+  }
+
+  cancelWarn(): void {
+    if (this.warnCountdownInterval) {
+      clearInterval(this.warnCountdownInterval);
+      this.warnCountdownInterval = null;
+    }
+    this.warnCountdown = 0;
   }
 
   prepareUpdate(): void {

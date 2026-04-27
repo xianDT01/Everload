@@ -137,9 +137,10 @@
 }
 
 .collection-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 28px;
   align-items: center;
-  gap: 12px;
+  column-gap: 12px;
   padding: 8px 16px;
   cursor: pointer;
   border-radius: 4px;
@@ -200,12 +201,14 @@
 .collection-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   overflow: hidden;
 }
 
 .collection-name {
   font-size: 14px;
   font-weight: 500;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -366,9 +369,28 @@
 }
 
 .lib-root.sidebar-collapsed .sidebar-logo {
+  width: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
   justify-content: center;
-  padding-left: 10px;
-  padding-right: 10px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 12px;
+  margin: 0;
+}
+
+.lib-root.sidebar-collapsed .sidebar-logo > svg {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
+  display: block;
+}
+
+.lib-root.sidebar-collapsed .sidebar-collapse-btn {
+  margin-left: 0;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 64px;
 }
 
 .lib-root.sidebar-collapsed .sidebar-brand,
@@ -392,21 +414,29 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .lib-root.sidebar-collapsed .collection-item {
+  display: flex;
   justify-content: center;
+  align-items: center;
   margin: 0;
   padding: 0;
-  width: 56px;
-  height: 56px;
+  width: 100%;
+  height: 72px;
+  box-sizing: border-box;
 }
 
 .lib-root.sidebar-collapsed .collection-icon,
 .lib-root.sidebar-collapsed .fav-folder-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+}
+
+.lib-root.sidebar-collapsed .fav-folder-remove-btn {
+  display: none;
 }
 
 .lib-root.sidebar-collapsed .scroll-section {
@@ -415,7 +445,8 @@
 }
 
 .lib-root.sidebar-collapsed .sidebar-divider {
-  margin: 10px 16px;
+  width: 72px;
+  margin: 10px auto;
 }
 
 .lib-root.sidebar-collapsed .sidebar-now-playing {
@@ -610,6 +641,90 @@
   --np-kicker: #9ce3b2;
   --np-accent: #1db954;
   --np-visual-mid: #2bde6f;
+}
+
+.xp-player-shell[data-skin="midnight"] {
+  --np-title-start: #111827;
+  --np-title-end: #020617;
+  --np-body-overlay: rgba(96,165,250,0.1);
+  --np-stage-aura: rgba(59,130,246,0.2);
+  --np-cover-frame-start: #273449;
+  --np-cover-frame-mid: #172033;
+  --np-cover-frame-end: #0b1020;
+  --np-cover-shadow: rgba(59,130,246,0.28);
+  --np-fallback-start: #1f2a44;
+  --np-fallback-end: #0f172a;
+  --np-kicker: #93c5fd;
+  --np-accent: #60a5fa;
+  --np-accent-2: #a78bfa;
+  --np-visual-top: #bfdbfe;
+  --np-visual-mid: #60a5fa;
+  --np-progress-start: #172554;
+  --np-progress-end: #020617;
+  --np-particle: rgba(147,197,253,0.24);
+}
+
+.xp-player-shell[data-skin="aurora"] {
+  --np-title-start: #0f766e;
+  --np-title-end: #312e81;
+  --np-body-overlay: rgba(45,212,191,0.12);
+  --np-stage-aura: rgba(192,132,252,0.18);
+  --np-cover-frame-start: #dbfff7;
+  --np-cover-frame-mid: #99f6e4;
+  --np-cover-frame-end: #c4b5fd;
+  --np-cover-shadow: rgba(45,212,191,0.32);
+  --np-fallback-start: #d9f99d;
+  --np-fallback-end: #67e8f9;
+  --np-kicker: #99f6e4;
+  --np-accent: #2dd4bf;
+  --np-accent-2: #c084fc;
+  --np-visual-top: #f0fdfa;
+  --np-visual-mid: #2dd4bf;
+  --np-progress-start: #134e4a;
+  --np-progress-end: #1e1b4b;
+  --np-particle: rgba(192,132,252,0.26);
+}
+
+.xp-player-shell[data-skin="ruby"] {
+  --np-title-start: #ef4444;
+  --np-title-end: #7f1d1d;
+  --np-body-overlay: rgba(248,113,113,0.13);
+  --np-stage-aura: rgba(244,63,94,0.2);
+  --np-cover-frame-start: #ffe4e6;
+  --np-cover-frame-mid: #fda4af;
+  --np-cover-frame-end: #fb7185;
+  --np-cover-shadow: rgba(190,18,60,0.38);
+  --np-fallback-start: #fecdd3;
+  --np-fallback-end: #e11d48;
+  --np-kicker: #fecdd3;
+  --np-accent: #fb7185;
+  --np-accent-2: #facc15;
+  --np-visual-top: #fee2e2;
+  --np-visual-mid: #fb7185;
+  --np-progress-start: #7f1d1d;
+  --np-progress-end: #1f0707;
+  --np-particle: rgba(251,113,133,0.28);
+}
+
+.xp-player-shell[data-skin="mono"] {
+  --np-title-start: #525252;
+  --np-title-end: #171717;
+  --np-body-overlay: rgba(245,245,245,0.06);
+  --np-stage-aura: rgba(212,212,212,0.14);
+  --np-cover-frame-start: #f5f5f5;
+  --np-cover-frame-mid: #a3a3a3;
+  --np-cover-frame-end: #525252;
+  --np-cover-shadow: rgba(0,0,0,0.5);
+  --np-fallback-start: #e5e5e5;
+  --np-fallback-end: #737373;
+  --np-kicker: #d4d4d4;
+  --np-accent: #e5e5e5;
+  --np-accent-2: #a3a3a3;
+  --np-visual-top: #ffffff;
+  --np-visual-mid: #a3a3a3;
+  --np-progress-start: #404040;
+  --np-progress-end: #0a0a0a;
+  --np-particle: rgba(245,245,245,0.16);
 }
 
 .xp-titlebar {
@@ -1108,6 +1223,26 @@
 .rightbar-skin-btn[data-skin="spotify"].active {
   border-color: rgba(29,185,84,0.55);
   background: rgba(29,185,84,0.14);
+}
+
+.rightbar-skin-btn[data-skin="midnight"].active {
+  border-color: rgba(96,165,250,0.55);
+  background: rgba(96,165,250,0.12);
+}
+
+.rightbar-skin-btn[data-skin="aurora"].active {
+  border-color: rgba(45,212,191,0.55);
+  background: rgba(45,212,191,0.12);
+}
+
+.rightbar-skin-btn[data-skin="ruby"].active {
+  border-color: rgba(251,113,133,0.55);
+  background: rgba(251,113,133,0.12);
+}
+
+.rightbar-skin-btn[data-skin="mono"].active {
+  border-color: rgba(229,229,229,0.55);
+  background: rgba(229,229,229,0.1);
 }
 
 @media (max-width: 1280px) {
@@ -2997,6 +3132,31 @@
     linear-gradient(180deg, #121a14 0%, #090b09 100%);
 }
 
+.focus-panel[data-skin="midnight"] {
+  background:
+    radial-gradient(circle at top, rgba(96,165,250,0.18) 0%, transparent 30%),
+    linear-gradient(180deg, #101827 0%, #05070d 100%);
+}
+
+.focus-panel[data-skin="aurora"] {
+  background:
+    radial-gradient(circle at 30% 0%, rgba(45,212,191,0.2) 0%, transparent 34%),
+    radial-gradient(circle at 80% 12%, rgba(192,132,252,0.15) 0%, transparent 28%),
+    linear-gradient(180deg, #0d1c1f 0%, #07080f 100%);
+}
+
+.focus-panel[data-skin="ruby"] {
+  background:
+    radial-gradient(circle at top, rgba(251,113,133,0.2) 0%, transparent 32%),
+    linear-gradient(180deg, #241012 0%, #0e0708 100%);
+}
+
+.focus-panel[data-skin="mono"] {
+  background:
+    radial-gradient(circle at top, rgba(245,245,245,0.12) 0%, transparent 30%),
+    linear-gradient(180deg, #181818 0%, #080808 100%);
+}
+
 .focus-panel-head,
 .focus-track-meta {
   display: flex;
@@ -3878,6 +4038,7 @@
 .collection-name-only {
   font-size: 14px;
   font-weight: 500;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4130,6 +4291,32 @@
   align-items: center;
   justify-content: center;
   z-index: 0;
+}
+
+.fav-folder-remove-btn {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 4px;
+  background: rgba(255,255,255,0.04);
+  border: none;
+  color: var(--sp-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.fav-folder-item:hover .fav-folder-remove-btn {
+  opacity: 1;
+}
+
+.fav-folder-remove-btn:hover {
+  color: #e05252;
+  background: rgba(224,82,82,0.12);
 }
 
 /* ── Folder card favorite button ─────────────────────────────────────────── */

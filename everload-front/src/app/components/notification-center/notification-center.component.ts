@@ -11,6 +11,8 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
   unreadCount = 0;
   isOpen = false;
   private pollInterval: any;
+  private lastUnreadCount = 0;
+  private toastedIds = new Set<number>();
 
   constructor(private notificationService: NotificationService) {}
 
@@ -40,7 +42,28 @@ export class NotificationCenterComponent implements OnInit, OnDestroy {
 
   private loadUnreadCount(): void {
     this.notificationService.getUnreadCount().subscribe({
-      next: res => this.unreadCount = res.count,
+      next: res => {
+        const newCount = res.count;
+        if (newCount > this.lastUnreadCount) {
+          this.checkForAdminNotices();
+        }
+        this.lastUnreadCount = newCount;
+        this.unreadCount = newCount;
+      },
+      error: () => {}
+    });
+  }
+
+  private checkForAdminNotices(): void {
+    this.notificationService.getNotifications().subscribe({
+      next: list => {
+        list
+          .filter(n => !n.read && n.type === 'admin_notice' && !this.toastedIds.has(n.id))
+          .forEach(n => {
+            this.toastedIds.add(n.id);
+            this.notificationService.showToast('warning', n.title, n.message, 10000);
+          });
+      },
       error: () => {}
     });
   }
