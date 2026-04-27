@@ -28,7 +28,7 @@ public class AdminConfigService {
             try {
                 if (f.getParentFile() != null) f.getParentFile().mkdirs();
                 mapper.writerWithDefaultPrettyPrinter()
-                      .writeValue(f, Map.of("clientId", "", "clientSecret", "", "apiKey", "", "acoustidApiKey", ""));
+                      .writeValue(f, Map.of("clientId", "", "clientSecret", "", "apiKey", "", "acoustidApiKey", "", "githubToken", ""));
                 log.info("Created empty config.json at: {}", f.getAbsolutePath());
             } catch (IOException e) {
                 log.warn("Could not create config.json at '{}': {}", f.getAbsolutePath(), e.getMessage());
@@ -40,9 +40,10 @@ public class AdminConfigService {
 
     public Map<String, String> getConfig() throws IOException {
         File f = new File(configPath);
-        if (!f.exists()) return new HashMap<>(Map.of("clientId", "", "clientSecret", "", "apiKey", "", "acoustidApiKey", ""));
+        if (!f.exists()) return new HashMap<>(Map.of("clientId", "", "clientSecret", "", "apiKey", "", "acoustidApiKey", "", "githubToken", ""));
         Map<String, String> cfg = new HashMap<>(mapper.readValue(f, Map.class));
         cfg.putIfAbsent("acoustidApiKey", "");
+        cfg.putIfAbsent("githubToken", "");
         return cfg;
     }
 

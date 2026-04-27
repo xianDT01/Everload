@@ -926,6 +926,18 @@ export class MusicService {
     }
   }
 
+  // Advances to a track within the current queue without rebuilding shuffleOrder,
+  // so the full shuffle sequence is preserved across playback.
+  private advanceToTrack(pathId: number, tracks: MusicMetadataDto[], index: number) {
+    this.queueSubj.next({ tracks, pathId, index });
+    this.persistState();
+    if (tracks[index]) {
+      this.mainPlayer.load(tracks[index], pathId).then(() => {
+        this.mainPlayer.play();
+      });
+    }
+  }
+
   private resolveQueueIndex(): number {
     const q = this.queueSubj.value;
     const currentTrackPath = this.mainPlayer.state.currentTrack?.path;
@@ -955,10 +967,10 @@ export class MusicService {
       const pos = this.shuffleOrder.indexOf(currentIndex);
       const next = pos + 1;
       if (next < this.shuffleOrder.length) {
-        this.setQueue(q.pathId, q.tracks, this.shuffleOrder[next]);
+        this.advanceToTrack(q.pathId, q.tracks, this.shuffleOrder[next]);
       } else if (this._repeat === 'all') {
         this.buildShuffleOrder();
-        this.setQueue(q.pathId, q.tracks, this.shuffleOrder[0]);
+        this.advanceToTrack(q.pathId, q.tracks, this.shuffleOrder[0]);
       }
     } else {
       if (currentIndex < q.tracks.length - 1) {
@@ -974,7 +986,7 @@ export class MusicService {
     const currentIndex = this.resolveQueueIndex();
     if (this._shuffle) {
       const pos = this.shuffleOrder.indexOf(currentIndex);
-      if (pos > 0) this.setQueue(q.pathId, q.tracks, this.shuffleOrder[pos - 1]);
+      if (pos > 0) this.advanceToTrack(q.pathId, q.tracks, this.shuffleOrder[pos - 1]);
       else this.mainPlayer.seek(0);
     } else if (currentIndex > 0) {
       this.setQueue(q.pathId, q.tracks, currentIndex - 1);

@@ -6,6 +6,7 @@ import com.EverLoad.everload.dto.UpdateCheckDto;
 import com.EverLoad.everload.service.AuditLogService;
 import com.EverLoad.everload.service.BackupService;
 import com.EverLoad.everload.service.MaintenanceService;
+import com.EverLoad.everload.service.NotificationService;
 import com.EverLoad.everload.service.SystemInfoService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class SystemInfoController {
     private final BackupService backupService;
     private final MaintenanceService maintenanceService;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     @Value("${app.update.script:}")
     private String updateScript;
@@ -48,6 +50,24 @@ public class SystemInfoController {
         auditLogService.log("UPDATE_CHECK", "System", "update",
                 "latestVersion=" + result.getLatestVersion());
         return ResponseEntity.ok(result);
+    }
+
+    // ── Warn users before maintenance ─────────────────────────────────────────
+
+    @PostMapping("/warn-maintenance")
+    public ResponseEntity<?> warnMaintenance(@RequestBody(required = false) Map<String, Object> body) {
+        int minutes = 1;
+        String customMsg = null;
+        if (body != null) {
+            if (body.get("minutes") instanceof Number n) minutes = n.intValue();
+            if (body.get("message") instanceof String s && !s.isBlank()) customMsg = s;
+        }
+        String msg = customMsg != null ? customMsg
+                : "⚠️ El sistema entrará en mantenimiento en " + minutes + " minuto" + (minutes == 1 ? "" : "s") + " para realizar una actualización.";
+        notificationService.createForAllActiveUsers("admin_notice", "⚠️ Mantenimiento próximo", msg);
+        auditLogService.log("MAINTENANCE_WARNING", "System", "maintenance",
+                "notified all active users | minutes=" + minutes);
+        return ResponseEntity.ok(Map.of("ok", true, "message", msg));
     }
 
     // ── Prepare update ─────────────────────────────────────────────────────────

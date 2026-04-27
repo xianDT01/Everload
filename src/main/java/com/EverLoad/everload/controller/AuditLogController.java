@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/admin/audit")
 @PreAuthorize("hasRole('ADMIN')")
@@ -26,5 +28,11 @@ public class AuditLogController {
             @RequestParam(defaultValue = "50")  int size,
             @RequestParam(required = false)     String search) {
         return ResponseEntity.ok(auditLogService.getPage(page, Math.min(size, 200), search));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Map<String, Long>> clearLogs() {
+        long deleted = auditLogService.clearAll();
+        return ResponseEntity.ok(Map.of("deleted", deleted));
     }
 }

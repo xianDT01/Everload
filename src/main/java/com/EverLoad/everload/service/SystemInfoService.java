@@ -1,5 +1,6 @@
 package com.EverLoad.everload.service;
 
+import com.EverLoad.everload.config.AdminConfigService;
 import com.EverLoad.everload.dto.SystemInfoDto;
 import com.EverLoad.everload.dto.UpdateCheckDto;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,12 @@ public class SystemInfoService {
 
     @Value("${app.update.check-url:}")
     private String updateCheckUrl;
+
+    private final AdminConfigService adminConfigService;
+
+    public SystemInfoService(AdminConfigService adminConfigService) {
+        this.adminConfigService = adminConfigService;
+    }
 
     // ── System info ────────────────────────────────────────────────────────────
 
@@ -65,17 +72,23 @@ public class SystemInfoService {
         }
 
         try {
+            String githubToken = "";
+            try { githubToken = adminConfigService.getConfig().getOrDefault("githubToken", ""); } catch (Exception ignored) {}
+
             HttpClient client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(8))
                     .build();
 
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(updateCheckUrl))
                     .header("User-Agent", "EverLoad/" + appVersion)
                     .header("Accept", "application/json")
                     .timeout(Duration.ofSeconds(8))
-                    .GET()
-                    .build();
+                    .GET();
+            if (!githubToken.isBlank()) {
+                reqBuilder.header("Authorization", "Bearer " + githubToken);
+            }
+            HttpRequest request = reqBuilder.build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 

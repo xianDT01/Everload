@@ -18,7 +18,7 @@ interface NasBanner {
   pathId?: number;
 }
 
-type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify';
+type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify' | 'midnight' | 'aurora' | 'ruby' | 'mono';
 type LayoutDensity = 'comfortable' | 'cozy' | 'compact';
 type RightbarSize = 'wide' | 'normal' | 'narrow';
 type RightPanelMode = 'mini' | 'cards' | 'studio' | 'focus';
@@ -62,6 +62,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private static readonly CUSTOM_PRESETS_KEY = 'nas_library_custom_presets_v1';
   private static readonly DEFAULT_PRESET_KEY = 'nas_library_default_preset_v1';
   private static readonly SIDEBAR_PREFS_KEY = 'nas_library_sidebar_prefs_v1';
+  private static readonly MODULE_DEFAULTS_MIGRATION_KEY = 'nas_library_modules_default_off_v1';
 
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
@@ -155,9 +156,9 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     rememberContextLayout: true,
     spaciousMode: true,
     showBanners: true,
-    showActionsCard: true,
-    showSkinsCard: true,
-    showStatsCard: true,
+    showActionsCard: false,
+    showSkinsCard: false,
+    showStatsCard: false,
     cardOrder: ['actions', 'skins', 'stats'],
   };
   private globalUiPrefs: LibraryUiPrefs = { ...this.uiPrefs };
@@ -196,6 +197,10 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       neon: 'MUSIC.UI_SKIN_NEON',
       sunset: 'MUSIC.UI_SKIN_SUNSET',
       spotify: 'MUSIC.UI_SKIN_SPOTIFY',
+      midnight: 'MUSIC.UI_SKIN_MIDNIGHT',
+      aurora: 'MUSIC.UI_SKIN_AURORA',
+      ruby: 'MUSIC.UI_SKIN_RUBY',
+      mono: 'MUSIC.UI_SKIN_MONO',
     };
     return this.translate.instant(keyMap[skin]);
   }
@@ -326,6 +331,10 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     { id: 'neon', label: 'MUSIC.UI_SKIN_NEON', hint: 'MUSIC.UI_SKIN_NEON_HINT' },
     { id: 'sunset', label: 'MUSIC.UI_SKIN_SUNSET', hint: 'MUSIC.UI_SKIN_SUNSET_HINT' },
     { id: 'spotify', label: 'MUSIC.UI_SKIN_SPOTIFY', hint: 'MUSIC.UI_SKIN_SPOTIFY_HINT' },
+    { id: 'midnight', label: 'MUSIC.UI_SKIN_MIDNIGHT', hint: 'MUSIC.UI_SKIN_MIDNIGHT_HINT' },
+    { id: 'aurora', label: 'MUSIC.UI_SKIN_AURORA', hint: 'MUSIC.UI_SKIN_AURORA_HINT' },
+    { id: 'ruby', label: 'MUSIC.UI_SKIN_RUBY', hint: 'MUSIC.UI_SKIN_RUBY_HINT' },
+    { id: 'mono', label: 'MUSIC.UI_SKIN_MONO', hint: 'MUSIC.UI_SKIN_MONO_HINT' },
   ];
   @ViewChild('vizCanvas') vizCanvas?: ElementRef<HTMLCanvasElement>;
   private vizRaf?: number;
@@ -665,6 +674,13 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
             ? parsedOrder
             : this.uiPrefs.cardOrder,
         };
+      }
+      if (!localStorage.getItem(LibraryModeComponent.MODULE_DEFAULTS_MIGRATION_KEY)) {
+        this.uiPrefs.showActionsCard = false;
+        this.uiPrefs.showSkinsCard = false;
+        this.uiPrefs.showStatsCard = false;
+        localStorage.setItem(LibraryModeComponent.MODULE_DEFAULTS_MIGRATION_KEY, '1');
+        localStorage.setItem(LibraryModeComponent.UI_PREFS_KEY, JSON.stringify(this.uiPrefs));
       }
       this.globalUiPrefs = { ...this.uiPrefs };
     } catch {}
@@ -1693,6 +1709,12 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.favoriteFolders = [...this.favoriteFolders, { pathId: pid, subPath: folder.path, name: folder.name }];
     }
+    this.saveFavoriteFolders();
+  }
+
+  removeFolderFav(e: Event, fav: { pathId: number; subPath: string; name: string }): void {
+    e.stopPropagation();
+    this.favoriteFolders = this.favoriteFolders.filter(f => !(f.pathId === fav.pathId && f.subPath === fav.subPath));
     this.saveFavoriteFolders();
   }
 

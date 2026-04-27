@@ -76,7 +76,18 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   openWindowsMode(): void {
+    if (!this.canOpenWindowsMode()) {
+      window.alert(this.translate.instant('HOME.WINDOWS_MODE_UNAVAILABLE'));
+      return;
+    }
     this.musicService.nowPlayingPanelOpen = true;
+  }
+
+  private canOpenWindowsMode(): boolean {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return true;
+    const viewportTooSmall = window.innerWidth < 980;
+    const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return !viewportTooSmall && !mobileUserAgent;
   }
 
   logout(): void {

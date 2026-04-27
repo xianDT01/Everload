@@ -10,6 +10,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -50,6 +51,13 @@ public class AuditLogService {
                     search, search, search, pageable);
         }
         return repository.findAllByOrderByTimestampDesc(pageable);
+    }
+
+    @Transactional
+    public long clearAll() {
+        long deleted = repository.count();
+        repository.deleteAllInBatch();
+        return deleted;
     }
 
     private String resolveAdmin() {

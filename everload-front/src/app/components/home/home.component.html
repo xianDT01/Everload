@@ -73,7 +73,7 @@
         </a>
       </li>
       <li>
-        <a routerLink="/audio-tools" class="menu-link" (click)="closeMenu()">
+        <a *ngIf="false" routerLink="/audio-tools" class="menu-link" (click)="closeMenu()">
           <span class="menu-icon">🎙</span>
           <span>{{ 'HOME.MENU_AUDIO' | translate }}</span>
         </a>
@@ -212,7 +212,21 @@
           </div>
         </a>
 
-        <button class="social-card windows-mode-card" type="button" (click)="openWindowsMode()" [attr.aria-label]="'HOME.WINDOWS_MODE_ARIA' | translate">
+        <a routerLink="/audio-tools" class="social-card utility-card audio-tools-card" [attr.aria-label]="'HOME.MENU_AUDIO' | translate">
+          <div class="card-bg audio-tools-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content audio-tools-card-content">
+            <span class="audio-tools-logo" aria-hidden="true">
+              <i></i><i></i><i></i><i></i>
+            </span>
+            <div>
+              <h2 class="card-title">{{ 'HOME.MENU_AUDIO' | translate }}</h2>
+              <p class="card-desc">{{ 'AUDIO.SUBTITLE' | translate }}</p>
+            </div>
+          </div>
+        </a>
+
+        <button class="social-card utility-card windows-mode-card" type="button" (click)="openWindowsMode()" [attr.aria-label]="'HOME.WINDOWS_MODE_ARIA' | translate">
           <div class="card-bg windows-bg"></div>
           <div class="card-overlay"></div>
           <div class="card-content windows-card-content">

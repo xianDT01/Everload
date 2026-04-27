@@ -162,7 +162,7 @@
 
     <!-- Desktop: table -->
     <div *ngIf="activeUsers.length > 0" class="table-wrapper table-desktop-only">
-      <table class="users-table">
+      <table class="users-table active-users-table">
         <thead>
           <tr>
             <th></th>
@@ -183,10 +183,12 @@
             </td>
             <td>{{ u.username }}</td>
             <td>{{ u.email }}</td>
-            <td class="presence-cell">
-              <span class="admin-presence-dot" [class.admin-online]="u.online" [class.admin-offline]="!u.online"></span>
-              <span class="admin-presence-label" [class.admin-online-label]="u.online">
-                {{ u.online ? ('ADMIN.ONLINE' | translate) : formatLastSeen(u.lastSeen) }}
+            <td>
+              <span class="presence-cell">
+                <span class="admin-presence-dot" [class.admin-online]="u.online" [class.admin-offline]="!u.online"></span>
+                <span class="admin-presence-label" [class.admin-online-label]="u.online">
+                  {{ u.online ? ('ADMIN.ONLINE' | translate) : formatLastSeen(u.lastSeen) }}
+                </span>
               </span>
             </td>
             <td>
@@ -444,11 +446,18 @@
         <input type="text" class="audit-search-input" [(ngModel)]="auditSearch"
                (input)="onAuditSearchChange()"
                [placeholder]="'ADMIN.AUDIT_SEARCH' | translate" />
+        <button class="btn small danger audit-clear-btn" [disabled]="auditClearing" (click)="clearAuditLogs()">
+          {{ auditClearing ? ('ADMIN.CLEARING' | translate) : ('ADMIN.AUDIT_CLEAR' | translate) }}
+        </button>
         <button class="btn small" (click)="loadAuditLogs(auditPage)">🔄 {{ 'ADMIN.REFRESH' | translate }}</button>
       </div>
     </div>
 
     <div *ngIf="auditLoading" class="audit-loading">⏳ {{ 'ADMIN.LOADING' | translate }}</div>
+
+    <div *ngIf="auditMessage" class="audit-message" [class.error]="auditMessageError">
+      {{ auditMessage }}
+    </div>
 
     <div *ngIf="!auditLoading && auditLogs.length === 0" class="audit-empty">
       {{ 'ADMIN.AUDIT_EMPTY' | translate }}
@@ -606,6 +615,36 @@
         </div>
       </div>
 
+      <!-- GitHub Token (repositorio privado) -->
+      <div class="github-token-block">
+        <div class="github-token-header">
+          <span class="github-token-label">🔑 GitHub Token <span class="github-token-optional">{{ 'ADMIN.GITHUB_TOKEN_OPTIONAL' | translate }}</span></span>
+        </div>
+        <div class="github-token-input-row">
+          <input [type]="showGithubToken ? 'text' : 'password'"
+                 class="github-token-input"
+                 [(ngModel)]="config.githubToken"
+                 placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                 autocomplete="off" />
+          <button class="btn-icon-toggle" type="button" (click)="showGithubToken = !showGithubToken" [title]="'ADMIN.GITHUB_TOKEN_TOGGLE' | translate">
+            <svg *ngIf="!showGithubToken" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+            <svg *ngIf="showGithubToken" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-5 0-9.27-3.11-11-7.5a10.05 10.05 0 0 1 2.38-3.88M6.53 6.53A9.94 9.94 0 0 1 12 4.5c5 0 9.27 3.11 11 7.5a10.05 10.05 0 0 1-4.13 5.13M3 3l18 18"/></svg>
+          </button>
+          <button class="btn secondary small" (click)="guardarCambios()">{{ 'ADMIN.GITHUB_TOKEN_SAVE' | translate }}</button>
+        </div>
+        <div class="github-token-instructions">
+          <p>{{ 'ADMIN.GITHUB_TOKEN_DESC' | translate }}</p>
+          <ol>
+            <li>{{ 'ADMIN.GITHUB_TOKEN_STEP1' | translate }}</li>
+            <li>{{ 'ADMIN.GITHUB_TOKEN_STEP2' | translate }}</li>
+            <li>{{ 'ADMIN.GITHUB_TOKEN_STEP3' | translate }}</li>
+            <li>{{ 'ADMIN.GITHUB_TOKEN_STEP4' | translate }}</li>
+            <li>{{ 'ADMIN.GITHUB_TOKEN_STEP5' | translate }}</li>
+          </ol>
+          <p>{{ 'ADMIN.GITHUB_TOKEN_PUBLIC' | translate }}</p>
+        </div>
+      </div>
+
       <!-- Check update -->
       <div class="sistema-actions-row">
         <button class="btn secondary" [disabled]="systemLoading" (click)="checkUpdate()">
@@ -668,10 +707,32 @@
         <p class="sistema-section-desc">
           {{ 'ADMIN.PREPARE_UPDATE_DESC' | translate }}
         </p>
-        <button class="btn warning" [disabled]="prepareUpdateLoading" (click)="prepareUpdate()">
-          {{ 'ADMIN.PREPARE_UPDATE_BTN' | translate }}
-        </button>
-        <div *ngIf="prepareUpdateMsg" class="prepare-update-msg"
+
+        <!-- Countdown active -->
+        <div *ngIf="warnCountdown > 0" class="warn-countdown-block">
+          <div class="warn-countdown-header">
+            <span>⚠️ {{ 'ADMIN.WARN_COUNTDOWN_MSG' | translate: { s: warnCountdown } }}</span>
+            <button class="btn secondary small" (click)="cancelWarn()">{{ 'ADMIN.WARN_CANCEL' | translate }}</button>
+          </div>
+          <div class="warn-countdown-bar">
+            <div class="warn-countdown-fill" [style.width.%]="(warnCountdown / 60) * 100"></div>
+          </div>
+        </div>
+
+        <!-- Buttons (hidden during countdown or prepare) -->
+        <div *ngIf="warnCountdown === 0 && !prepareUpdateLoading" class="prepare-update-btns">
+          <button class="btn warning" (click)="warnAndPrepare()">
+            {{ 'ADMIN.WARN_AND_PREPARE_BTN' | translate }}
+          </button>
+          <button class="btn secondary small" (click)="prepareUpdate()">
+            {{ 'ADMIN.PREPARE_UPDATE_BTN' | translate }}
+          </button>
+        </div>
+
+        <div *ngIf="prepareUpdateLoading" class="prepare-update-msg">
+          {{ prepareUpdateMsg }}
+        </div>
+        <div *ngIf="prepareUpdateMsg && !prepareUpdateLoading" class="prepare-update-msg"
              [class.error]="prepareUpdateMsg.includes('❌')">
           {{ prepareUpdateMsg }}
         </div>
