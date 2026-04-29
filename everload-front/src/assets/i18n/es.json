@@ -927,5 +927,27 @@
   "MUSIC.UI_SKIN_RUBY": "Ruby",
   "MUSIC.UI_SKIN_RUBY_HINT": "Rojo intenso",
   "MUSIC.UI_SKIN_MONO": "Mono",
-  "MUSIC.UI_SKIN_MONO_HINT": "Gris elegante"
+  "MUSIC.UI_SKIN_MONO_HINT": "Gris elegante",
+
+  "ADMIN.CLEANUP_TITLE": "🧹 Limpieza de base de datos",
+  "ADMIN.CLEANUP_DESC": "Herramientas para mantener la base de datos ligera con el tiempo. Ejecuta estas limpiezas de forma ocasional para que la app no se vuelva lenta.",
+  "ADMIN.CLEANUP_BTN": "Limpiar",
+  "ADMIN.CLEANUP_RUNNING": "⏳ Limpiando…",
+  "ADMIN.CLEANUP_INFO_HINT": "Más información",
+  "ADMIN.CLEANUP_WHAT_LABEL": "¿Qué hace?",
+  "ADMIN.CLEANUP_WHEN_LABEL": "¿Cuándo usarlo?",
+  "ADMIN.CLEANUP_KEEP_LAST": "Conservar los últimos",
+  "ADMIN.CLEANUP_DAYS": "días",
+  "ADMIN.CLEANUP_METADATA_TITLE": "Caché de metadatos del NAS",
+  "ADMIN.CLEANUP_METADATA_WHAT": "Elimina de la base de datos las entradas de canciones que ya no existen en el NAS. Cada vez que se abre una carpeta los metadatos (título, artista, álbum…) se guardan para no tener que leer el disco cada vez. Si borras o mueves música, esas entradas quedan como basura.",
+  "ADMIN.CLEANUP_METADATA_WHEN": "Después de borrar, mover o reorganizar música en el NAS. También mensualmente si sueles añadir y quitar archivos con frecuencia.",
+  "ADMIN.CLEANUP_TOKENS_TITLE": "Tokens de sesión caducados",
+  "ADMIN.CLEANUP_TOKENS_WHAT": "Cuando un usuario cierra sesión o se revoca su acceso, el token JWT se guarda en una lista negra para bloquearlo. Una vez que ese token caduca por fecha, ya no sirve de nada pero sigue ocupando espacio. Esta limpieza borra los que ya han caducado.",
+  "ADMIN.CLEANUP_TOKENS_WHEN": "Mensualmente, o si hay muchos usuarios que inician y cierran sesión frecuentemente. No afecta a ninguna sesión activa.",
+  "ADMIN.CLEANUP_HISTORY_TITLE": "Historial de reproducción antiguo",
+  "ADMIN.CLEANUP_HISTORY_WHAT": "Elimina las entradas del historial de canciones reproducidas que tengan más de los días indicados. El historial reciente (últimas escuchadas, más reproducidas) queda intacto.",
+  "ADMIN.CLEANUP_HISTORY_WHEN": "Mensualmente si hay varios usuarios activos. Con 90 días conservas suficiente historial para las estadísticas sin que la tabla crezca indefinidamente.",
+  "ADMIN.CLEANUP_AUDIT_TITLE": "Registros de auditoría antiguos",
+  "ADMIN.CLEANUP_AUDIT_WHAT": "Elimina los registros de auditoría (acciones de admin como aprobar usuarios, cambiar roles, borrar mensajes…) que tengan más de los días indicados. Los registros recientes quedan intactos para seguimiento.",
+  "ADMIN.CLEANUP_AUDIT_WHEN": "Mensualmente o cuando el apartado de auditoría acumule miles de entradas. 90 días suele ser más que suficiente para revisar cualquier incidencia reciente."
 }
