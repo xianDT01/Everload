@@ -130,6 +130,22 @@ export class DeckPlayer {
       const msg = e ? `Audio error (code ${e.code}): ${e.message || 'stream no disponible'}` : 'Error de reproduccion';
       this.patch({ playing: false, loading: false, error: msg });
     });
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.audioCtx?.state === 'suspended') {
+          this.audioCtx.resume().catch(() => {});
+        }
+      });
+    }
+
+    if (this.audioCtx) {
+      this.audioCtx.addEventListener('statechange', () => {
+        if (this.audioCtx?.state === 'suspended' && !document.hidden) {
+          this.audioCtx.resume().catch(() => {});
+        }
+      });
+    }
   }
 
   private patch(partial: Partial<PlayerState>) {
@@ -359,6 +375,11 @@ export class DeckPlayer {
 
   togglePlay() { this.state.playing ? this.pause() : this.play(); }
 
+  resumeAudioContext(): Promise<void> {
+    if (!this.audioCtx || this.audioCtx.state !== 'suspended') return Promise.resolve();
+    return this.audioCtx.resume().catch(() => {});
+  }
+
   seek(time: number) {
     if (this.activeSource === 'youtube') {
       if (this.ytPlayer && this.ytReady) this.ytPlayer.seekTo(time, true);
@@ -387,7 +408,7 @@ export class DeckPlayer {
     if (!this.analyserData) {
       this.analyserData = new Uint8Array(this.analyserNode.frequencyBinCount);
     }
-    this.analyserNode.getByteFrequencyData(this.analyserData);
+    this.analyserNode.getByteFrequencyData(this.analyserData as any);
     return this.analyserData;
   }
 
@@ -548,6 +569,10 @@ export class MusicService {
   private static readonly COVER_CACHE_KEY = 'ev_covers_v2';
   private static readonly COVER_NOT_FOUND_KEY = 'ev_covers_nf_v1';
 
+  private preloadAudio: HTMLAudioElement | null = null;
+  private preloadedPath: string | null = null;
+  private preloadTriggeredForPath: string | null = null;
+
   constructor(private http: HttpClient, private auth: AuthService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
     this.deckAPlayer = new DeckPlayer(this, 'deckA');
@@ -575,15 +600,22 @@ export class MusicService {
     this.loadPersistedState();
     this.setupMediaSession();
     this.setupNowPlayingNotifications();
+    this.setupPreloading();
   }
 
   private setupMediaSession(): void {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
 
-    navigator.mediaSession.setActionHandler('play',          () => this.mainPlayer.play());
+    navigator.mediaSession.setActionHandler('play', () => {
+      this.mainPlayer.resumeAudioContext().then(() => this.mainPlayer.play());
+    });
     navigator.mediaSession.setActionHandler('pause',         () => this.mainPlayer.pause());
-    navigator.mediaSession.setActionHandler('nexttrack',     () => this.playNextMain());
-    navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevMain());
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      this.mainPlayer.resumeAudioContext().then(() => this.playNextMain());
+    });
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      this.mainPlayer.resumeAudioContext().then(() => this.playPrevMain());
+    });
     navigator.mediaSession.setActionHandler('seekto', (details) => {
       if (details.seekTime != null) this.mainPlayer.seek(details.seekTime);
     });
@@ -912,6 +944,64 @@ export class MusicService {
     }).subscribe({ error: () => {} });
   }
 
+
+  // ── Preloading ────────────────────────────────────────────────────────────
+
+  private setupPreloading(): void {
+    this.mainPlayer.state$.subscribe(state => {
+      if (!state.currentTrack || !state.duration || state.duration < 1) return;
+      if (state.currentTrack.source === 'youtube') return;
+
+      // Reset trigger when the current track changes
+      if (state.currentTrack.path !== this.preloadTriggeredForPath &&
+          state.currentTrack.path !== this.preloadedPath) {
+        this.preloadTriggeredForPath = null;
+      }
+
+      const timeLeft = state.duration - state.currentTime;
+      if (timeLeft > 30 || timeLeft <= 0) return;
+      if (this.preloadTriggeredForPath === state.currentTrack.path) return;
+
+      this.preloadTriggeredForPath = state.currentTrack.path;
+      const next = this.peekNextTrack();
+      if (next && next.track.source !== 'youtube') {
+        this.doPreload(next.track, next.pathId);
+      }
+    });
+  }
+
+  private peekNextTrack(): { track: MusicMetadataDto; pathId: number } | null {
+    const q = this.queueSubj.value;
+    if (!q.tracks.length) return null;
+    const currentIndex = this.resolveQueueIndex();
+
+    if (this._repeat === 'one') return { track: q.tracks[currentIndex], pathId: q.pathId };
+
+    if (this._shuffle) {
+      const pos = this.shuffleOrder.indexOf(currentIndex);
+      const nextPos = pos + 1;
+      if (nextPos < this.shuffleOrder.length) return { track: q.tracks[this.shuffleOrder[nextPos]], pathId: q.pathId };
+      if (this._repeat === 'all' && this.shuffleOrder.length > 0) return { track: q.tracks[this.shuffleOrder[0]], pathId: q.pathId };
+    } else {
+      if (currentIndex < q.tracks.length - 1) return { track: q.tracks[currentIndex + 1], pathId: q.pathId };
+      if (this._repeat === 'all') return { track: q.tracks[0], pathId: q.pathId };
+    }
+    return null;
+  }
+
+  private doPreload(track: MusicMetadataDto, pathId: number): void {
+    if (this.preloadAudio) {
+      this.preloadAudio.src = '';
+      this.preloadAudio = null;
+    }
+    const el = new Audio();
+    el.preload = 'auto';
+    el.crossOrigin = 'anonymous';
+    el.src = this.getStreamUrl(pathId, track.path);
+    el.load();
+    this.preloadAudio = el;
+    this.preloadedPath = track.path;
+  }
 
   // ── Queue / Library controls ──────────────────────────────────────────────
 

@@ -926,5 +926,27 @@
   "MUSIC.UI_SKIN_RUBY": "Ruby",
   "MUSIC.UI_SKIN_RUBY_HINT": "Deep red",
   "MUSIC.UI_SKIN_MONO": "Mono",
-  "MUSIC.UI_SKIN_MONO_HINT": "Clean grayscale"
+  "MUSIC.UI_SKIN_MONO_HINT": "Clean grayscale",
+
+  "ADMIN.CLEANUP_TITLE": "🧹 Database Cleanup",
+  "ADMIN.CLEANUP_DESC": "Tools to keep the database lean over time. Run these cleanups occasionally so the app does not slow down.",
+  "ADMIN.CLEANUP_BTN": "Clean",
+  "ADMIN.CLEANUP_RUNNING": "⏳ Cleaning…",
+  "ADMIN.CLEANUP_INFO_HINT": "More information",
+  "ADMIN.CLEANUP_WHAT_LABEL": "What does it do?",
+  "ADMIN.CLEANUP_WHEN_LABEL": "When to use it?",
+  "ADMIN.CLEANUP_KEEP_LAST": "Keep last",
+  "ADMIN.CLEANUP_DAYS": "days",
+  "ADMIN.CLEANUP_METADATA_TITLE": "NAS Metadata Cache",
+  "ADMIN.CLEANUP_METADATA_WHAT": "Removes database entries for songs that no longer exist on the NAS. Every time a folder is opened, metadata (title, artist, album…) is cached so the disk does not need to be read every time. If you delete or move music, those entries become orphaned garbage.",
+  "ADMIN.CLEANUP_METADATA_WHEN": "After deleting, moving or reorganising music on the NAS. Also monthly if you frequently add and remove files.",
+  "ADMIN.CLEANUP_TOKENS_TITLE": "Expired Session Tokens",
+  "ADMIN.CLEANUP_TOKENS_WHAT": "When a user logs out or has their access revoked, the JWT token is stored in a blacklist to block it. Once that token has expired by date, it is useless but still takes up space. This cleanup removes the expired ones.",
+  "ADMIN.CLEANUP_TOKENS_WHEN": "Monthly, or if there are many users logging in and out frequently. Does not affect any active session.",
+  "ADMIN.CLEANUP_HISTORY_TITLE": "Old Playback History",
+  "ADMIN.CLEANUP_HISTORY_WHAT": "Removes playback history entries older than the specified number of days. Recent history (last played, most played) remains intact.",
+  "ADMIN.CLEANUP_HISTORY_WHEN": "Monthly if there are several active users. 90 days keeps enough history for statistics without the table growing indefinitely.",
+  "ADMIN.CLEANUP_AUDIT_TITLE": "Old Audit Log Entries",
+  "ADMIN.CLEANUP_AUDIT_WHAT": "Removes audit log records (admin actions such as approving users, changing roles, deleting messages…) older than the specified number of days. Recent records remain intact for review.",
+  "ADMIN.CLEANUP_AUDIT_WHEN": "Monthly or when the audit section accumulates thousands of entries. 90 days is usually more than enough to review any recent incident."
 }

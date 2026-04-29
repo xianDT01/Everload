@@ -739,6 +739,93 @@
       </div>
     </div>
 
+    <!-- ── Limpieza de base de datos ─────────────────────────────────────── -->
+    <div class="sistema-section">
+      <h3 class="sistema-section-title">{{ 'ADMIN.CLEANUP_TITLE' | translate }}</h3>
+      <p class="sistema-section-desc">{{ 'ADMIN.CLEANUP_DESC' | translate }}</p>
+
+      <!-- Caché de metadatos huérfanos -->
+      <div class="cleanup-item">
+        <div class="cleanup-header">
+          <span class="cleanup-title">{{ 'ADMIN.CLEANUP_METADATA_TITLE' | translate }}</span>
+          <button class="btn-help" (click)="toggleCleanupInfo('metadata-cache')" title="{{ 'ADMIN.CLEANUP_INFO_HINT' | translate }}">?</button>
+        </div>
+        <div *ngIf="cleanupInfo['metadata-cache']" class="cleanup-info-box">
+          <p><strong>{{ 'ADMIN.CLEANUP_WHAT_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_METADATA_WHAT' | translate }}</p>
+          <p><strong>{{ 'ADMIN.CLEANUP_WHEN_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_METADATA_WHEN' | translate }}</p>
+        </div>
+        <div class="cleanup-action-row">
+          <button class="btn warning" [disabled]="cleanupLoading['metadata-cache']" (click)="runCleanup('metadata-cache')">
+            {{ cleanupLoading['metadata-cache'] ? ('ADMIN.CLEANUP_RUNNING' | translate) : ('ADMIN.CLEANUP_BTN' | translate) }}
+          </button>
+        </div>
+        <p *ngIf="cleanupMsg['metadata-cache']" class="cleanup-result" [class.error]="cleanupMsg['metadata-cache'].includes('❌')">{{ cleanupMsg['metadata-cache'] }}</p>
+      </div>
+
+      <!-- Tokens expirados -->
+      <div class="cleanup-item">
+        <div class="cleanup-header">
+          <span class="cleanup-title">{{ 'ADMIN.CLEANUP_TOKENS_TITLE' | translate }}</span>
+          <button class="btn-help" (click)="toggleCleanupInfo('expired-tokens')" title="{{ 'ADMIN.CLEANUP_INFO_HINT' | translate }}">?</button>
+        </div>
+        <div *ngIf="cleanupInfo['expired-tokens']" class="cleanup-info-box">
+          <p><strong>{{ 'ADMIN.CLEANUP_WHAT_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_TOKENS_WHAT' | translate }}</p>
+          <p><strong>{{ 'ADMIN.CLEANUP_WHEN_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_TOKENS_WHEN' | translate }}</p>
+        </div>
+        <div class="cleanup-action-row">
+          <button class="btn warning" [disabled]="cleanupLoading['expired-tokens']" (click)="runCleanup('expired-tokens')">
+            {{ cleanupLoading['expired-tokens'] ? ('ADMIN.CLEANUP_RUNNING' | translate) : ('ADMIN.CLEANUP_BTN' | translate) }}
+          </button>
+        </div>
+        <p *ngIf="cleanupMsg['expired-tokens']" class="cleanup-result" [class.error]="cleanupMsg['expired-tokens'].includes('❌')">{{ cleanupMsg['expired-tokens'] }}</p>
+      </div>
+
+      <!-- Historial de reproducción antiguo -->
+      <div class="cleanup-item">
+        <div class="cleanup-header">
+          <span class="cleanup-title">{{ 'ADMIN.CLEANUP_HISTORY_TITLE' | translate }}</span>
+          <button class="btn-help" (click)="toggleCleanupInfo('playback-history')" title="{{ 'ADMIN.CLEANUP_INFO_HINT' | translate }}">?</button>
+        </div>
+        <div *ngIf="cleanupInfo['playback-history']" class="cleanup-info-box">
+          <p><strong>{{ 'ADMIN.CLEANUP_WHAT_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_HISTORY_WHAT' | translate }}</p>
+          <p><strong>{{ 'ADMIN.CLEANUP_WHEN_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_HISTORY_WHEN' | translate }}</p>
+        </div>
+        <div class="cleanup-action-row">
+          <label class="cleanup-days-label">{{ 'ADMIN.CLEANUP_KEEP_LAST' | translate }}</label>
+          <input type="number" class="cleanup-days-input" [(ngModel)]="cleanupDays['history']" min="7" max="365" />
+          <span class="cleanup-days-label">{{ 'ADMIN.CLEANUP_DAYS' | translate }}</span>
+          <button class="btn warning" [disabled]="cleanupLoading['playback-history']"
+                  (click)="runCleanup('playback-history', { days: cleanupDays['history'].toString() })">
+            {{ cleanupLoading['playback-history'] ? ('ADMIN.CLEANUP_RUNNING' | translate) : ('ADMIN.CLEANUP_BTN' | translate) }}
+          </button>
+        </div>
+        <p *ngIf="cleanupMsg['playback-history']" class="cleanup-result" [class.error]="cleanupMsg['playback-history'].includes('❌')">{{ cleanupMsg['playback-history'] }}</p>
+      </div>
+
+      <!-- Registros de auditoría antiguos -->
+      <div class="cleanup-item">
+        <div class="cleanup-header">
+          <span class="cleanup-title">{{ 'ADMIN.CLEANUP_AUDIT_TITLE' | translate }}</span>
+          <button class="btn-help" (click)="toggleCleanupInfo('audit-logs')" title="{{ 'ADMIN.CLEANUP_INFO_HINT' | translate }}">?</button>
+        </div>
+        <div *ngIf="cleanupInfo['audit-logs']" class="cleanup-info-box">
+          <p><strong>{{ 'ADMIN.CLEANUP_WHAT_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_AUDIT_WHAT' | translate }}</p>
+          <p><strong>{{ 'ADMIN.CLEANUP_WHEN_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_AUDIT_WHEN' | translate }}</p>
+        </div>
+        <div class="cleanup-action-row">
+          <label class="cleanup-days-label">{{ 'ADMIN.CLEANUP_KEEP_LAST' | translate }}</label>
+          <input type="number" class="cleanup-days-input" [(ngModel)]="cleanupDays['audit']" min="7" max="365" />
+          <span class="cleanup-days-label">{{ 'ADMIN.CLEANUP_DAYS' | translate }}</span>
+          <button class="btn warning" [disabled]="cleanupLoading['audit-logs']"
+                  (click)="runCleanup('audit-logs', { days: cleanupDays['audit'].toString() })">
+            {{ cleanupLoading['audit-logs'] ? ('ADMIN.CLEANUP_RUNNING' | translate) : ('ADMIN.CLEANUP_BTN' | translate) }}
+          </button>
+        </div>
+        <p *ngIf="cleanupMsg['audit-logs']" class="cleanup-result" [class.error]="cleanupMsg['audit-logs'].includes('❌')">{{ cleanupMsg['audit-logs'] }}</p>
+      </div>
+
+    </div>
+
   </div>
 
   <!-- ── Modal: Confirmar restaurar ─────────────────────────────────────────── -->

@@ -2151,4 +2151,96 @@ hr {
   .modal-box { padding: 1.25rem; }
   .modal-actions { flex-direction: column; }
   .modal-actions .btn { width: 100%; text-align: center; }
+  .cleanup-action-row { flex-wrap: wrap; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIMPIEZA
+═══════════════════════════════════════════════════════════════ */
+
+.cleanup-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 0.9rem;
+}
+
+.cleanup-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.cleanup-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--admin-text);
+}
+
+.btn-help {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--admin-primary);
+  background: transparent;
+  color: var(--admin-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-help:hover {
+  background: var(--admin-primary);
+  color: #fff;
+}
+
+.cleanup-info-box {
+  background: rgba(78, 154, 241, 0.08);
+  border-left: 3px solid var(--admin-primary);
+  border-radius: 0 8px 8px 0;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--admin-text-muted);
+  line-height: 1.6;
+}
+
+.cleanup-info-box p { margin: 0 0 0.4rem; }
+.cleanup-info-box p:last-child { margin-bottom: 0; }
+.cleanup-info-box strong { color: var(--admin-text); }
+
+.cleanup-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.cleanup-days-label {
+  font-size: 0.85rem;
+  color: var(--admin-text-muted);
+}
+
+.cleanup-days-input {
+  width: 64px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255,255,255,0.07);
+  color: var(--admin-text);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.cleanup-result {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--admin-text-muted);
+}
+
+.cleanup-result.error { color: #ff6b6b; }

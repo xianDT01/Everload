@@ -3,7 +3,9 @@ package com.EverLoad.everload.service;
 import com.EverLoad.everload.dto.MusicMetadataDto;
 import com.EverLoad.everload.dto.PagedMusicResult;
 import com.EverLoad.everload.model.NasPath;
+import com.EverLoad.everload.model.TrackMetadataCache;
 import com.EverLoad.everload.repository.NasPathRepository;
+import com.EverLoad.everload.repository.TrackMetadataCacheRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jaudiotagger.audio.AudioFile;
@@ -29,6 +31,7 @@ public class MusicService {
 
     private final NasService nasService;
     private final NasPathRepository nasPathRepository;
+    private final TrackMetadataCacheRepository metadataCacheRepo;
 
     private static final List<String> AUDIO_EXTENSIONS =
             Arrays.asList("mp3", "flac", "m4a", "wav", "ogg", "aac", "opus", "wma", "alac");
@@ -70,7 +73,7 @@ public class MusicService {
             if (f.isDirectory()) {
                 collectAudioFiles(f, pathId, base, out, maxDepth - 1, maxFiles);
             } else if (f.isFile() && isAudio(f)) {
-                MusicMetadataDto dto = buildDto(f, base);
+                MusicMetadataDto dto = buildDto(f, base, pathId, null);
                 dto.setNasPathId(pathId);
                 out.add(dto);
             }
@@ -112,7 +115,9 @@ public class MusicService {
             dirs.stream().map(f -> buildDto(f, base)).forEach(items::add);
         }
         if (fromIdx < totalTracks) {
-            audioFiles.subList(fromIdx, toIdx).stream().map(f -> buildDto(f, base)).forEach(items::add);
+            List<File> pageFiles = audioFiles.subList(fromIdx, toIdx);
+            Map<String, TrackMetadataCache> cacheMap = batchFetchCache(pathId, pageFiles, base);
+            pageFiles.stream().map(f -> buildDto(f, base, pathId, cacheMap)).forEach(items::add);
         }
 
         return new PagedMusicResult(items, totalTracks, page, size);
@@ -404,7 +409,7 @@ public class MusicService {
             if (f.isDirectory()) {
                 searchRecursive(f, pathId, base, query, results, limit);
             } else if (f.isFile() && isAudio(f)) {
-                MusicMetadataDto dto = buildDto(f, base);
+                MusicMetadataDto dto = buildDto(f, base, pathId, null);
                 dto.setNasPathId(pathId);
                 if (matchesQuery(dto, query)) results.add(dto);
             }
@@ -440,49 +445,104 @@ public class MusicService {
         return dot >= 0 && AUDIO_EXTENSIONS.contains(name.substring(dot + 1));
     }
 
+    // Directory-only calls (no pathId needed — returns before ID3 reading)
     private MusicMetadataDto buildDto(File f, Path base) {
+        return buildDto(f, base, null, null);
+    }
+
+    private MusicMetadataDto buildDto(File f, Path base, Long pathId, Map<String, TrackMetadataCache> preloaded) {
+        String relPath = base.relativize(f.toPath()).toString().replace("\\", "/");
         MusicMetadataDto.MusicMetadataDtoBuilder b = MusicMetadataDto.builder()
                 .name(f.getName())
-                .path(base.relativize(f.toPath()).toString())
+                .path(relPath)
                 .directory(f.isDirectory())
                 .size(f.isFile() ? f.length() : 0)
                 .lastModified(formatDate(f.lastModified()));
 
         if (f.isDirectory()) return b.build();
 
+        long lastMod = f.lastModified();
+
+        // Check cache
+        TrackMetadataCache cached = null;
+        if (pathId != null) {
+            cached = preloaded != null
+                    ? preloaded.get(relPath)
+                    : metadataCacheRepo.findByNasPathIdAndRelativePath(pathId, relPath).orElse(null);
+        }
+
+        if (cached != null && cached.getLastModified() == lastMod) {
+            return b.title(cached.getTitle() != null && !cached.getTitle().isBlank() ? cached.getTitle() : stripExtension(f.getName()))
+                    .artist(cached.getArtist()  != null ? cached.getArtist()  : "")
+                    .album(cached.getAlbum()    != null ? cached.getAlbum()   : "")
+                    .format(cached.getFormat()  != null ? cached.getFormat()  : extension(f.getName()))
+                    .year(cached.getYear()      != null ? cached.getYear()    : "")
+                    .duration(cached.getDuration())
+                    .hasCover(cached.isHasCover())
+                    .bpm(cached.getBpm())
+                    .build();
+        }
+
+        // Cache miss or stale — read from disk
         try {
             AudioFile af = AudioFileIO.read(f);
-            b.format(af.getExt().toLowerCase());
-            b.duration(af.getAudioHeader().getTrackLength());
+            String format   = af.getExt().toLowerCase();
+            int    duration = af.getAudioHeader().getTrackLength();
+            b.format(format).duration(duration);
+
+            String  title   = null;
+            String  artist  = "";
+            String  album   = "";
+            String  year    = "";
+            int     bpm     = 0;
+            boolean hasCover = false;
 
             Tag tag = af.getTag();
             if (tag != null) {
-                String title  = tag.getFirst(FieldKey.TITLE);
-                String artist = tag.getFirst(FieldKey.ARTIST);
-                String album  = tag.getFirst(FieldKey.ALBUM);
+                title  = tag.getFirst(FieldKey.TITLE);
+                String a = tag.getFirst(FieldKey.ARTIST); if (a != null) artist = a;
+                String al = tag.getFirst(FieldKey.ALBUM);  if (al != null) album  = al;
+                String y  = tag.getFirst(FieldKey.YEAR);   if (y  != null) year   = y;
                 String bpmStr = tag.getFirst(FieldKey.BPM);
-
-                String year   = tag.getFirst(FieldKey.YEAR);
-
-                b.title(title  != null && !title.isBlank()  ? title  : stripExtension(f.getName()));
-                b.artist(artist != null ? artist : "");
-                b.album(album   != null ? album  : "");
-                b.year(year     != null ? year   : "");
-                b.hasCover(tag.getFirstArtwork() != null);
-
+                hasCover = tag.getFirstArtwork() != null;
                 if (bpmStr != null && !bpmStr.isBlank()) {
-                    try { b.bpm(Integer.parseInt(bpmStr.trim())); } catch (NumberFormatException ignored) {}
+                    try { bpm = Integer.parseInt(bpmStr.trim()); } catch (NumberFormatException ignored) {}
                 }
-            } else {
-                b.title(stripExtension(f.getName()));
+            }
+
+            String finalTitle = (title != null && !title.isBlank()) ? title : stripExtension(f.getName());
+            b.title(finalTitle).artist(artist).album(album).year(year).hasCover(hasCover).bpm(bpm);
+
+            // Save to cache
+            if (pathId != null) {
+                TrackMetadataCache entry = cached != null ? cached
+                        : TrackMetadataCache.builder().nasPathId(pathId).relativePath(relPath).build();
+                entry.setLastModified(lastMod);
+                entry.setTitle(finalTitle);
+                entry.setArtist(artist);
+                entry.setAlbum(album);
+                entry.setFormat(format);
+                entry.setYear(year);
+                entry.setDuration(duration);
+                entry.setHasCover(hasCover);
+                entry.setBpm(bpm);
+                try { metadataCacheRepo.save(entry); } catch (Exception ignored) {}
             }
 
         } catch (Exception e) {
-            b.title(stripExtension(f.getName()))
-             .format(extension(f.getName()));
+            b.title(stripExtension(f.getName())).format(extension(f.getName()));
         }
 
         return b.build();
+    }
+
+    private Map<String, TrackMetadataCache> batchFetchCache(Long pathId, List<File> files, Path base) {
+        List<String> paths = files.stream()
+                .map(f -> base.relativize(f.toPath()).toString().replace("\\", "/"))
+                .collect(Collectors.toList());
+        return metadataCacheRepo.findByNasPathIdAndRelativePathIn(pathId, paths)
+                .stream()
+                .collect(Collectors.toMap(TrackMetadataCache::getRelativePath, c -> c));
     }
 
     private String stripExtension(String name) {

@@ -4,10 +4,13 @@ import com.EverLoad.everload.model.PlaybackHistory;
 import com.EverLoad.everload.model.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -27,4 +30,9 @@ public interface PlaybackHistoryRepository extends JpaRepository<PlaybackHistory
            "GROUP BY h.trackPath, h.title, h.artist, h.album, h.nasPathId " +
            "ORDER BY lastPlayed DESC")
     List<Object[]> findRecentUniqueByUser(@Param("user") User user, Pageable pageable);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM PlaybackHistory h WHERE h.playedAt < :cutoff")
+    int deleteOlderThan(@Param("cutoff") LocalDateTime cutoff);
 }
