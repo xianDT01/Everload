@@ -166,6 +166,11 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   currentTheme = 'default';
   showThemePicker = false;
 
+  // ── Limpieza ───────────────────────────────────────────────────────────────
+  cleanupLoading: Record<string, boolean> = {};
+  cleanupMsg:     Record<string, string>  = {};
+  cleanupInfo:    Record<string, boolean> = {};
+  cleanupDays:    Record<string, number>  = { history: 90, audit: 90 };
 
   constructor(
     private http: HttpClient,
@@ -876,5 +881,36 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     this.loadBackups();
     this.loadBackupConfig();
     this.loadSystemInfo();
+  }
+
+  // ── Limpieza ────────────────────────────────────────────────────────────────
+
+  toggleCleanupInfo(key: string): void {
+    this.cleanupInfo[key] = !this.cleanupInfo[key];
+  }
+
+  runCleanup(key: string, params?: Record<string, string>): void {
+    this.cleanupLoading[key] = true;
+    this.cleanupMsg[key] = '';
+    let url = `${this.BASE}/api/admin/cleanup/${key}`;
+    if (params) {
+      const q = new URLSearchParams(params).toString();
+      url += '?' + q;
+    }
+    this.http.post<any>(url, {}).subscribe({
+      next: (res) => {
+        this.cleanupLoading[key] = false;
+        if (res.removed !== undefined) {
+          this.cleanupMsg[key] = `✅ ${res.removed} registro${res.removed !== 1 ? 's' : ''} eliminado${res.removed !== 1 ? 's' : ''}` +
+            (res.total !== undefined ? ` de ${res.total}` : '') + '.';
+        } else {
+          this.cleanupMsg[key] = '✅ Completado.';
+        }
+      },
+      error: () => {
+        this.cleanupLoading[key] = false;
+        this.cleanupMsg[key] = '❌ Error al ejecutar la limpieza.';
+      }
+    });
   }
 }
