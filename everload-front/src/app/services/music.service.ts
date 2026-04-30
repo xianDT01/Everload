@@ -543,6 +543,9 @@ export class MusicService {
     tracks: [], pathId: 0, index: -1
   });
   public queue$ = this.queueSubj.asObservable();
+  get queueSnapshot(): { tracks: MusicMetadataDto[]; pathId: number; index: number } {
+    return this.queueSubj.value;
+  }
 
   // Shuffle & Repeat
   private _shuffle = false;
@@ -1014,6 +1017,13 @@ export class MusicService {
         this.mainPlayer.play();
       });
     }
+  }
+
+  updateQueue(pathId: number, tracks: MusicMetadataDto[], index: number) {
+    const safeIndex = tracks.length ? Math.min(Math.max(index, 0), tracks.length - 1) : -1;
+    this.queueSubj.next({ tracks, pathId, index: safeIndex });
+    if (this._shuffle) this.buildShuffleOrder();
+    this.persistState();
   }
 
   // Advances to a track within the current queue without rebuilding shuffleOrder,

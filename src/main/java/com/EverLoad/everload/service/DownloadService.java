@@ -53,28 +53,69 @@ public class DownloadService {
     }
 
 
+    // ── Input validators ────────────────────────────────────────────────────
+    /** YouTube video IDs are 11 chars: letters, digits, - and _ only. */
+    private static boolean isValidYouTubeId(String id) {
+        return id != null && id.matches("[A-Za-z0-9_\\-]{11}");
+    }
+
+    /** Allowed video resolutions (height in pixels). */
+    private static final java.util.Set<String> ALLOWED_RESOLUTIONS =
+            java.util.Set.of("360", "480", "720", "1080", "1440", "2160");
+
+    /**
+     * Validates that a URL belongs to a known social media domain.
+     * Prevents arbitrary URLs or yt-dlp flag injection via the URL parameter.
+     */
+    private static boolean isAllowedMediaUrl(String url, String... allowedDomains) {
+        if (url == null || url.isBlank()) return false;
+        // Must start with https:// and match one of the allowed domains
+        if (!url.startsWith("https://") && !url.startsWith("http://")) return false;
+        for (String domain : allowedDomains) {
+            if (url.contains(domain)) return true;
+        }
+        return false;
+    }
+
     public ResponseEntity<FileSystemResource> downloadVideo(String videoId, String resolution) {
+        if (!isValidYouTubeId(videoId)) {
+            logger.warn("Rejected downloadVideo — invalid videoId: {}", videoId);
+            return ResponseEntity.badRequest().build();
+        }
+        if (!ALLOWED_RESOLUTIONS.contains(resolution)) {
+            logger.warn("Rejected downloadVideo — invalid resolution: {}", resolution);
+            return ResponseEntity.badRequest().build();
+        }
         try {
             String tempDir = createTempDownloadDir();
-            String command = String.format(
-                    "yt-dlp --print after_move:filepath " +
-                            "-f bestvideo[height=%s]+bestaudio/best " +
-                            "-o %s%%(title)s.%%(ext)s " +
-                            "https://www.youtube.com/watch?v=%s",
-                    resolution, tempDir, videoId
-
-            );
+            String[] cmd = {
+                "yt-dlp",
+                "--print", "after_move:filepath",
+                "-f", "bestvideo[height=" + resolution + "]+bestaudio/best",
+                "-o", tempDir + "%(title)s.%(ext)s",
+                "https://www.youtube.com/watch?v=" + videoId
+            };
             downloadHistoryService.recordDownload(new Download("videoId=" + videoId, "vídeo", "YouTube"));
-            return executeCommand(command, "vídeo", "YouTube");
-
+            return executeCommand(cmd, "vídeo", "YouTube");
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("downloadVideo error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
 
+    private static final java.util.Set<String> ALLOWED_AUDIO_FORMATS =
+            java.util.Set.of("mp3", "m4a", "flac", "opus", "ogg", "wav");
+
     public ResponseEntity<FileSystemResource> downloadMusic(String videoId, String format) {
+        if (!isValidYouTubeId(videoId)) {
+            logger.warn("Rejected downloadMusic — invalid videoId: {}", videoId);
+            return ResponseEntity.badRequest().build();
+        }
+        if (!ALLOWED_AUDIO_FORMATS.contains(format)) {
+            logger.warn("Rejected downloadMusic — invalid format: {}", format);
+            return ResponseEntity.badRequest().build();
+        }
         try {
             String tempDir = createTempDownloadDir();
             String[] cmd = {
@@ -93,21 +134,29 @@ public class DownloadService {
             downloadHistoryService.recordDownload(new Download("videoId=" + videoId, "music", "YouTube"));
             return executeCommand(cmd, "music", "YouTube");
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("downloadMusic error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     public ResponseEntity<?> getPlaylistVideos(String playlistUrl) {
+        if (!isAllowedMediaUrl(playlistUrl, "youtube.com", "youtu.be")) {
+            logger.warn("Rejected getPlaylistVideos — disallowed URL: {}", playlistUrl);
+            return ResponseEntity.badRequest().body("URL de playlist no permitida");
+        }
         try {
-            String command = String.format("yt-dlp --flat-playlist --print %%(title)s|%%(id)s %s", playlistUrl);
-            Process process = Runtime.getRuntime().exec(command);
+            // ProcessBuilder with explicit args — URL is a single argument, no shell injection possible
+            ProcessBuilder pb = new ProcessBuilder(
+                "yt-dlp", "--flat-playlist", "--print", "%(title)s|%(id)s", playlistUrl
+            );
+            pb.redirectErrorStream(false);
+            Process process = pb.start();
 
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             List<Map<String, String>> videos = new ArrayList<>();
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split("\\|");
+                String[] parts = line.split("\\|", 2);
                 if (parts.length == 2) {
                     Map<String, String> video = new HashMap<>();
                     video.put("title", parts[0]);
@@ -115,15 +164,13 @@ public class DownloadService {
                     videos.add(video);
                 }
             }
-
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error ejecutando yt-dlp");
             }
-
             return ResponseEntity.ok(videos);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("getPlaylistVideos error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error interno");
         }
     }
@@ -191,61 +238,25 @@ public class DownloadService {
         }
     }
 
-    private ResponseEntity<FileSystemResource> executeCommand(String command, String tipo, String origen) {
-        if (!acquireSlot()) {
-            logger.warn("Download rejected — max concurrent downloads ({}) reached", maxConcurrent);
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+    /** Builds a yt-dlp ProcessBuilder for a generic media URL download. */
+    private ResponseEntity<FileSystemResource> downloadMediaUrl(String url, String tipo, String origen,
+                                                                 String... allowedDomains) {
+        if (!isAllowedMediaUrl(url, allowedDomains)) {
+            logger.warn("Rejected {} download — disallowed URL: {}", origen, url);
+            return ResponseEntity.badRequest().build();
         }
         try {
-            System.out.println("🔵 Ejecutando comando: " + command);
-            logger.info("🔵 Ejecutando comando: " + command);
-
-            Process process = Runtime.getRuntime().exec(command);
-
-            BufferedReader outputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-            new Thread(() -> {
-                String line;
-                try {
-                    while ((line = errorReader.readLine()) != null) {
-                        if (!line.contains("nsig extraction failed")) {
-                            System.out.println("⚠️ YT-DLP ERROR: " + line);
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }).start();
-
-            int exitCode = process.waitFor();
-            String finalPath = outputReader.readLine();
-            outputReader.close();
-            errorReader.close();
-
-            if (exitCode != 0 || finalPath == null || finalPath.isEmpty()) {
-                System.out.println("❌ yt-dlp terminó con error o no devolvió la ruta final.");
-                logger.info("❌ yt-dlp terminó con error o no devolvió la ruta final.");
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
-
-            System.out.println("✅ Ruta final tras descarga: " + finalPath);
-            File finalFile = new File(finalPath);
-
-            if (!finalFile.exists()) {
-                System.out.println("❌ El archivo indicado por yt-dlp no existe: " + finalPath);
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
-
-            downloadHistoryService.recordDownload(new Download(finalFile.getName(), tipo, origen));
-            return sendFile(finalFile);
-
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-            System.out.println("❌ Error al ejecutar yt-dlp.");
+            String tempDir = createTempDownloadDir();
+            String[] cmd = {
+                "yt-dlp",
+                "--print", "after_move:filepath",
+                "-o", tempDir + "%(title)s.%(ext)s",
+                url   // single argument — no shell, no injection
+            };
+            return executeCommand(cmd, tipo, origen);
+        } catch (Exception e) {
+            logger.error("downloadMediaUrl error for {}", origen, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        } finally {
-            downloadSemaphore.release();
         }
     }
 
@@ -384,58 +395,22 @@ public class DownloadService {
     }
 
     public ResponseEntity<FileSystemResource> downloadTwitterVideo(String tweetUrl) {
-        try {
-            String tempDir = createTempDownloadDir();
-            String command = String.format(
-                    "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
-                    tempDir, tweetUrl
-            );
-            return executeCommand(command, "vídeo","Twitter");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return downloadMediaUrl(tweetUrl, "vídeo", "Twitter",
+                "twitter.com", "x.com", "t.co");
     }
 
-
     public ResponseEntity<FileSystemResource> downloadFacebookVideo(String videoUrl) {
-        try {
-            String tempDir = createTempDownloadDir();
-            String command = String.format(
-                    "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
-                    tempDir, videoUrl
-            );
-            return executeCommand(command, "vídeo","FacebookVideo");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return downloadMediaUrl(videoUrl, "vídeo", "Facebook",
+                "facebook.com", "fb.watch", "fb.com");
     }
 
     public ResponseEntity<FileSystemResource> downloadInstagramVideo(String videoUrl) {
-        try {
-            String tempDir = createTempDownloadDir();
-            String command = String.format(
-                    "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
-                    tempDir, videoUrl
-            );
-            return executeCommand(command,"vídeo" ,"InstagramVideo");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return downloadMediaUrl(videoUrl, "vídeo", "Instagram",
+                "instagram.com", "instagr.am");
     }
+
     public ResponseEntity<FileSystemResource> downloadTikTokVideo(String videoUrl) {
-        try {
-            String tempDir = createTempDownloadDir();
-            String command = String.format(
-                    "yt-dlp --print after_move:filepath -o %s%%(title)s.%%(ext)s %s",
-                    tempDir, videoUrl
-            );
-            return executeCommand(command, "vídeo", "TikTok");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        return downloadMediaUrl(videoUrl, "vídeo", "TikTok",
+                "tiktok.com", "vm.tiktok.com");
     }
 }

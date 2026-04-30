@@ -3,7 +3,10 @@ package com.EverLoad.everload.service;
 import com.EverLoad.everload.dto.NasFileDto;
 import com.EverLoad.everload.dto.NasPathDto;
 import com.EverLoad.everload.model.NasPath;
+import com.EverLoad.everload.repository.FavoriteTrackRepository;
 import com.EverLoad.everload.repository.NasPathRepository;
+import com.EverLoad.everload.repository.PlaybackHistoryRepository;
+import com.EverLoad.everload.repository.TrackMetadataCacheRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +35,9 @@ public class NasService {
     );
 
     private final NasPathRepository nasPathRepository;
+    private final FavoriteTrackRepository favoriteTrackRepository;
+    private final PlaybackHistoryRepository playbackHistoryRepository;
+    private final TrackMetadataCacheRepository trackMetadataCacheRepository;
 
     @Value("${nas.storage.base}")
     private String nasStorageBase;
@@ -161,10 +167,21 @@ public class NasService {
 
         try {
             Files.move(target, destination);
-            return basePath.relativize(destination).toString();
+            String newRelative = basePath.relativize(destination).toString().replace("\\", "/");
+            String oldRelative = basePath.relativize(target).toString().replace("\\", "/");
+            cascadeRenameInDb(pathId, oldRelative, newRelative);
+            return newRelative;
         } catch (IOException e) {
             throw new RuntimeException("No se pudo renombrar: " + e.getMessage());
         }
+    }
+
+    private void cascadeRenameInDb(Long nasPathId, String oldPath, String newPath) {
+        String likePrefix = oldPath + "/%";
+        int cutLen = oldPath.length();
+        favoriteTrackRepository.renamePathPrefix(nasPathId, oldPath, likePrefix, cutLen, newPath);
+        playbackHistoryRepository.renamePathPrefix(nasPathId, oldPath, likePrefix, cutLen, newPath);
+        trackMetadataCacheRepository.renamePathPrefix(nasPathId, oldPath, likePrefix, cutLen, newPath);
     }
 
     public void moveFileOrFolder(Long pathId, String sourcePath, String targetFolderPath) {
