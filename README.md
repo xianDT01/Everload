@@ -1,14 +1,15 @@
 # EverLoad
 
-> Your personal media center: downloads, NAS music, radio, DJ tools, chat, and an XP-style desktop for managing your library.
+> ES: Tu centro multimedia personal: descargas, música NAS, radio, herramientas DJ, chat y un escritorio estilo Windows XP para gestionar tu biblioteca.  
+> EN: Your personal media center: downloads, NAS music, radio, DJ tools, chat, and an XP-style desktop for managing your library.
 
-EverLoad is a private-network media hub built with **Spring Boot 3**, **Angular 15**, and **yt-dlp**. It started as a downloader, but it has grown into a broader multimedia app: social video downloads, NAS music playback and management, live radio, DJ decks, audio utilities, real-time chat, notifications, and a full admin console.
+EverLoad es una aplicación multimedia pensada para red privada y self-hosting. Empezó como una herramienta para descargar vídeos y audio, pero ahora también incluye biblioteca musical NAS, radio online, decks DJ, herramientas de audio, chat en tiempo real, notificaciones, panel de administración y un modo Windows XP con reproductores y utilidades.
 
-The app is designed for self-hosting at home or on a trusted server.
+EverLoad is a self-hosted media hub for private networks. It started as a video/audio downloader, but now also includes NAS music management, online radio, DJ decks, audio utilities, real-time chat, notifications, an admin panel, and an XP-style desktop mode with players and tools.
 
 ---
 
-## Preview
+## Vista Previa / Preview
 
 <p align="center">
   <img src="docs/assets/HomeEverload.png" alt="EverLoad home screen" width="720">
@@ -25,175 +26,141 @@ The app is designed for self-hosting at home or on a trusted server.
 
 ---
 
-## What EverLoad Can Do
+## Funciones Principales / Main Features
 
-### Downloads
+### Descargas / Downloads
 
-EverLoad can download or process media from:
+EverLoad permite descargar o procesar contenido desde plataformas populares.
 
-| Platform | Video | Audio / MP3 | Playlists | Notes |
+EverLoad can download or process media from popular platforms.
+
+| Plataforma / Platform | Vídeo / Video | Audio / MP3 | Playlists | Notas / Notes |
 |---|---:|---:|---:|---|
-| YouTube | yes | yes | yes | Search, preview, quality selection, save to NAS |
-| Twitter / X | yes | no | no | Public videos |
-| Facebook | yes | no | no | Public videos |
-| Instagram | yes | no | no | Public reels/posts |
-| TikTok | yes | no | no | Public videos |
-| Spotify | no | yes | yes | Resolves tracks through YouTube |
+| YouTube | yes | yes | yes | Búsqueda, vista previa, calidad configurable, guardado en NAS / Search, preview, quality selection, save to NAS |
+| Twitter / X | yes | no | no | Vídeos públicos / Public videos |
+| Facebook | yes | no | no | Vídeos públicos / Public videos |
+| Instagram | yes | no | no | Reels y posts públicos / Public reels and posts |
+| TikTok | yes | no | no | Vídeos públicos / Public videos |
+| Spotify | no | yes | yes | Resuelve canciones usando YouTube / Resolves tracks through YouTube |
 
-Extra download features:
+Incluye cola de descargas, historial, notificaciones, guardado en NAS, búsqueda de YouTube y posibilidad de compartir vídeos en chats.
 
-- Queue/status tracking for downloads.
-- Browser download or direct save to configured NAS storage.
-- Download history with platform, type, title, and date.
-- Notifications when jobs complete or fail.
-- YouTube video search from inside the app.
-- Share YouTube videos into chat groups.
+Includes download queue, history, notifications, NAS saving, YouTube search, and sharing YouTube videos into chats.
 
 ### NAS Music
 
-EverLoad includes a full NAS music library:
+Biblioteca musical en red para navegar, reproducir y gestionar música almacenada en rutas NAS configuradas.
 
-- Browse configured NAS paths and folders.
-- Upload music files and folders while preserving structure.
-- Download individual files or folders as ZIP.
-- Create, rename, move, delete, and copy files/folders.
-- Stream audio with HTTP range support.
-- Read and edit ID3 metadata: title, artist, album, year, cover.
-- Folder covers from embedded artwork, images, or custom upload.
-- Favorites, listening history, shuffle, repeat, previous/next, and queue.
-- Search by filename, title, artist, and album.
-- iTunes cover lookup when local artwork is missing.
+Network music library for browsing, playing, and managing music stored in configured NAS paths.
+
+- Exploración de carpetas y rutas NAS / NAS path and folder browsing.
+- Subida, descarga ZIP, copia, movimiento, renombrado y borrado / Upload, ZIP download, copy, move, rename, delete.
+- Streaming con soporte HTTP range / Streaming with HTTP range support.
+- Metadatos ID3: título, artista, álbum, año y carátula / ID3 metadata: title, artist, album, year, cover.
+- Edición de etiquetas desde el navegador / Browser-based tag editing.
+- Favoritos, historial, cola, shuffle y repeat / Favorites, history, queue, shuffle, repeat.
+- Carátulas desde archivos, carpetas o búsqueda iTunes / Covers from files, folders, or iTunes lookup.
 
 ### Radio
 
-The radio mode is a dedicated section with:
+Modo dedicado para escuchar emisoras nacionales e internacionales.
 
-- National stations prioritized.
-- Global station search.
-- Preset and tag filters.
-- Direct stream URL tuning.
-- Shared playback state, so radio can keep playing while navigating.
-- Curated fallback stations for when online catalogs fail.
+Dedicated mode for national and international radio stations.
 
-### Windows XP Mode
+- Prioridad a emisoras nacionales / National stations first.
+- Búsqueda global / Global search.
+- Filtros por presets y etiquetas / Preset and tag filters.
+- Sintonización por URL directa / Direct stream URL tuning.
+- Reproducción compartida al navegar / Playback state survives navigation.
+- Emisoras guardadas de respaldo / Curated fallback stations.
 
-EverLoad also includes a playful desktop mode inspired by Windows XP:
+### Modo Windows XP / Windows XP Mode
 
-- Movable desktop icons and multi-select selection rectangle.
-- Start menu, taskbar, system tray, volume controls, and window management.
-- NAS Explorer window for file browsing and playback.
-- Music Manager for current track metadata, queue, history, and exports.
-- Notepad with per-user local "disk" storage.
-- Calculator, equalizer, Snake, Minesweeper, Messenger, YouTube XP downloader, wallpaper settings.
-- Player skins: Windows Media Player, Winamp-style, macOS Music-style, and foobar2000-style.
-- XP sounds, notifications, screensaver, and a small hidden BSOD gag.
+Un escritorio estilo Windows XP dentro de EverLoad.
 
-### DJ Decks
+An XP-style desktop inside EverLoad.
 
-The DJ mode provides two decks and a mixer:
+- Iconos movibles y selección múltiple con rectángulo azul / Movable icons and multi-select rectangle.
+- Menú inicio, barra de tareas, bandeja del sistema y ventanas / Start menu, taskbar, tray, and windows.
+- NAS Explorer para archivos y reproducción / NAS Explorer for files and playback.
+- Music Manager con metadatos, cola, historial y exportación / Music Manager with metadata, queue, history, exports.
+- Bloc de notas con almacenamiento por usuario / Notepad with per-user local storage.
+- Calculadora, ecualizador, Snake, Buscaminas, Messenger, YouTube XP, fondos / Calculator, equalizer, Snake, Minesweeper, Messenger, YouTube XP, wallpapers.
+- Skins de reproductor: Windows Media Player, Winamp, macOS Music y foobar2000 / Player skins: Windows Media Player, Winamp, macOS Music, foobar2000.
 
-- Load tracks from NAS or YouTube search.
-- Animated vinyl with album artwork.
-- Pitch control and reset.
-- Crossfader with equal-power curve.
-- Channel faders, VU meters, EQ, and filters.
-- Hot cues and waveform-style visual feedback.
-- Help modal explaining the controls.
+### Cabina DJ / DJ Decks
 
-### Audio Tools
+Modo DJ con dos decks y mezclador central.
 
-Utility tools for audio files:
+DJ mode with two decks and a central mixer.
 
-- Inspect audio file information.
-- Convert audio formats.
-- Trim/cut audio clips.
+- Carga desde NAS o búsqueda de YouTube / Load from NAS or YouTube search.
+- Vinilos animados con carátulas / Animated vinyl with covers.
+- Pitch, crossfader, faders, VU meters, EQ y filtros / Pitch, crossfader, faders, VU meters, EQ, filters.
+- Hot cues y ayuda integrada / Hot cues and built-in help.
 
-These tools rely on backend audio processing and FFmpeg availability.
+### Herramientas de Audio / Audio Tools
+
+Utilidades para trabajar con archivos de audio.
+
+Utilities for audio files.
+
+- Información de archivo / File information.
+- Conversión de formatos / Format conversion.
+- Recorte de audio / Audio trimming.
+
+Requiere FFmpeg disponible en el backend.
+
+Requires FFmpeg on the backend.
 
 ### Chat
 
-EverLoad has a real-time chat system:
+Chat en tiempo real con conversaciones privadas, grupos y canales de anuncios.
 
-- Private chats, groups, and announcement channels.
-- Mentions, emoji picker, replies, copy message, search.
-- YouTube cards inside messages.
-- Read receipts in private chat.
-- Group avatars, roles, muting, leave/delete actions.
-- Messenger-style buzz.
-- Multiple visual chat themes.
+Real-time chat with private conversations, groups, and announcement channels.
 
-### Users and Security
+- Menciones, emojis, respuestas, búsqueda y copiado / Mentions, emojis, replies, search, copy.
+- Tarjetas de YouTube / YouTube cards.
+- Confirmaciones de lectura / Read receipts.
+- Roles de grupo, avatares, silencios y moderación / Group roles, avatars, muting, moderation.
+- Zumbido estilo Messenger / Messenger-style buzz.
+- Temas visuales / Visual themes.
 
-- Registration and JWT login.
-- Pending approval flow for new accounts.
+### Usuarios, Seguridad y Admin / Users, Security and Admin
+
+- Registro, login JWT y aprobación de cuentas / Register, JWT login, account approval.
 - Roles: `ADMIN`, `NAS_USER`, `BASIC_USER`.
-- Profile avatars and password changes.
-- Online/offline presence and privacy for last seen.
-- Token revocation on logout.
-- Rate limiting and maintenance mode support.
-
-### Admin Panel
-
-Admin-only features include:
-
-- User approval, role changes, revocation, and deletion.
-- NAS path management.
-- API key/config management.
-- Live logs and log cleanup.
-- Download history.
-- Audit log.
-- Chat moderation.
-- System information.
-- Maintenance mode and scheduled warning toasts.
-- Backups: create, list, restore, delete, configure retention.
-- External API checks.
-- yt-dlp update endpoint.
-
-### Notifications and PWA
-
-- Notification center with unread count.
-- Toast notifications for downloads, chat, group invites, and admin notices.
-- PWA manifest and service worker.
-- Update banner support.
-- Offline banner.
-
-### Internationalization
-
-Available languages:
-
-- Spanish (`es`)
-- Galician (`gl`)
-- English (`en`)
-
-The selected language is stored locally and can be changed without a page reload.
+- Avatares, cambio de contraseña y presencia online / Avatars, password changes, online presence.
+- Panel admin con usuarios, NAS, logs, historial, auditoría, backups, mantenimiento y comprobación de APIs / Admin panel with users, NAS, logs, history, audit, backups, maintenance, API checks.
+- Notificaciones, PWA, update banner y offline banner / Notifications, PWA, update banner, offline banner.
 
 ---
 
-## Tech Stack
+## Tecnologías / Tech Stack
 
-| Area | Technology |
+| Área / Area | Tecnología / Technology |
 |---|---|
 | Backend | Spring Boot 3.4, Java 17, Spring Security, JPA |
 | Frontend | Angular 15, RxJS, Angular CDK/Material, ngx-translate |
-| Database | H2 by default |
+| Base de datos / Database | H2 by default |
 | Media | yt-dlp, FFmpeg, jaudiotagger, Web Audio API |
-| Deployment | Docker Compose, Caddy reverse proxy |
-| Docs/API | springdoc-openapi / Swagger UI |
+| Despliegue / Deployment | Docker Compose, Caddy |
+| API Docs | springdoc-openapi / Swagger UI |
 
 ---
 
-## Requirements
+## Requisitos / Requirements
 
 - Java 17+
-- Node.js 18+ or 20+
+- Node.js 18+ o 20+
 - npm
 - yt-dlp
 - FFmpeg
-- Docker and Docker Compose for the bundled deployment stack
+- Docker y Docker Compose para despliegue con el stack incluido
 
 ---
 
-## Development
+## Desarrollo / Development
 
 ### Backend
 
@@ -201,13 +168,13 @@ The selected language is stored locally and can be changed without a page reload
 ./mvnw spring-boot:run
 ```
 
-On Windows:
+Windows:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-Backend runs at:
+Backend:
 
 ```text
 http://localhost:8080
@@ -221,13 +188,13 @@ npm ci
 npm start -- --host 127.0.0.1 --port 4200
 ```
 
-Frontend runs at:
+Frontend:
 
 ```text
 http://localhost:4200
 ```
 
-### Production Build
+### Build
 
 ```bash
 cd everload-front
@@ -240,13 +207,17 @@ npm run build
 
 ---
 
-## Docker Deployment
+## Docker
 
-EverLoad ships with Docker Compose and Caddy.
+Levantar la aplicación:
+
+Start the app:
 
 ```bash
 docker compose up --build -d
 ```
+
+Siguientes ejecuciones:
 
 Later runs:
 
@@ -254,44 +225,43 @@ Later runs:
 docker compose up -d
 ```
 
-Default local URLs:
+URLs locales:
+
+Local URLs:
 
 ```text
 https://localhost
 http://localhost
 ```
 
-`http://localhost` is redirected through Caddy when the proxy is enabled.
+Comandos útiles:
 
-### Useful Docker Commands
+Useful commands:
 
 ```bash
 docker compose ps
 docker compose logs --tail=80 everload
 docker compose logs --tail=80 frontend
 docker compose logs --tail=80 caddy
-docker compose up --build -d
 ```
 
----
+### Variables Principales / Main Variables
 
-## Configuration
+| Variable | Uso / Purpose |
+|---|---|
+| `JWT_SECRET` | Cambiar en producción / Change in production |
+| `CADDY_DOMAIN` | Dominio para Caddy / Caddy domain |
+| `CADDY_EMAIL` | Email para Let's Encrypt |
+| `CORS_ALLOWED_ORIGINS` | Orígenes frontend permitidos / Allowed frontend origins |
+| `APP_BACKUP_PATH` | Carpeta de backups / Backup directory |
+| `APP_MAINTENANCE_FLAG` | Flag de mantenimiento / Maintenance flag |
+| `APP_CONFIG_PATH` | Configuración persistente / Persistent config |
 
-Important environment variables:
+Ver `.env.example` y `docker-compose.yml` para más detalle.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `JWT_SECRET` | dev value | Change this in production |
-| `CADDY_DOMAIN` | `localhost` | Domain for Caddy |
-| `CADDY_EMAIL` | `admin@example.com` | Email for Let's Encrypt |
-| `CORS_ALLOWED_ORIGINS` | local dev origins | Allowed frontend origins |
-| `APP_BACKUP_PATH` | `/app/backups` | Backup directory |
-| `APP_MAINTENANCE_FLAG` | `/app/data/maintenance.flag` | Maintenance flag file |
-| `APP_CONFIG_PATH` | `/app/data/config.json` | Persistent app config |
+See `.env.example` and `docker-compose.yml` for details.
 
-See `.env.example` and `docker-compose.yml` for the full deployment shape.
-
-### NAS Mount Example
+### Montar Música NAS / Mount NAS Music
 
 Windows:
 
@@ -307,39 +277,43 @@ volumes:
   - /path/to/music:/app/nas_storage:rw
 ```
 
-Then add `/app/nas_storage` from the Admin Panel under NAS paths.
+Después añade `/app/nas_storage` desde el panel de administración, en rutas NAS.
+
+Then add `/app/nas_storage` from the admin panel under NAS paths.
 
 ---
 
-## Main Routes
+## Rutas Principales / Main Routes
 
-| Route | Feature |
+| Ruta / Route | Función / Feature |
 |---|---|
 | `/` | Home |
 | `/login` | Login |
-| `/register` | Register |
+| `/register` | Registro / Register |
 | `/radio` | Radio |
-| `/nas-music` | NAS music library |
-| `/nas-music?mode=deck` | DJ decks |
-| `/audio-tools` | Audio tools |
+| `/nas-music` | Biblioteca NAS / NAS music library |
+| `/nas-music?mode=deck` | Cabina DJ / DJ decks |
+| `/audio-tools` | Herramientas de audio / Audio tools |
 | `/chat` | Chat |
-| `/profile` | User profile |
-| `/about-app` | About |
-| `/admin-config` | Admin panel |
+| `/profile` | Perfil / Profile |
+| `/about-app` | Acerca de / About |
+| `/admin-config` | Panel admin / Admin panel |
 
 ---
 
-## API Overview
+## API
 
-Swagger UI is available in development at:
+Swagger UI:
 
 ```text
 http://localhost:8080/swagger-ui.html
 ```
 
-Some important endpoint groups:
+Grupos principales:
 
-| Group | Base Path |
+Main groups:
+
+| Grupo / Group | Base path |
 |---|---|
 | Auth | `/api/auth` |
 | Downloads | `/api/downloadVideo`, `/api/downloadMusic`, `/api/downloadTwitter`, etc. |
@@ -363,29 +337,37 @@ Some important endpoint groups:
 
 ---
 
-## Known Limitations
+## Limitaciones Conocidas / Known Limitations
 
-- Instagram, Facebook, Twitter/X, and TikTok support depends on public content and yt-dlp compatibility.
-- Spotify downloads are resolved through YouTube; EverLoad does not download directly from Spotify.
-- Radio streams can fail if a station changes its URL, blocks browser playback, or rejects CORS.
-- iTunes cover lookup and YouTube DJ loading require internet access from the browser/server.
-- FFmpeg must be available for audio conversion and trimming.
-- The bundled H2 database is convenient for home/self-hosted use, but production deployments should back it up regularly.
-
----
-
-## Repository Notes
-
-- Backend source: `src/main/java/com/EverLoad/everload`
-- Frontend source: `everload-front/src/app`
-- i18n files: `everload-front/src/assets/i18n`
-- Docker stack: `docker-compose.yml`, `Dockerfile`, `Caddyfile`
-- App screenshots: `docs/assets`
+- Instagram, Facebook, Twitter/X y TikTok dependen de contenido público y compatibilidad de yt-dlp.  
+  Instagram, Facebook, Twitter/X, and TikTok depend on public content and yt-dlp compatibility.
+- Spotify se resuelve mediante YouTube; EverLoad no descarga directamente desde Spotify.  
+  Spotify is resolved through YouTube; EverLoad does not download directly from Spotify.
+- Algunas radios pueden fallar si cambian URL, bloquean navegador o rechazan CORS.  
+  Some radio streams may fail if URLs change, browser playback is blocked, or CORS is rejected.
+- La búsqueda de carátulas iTunes y YouTube DJ requieren Internet.  
+  iTunes cover lookup and YouTube DJ loading require internet access.
+- FFmpeg debe estar disponible para conversión y recorte de audio.  
+  FFmpeg must be available for audio conversion and trimming.
+- La base H2 incluida es cómoda para self-hosting, pero conviene hacer backups.  
+  The bundled H2 database is convenient for self-hosting, but regular backups are recommended.
 
 ---
 
-## License
+## Estructura / Repository Notes
+
+- Backend: `src/main/java/com/EverLoad/everload`
+- Frontend: `everload-front/src/app`
+- Traducciones / i18n: `everload-front/src/assets/i18n`
+- Docker: `docker-compose.yml`, `Dockerfile`, `Caddyfile`
+- Capturas / screenshots: `docs/assets`
+
+---
+
+## Licencia / License
+
+MIT License. Consulta [LICENSE](./LICENSE).
 
 MIT License. See [LICENSE](./LICENSE).
 
-Created by **Xian Duan Taboada**.
+Creado por / Created by **Xian Duan Taboada**.
