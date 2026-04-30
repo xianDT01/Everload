@@ -35,4 +35,16 @@ public interface PlaybackHistoryRepository extends JpaRepository<PlaybackHistory
     @Transactional
     @Query("DELETE FROM PlaybackHistory h WHERE h.playedAt < :cutoff")
     int deleteOlderThan(@Param("cutoff") LocalDateTime cutoff);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE PlaybackHistory h " +
+           "SET h.trackPath = CONCAT(:newPrefix, SUBSTRING(h.trackPath, :cutLen + 1)) " +
+           "WHERE h.nasPathId = :nasPathId " +
+           "AND (h.trackPath = :exactOld OR h.trackPath LIKE :likePrefix)")
+    int renamePathPrefix(@Param("nasPathId") Long nasPathId,
+                         @Param("exactOld") String exactOld,
+                         @Param("likePrefix") String likePrefix,
+                         @Param("cutLen") int cutLen,
+                         @Param("newPrefix") String newPrefix);
 }

@@ -20,6 +20,13 @@ const routes: Routes = [
 
   // ── Downloads (lazy) ──────────────────────────────────────────────────────
   {
+    path: 'radio',
+    canActivate: [AuthGuard],
+    loadChildren: () =>
+      import('./components/radio/radio.module').then(m => m.RadioModule),
+  },
+
+  {
     path: '',
     canActivate: [AuthGuard],
     loadChildren: () =>

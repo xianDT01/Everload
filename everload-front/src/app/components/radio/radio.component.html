@@ -1,0 +1,103 @@
+<div class="radio-page">
+  <header class="radio-topbar">
+    <button class="back-btn" type="button" (click)="goHome()" [attr.aria-label]="'RADIO.BACK_HOME' | translate">
+      <span aria-hidden="true">&lsaquo;</span>
+    </button>
+    <div>
+      <span class="eyebrow">Everload Radio</span>
+      <h1>{{ 'RADIO.TITLE' | translate }}</h1>
+    </div>
+  </header>
+
+  <main class="radio-layout">
+    <section class="tuner-panel" [attr.aria-label]="'RADIO.TUNER_ARIA' | translate">
+      <div class="tuner-visual" [class.on-air]="playing">
+        <div class="antenna"></div>
+        <div class="dial">
+          <span class="dial-ring"></span>
+          <span class="dial-core">{{ playing ? 'ON' : (buffering ? '...' : 'FM') }}</span>
+        </div>
+        <div class="signal-lines" aria-hidden="true">
+          <i></i><i></i><i></i><i></i>
+        </div>
+      </div>
+
+      <div class="now-card">
+        <span class="status-pill" [class.live]="playing">
+          {{ playing ? ('RADIO.STATUS_ON_AIR' | translate) : (buffering ? ('RADIO.STATUS_TUNING' | translate) : ('RADIO.STATUS_STANDBY' | translate)) }}
+        </span>
+        <h2>{{ selectedStation?.name || ('RADIO.SELECT_STATION' | translate) }}</h2>
+        <p>{{ selectedStation ? stationMeta(selectedStation) : ('RADIO.EMPTY_STATE' | translate) }}</p>
+      </div>
+
+      <div class="player-controls">
+        <button class="primary-control" type="button" (click)="pause()" [disabled]="!playing && !buffering">
+          {{ playing || buffering ? ('RADIO.PAUSE' | translate) : ('RADIO.NO_PLAYBACK' | translate) }}
+        </button>
+        <label class="volume-control">
+          <span>{{ 'RADIO.VOLUME' | translate }}</span>
+          <input type="range" min="0" max="1" step="0.01" [value]="volume" (input)="setVolume($event)">
+        </label>
+      </div>
+
+      <form class="direct-tune" (ngSubmit)="tuneDirect()">
+        <label>
+          <span>{{ 'RADIO.DIRECT_URL' | translate }}</span>
+          <input type="url" [(ngModel)]="directUrl" name="directUrl" placeholder="https://.../stream.mp3">
+        </label>
+        <button type="submit">{{ 'RADIO.TUNE' | translate }}</button>
+      </form>
+
+      <p class="radio-error" *ngIf="error">{{ error }}</p>
+    </section>
+
+    <section class="catalog-panel" [attr.aria-label]="'RADIO.CATALOG_ARIA' | translate">
+      <div class="catalog-header">
+        <div>
+          <span class="eyebrow">{{ 'RADIO.CATALOG' | translate }}</span>
+          <h2>{{ 'RADIO.NATIONAL_FIRST' | translate }}</h2>
+        </div>
+        <div class="scope-toggle" [attr.aria-label]="'RADIO.SEARCH_SCOPE' | translate">
+          <button type="button" [class.active]="scope === 'ES'" (click)="setScope('ES')">{{ 'RADIO.SPAIN' | translate }}</button>
+          <button type="button" [class.active]="scope === 'WORLD'" (click)="setScope('WORLD')">{{ 'RADIO.WORLD' | translate }}</button>
+        </div>
+      </div>
+
+      <form class="search-row" (ngSubmit)="searchStations()">
+        <input type="search" [(ngModel)]="searchQuery" name="searchQuery" [placeholder]="'RADIO.SEARCH_PLACEHOLDER' | translate">
+        <button type="submit">{{ 'RADIO.SEARCH' | translate }}</button>
+      </form>
+
+      <div class="preset-row" [attr.aria-label]="'RADIO.PRESET_ARIA' | translate">
+        <button type="button" *ngFor="let preset of nationalPresets" [class.active]="activePreset === preset" (click)="searchPreset(preset)">
+          {{ preset }}
+        </button>
+      </div>
+
+      <div class="tag-row" [attr.aria-label]="'RADIO.TAG_ARIA' | translate">
+        <button type="button" *ngFor="let tag of tagFilters" [class.active]="activeTag === tag" (click)="setTag(tag)">
+          {{ tag }}
+        </button>
+      </div>
+
+      <div class="loading-state" *ngIf="loading">{{ 'RADIO.LOADING' | translate }}</div>
+
+      <div class="station-grid" *ngIf="!loading">
+        <button class="station-card" type="button" *ngFor="let station of stations" [class.active]="isActive(station)" (click)="tune(station)">
+          <span class="station-logo">
+            <img *ngIf="station.favicon && !logoBroken(station)" [src]="station.favicon" [alt]="station.name" (error)="onLogoError($event, station)">
+            <strong *ngIf="!station.favicon || logoBroken(station)">{{ station.name.charAt(0) }}</strong>
+          </span>
+          <span class="station-body">
+            <strong>{{ station.name }}</strong>
+            <small>{{ stationMeta(station) }}</small>
+            <span class="chips">
+              <i *ngFor="let tag of stationTags(station)">{{ tag }}</i>
+            </span>
+          </span>
+          <span class="play-mark">{{ isActive(station) && playing ? '||' : '>' }}</span>
+        </button>
+      </div>
+    </section>
+  </main>
+</div>

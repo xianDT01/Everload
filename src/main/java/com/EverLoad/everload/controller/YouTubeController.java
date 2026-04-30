@@ -28,8 +28,13 @@ public class YouTubeController {
     @GetMapping("/search")
     public ResponseEntity<?> searchVideos(@RequestParam String query,
                                           @RequestParam(defaultValue = "10") int maxResults) {
+        // Sanitize inputs before passing to subprocess
+        if (query == null || query.isBlank() || query.length() > 200) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Consulta inválida"));
+        }
+        maxResults = Math.max(1, Math.min(maxResults, 50)); // clamp 1–50
         try {
-            // yt-dlp --flat-playlist prints one JSON object per result
+            // ytSearch is passed as a SINGLE argument to ProcessBuilder — no shell injection
             String ytSearch = "ytsearch" + maxResults + ":" + query;
             ProcessBuilder pb = new ProcessBuilder(
                     "yt-dlp",
