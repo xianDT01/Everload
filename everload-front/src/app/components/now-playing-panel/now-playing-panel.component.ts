@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../services/music.service';
@@ -6,7 +6,8 @@ import { NasPath, NasService } from '../../services/nas.service';
 import { ChatMessageDto, ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 
-type DesktopWindowTarget = 'player' | 'explorer' | 'messenger' | 'youtube' | 'minesweeper';
+type DesktopWindowTarget = 'player' | 'explorer' | 'manager' | 'messenger' | 'youtube' | 'minesweeper' | 'calculator' | 'notepad' | 'equalizer' | 'snake';
+type DesktopIconId = 'explorer' | 'music' | 'manager' | 'player' | 'calculator' | 'notepad' | 'equalizer' | 'snake' | 'xp' | 'messenger' | 'youtube' | 'minesweeper' | 'wallpaper';
 
 interface WindowsYoutubeDownload {
   id: string;
@@ -27,6 +28,13 @@ interface MinesweeperCell {
   adjacent: number;
 }
 
+interface NotepadFile {
+  id: string;
+  name: string;
+  content: string;
+  updatedAt: number;
+}
+
 @Component({
   selector: 'app-now-playing-panel',
   templateUrl: './now-playing-panel.component.html',
@@ -40,6 +48,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   vizMode: 'bars' | 'wave' | 'scope' = 'bars';
   @ViewChild('panelCanvas') panelCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('snakeCanvas') snakeCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('desktopPanel') desktopPanel?: ElementRef<HTMLElement>;
   private panelRaf?: number;
   private panelPeaks: number[] = [];
@@ -47,9 +56,27 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   likedItems: any[] = [];
   readonly Math = Math;
   taskbarClock = '';
+  desktopSelectedIcons = new Set<DesktopIconId>();
+  desktopIconPositions: Record<DesktopIconId, { x: number; y: number }> = {
+    explorer: { x: 22, y: 26 },
+    music: { x: 22, y: 104 },
+    manager: { x: 22, y: 182 },
+    player: { x: 22, y: 260 },
+    calculator: { x: 22, y: 338 },
+    notepad: { x: 22, y: 416 },
+    equalizer: { x: 22, y: 494 },
+    snake: { x: 22, y: 572 },
+    xp: { x: 118, y: 26 },
+    messenger: { x: 118, y: 104 },
+    youtube: { x: 118, y: 182 },
+    minesweeper: { x: 118, y: 260 },
+    wallpaper: { x: 118, y: 338 },
+  };
+  desktopSelection: { startX: number; startY: number; currentX: number; currentY: number } | null = null;
 
   desktopStartOpen = false;
   desktopExplorerOpen = true;
+  musicManagerOpen = false;
   messengerOpen = false;
   youtubeDownloaderOpen = false;
   minesweeperOpen = false;
@@ -57,6 +84,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   messengerBuzzing = false;
   playerMinimized = false;
   explorerMinimized = false;
+  musicManagerMinimized = false;
   messengerMinimized = false;
   youtubeDownloaderMinimized = false;
   minesweeperMinimized = false;
@@ -68,6 +96,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   desktopPanelSize = { width: 1060, height: 690 };
   explorerWindowPosition = { x: 132, y: 84 };
   explorerWindowSize = { width: 560, height: 420 };
+  musicManagerWindowPosition = { x: 190, y: 96 };
+  musicManagerWindowSize = { width: 760, height: 500 };
+  musicManagerTab: 'properties' | 'queue' | 'history' = 'properties';
+  musicManagerStatus = '';
+  historyItems: any[] = [];
   private explorerRestoreWindow = {
     position: { x: 132, y: 84 },
     size: { width: 560, height: 420 }
@@ -86,6 +119,109 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   };
   minesweeperWindowPosition = { x: 360, y: 96 };
   minesweeperWindowSize = { width: 288, height: 386 };
+
+  // ── Calculator ─────────────────────────────────────────────────────────────
+  calculatorOpen = false;
+  calculatorMinimized = false;
+  calculatorMaximized = false;
+  calculatorWindowPosition = { x: 430, y: 80 };
+  calculatorWindowSize = { width: 272, height: 378 };
+  private calculatorRestoreWindow = { position: { x: 430, y: 80 }, size: { width: 272, height: 378 } };
+  calcDisplay = '0';
+  private calcPendingOp = '';
+  private calcPendingVal = 0;
+  private calcNewInput = true;
+
+  // ── Notepad ───────────────────────────────────────────────────────────────
+  notepadOpen = false;
+  notepadMinimized = false;
+  notepadMaximized = false;
+  notepadWindowPosition = { x: 200, y: 100 };
+  notepadWindowSize = { width: 500, height: 360 };
+  private notepadRestoreWindow = { position: { x: 200, y: 100 }, size: { width: 500, height: 360 } };
+  notepadText = '';
+  notepadFiles: NotepadFile[] = [];
+  activeNotepadFileId = '';
+  notepadFileName = 'notas.txt';
+  notepadSaveStatus = '';
+  private readonly notepadStorageKey = 'everload.windows.notepad';
+  private readonly notepadDiskPrefix = 'everload.windows.disk';
+  private notepadOwnerKey = '';
+  private notepadSaveTimer?: number;
+
+  // ── Equalizer ─────────────────────────────────────────────────────────────
+  equalizerOpen = false;
+  equalizerMinimized = false;
+  equalizerMaximized = false;
+  equalizerWindowPosition = { x: 310, y: 200 };
+  equalizerWindowSize = { width: 360, height: 200 };
+  private equalizerRestoreWindow = { position: { x: 310, y: 200 }, size: { width: 360, height: 200 } };
+  eqLow = 0;
+  eqMid = 0;
+  eqHigh = 0;
+
+  // ── Winamp 10-band EQ + playlist ─────────────────────────────────────────
+  waEqBands: number[] = new Array(10).fill(0);
+  readonly waEqBandNames = ['60','170','310','600','1K','3K','6K','12K','14K','16K'];
+  waEqOn = true;
+  waEqVisible = true;
+  waPlVisible = true;
+  winampQueue: { tracks: MusicMetadataDto[]; pathId: number; index: number } = { tracks: [], pathId: 0, index: -1 };
+
+  // ── Snake ──────────────────────────────────────────────────────────────────
+  snakeOpen = false;
+  snakeMinimized = false;
+  snakeWindowPosition = { x: 250, y: 60 };
+  snakeWindowSize = { width: 340, height: 390 };
+  readonly SNAKE_COLS = 20;
+  readonly SNAKE_ROWS = 18;
+  readonly SNAKE_CELL = 14;
+  snakeBody: { x: number; y: number }[] = [];
+  snakeFood: { x: number; y: number } = { x: 10, y: 9 };
+  snakeDir: 'up' | 'down' | 'left' | 'right' = 'right';
+  private snakePendingDir: 'up' | 'down' | 'left' | 'right' = 'right';
+  snakeScore = 0;
+  snakeStatus: 'ready' | 'playing' | 'dead' = 'ready';
+  private snakeRaf?: number;
+  private snakeLastTime = 0;
+  private readonly snakeSpeed = 150;
+  snakeShowLeaderboard = false;
+  snakeLeaderboard: { rank: number; username: string; avatarUrl: string; score: number }[] = [];
+  snakeLeaderboardLoading = false;
+
+  // ── Screensaver ───────────────────────────────────────────────────────────
+  screensaverActive = false;
+  dvdX = 120;
+  dvdY = 80;
+  dvdVX = 1.8;
+  dvdVY = 1.4;
+  dvdColor = '#ff6040';
+  private screensaverRaf?: number;
+  private inactivityTimer?: number;
+  private readonly screensaverDelay = 90000;
+
+  // ── BSOD ──────────────────────────────────────────────────────────────────
+  bsodActive = false;
+  private bsodKeySeq = '';
+  private readonly bsodCode = 'bsod';
+
+  // ── XP Notifications ──────────────────────────────────────────────────────
+  xpNotifs: Array<{ id: number; title: string; body: string }> = [];
+  private xpNotifCounter = 0;
+  private prevTrackPath = '';
+
+  // ── Context menu (desktop wallpaper) ─────────────────────────────────────
+  ctxMenuOpen = false;
+  ctxMenuX = 0;
+  ctxMenuY = 0;
+
+  // ── Explorer context menu & clipboard ─────────────────────────────────────
+  explorerCtxOpen = false;
+  explorerCtxX = 0;
+  explorerCtxY = 0;
+  explorerCtxTarget: MusicMetadataDto | null = null;
+  explorerClipboard: { item: MusicMetadataDto; pathId: number; mode: 'copy' | 'cut' } | null = null;
+
   explorerPaths: NasPath[] = [];
   explorerPathId: number | null = null;
   explorerSubPath = '';
@@ -104,6 +240,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const host = typeof window !== 'undefined' ? window.location.hostname : '';
     return (host === 'localhost' || host === '127.0.0.1') ? 'http://localhost:8080/api' : '/api';
   })();
+  playerSkin: 'wmp' | 'winamp' | 'macos' | 'foobar' = 'wmp';
+  readonly skinOptions: Array<{ id: 'wmp' | 'winamp' | 'macos' | 'foobar'; name: string }> = [
+    { id: 'wmp',    name: 'Windows Media Player' },
+    { id: 'winamp', name: 'Winamp 2.x' },
+    { id: 'macos',  name: 'macOS Music' },
+    { id: 'foobar', name: 'foobar2000' }
+  ];
+  private readonly skinStorageKey = 'everload.windows.playerSkin';
+
   selectedWallpaper = 'xp';
   customWallpaperUrl = '';
   readonly wallpaperOptions = [
@@ -140,26 +285,55 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   private readonly desktopTaskbarHeight = 40;
   private readonly wallpaperStorageKey = 'everload.windows.wallpaper';
   private readonly customWallpaperStorageKey = 'everload.windows.customWallpaper';
+  private desktopIconDragState: {
+    ids: DesktopIconId[];
+    startX: number;
+    startY: number;
+    origins: Record<string, { x: number; y: number }>;
+    moved: boolean;
+  } | null = null;
+  private suppressNextDesktopIconClick = false;
+  private suppressNextDesktopWallpaperClick = false;
 
   constructor(
     public musicService: MusicService,
     private nasService: NasService,
     private chatService: ChatService,
     private authService: AuthService,
-    private http: HttpClient
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => { this.state = s; }));
+    this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => {
+      this.state = s;
+      if (s.currentTrack && s.currentTrack.path !== this.prevTrackPath) {
+        const wasEmpty = !this.prevTrackPath;
+        this.prevTrackPath = s.currentTrack.path;
+        if (!wasEmpty) {
+          this.showXpNotif(
+            s.currentTrack.title || s.currentTrack.name || 'Desconocido',
+            s.currentTrack.artist || 'Artista desconocido'
+          );
+        }
+      }
+    }));
     this.subs.push(this.musicService.shuffle$.subscribe(v => { this.shuffle = v; }));
     this.subs.push(this.musicService.repeat$.subscribe(v => { this.repeat = v; }));
+    this.subs.push(this.musicService.queue$.subscribe(q => { this.winampQueue = q; }));
     this.musicService.getFavorites().subscribe({ next: favs => { this.likedItems = favs; } });
     this.loadExplorerPaths();
     this.loadWallpaperPreference();
+    this.loadSkinPreference();
+    this.loadNotepad();
+    this.subs.push(this.authService.currentUser$.subscribe(() => {
+      this.loadNotepad();
+    }));
     this.resetMinesweeper();
     this.updateTaskbarClock();
     this.resetDesktopWindowPositions();
     this.clockTimer = window.setInterval(() => this.updateTaskbarClock(), 30000);
+    this.inactivityTimer = window.setInterval(() => this.checkInactivity(), 10000);
     this.subs.push(this.chatService.newMessageAlert$.subscribe(alert => {
       if (!this.canPlayWindowsChatSound()) return;
       if (alert.content === 'Zumbido') {
@@ -187,6 +361,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.stopViz();
     this.stopMinesTimer();
     if (this.clockTimer) window.clearInterval(this.clockTimer);
+    if (this.inactivityTimer) window.clearInterval(this.inactivityTimer);
+    if (this.snakeRaf) cancelAnimationFrame(this.snakeRaf);
+    if (this.screensaverRaf) cancelAnimationFrame(this.screensaverRaf);
+    if (this.notepadSaveTimer) window.clearTimeout(this.notepadSaveTimer);
+    this.saveNotepad();
   }
 
   get isOpen(): boolean { return this.musicService.nowPlayingPanelOpen; }
@@ -215,6 +394,16 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       width: `${this.explorerWindowSize.width}px`,
       height: `${this.explorerWindowSize.height}px`,
       zIndex: this.activeDesktopWindow === 'explorer' ? '9502' : '9497'
+    };
+  }
+  get musicManagerWindowStyle(): Record<string, string> {
+    if (this.isFullscreen) return {};
+    return {
+      left: `${this.musicManagerWindowPosition.x}px`,
+      top: `${this.musicManagerWindowPosition.y}px`,
+      width: `${this.musicManagerWindowSize.width}px`,
+      height: `${this.musicManagerWindowSize.height}px`,
+      zIndex: this.activeDesktopWindow === 'manager' ? '9518' : '9498'
     };
   }
   get messengerWindowStyle(): Record<string, string> {
@@ -264,6 +453,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   get canManageNas(): boolean {
     return this.authService.canManageNas();
   }
+  get currentSkinName(): string {
+    return this.skinOptions.find(s => s.id === this.playerSkin)?.name ?? '';
+  }
+  get notepadDiskLabel(): string {
+    return `${this.getNotepadUserName()} (C:)`;
+  }
+  get activeNotepadFile(): NotepadFile | undefined {
+    return this.notepadFiles.find(file => file.id === this.activeNotepadFileId);
+  }
   get desktopWallpaperClass(): string {
     return `np-wallpaper-${this.selectedWallpaper}`;
   }
@@ -280,6 +478,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.desktopStartOpen = false;
     this.playerMinimized = false;
     this.explorerMinimized = false;
+    this.musicManagerMinimized = false;
     this.messengerMinimized = false;
     this.youtubeDownloaderMinimized = false;
     this.stopViz();
@@ -288,6 +487,112 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   onDesktopBackdropClick(): void {
     this.desktopStartOpen = false;
     this.wallpaperSettingsOpen = false;
+    this.desktopSelectedIcons.clear();
+    this.desktopSelection = null;
+  }
+
+  onDesktopWallpaperClick(event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.suppressNextDesktopWallpaperClick) {
+      this.suppressNextDesktopWallpaperClick = false;
+      return;
+    }
+    this.onDesktopBackdropClick();
+    this.closeCtxMenu();
+  }
+
+  desktopIconStyle(id: DesktopIconId): Record<string, string> {
+    const pos = this.desktopIconPositions[id];
+    return {
+      left: `${pos.x}px`,
+      top: `${pos.y}px`
+    };
+  }
+
+  isDesktopIconSelected(id: DesktopIconId): boolean {
+    return this.desktopSelectedIcons.has(id);
+  }
+
+  desktopSelectionStyle(): Record<string, string> {
+    if (!this.desktopSelection) return {};
+    const left = Math.min(this.desktopSelection.startX, this.desktopSelection.currentX);
+    const top = Math.min(this.desktopSelection.startY, this.desktopSelection.currentY);
+    return {
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${Math.abs(this.desktopSelection.currentX - this.desktopSelection.startX)}px`,
+      height: `${Math.abs(this.desktopSelection.currentY - this.desktopSelection.startY)}px`
+    };
+  }
+
+  beginDesktopSelection(event: MouseEvent): void {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest('.np-desktop-icon')) return;
+    this.desktopStartOpen = false;
+    this.wallpaperSettingsOpen = false;
+    this.desktopSelectedIcons.clear();
+    this.desktopSelection = {
+      startX: event.clientX,
+      startY: event.clientY,
+      currentX: event.clientX,
+      currentY: event.clientY
+    };
+  }
+
+  beginDesktopIconPointer(event: MouseEvent): void {
+    if (event.button !== 0) return;
+    const button = (event.target as HTMLElement).closest('.np-desktop-icon') as HTMLElement | null;
+    const iconId = button?.dataset['icon'] as DesktopIconId | undefined;
+    if (!iconId || !this.desktopIconPositions[iconId]) return;
+    event.stopPropagation();
+    this.desktopSelection = null;
+    if (event.ctrlKey || event.metaKey) {
+      if (this.desktopSelectedIcons.has(iconId)) this.desktopSelectedIcons.delete(iconId);
+      else this.desktopSelectedIcons.add(iconId);
+    } else if (!this.desktopSelectedIcons.has(iconId)) {
+      this.desktopSelectedIcons = new Set([iconId]);
+    }
+    const ids = this.desktopSelectedIcons.has(iconId) ? [...this.desktopSelectedIcons] : [iconId];
+    const origins = ids.reduce<Record<string, { x: number; y: number }>>((acc, id) => {
+      acc[id] = { ...this.desktopIconPositions[id] };
+      return acc;
+    }, {});
+    this.desktopIconDragState = {
+      ids,
+      startX: event.clientX,
+      startY: event.clientY,
+      origins,
+      moved: false
+    };
+  }
+
+  runDesktopIcon(id: DesktopIconId, event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.suppressNextDesktopIconClick) {
+      this.suppressNextDesktopIconClick = false;
+      return;
+    }
+    this.desktopSelectedIcons = new Set([id]);
+    switch (id) {
+      case 'explorer': this.openExplorerWindow(); break;
+      case 'music': this.openCurrentTrackFolder(); break;
+      case 'manager': this.openMusicManager(); break;
+      case 'player':
+        this.desktopStartOpen = false;
+        this.playerMinimized = false;
+        this.focusWindow('player');
+        break;
+      case 'calculator': this.openCalculator(); break;
+      case 'notepad': this.openNotepad(); break;
+      case 'equalizer': this.openEqualizer(); break;
+      case 'snake': this.openSnake(); break;
+      case 'xp': void this.toggleFullscreen(); break;
+      case 'messenger': this.openMessengerWindow(); break;
+      case 'youtube': this.openYoutubeDownloader(); break;
+      case 'minesweeper': this.openMinesweeper(); break;
+      case 'wallpaper': this.openWallpaperSettings(); break;
+    }
   }
 
   @HostListener('document:keydown.escape')
@@ -300,32 +605,91 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   @HostListener('document:mousemove', ['$event'])
   onDocumentMouseMove(event: MouseEvent): void {
+    this.resetInactivityTimestamp();
     if (this.isFullscreen) return;
-    if (this.resizeState) {
-      this.handleWindowResize(event);
+    if (this.desktopIconDragState) {
+      const dx = event.clientX - this.desktopIconDragState.startX;
+      const dy = event.clientY - this.desktopIconDragState.startY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.desktopIconDragState.moved = true;
+      for (const id of this.desktopIconDragState.ids) {
+        const origin = this.desktopIconDragState.origins[id];
+        if (origin) {
+          this.desktopIconPositions[id] = this.clampDesktopIconPosition(origin.x + dx, origin.y + dy);
+        }
+      }
       return;
     }
-    if (this.dragState) {
-    const nextX = event.clientX - this.dragState.offsetX;
-    const nextY = event.clientY - this.dragState.offsetY;
-    if (this.dragState.target === 'player') {
-      this.desktopPanelPosition = this.clampWindowPosition(nextX, nextY, this.desktopPanelSize);
-    } else if (this.dragState.target === 'explorer') {
-      this.explorerWindowPosition = this.clampWindowPosition(nextX, nextY, this.explorerWindowSize);
-    } else if (this.dragState.target === 'messenger') {
-      this.messengerWindowPosition = this.clampWindowPosition(nextX, nextY, this.messengerWindowSize);
-    } else if (this.dragState.target === 'minesweeper') {
-      this.minesweeperWindowPosition = this.clampWindowPosition(nextX, nextY, this.minesweeperWindowSize);
-    } else {
-      this.youtubeWindowPosition = this.clampWindowPosition(nextX, nextY, this.youtubeWindowSize);
+    if (this.desktopSelection) {
+      this.desktopSelection.currentX = event.clientX;
+      this.desktopSelection.currentY = event.clientY;
+      return;
     }
-  }
+    if (this.resizeState) { this.handleWindowResize(event); return; }
+    if (this.dragState) {
+      const nextX = event.clientX - this.dragState.offsetX;
+      const nextY = event.clientY - this.dragState.offsetY;
+      const size = this.getWindowSize(this.dragState.target);
+      this.setWindowPosition(this.dragState.target, this.clampWindowPosition(nextX, nextY, size));
+    }
   }
 
   @HostListener('document:mouseup')
   onDocumentMouseUp(): void {
+    if (this.desktopIconDragState) {
+      if (this.desktopIconDragState.moved) {
+        this.suppressNextDesktopIconClick = true;
+        window.setTimeout(() => { this.suppressNextDesktopIconClick = false; }, 0);
+      }
+      this.desktopIconDragState = null;
+    }
+    if (this.desktopSelection) {
+      const moved = Math.abs(this.desktopSelection.currentX - this.desktopSelection.startX) > 3 ||
+        Math.abs(this.desktopSelection.currentY - this.desktopSelection.startY) > 3;
+      this.selectDesktopIconsInRect();
+      if (moved) {
+        this.suppressNextDesktopWallpaperClick = true;
+        window.setTimeout(() => { this.suppressNextDesktopWallpaperClick = false; }, 0);
+      }
+      this.desktopSelection = null;
+    }
     this.dragState = null;
     this.resizeState = null;
+  }
+
+  private clampDesktopIconPosition(x: number, y: number): { x: number; y: number } {
+    const iconWidth = 92;
+    const iconHeight = 74;
+    const maxX = Math.max(0, window.innerWidth - iconWidth - 8);
+    const maxY = Math.max(0, window.innerHeight - this.desktopTaskbarHeight - iconHeight - 8);
+    return {
+      x: Math.max(0, Math.min(maxX, x)),
+      y: Math.max(0, Math.min(maxY, y))
+    };
+  }
+
+  private selectDesktopIconsInRect(): void {
+    if (!this.desktopSelection) return;
+    const rect = {
+      left: Math.min(this.desktopSelection.startX, this.desktopSelection.currentX),
+      top: Math.min(this.desktopSelection.startY, this.desktopSelection.currentY),
+      right: Math.max(this.desktopSelection.startX, this.desktopSelection.currentX),
+      bottom: Math.max(this.desktopSelection.startY, this.desktopSelection.currentY)
+    };
+    const selected = Object.entries(this.desktopIconPositions)
+      .filter(([, pos]) => {
+        const iconRect = {
+          left: pos.x,
+          top: pos.y,
+          right: pos.x + 92,
+          bottom: pos.y + 74
+        };
+        return iconRect.left < rect.right &&
+          iconRect.right > rect.left &&
+          iconRect.top < rect.bottom &&
+          iconRect.bottom > rect.top;
+      })
+      .map(([id]) => id as DesktopIconId);
+    this.desktopSelectedIcons = new Set(selected);
   }
 
   async toggleFullscreen(): Promise<void> {
@@ -357,6 +721,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const pid = this.state?.pathId;
     if (!t || !pid) return '';
     return this.musicService.getCoverUrlWithCache(pid, t.path);
+  }
+
+  get currentTrackSizeLabel(): string {
+    return this.formatBytes(this.state?.currentTrack?.size || 0);
+  }
+
+  get queueDurationLabel(): string {
+    const seconds = this.winampQueue.tracks.reduce((total, track) => total + (track.duration || 0), 0);
+    return this.fmt(seconds);
   }
 
   isLiked(track: MusicMetadataDto): boolean {
@@ -392,6 +765,141 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         }
       }
     });
+  }
+
+  openMusicManager(tab: 'properties' | 'queue' | 'history' = this.musicManagerTab): void {
+    this.musicManagerOpen = true;
+    this.musicManagerMinimized = false;
+    this.musicManagerTab = tab;
+    this.activeDesktopWindow = 'manager';
+    this.desktopStartOpen = false;
+    if (tab === 'history') this.loadMusicHistory();
+  }
+
+  closeMusicManager(): void {
+    this.musicManagerOpen = false;
+    this.musicManagerMinimized = false;
+    if (this.activeDesktopWindow === 'manager') this.activeDesktopWindow = 'player';
+  }
+
+  loadMusicHistory(): void {
+    this.musicService.getHistory(60).subscribe({
+      next: items => { this.historyItems = items || []; },
+      error: () => { this.historyItems = []; }
+    });
+  }
+
+  playQueueTrack(index: number): void {
+    if (!this.winampQueue.tracks[index]) return;
+    this.musicService.setQueue(this.winampQueue.pathId, this.winampQueue.tracks, index);
+  }
+
+  moveQueueTrack(index: number, direction: -1 | 1): void {
+    const nextIndex = index + direction;
+    const tracks = [...this.winampQueue.tracks];
+    if (!tracks[index] || !tracks[nextIndex]) return;
+    [tracks[index], tracks[nextIndex]] = [tracks[nextIndex], tracks[index]];
+    const currentPath = this.state?.currentTrack?.path;
+    const activeIndex = currentPath ? tracks.findIndex(track => track.path === currentPath) : this.winampQueue.index;
+    this.musicService.updateQueue(this.winampQueue.pathId, tracks, activeIndex);
+  }
+
+  removeQueueTrack(index: number): void {
+    const tracks = this.winampQueue.tracks.filter((_, i) => i !== index);
+    const currentPath = this.state?.currentTrack?.path;
+    const activeIndex = currentPath ? tracks.findIndex(track => track.path === currentPath) : Math.min(index, tracks.length - 1);
+    this.musicService.updateQueue(this.winampQueue.pathId, tracks, activeIndex);
+  }
+
+  clearQueue(): void {
+    this.musicService.updateQueue(this.winampQueue.pathId, [], -1);
+  }
+
+  playHistoryItem(item: any): void {
+    const pathId = Number(item.nasPathId ?? item.pathId ?? this.state?.pathId ?? 0);
+    const trackPath = item.trackPath || item.path;
+    if (!pathId || !trackPath) return;
+    const track: MusicMetadataDto = {
+      name: item.title || item.name || trackPath.split(/[\\/]/).pop() || trackPath,
+      path: trackPath,
+      directory: false,
+      size: item.size || 0,
+      lastModified: item.playedAt || item.lastModified || '',
+      title: item.title || item.name || '',
+      artist: item.artist || '',
+      album: item.album || '',
+      duration: item.durationSeconds || item.duration || 0,
+      format: item.format || '',
+      bpm: item.bpm || 0,
+      hasCover: !!item.hasCover,
+      source: 'nas',
+      nasPathId: pathId,
+    };
+    this.musicService.setQueue(pathId, [track], 0);
+  }
+
+  downloadCurrentMetadata(format: 'json' | 'csv' = 'json'): void {
+    if (!this.state?.currentTrack) return;
+    this.downloadMetadata([this.state.currentTrack], `everload-current-track.${format}`, format);
+  }
+
+  downloadQueueMetadata(format: 'json' | 'csv' = 'json'): void {
+    this.downloadMetadata(this.winampQueue.tracks, `everload-queue-metadata.${format}`, format);
+  }
+
+  downloadHistoryMetadata(format: 'json' | 'csv' = 'json'): void {
+    const tracks = this.historyItems.map(item => ({
+      title: item.title || item.name || '',
+      artist: item.artist || '',
+      album: item.album || '',
+      path: item.trackPath || item.path || '',
+      duration: item.durationSeconds || item.duration || 0,
+      playedAt: item.playedAt || item.createdAt || '',
+      nasPathId: item.nasPathId ?? item.pathId ?? '',
+    }));
+    this.downloadMetadata(tracks, `everload-history-metadata.${format}`, format);
+  }
+
+  refreshCoverForCurrentTrack(): void {
+    if (!this.state?.currentTrack) return;
+    this.musicService.fetchCoverIfNeeded(this.state.currentTrack);
+    this.musicManagerStatus = 'WINDOWS.MANAGER_STATUS_METADATA_REQUESTED';
+  }
+
+  private downloadMetadata(items: any[], filename: string, format: 'json' | 'csv'): void {
+    if (!items.length || typeof document === 'undefined') return;
+    const payload = format === 'json'
+      ? JSON.stringify(items, null, 2)
+      : this.toCsv(items);
+    const blob = new Blob([payload], { type: format === 'json' ? 'application/json;charset=utf-8' : 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.musicManagerStatus = 'WINDOWS.MANAGER_STATUS_METADATA_DOWNLOADED';
+  }
+
+  private toCsv(items: any[]): string {
+    const keys = Array.from(items.reduce((set: Set<string>, item: any) => {
+      Object.keys(item || {}).forEach(key => set.add(key));
+      return set;
+    }, new Set<string>()));
+    const escape = (value: any) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    return [keys.join(','), ...items.map(item => keys.map(key => escape(item[key])).join(','))].join('\n');
+  }
+
+  private formatBytes(bytes: number): string {
+    if (!bytes || bytes <= 0) return '-';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = bytes;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+      value /= 1024;
+      unit += 1;
+    }
+    return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
   }
 
   fmt(seconds: number): string {
@@ -567,68 +1075,95 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.desktopStartOpen = false;
   }
 
+  private getWindowPosition(target: DesktopWindowTarget): { x: number; y: number } {
+    switch (target) {
+      case 'player':     return this.desktopPanelPosition;
+      case 'explorer':   return this.explorerWindowPosition;
+      case 'manager':    return this.musicManagerWindowPosition;
+      case 'messenger':  return this.messengerWindowPosition;
+      case 'minesweeper':return this.minesweeperWindowPosition;
+      case 'calculator': return this.calculatorWindowPosition;
+      case 'notepad':    return this.notepadWindowPosition;
+      case 'equalizer':  return this.equalizerWindowPosition;
+      case 'snake':      return this.snakeWindowPosition;
+      default:           return this.youtubeWindowPosition;
+    }
+  }
+
+  private getWindowSize(target: DesktopWindowTarget): { width: number; height: number } {
+    switch (target) {
+      case 'player':     return this.desktopPanelSize;
+      case 'explorer':   return this.explorerWindowSize;
+      case 'manager':    return this.musicManagerWindowSize;
+      case 'messenger':  return this.messengerWindowSize;
+      case 'minesweeper':return this.minesweeperWindowSize;
+      case 'calculator': return this.calculatorWindowSize;
+      case 'notepad':    return this.notepadWindowSize;
+      case 'equalizer':  return this.equalizerWindowSize;
+      case 'snake':      return this.snakeWindowSize;
+      default:           return this.youtubeWindowSize;
+    }
+  }
+
+  private setWindowPosition(target: DesktopWindowTarget, pos: { x: number; y: number }): void {
+    switch (target) {
+      case 'player':     this.desktopPanelPosition = pos; break;
+      case 'explorer':   this.explorerWindowPosition = pos; break;
+      case 'manager':    this.musicManagerWindowPosition = pos; break;
+      case 'messenger':  this.messengerWindowPosition = pos; break;
+      case 'minesweeper':this.minesweeperWindowPosition = pos; break;
+      case 'calculator': this.calculatorWindowPosition = pos; break;
+      case 'notepad':    this.notepadWindowPosition = pos; break;
+      case 'equalizer':  this.equalizerWindowPosition = pos; break;
+      case 'snake':      this.snakeWindowPosition = pos; break;
+      default:           this.youtubeWindowPosition = pos;
+    }
+  }
+
+  private setWindowSize(target: DesktopWindowTarget, size: { width: number; height: number }): void {
+    switch (target) {
+      case 'player':     this.desktopPanelSize = size; break;
+      case 'explorer':   this.explorerWindowSize = size; break;
+      case 'manager':    this.musicManagerWindowSize = size; break;
+      case 'messenger':  this.messengerWindowSize = size; break;
+      case 'minesweeper':this.minesweeperWindowSize = size; break;
+      case 'calculator': this.calculatorWindowSize = size; break;
+      case 'notepad':    this.notepadWindowSize = size; break;
+      case 'equalizer':  this.equalizerWindowSize = size; break;
+      case 'snake':      this.snakeWindowSize = size; break;
+      default:           this.youtubeWindowSize = size;
+    }
+  }
+
   beginWindowDrag(event: MouseEvent, target: DesktopWindowTarget): void {
     if (this.isFullscreen) return;
     if (target === 'explorer' && this.explorerMaximized) return;
     if (target === 'messenger' && this.messengerMaximized) return;
     if (target === 'youtube' && this.youtubeDownloaderMaximized) return;
+    if (target === 'calculator' && this.calculatorMaximized) return;
+    if (target === 'notepad' && this.notepadMaximized) return;
+    if (target === 'equalizer' && this.equalizerMaximized) return;
     this.focusWindow(target);
-    const position = target === 'player'
-      ? this.desktopPanelPosition
-      : target === 'explorer'
-        ? this.explorerWindowPosition
-        : target === 'messenger'
-          ? this.messengerWindowPosition
-          : target === 'minesweeper'
-            ? this.minesweeperWindowPosition
-            : this.youtubeWindowPosition;
-    this.dragState = {
-      target,
-      offsetX: event.clientX - position.x,
-      offsetY: event.clientY - position.y
-    };
+    const position = this.getWindowPosition(target);
+    this.dragState = { target, offsetX: event.clientX - position.x, offsetY: event.clientY - position.y };
     event.preventDefault();
   }
 
-  beginWindowResize(
-    event: MouseEvent,
-    target: DesktopWindowTarget,
-    edgeX: 'left' | 'right',
-    edgeY: 'top' | 'bottom'
-  ): void {
+  beginWindowResize(event: MouseEvent, target: DesktopWindowTarget, edgeX: 'left' | 'right', edgeY: 'top' | 'bottom'): void {
     if (this.isFullscreen) return;
     if (target === 'explorer' && this.explorerMaximized) return;
     if (target === 'messenger' && this.messengerMaximized) return;
     if (target === 'youtube' && this.youtubeDownloaderMaximized) return;
+    if (target === 'calculator' && this.calculatorMaximized) return;
+    if (target === 'notepad' && this.notepadMaximized) return;
+    if (target === 'equalizer' && this.equalizerMaximized) return;
     this.focusWindow(target);
-    const position = target === 'player'
-      ? this.desktopPanelPosition
-      : target === 'explorer'
-        ? this.explorerWindowPosition
-        : target === 'messenger'
-          ? this.messengerWindowPosition
-          : target === 'minesweeper'
-            ? this.minesweeperWindowPosition
-            : this.youtubeWindowPosition;
-    const size = target === 'player'
-      ? this.desktopPanelSize
-      : target === 'explorer'
-        ? this.explorerWindowSize
-        : target === 'messenger'
-          ? this.messengerWindowSize
-          : target === 'minesweeper'
-            ? this.minesweeperWindowSize
-            : this.youtubeWindowSize;
+    const position = this.getWindowPosition(target);
+    const size = this.getWindowSize(target);
     this.resizeState = {
-      target,
-      startX: event.clientX,
-      startY: event.clientY,
-      startWidth: size.width,
-      startHeight: size.height,
-      startLeft: position.x,
-      startTop: position.y,
-      edgeX,
-      edgeY
+      target, startX: event.clientX, startY: event.clientY,
+      startWidth: size.width, startHeight: size.height,
+      startLeft: position.x, startTop: position.y, edgeX, edgeY
     };
     event.preventDefault();
     event.stopPropagation();
@@ -653,6 +1188,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.playerMinimized = true;
     if (this.activeDesktopWindow === 'player') {
       if (this.desktopExplorerOpen && !this.explorerMinimized) this.activeDesktopWindow = 'explorer';
+      else if (this.musicManagerOpen && !this.musicManagerMinimized) this.activeDesktopWindow = 'manager';
       else if (this.messengerOpen && !this.messengerMinimized) this.activeDesktopWindow = 'messenger';
       else if (this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized) this.activeDesktopWindow = 'youtube';
       else if (this.minesweeperOpen && !this.minesweeperMinimized) this.activeDesktopWindow = 'minesweeper';
@@ -842,14 +1378,20 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   minimizeWindow(target: DesktopWindowTarget): void {
-    if (target === 'player') this.playerMinimized = true;
-    if (target === 'explorer') this.explorerMinimized = true;
-    if (target === 'messenger') this.messengerMinimized = true;
-    if (target === 'youtube') this.youtubeDownloaderMinimized = true;
-    if (target === 'minesweeper') this.minesweeperMinimized = true;
+    if (target === 'player')     this.playerMinimized = true;
+    if (target === 'explorer')   this.explorerMinimized = true;
+    if (target === 'manager')    this.musicManagerMinimized = true;
+    if (target === 'messenger')  this.messengerMinimized = true;
+    if (target === 'youtube')    this.youtubeDownloaderMinimized = true;
+    if (target === 'minesweeper')this.minesweeperMinimized = true;
+    if (target === 'calculator') this.calculatorMinimized = true;
+    if (target === 'notepad')    this.notepadMinimized = true;
+    if (target === 'equalizer')  this.equalizerMinimized = true;
+    if (target === 'snake')      this.snakeMinimized = true;
     if (this.activeDesktopWindow === target) {
       if (target !== 'player' && !this.playerMinimized) this.activeDesktopWindow = 'player';
       else if (target !== 'explorer' && this.desktopExplorerOpen && !this.explorerMinimized) this.activeDesktopWindow = 'explorer';
+      else if (target !== 'manager' && this.musicManagerOpen && !this.musicManagerMinimized) this.activeDesktopWindow = 'manager';
       else if (target !== 'messenger' && this.messengerOpen && !this.messengerMinimized) this.activeDesktopWindow = 'messenger';
       else if (target !== 'youtube' && this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized) this.activeDesktopWindow = 'youtube';
       else if (target !== 'minesweeper' && this.minesweeperOpen && !this.minesweeperMinimized) this.activeDesktopWindow = 'minesweeper';
@@ -871,6 +1413,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       if (!this.explorerMinimized) this.focusWindow('explorer');
       return;
     }
+    if (target === 'manager') {
+      if (!this.musicManagerOpen) {
+        this.openMusicManager();
+        return;
+      }
+      this.musicManagerMinimized = !this.musicManagerMinimized;
+      if (!this.musicManagerMinimized) this.focusWindow('manager');
+      return;
+    }
     if (target === 'messenger') {
       if (!this.messengerOpen) {
         this.openMessengerWindow();
@@ -887,6 +1438,30 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       }
       this.minesweeperMinimized = !this.minesweeperMinimized;
       if (!this.minesweeperMinimized) this.focusWindow('minesweeper');
+      return;
+    }
+    if (target === 'calculator') {
+      if (!this.calculatorOpen) { this.openCalculator(); return; }
+      this.calculatorMinimized = !this.calculatorMinimized;
+      if (!this.calculatorMinimized) this.focusWindow('calculator');
+      return;
+    }
+    if (target === 'notepad') {
+      if (!this.notepadOpen) { this.openNotepad(); return; }
+      this.notepadMinimized = !this.notepadMinimized;
+      if (!this.notepadMinimized) this.focusWindow('notepad');
+      return;
+    }
+    if (target === 'equalizer') {
+      if (!this.equalizerOpen) { this.openEqualizer(); return; }
+      this.equalizerMinimized = !this.equalizerMinimized;
+      if (!this.equalizerMinimized) this.focusWindow('equalizer');
+      return;
+    }
+    if (target === 'snake') {
+      if (!this.snakeOpen) { this.openSnake(); return; }
+      this.snakeMinimized = !this.snakeMinimized;
+      if (!this.snakeMinimized) this.focusWindow('snake');
       return;
     }
     if (!this.youtubeDownloaderOpen) {
@@ -1354,7 +1929,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     }
   }
 
-  private loadExplorerItems(): void {
+  loadExplorerItems(): void {
     if (this.explorerPathId == null) return;
     this.explorerLoading = true;
     this.explorerError = '';
@@ -1385,6 +1960,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const explorer = this.getDefaultExplorerWindowSize();
     const messenger = this.getDefaultMessengerWindowSize();
     const youtube = this.getDefaultYoutubeWindowSize();
+    const manager = this.getDefaultMusicManagerWindowSize();
     this.desktopPanelSize = player;
     this.desktopPanelPosition = {
       x: Math.max(24, Math.round((window.innerWidth - player.width) / 2)),
@@ -1392,10 +1968,30 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     };
     this.explorerWindowSize = explorer;
     this.explorerWindowPosition = this.clampWindowPosition(132, 84, explorer);
+    this.musicManagerWindowSize = manager;
+    this.musicManagerWindowPosition = this.clampWindowPosition(190, 96, manager);
     this.messengerWindowSize = messenger;
     this.messengerWindowPosition = this.clampWindowPosition(220, 112, messenger);
     this.youtubeWindowSize = youtube;
     this.youtubeWindowPosition = this.clampWindowPosition(292, 132, youtube);
+  }
+
+  setSkin(skin: 'wmp' | 'winamp' | 'macos' | 'foobar'): void {
+    this.playerSkin = skin;
+    this.desktopStartOpen = false;
+    if (typeof localStorage !== 'undefined') localStorage.setItem(this.skinStorageKey, skin);
+    this.fitPlayerWindowToSkin();
+  }
+
+  cycleSkin(): void {
+    const ids = this.skinOptions.map(s => s.id);
+    this.setSkin(ids[(ids.indexOf(this.playerSkin) + 1) % ids.length]);
+  }
+
+  private loadSkinPreference(): void {
+    if (typeof localStorage === 'undefined') return;
+    const saved = localStorage.getItem(this.skinStorageKey) as any;
+    if (saved && this.skinOptions.some(s => s.id === saved)) this.playerSkin = saved;
   }
 
   private loadWallpaperPreference(): void {
@@ -1442,6 +2038,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.explorerWindowSize
       );
     }
+    this.musicManagerWindowPosition = this.clampWindowPosition(
+      this.musicManagerWindowPosition.x,
+      this.musicManagerWindowPosition.y,
+      this.musicManagerWindowSize
+    );
     if (this.messengerMaximized) {
       this.applyMessengerMaximizedBounds();
     } else {
@@ -1469,6 +2070,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (!this.explorerMaximized) {
       this.explorerWindowSize = this.clampWindowSize('explorer', this.explorerWindowSize.width, this.explorerWindowSize.height);
     }
+    this.musicManagerWindowSize = this.clampWindowSize('manager', this.musicManagerWindowSize.width, this.musicManagerWindowSize.height);
     if (!this.messengerMaximized) {
       this.messengerWindowSize = this.clampWindowSize('messenger', this.messengerWindowSize.width, this.messengerWindowSize.height);
     }
@@ -1518,7 +2120,10 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     };
   }
 
-  private getDefaultPlayerWindowSize(): { width: number; height: number } {
+  private getDefaultPlayerWindowSize(skin: 'wmp' | 'winamp' | 'macos' | 'foobar' = this.playerSkin): { width: number; height: number } {
+    if (skin === 'winamp') {
+      return { width: 520, height: 600 };
+    }
     if (typeof window === 'undefined') return { width: 1060, height: 690 };
     return {
       width: Math.min(1060, window.innerWidth - 64),
@@ -1526,11 +2131,26 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     };
   }
 
+  private fitPlayerWindowToSkin(): void {
+    if (typeof window === 'undefined' || !this.isDesktopWmp || this.isFullscreen) return;
+    const size = this.clampWindowSize('player', this.getDefaultPlayerWindowSize(this.playerSkin).width, this.getDefaultPlayerWindowSize(this.playerSkin).height);
+    this.desktopPanelSize = size;
+    this.desktopPanelPosition = this.clampWindowPosition(this.desktopPanelPosition.x, this.desktopPanelPosition.y, size);
+  }
+
   private getDefaultExplorerWindowSize(): { width: number; height: number } {
     if (typeof window === 'undefined') return { width: 560, height: 420 };
     return {
       width: Math.min(560, window.innerWidth - 200),
       height: Math.min(420, window.innerHeight - 180)
+    };
+  }
+
+  private getDefaultMusicManagerWindowSize(): { width: number; height: number } {
+    if (typeof window === 'undefined') return { width: 760, height: 500 };
+    return {
+      width: Math.min(760, window.innerWidth - 120),
+      height: Math.min(500, window.innerHeight - 120)
     };
   }
 
@@ -1553,8 +2173,10 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   private clampWindowSize(target: DesktopWindowTarget, width: number, height: number): { width: number; height: number } {
     if (typeof window === 'undefined') return { width, height };
     const taskbarHeight = this.isFullscreen ? 0 : this.desktopTaskbarHeight;
-    const minWidth = target === 'player' ? 760 : target === 'messenger' ? 560 : target === 'youtube' ? 500 : 420;
-    const minHeight = target === 'player' ? 500 : target === 'messenger' ? 420 : target === 'youtube' ? 360 : 300;
+    const minWidth = target === 'player' ? (this.playerSkin === 'winamp' ? 500 : 760) : target === 'manager' ? 560 : target === 'messenger' ? 560 : target === 'youtube' ? 500
+      : target === 'calculator' ? 220 : target === 'notepad' ? 280 : target === 'equalizer' ? 280 : 420;
+    const minHeight = target === 'player' ? (this.playerSkin === 'winamp' ? 560 : 500) : target === 'manager' ? 360 : target === 'messenger' ? 420 : target === 'youtube' ? 360
+      : target === 'calculator' ? 280 : target === 'notepad' ? 200 : target === 'equalizer' ? 160 : 300;
     const maxWidth = Math.max(minWidth, window.innerWidth - 16);
     const maxHeight = Math.max(minHeight, window.innerHeight - taskbarHeight - 16);
     return {
@@ -1585,19 +2207,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     }
 
     const clampedPosition = this.clampWindowPosition(nextLeft, nextTop, { width: nextWidth, height: nextHeight });
-    if (state.target === 'player') {
-      this.desktopPanelSize = { width: nextWidth, height: nextHeight };
-      this.desktopPanelPosition = clampedPosition;
-    } else if (state.target === 'explorer') {
-      this.explorerWindowSize = { width: nextWidth, height: nextHeight };
-      this.explorerWindowPosition = clampedPosition;
-    } else if (state.target === 'messenger') {
-      this.messengerWindowSize = { width: nextWidth, height: nextHeight };
-      this.messengerWindowPosition = clampedPosition;
-    } else {
-      this.youtubeWindowSize = { width: nextWidth, height: nextHeight };
-      this.youtubeWindowPosition = clampedPosition;
-    }
+    this.setWindowSize(state.target, { width: nextWidth, height: nextHeight });
+    this.setWindowPosition(state.target, clampedPosition);
   }
 
   private uploadExplorerFiles(files: File[], relativePaths?: string[]): void {
@@ -1616,6 +2227,584 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.explorerError = err.error?.error || 'No se pudo subir el contenido.';
       }
     });
+  }
+
+  // ── Calculator ─────────────────────────────────────────────────────────────
+  openCalculator(): void { this.calculatorOpen = true; this.calculatorMinimized = false; this.activeDesktopWindow = 'calculator'; this.desktopStartOpen = false; }
+  closeCalculator(): void { this.calculatorOpen = false; this.calculatorMaximized = false; }
+
+  toggleCalculatorMaximize(): void {
+    if (typeof window === 'undefined') return;
+    this.focusWindow('calculator');
+    if (this.calculatorMaximized) {
+      this.calculatorWindowSize = this.clampWindowSize('calculator', this.calculatorRestoreWindow.size.width, this.calculatorRestoreWindow.size.height);
+      this.calculatorWindowPosition = this.clampWindowPosition(this.calculatorRestoreWindow.position.x, this.calculatorRestoreWindow.position.y, this.calculatorWindowSize);
+      this.calculatorMaximized = false;
+    } else {
+      this.calculatorRestoreWindow = { position: { ...this.calculatorWindowPosition }, size: { ...this.calculatorWindowSize } };
+      this.calculatorMaximized = true;
+      const h = this.isFullscreen ? 0 : this.desktopTaskbarHeight;
+      this.calculatorWindowPosition = { x: 0, y: 0 };
+      this.calculatorWindowSize = { width: window.innerWidth, height: Math.max(280, window.innerHeight - h) };
+    }
+  }
+
+  calcInput(digit: string): void {
+    if (this.calcNewInput) { this.calcDisplay = digit === '.' ? '0.' : digit; this.calcNewInput = false; return; }
+    if (digit === '.' && this.calcDisplay.includes('.')) return;
+    if (this.calcDisplay === '0' && digit !== '.') { this.calcDisplay = digit; return; }
+    if (this.calcDisplay.length < 15) this.calcDisplay += digit;
+  }
+
+  calcOperation(op: string): void {
+    const cur = parseFloat(this.calcDisplay);
+    if (this.calcPendingOp && !this.calcNewInput) this.calcEquals();
+    this.calcPendingVal = parseFloat(this.calcDisplay);
+    this.calcPendingOp = op;
+    this.calcNewInput = true;
+  }
+
+  calcEquals(): void {
+    if (!this.calcPendingOp) return;
+    const cur = parseFloat(this.calcDisplay);
+    let result = 0;
+    switch (this.calcPendingOp) {
+      case '+': result = this.calcPendingVal + cur; break;
+      case '-': result = this.calcPendingVal - cur; break;
+      case '*': result = this.calcPendingVal * cur; break;
+      case '/': result = cur !== 0 ? this.calcPendingVal / cur : 0; break;
+    }
+    this.calcDisplay = parseFloat(result.toPrecision(10)).toString();
+    this.calcPendingOp = '';
+    this.calcNewInput = true;
+  }
+
+  calcClear(): void { this.calcDisplay = '0'; this.calcPendingOp = ''; this.calcPendingVal = 0; this.calcNewInput = true; }
+  calcClearEntry(): void { this.calcDisplay = '0'; this.calcNewInput = true; }
+  calcBackspace(): void { if (this.calcNewInput) return; this.calcDisplay = this.calcDisplay.length > 1 ? this.calcDisplay.slice(0, -1) : '0'; }
+  calcPlusMinus(): void { this.calcDisplay = (parseFloat(this.calcDisplay) * -1).toString(); }
+  calcPercent(): void { this.calcDisplay = (parseFloat(this.calcDisplay) / 100).toString(); this.calcNewInput = true; }
+  calcSqrt(): void { this.calcDisplay = Math.sqrt(parseFloat(this.calcDisplay)).toString(); this.calcNewInput = true; }
+
+  // ── Notepad ───────────────────────────────────────────────────────────────
+  openNotepad(): void {
+    this.loadNotepad();
+    this.notepadOpen = true;
+    this.notepadMinimized = false;
+    this.activeDesktopWindow = 'notepad';
+    this.desktopStartOpen = false;
+  }
+  closeNotepad(): void { this.saveNotepad(); this.notepadOpen = false; this.notepadMaximized = false; }
+
+  createNotepadFile(): void {
+    this.saveNotepad();
+    const file: NotepadFile = {
+      id: this.createNotepadFileId(),
+      name: this.nextNotepadFileName(),
+      content: '',
+      updatedAt: Date.now()
+    };
+    this.notepadFiles = [...this.notepadFiles, file];
+    this.selectNotepadFile(file.id);
+    this.saveNotepad();
+  }
+
+  selectNotepadFile(id: string): void {
+    this.saveNotepad();
+    const file = this.notepadFiles.find(item => item.id === id);
+    if (!file) return;
+    this.activeNotepadFileId = file.id;
+    this.notepadFileName = file.name;
+    this.notepadText = file.content;
+    this.notepadSaveStatus = '';
+  }
+
+  deleteNotepadFile(file: NotepadFile, event?: MouseEvent): void {
+    event?.stopPropagation();
+    if (this.notepadFiles.length <= 1) {
+      this.notepadText = '';
+      this.notepadFileName = file.name;
+      this.saveNotepad();
+      return;
+    }
+    this.notepadFiles = this.notepadFiles.filter(item => item.id !== file.id);
+    if (this.activeNotepadFileId === file.id) {
+      const next = this.notepadFiles[0];
+      this.activeNotepadFileId = next.id;
+      this.notepadFileName = next.name;
+      this.notepadText = next.content;
+    }
+    this.saveNotepad();
+  }
+
+  onNotepadInput(): void {
+    this.notepadSaveStatus = 'WINDOWS.NOTEPAD_STATUS_SAVING';
+    if (this.notepadSaveTimer) window.clearTimeout(this.notepadSaveTimer);
+    this.notepadSaveTimer = window.setTimeout(() => this.saveNotepad(), 350);
+  }
+
+  renameNotepadFile(): void {
+    const nextName = window.prompt('Nombre del archivo', this.notepadFileName);
+    if (!nextName?.trim()) return;
+    this.notepadFileName = nextName.trim().endsWith('.txt') ? nextName.trim() : `${nextName.trim()}.txt`;
+    this.saveNotepad();
+  }
+
+  saveNotepad(): void {
+    if (typeof localStorage === 'undefined') return;
+    if (!this.notepadFiles.length) {
+      this.notepadFiles = [this.createDefaultNotepadFile('')];
+      this.activeNotepadFileId = this.notepadFiles[0].id;
+    }
+    const activeIndex = this.notepadFiles.findIndex(file => file.id === this.activeNotepadFileId);
+    if (activeIndex >= 0) {
+      const name = this.notepadFileName.trim() || 'notas.txt';
+      this.notepadFiles = this.notepadFiles.map((file, index) => index === activeIndex
+        ? { ...file, name, content: this.notepadText, updatedAt: Date.now() }
+        : file
+      );
+    }
+    localStorage.setItem(this.getNotepadStorageKey(), JSON.stringify({
+      owner: this.getNotepadUserName(),
+      activeId: this.activeNotepadFileId,
+      files: this.notepadFiles
+    }));
+    this.notepadSaveStatus = 'WINDOWS.NOTEPAD_STATUS_SAVED';
+  }
+
+  private loadNotepad(): void {
+    if (typeof localStorage === 'undefined') return;
+    const ownerKey = this.getNotepadOwnerKey();
+    this.notepadOwnerKey = ownerKey;
+    const raw = localStorage.getItem(this.getNotepadStorageKey());
+    try {
+      if (raw) {
+        const disk = JSON.parse(raw) as { activeId?: string; files?: NotepadFile[] };
+        this.notepadFiles = Array.isArray(disk.files) && disk.files.length
+          ? disk.files
+          : [this.createDefaultNotepadFile('')];
+        this.activeNotepadFileId = disk.activeId && this.notepadFiles.some(file => file.id === disk.activeId)
+          ? disk.activeId
+          : this.notepadFiles[0].id;
+      } else {
+        const legacyText = localStorage.getItem(this.notepadStorageKey) || '';
+        this.notepadFiles = [this.createDefaultNotepadFile(legacyText)];
+        this.activeNotepadFileId = this.notepadFiles[0].id;
+        this.saveNotepad();
+      }
+    } catch {
+      this.notepadFiles = [this.createDefaultNotepadFile('')];
+      this.activeNotepadFileId = this.notepadFiles[0].id;
+    }
+    const active = this.activeNotepadFile || this.notepadFiles[0];
+    this.activeNotepadFileId = active.id;
+    this.notepadFileName = active.name;
+    this.notepadText = active.content;
+    this.notepadSaveStatus = raw ? 'WINDOWS.NOTEPAD_STATUS_LOADED' : 'WINDOWS.NOTEPAD_STATUS_READY';
+  }
+
+  private getNotepadStorageKey(): string {
+    return `${this.notepadDiskPrefix}.${this.getNotepadOwnerKey()}.notepad`;
+  }
+
+  private getNotepadOwnerKey(): string {
+    return this.getNotepadUserName().toLowerCase().replace(/[^a-z0-9_-]+/g, '_') || 'invitado';
+  }
+
+  private getNotepadUserName(): string {
+    return this.authService.getCurrentUser()?.username || 'Invitado';
+  }
+
+  private createDefaultNotepadFile(content: string): NotepadFile {
+    return {
+      id: this.createNotepadFileId(),
+      name: 'notas.txt',
+      content,
+      updatedAt: Date.now()
+    };
+  }
+
+  private createNotepadFileId(): string {
+    return `note-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  private nextNotepadFileName(): string {
+    const base = 'nota';
+    let count = this.notepadFiles.length + 1;
+    let name = `${base}-${count}.txt`;
+    while (this.notepadFiles.some(file => file.name === name)) {
+      count++;
+      name = `${base}-${count}.txt`;
+    }
+    return name;
+  }
+
+  toggleNotepadMaximize(): void {
+    if (typeof window === 'undefined') return;
+    this.focusWindow('notepad');
+    if (this.notepadMaximized) {
+      this.notepadWindowSize = this.clampWindowSize('notepad', this.notepadRestoreWindow.size.width, this.notepadRestoreWindow.size.height);
+      this.notepadWindowPosition = this.clampWindowPosition(this.notepadRestoreWindow.position.x, this.notepadRestoreWindow.position.y, this.notepadWindowSize);
+      this.notepadMaximized = false;
+    } else {
+      this.notepadRestoreWindow = { position: { ...this.notepadWindowPosition }, size: { ...this.notepadWindowSize } };
+      this.notepadMaximized = true;
+      const h = this.isFullscreen ? 0 : this.desktopTaskbarHeight;
+      this.notepadWindowPosition = { x: 0, y: 0 };
+      this.notepadWindowSize = { width: window.innerWidth, height: Math.max(200, window.innerHeight - h) };
+    }
+  }
+
+  // ── Equalizer ─────────────────────────────────────────────────────────────
+  openEqualizer(): void { this.equalizerOpen = true; this.equalizerMinimized = false; this.activeDesktopWindow = 'equalizer'; this.desktopStartOpen = false; }
+  closeEqualizer(): void { this.equalizerOpen = false; this.equalizerMaximized = false; }
+
+  toggleEqualizerMaximize(): void {
+    if (typeof window === 'undefined') return;
+    this.focusWindow('equalizer');
+    if (this.equalizerMaximized) {
+      this.equalizerWindowSize = this.clampWindowSize('equalizer', this.equalizerRestoreWindow.size.width, this.equalizerRestoreWindow.size.height);
+      this.equalizerWindowPosition = this.clampWindowPosition(this.equalizerRestoreWindow.position.x, this.equalizerRestoreWindow.position.y, this.equalizerWindowSize);
+      this.equalizerMaximized = false;
+    } else {
+      this.equalizerRestoreWindow = { position: { ...this.equalizerWindowPosition }, size: { ...this.equalizerWindowSize } };
+      this.equalizerMaximized = true;
+      const h = this.isFullscreen ? 0 : this.desktopTaskbarHeight;
+      this.equalizerWindowPosition = { x: 0, y: 0 };
+      this.equalizerWindowSize = { width: window.innerWidth, height: Math.max(160, window.innerHeight - h) };
+    }
+  }
+
+  setEqBand(band: 'low' | 'mid' | 'high', value: string | number): void {
+    const dB = parseFloat(value as string);
+    if (band === 'low') this.eqLow = dB;
+    if (band === 'mid') this.eqMid = dB;
+    if (band === 'high') this.eqHigh = dB;
+    this.musicService.mainPlayer.setEq(band, dB);
+  }
+
+  resetEq(): void { ['low', 'mid', 'high'].forEach(b => this.setEqBand(b as any, 0)); }
+
+  setWaEqBand(index: number, value: string | number): void {
+    this.waEqBands[index] = parseFloat(value as string);
+    if (!this.waEqOn) return;
+    const low  = (this.waEqBands[0] + this.waEqBands[1] + this.waEqBands[2]) / 3;
+    const mid  = (this.waEqBands[3] + this.waEqBands[4] + this.waEqBands[5]) / 3;
+    const high = (this.waEqBands[6] + this.waEqBands[7] + this.waEqBands[8] + this.waEqBands[9]) / 4;
+    this.musicService.mainPlayer.setEq('low', low);
+    this.musicService.mainPlayer.setEq('mid', mid);
+    this.musicService.mainPlayer.setEq('high', high);
+  }
+
+  toggleWaEq(): void {
+    this.waEqOn = !this.waEqOn;
+    if (!this.waEqOn) {
+      this.musicService.mainPlayer.setEq('low', 0);
+      this.musicService.mainPlayer.setEq('mid', 0);
+      this.musicService.mainPlayer.setEq('high', 0);
+    } else {
+      this.setWaEqBand(0, this.waEqBands[0]);
+    }
+  }
+
+  resetWaEq(): void {
+    this.waEqBands = new Array(10).fill(0);
+    this.musicService.mainPlayer.setEq('low', 0);
+    this.musicService.mainPlayer.setEq('mid', 0);
+    this.musicService.mainPlayer.setEq('high', 0);
+  }
+
+  // ── Snake ──────────────────────────────────────────────────────────────────
+  openSnake(): void { this.snakeOpen = true; this.snakeMinimized = false; this.activeDesktopWindow = 'snake'; this.desktopStartOpen = false; }
+  closeSnake(): void { this.snakeOpen = false; if (this.snakeRaf) { cancelAnimationFrame(this.snakeRaf); this.snakeRaf = undefined; } }
+
+  startSnake(): void {
+    this.snakeShowLeaderboard = false;
+    this.snakeBody = [{ x: 10, y: 9 }, { x: 9, y: 9 }, { x: 8, y: 9 }];
+    this.snakeDir = 'right'; this.snakePendingDir = 'right';
+    this.snakeScore = 0; this.snakeStatus = 'playing';
+    this.spawnSnakeFood();
+    if (this.snakeRaf) cancelAnimationFrame(this.snakeRaf);
+    this.snakeLastTime = 0;
+    this.snakeRaf = requestAnimationFrame(ts => this.snakeLoop(ts));
+  }
+
+  private snakeLoop(ts: number): void {
+    if (this.snakeStatus !== 'playing') return;
+    if (ts - this.snakeLastTime >= this.snakeSpeed) {
+      this.snakeLastTime = ts;
+      this.snakeStep();
+    }
+    this.snakeDraw();
+    this.snakeRaf = requestAnimationFrame(t => this.snakeLoop(t));
+  }
+
+  private snakeStep(): void {
+    this.snakeDir = this.snakePendingDir;
+    const head = { ...this.snakeBody[0] };
+    if (this.snakeDir === 'right') head.x++;
+    if (this.snakeDir === 'left')  head.x--;
+    if (this.snakeDir === 'up')    head.y--;
+    if (this.snakeDir === 'down')  head.y++;
+    head.x = (head.x + this.SNAKE_COLS) % this.SNAKE_COLS;
+    head.y = (head.y + this.SNAKE_ROWS) % this.SNAKE_ROWS;
+    if (this.snakeBody.some(s => s.x === head.x && s.y === head.y)) {
+      this.snakeStatus = 'dead';
+      this.cdr.detectChanges();
+      this.submitSnakeScore(this.snakeScore);
+      this.loadSnakeLeaderboard();
+      return;
+    }
+    this.snakeBody.unshift(head);
+    if (head.x === this.snakeFood.x && head.y === this.snakeFood.y) {
+      this.snakeScore += 10; this.spawnSnakeFood();
+    } else { this.snakeBody.pop(); }
+  }
+
+  private spawnSnakeFood(): void {
+    let pos: { x: number; y: number };
+    do { pos = { x: Math.floor(Math.random() * this.SNAKE_COLS), y: Math.floor(Math.random() * this.SNAKE_ROWS) }; }
+    while (this.snakeBody.some(s => s.x === pos.x && s.y === pos.y));
+    this.snakeFood = pos;
+  }
+
+  private snakeDraw(): void {
+    const canvas = this.snakeCanvas?.nativeElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const C = this.SNAKE_CELL;
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(this.snakeFood.x * C + 1, this.snakeFood.y * C + 1, C - 2, C - 2);
+    this.snakeBody.forEach((seg, i) => {
+      ctx.fillStyle = i === 0 ? '#00ff88' : '#00cc66';
+      ctx.fillRect(seg.x * C + 1, seg.y * C + 1, C - 2, C - 2);
+    });
+    if (this.snakeStatus === 'dead') {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ff4444';
+      ctx.font = 'bold 20px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 10);
+      ctx.fillStyle = '#aaa';
+      ctx.font = '13px monospace';
+      ctx.fillText(`Score: ${this.snakeScore}`, canvas.width / 2, canvas.height / 2 + 14);
+      ctx.fillText('Press Space to restart', canvas.width / 2, canvas.height / 2 + 34);
+    }
+  }
+
+  onSnakeKey(e: KeyboardEvent): void {
+    const opp: Record<string, string> = { right: 'left', left: 'right', up: 'down', down: 'up' };
+    const map: Record<string, 'up'|'down'|'left'|'right'> = {
+      ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+      w: 'up', s: 'down', a: 'left', d: 'right'
+    };
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      if (this.snakeStatus !== 'playing') this.startSnake();
+      return;
+    }
+    const newDir = map[e.key];
+    if (newDir && newDir !== opp[this.snakeDir]) { e.preventDefault(); this.snakePendingDir = newDir; }
+  }
+
+  private submitSnakeScore(score: number): void {
+    if (score <= 0) return;
+    this.http.post(`${this.backendUrl}/api/snake/score`, { score }).subscribe({
+      error: err => console.warn('Could not submit snake score', err)
+    });
+  }
+
+  loadSnakeLeaderboard(): void {
+    this.snakeLeaderboardLoading = true;
+    this.snakeLeaderboard = [];
+    this.http.get<{ rank: number; username: string; avatarUrl: string; score: number }[]>(
+      `${this.backendUrl}/api/snake/leaderboard`
+    ).subscribe({
+      next: data => {
+        this.snakeLeaderboard = data;
+        this.snakeLeaderboardLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.snakeLeaderboard = [];
+        this.snakeLeaderboardLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  openSnakeLeaderboard(): void { this.snakeShowLeaderboard = true; this.loadSnakeLeaderboard(); }
+  closeSnakeLeaderboard(): void { this.snakeShowLeaderboard = false; }
+
+  // ── Screensaver ───────────────────────────────────────────────────────────
+  private lastActivity = Date.now();
+
+  private resetInactivityTimestamp(): void { this.lastActivity = Date.now(); }
+
+  private checkInactivity(): void {
+    if (!this.isOpen || this.bsodActive || this.screensaverActive) return;
+    if (Date.now() - this.lastActivity > this.screensaverDelay) this.activateScreensaver();
+  }
+
+  private activateScreensaver(): void {
+    this.screensaverActive = true;
+    this.dvdX = Math.random() * 200 + 50;
+    this.dvdY = Math.random() * 100 + 50;
+    this.screensaverRaf = requestAnimationFrame(() => this.screensaverLoop());
+  }
+
+  private screensaverLoop(): void {
+    if (!this.screensaverActive) return;
+    if (typeof window === 'undefined') return;
+    const w = window.innerWidth - 180;
+    const h = window.innerHeight - 60;
+    this.dvdX += this.dvdVX;
+    this.dvdY += this.dvdVY;
+    let bounced = false;
+    if (this.dvdX <= 0 || this.dvdX >= w) { this.dvdVX *= -1; bounced = true; }
+    if (this.dvdY <= 0 || this.dvdY >= h) { this.dvdVY *= -1; bounced = true; }
+    if (bounced) this.dvdColor = `hsl(${Math.random() * 360},100%,60%)`;
+    this.dvdX = Math.max(0, Math.min(this.dvdX, w));
+    this.dvdY = Math.max(0, Math.min(this.dvdY, h));
+    this.screensaverRaf = requestAnimationFrame(() => this.screensaverLoop());
+  }
+
+  dismissScreensaver(): void {
+    this.screensaverActive = false;
+    this.lastActivity = Date.now();
+    if (this.screensaverRaf) { cancelAnimationFrame(this.screensaverRaf); this.screensaverRaf = undefined; }
+  }
+
+  // ── BSOD ──────────────────────────────────────────────────────────────────
+  @HostListener('document:keydown', ['$event'])
+  onGlobalKeydown(event: KeyboardEvent): void {
+    if (!this.isOpen) return;
+    if (this.screensaverActive) { this.dismissScreensaver(); return; }
+    if (this.bsodActive) { if (event.key === 'Enter') this.bsodActive = false; return; }
+    this.resetInactivityTimestamp();
+    this.bsodKeySeq = (this.bsodKeySeq + event.key.toLowerCase()).slice(-this.bsodCode.length);
+    if (this.bsodKeySeq === this.bsodCode) { this.bsodActive = true; this.bsodKeySeq = ''; }
+    if (this.snakeOpen && !this.snakeMinimized && this.activeDesktopWindow === 'snake') this.onSnakeKey(event);
+  }
+
+  // ── XP Notifications ──────────────────────────────────────────────────────
+  private showXpNotif(title: string, body: string): void {
+    const id = ++this.xpNotifCounter;
+    this.xpNotifs = [...this.xpNotifs, { id, title, body }];
+    setTimeout(() => this.dismissXpNotif(id), 5000);
+  }
+
+  dismissXpNotif(id: number): void { this.xpNotifs = this.xpNotifs.filter(n => n.id !== id); }
+
+  // ── Context menu ──────────────────────────────────────────────────────────
+  openCtxMenu(e: MouseEvent): void {
+    e.preventDefault();
+    this.ctxMenuOpen = true;
+    this.ctxMenuX = e.clientX;
+    this.ctxMenuY = e.clientY;
+    this.desktopStartOpen = false;
+  }
+
+  closeCtxMenu(): void { this.ctxMenuOpen = false; }
+
+  // ── Explorer context menu ─────────────────────────────────────────────────
+  openExplorerCtxMenu(e: MouseEvent, item: MusicMetadataDto | null): void {
+    e.preventDefault();
+    e.stopPropagation();
+    if (item) this.explorerSelectedPath = item.path;
+    this.explorerCtxTarget = item;
+    this.explorerCtxOpen = true;
+    this.explorerCtxX = e.clientX;
+    this.explorerCtxY = e.clientY;
+  }
+
+  closeExplorerCtxMenu(): void { this.explorerCtxOpen = false; }
+
+  explorerCtxCopy(): void {
+    if (!this.explorerCtxTarget || !this.explorerPathId) return;
+    this.explorerClipboard = { item: this.explorerCtxTarget, pathId: this.explorerPathId, mode: 'copy' };
+    this.closeExplorerCtxMenu();
+  }
+
+  explorerCtxCut(): void {
+    if (!this.explorerCtxTarget || !this.explorerPathId) return;
+    this.explorerClipboard = { item: this.explorerCtxTarget, pathId: this.explorerPathId, mode: 'cut' };
+    this.closeExplorerCtxMenu();
+  }
+
+  explorerCtxPaste(): void {
+    if (!this.explorerClipboard || !this.explorerPathId) return;
+    const { item, pathId, mode } = this.explorerClipboard;
+    const destFolder = this.explorerSubPath || '';
+    if (mode === 'copy') {
+      this.nasService.copyFile(pathId, item.path, this.explorerPathId, destFolder).subscribe({
+        next: () => { this.explorerClipboard = null; this.loadExplorerItems(); },
+        error: (err) => alert('Error al copiar: ' + (err.error?.error || err.message))
+      });
+    } else {
+      if (pathId !== this.explorerPathId) { alert('El cortar entre rutas NAS distintas no está soportado. Usa Copiar.'); return; }
+      this.nasService.move(this.explorerPathId, item.path, destFolder).subscribe({
+        next: () => { this.explorerClipboard = null; this.loadExplorerItems(); },
+        error: (err) => alert('Error al mover: ' + (err.error?.error || err.message))
+      });
+    }
+    this.closeExplorerCtxMenu();
+  }
+
+  explorerCtxDelete(): void {
+    if (!this.explorerCtxTarget || !this.explorerPathId) return;
+    const item = this.explorerCtxTarget;
+    const ok = window.confirm(`Eliminar ${item.directory ? 'la carpeta' : 'el archivo'} "${item.name}"?`);
+    this.closeExplorerCtxMenu();
+    if (!ok) return;
+    this.nasService.deleteFile(this.explorerPathId, item.path).subscribe({
+      next: () => { this.explorerSelectedPath = null; this.loadExplorerItems(); },
+      error: (err) => alert('Error al eliminar: ' + (err.error?.error || err.message))
+    });
+  }
+
+  explorerCtxRename(): void {
+    if (!this.explorerCtxTarget || !this.explorerPathId) return;
+    const item = this.explorerCtxTarget;
+    this.closeExplorerCtxMenu();
+    const nextName = window.prompt('Nuevo nombre', item.name);
+    if (!nextName || nextName.trim() === item.name) return;
+    this.nasService.rename(this.explorerPathId, item.path, nextName.trim()).subscribe({
+      next: () => this.loadExplorerItems(),
+      error: (err) => alert('Error al renombrar: ' + (err.error?.error || err.message))
+    });
+  }
+
+  explorerCtxPlay(): void {
+    const item = this.explorerCtxTarget;
+    this.closeExplorerCtxMenu();
+    if (item && !item.directory) this.playExplorerTrack(item);
+  }
+
+  explorerCtxDownload(): void {
+    const item = this.explorerCtxTarget;
+    this.closeExplorerCtxMenu();
+    if (!item || !this.explorerPathId) return;
+    if (item.directory) {
+      this.nasService.downloadFolderZip(this.explorerPathId, item.path).subscribe(blob => {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = item.name + '.zip'; a.click();
+      });
+    } else {
+      this.nasService.downloadFile(this.explorerPathId, item.path).subscribe(blob => {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = item.name; a.click();
+      });
+    }
+  }
+
+  explorerCtxNewFolder(): void {
+    this.closeExplorerCtxMenu();
+    this.createExplorerFolder();
   }
 
   private playSound(url: string, volume = 1): void {

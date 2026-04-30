@@ -1,109 +1,185 @@
 <div class="np-desktop-shell" *ngIf="isOpen && isDesktopWmp">
-  <div class="np-desktop-backdrop" (click)="onDesktopBackdropClick()">
-    <div class="np-desktop-wallpaper" [ngClass]="desktopWallpaperClass" [ngStyle]="desktopWallpaperStyle">
-      <div class="np-desktop-icons" (click)="$event.stopPropagation()">
-        <button class="np-desktop-icon" (click)="openExplorerWindow()">
+  <div class="np-desktop-backdrop" (click)="onDesktopBackdropClick(); closeCtxMenu()">
+    <div class="np-desktop-wallpaper" [ngClass]="desktopWallpaperClass" [ngStyle]="desktopWallpaperStyle" (mousedown)="beginDesktopSelection($event)" (click)="onDesktopWallpaperClick($event)" (contextmenu)="openCtxMenu($event)">
+      <div class="np-desktop-icons" (mousedown)="beginDesktopIconPointer($event)" (click)="$event.stopPropagation()">
+        <button class="np-desktop-icon" data-icon="explorer" [ngStyle]="desktopIconStyle('explorer')" [class.selected]="isDesktopIconSelected('explorer')" (click)="runDesktopIcon('explorer', $event)">
           <span class="np-desktop-icon-glyph folder"></span>
           <span>NAS Explorer</span>
         </button>
-        <button class="np-desktop-icon" (click)="openCurrentTrackFolder()">
+        <button class="np-desktop-icon" data-icon="music" [ngStyle]="desktopIconStyle('music')" [class.selected]="isDesktopIconSelected('music')" (click)="runDesktopIcon('music', $event)">
           <span class="np-desktop-icon-glyph music"></span>
           <span>{{ 'WINDOWS.MY_MUSIC' | translate }}</span>
         </button>
-        <button class="np-desktop-icon" (click)="desktopStartOpen = false">
-          <span class="np-desktop-icon-glyph player"></span>
-          <span>Windows Media Player</span>
+        <button class="np-desktop-icon" data-icon="manager" [ngStyle]="desktopIconStyle('manager')" [class.selected]="isDesktopIconSelected('manager')" (click)="runDesktopIcon('manager', $event)">
+          <span class="np-desktop-icon-glyph manager"></span>
+          <span>{{ 'WINDOWS.MANAGER_TITLE' | translate }}</span>
         </button>
-        <button class="np-desktop-icon" (click)="toggleFullscreen()">
+        <button class="np-desktop-icon" data-icon="player" [ngStyle]="desktopIconStyle('player')" [class.selected]="isDesktopIconSelected('player')" (click)="runDesktopIcon('player', $event)">
+          <span class="np-desktop-icon-glyph player"></span>
+          <span>{{ 'WINDOWS.MEDIA_PLAYER' | translate }}</span>
+        </button>
+        <button class="np-desktop-icon" data-icon="calculator" [ngStyle]="desktopIconStyle('calculator')" [class.selected]="isDesktopIconSelected('calculator')" (click)="runDesktopIcon('calculator', $event)">
+          <span class="np-desktop-icon-glyph calculator"></span>
+          <span>{{ 'WINDOWS.CALCULATOR' | translate }}</span>
+        </button>
+        <button class="np-desktop-icon" data-icon="notepad" [ngStyle]="desktopIconStyle('notepad')" [class.selected]="isDesktopIconSelected('notepad')" (click)="runDesktopIcon('notepad', $event)">
+          <span class="np-desktop-icon-glyph notepad"></span>
+          <span>{{ 'WINDOWS.NOTEPAD' | translate }}</span>
+        </button>
+        <button class="np-desktop-icon" data-icon="equalizer" [ngStyle]="desktopIconStyle('equalizer')" [class.selected]="isDesktopIconSelected('equalizer')" (click)="runDesktopIcon('equalizer', $event)">
+          <span class="np-desktop-icon-glyph equalizer"></span>
+          <span>{{ 'WINDOWS.EQUALIZER' | translate }}</span>
+        </button>
+        <button class="np-desktop-icon" data-icon="snake" [ngStyle]="desktopIconStyle('snake')" [class.selected]="isDesktopIconSelected('snake')" (click)="runDesktopIcon('snake', $event)">
+          <span class="np-desktop-icon-glyph snake"></span>
+          <span>Snake</span>
+        </button>
+        <button class="np-desktop-icon" data-icon="xp" [ngStyle]="desktopIconStyle('xp')" [class.selected]="isDesktopIconSelected('xp')" (click)="runDesktopIcon('xp', $event)">
           <span class="np-desktop-icon-glyph xp"></span>
           <span>{{ 'WINDOWS.MY_COMPUTER' | translate }}</span>
         </button>
-        <button class="np-desktop-icon" (click)="openMessengerWindow()">
+        <button class="np-desktop-icon" data-icon="messenger" [ngStyle]="desktopIconStyle('messenger')" [class.selected]="isDesktopIconSelected('messenger')" (click)="runDesktopIcon('messenger', $event)">
           <span class="np-desktop-icon-glyph messenger"></span>
           <span>Messenger</span>
         </button>
-        <button class="np-desktop-icon" (click)="openYoutubeDownloader()">
+        <button class="np-desktop-icon" data-icon="youtube" [ngStyle]="desktopIconStyle('youtube')" [class.selected]="isDesktopIconSelected('youtube')" (click)="runDesktopIcon('youtube', $event)">
           <span class="np-desktop-icon-glyph youtube"></span>
           <span>YouTube XP</span>
         </button>
-        <button class="np-desktop-icon" (click)="openMinesweeper()">
+        <button class="np-desktop-icon" data-icon="minesweeper" [ngStyle]="desktopIconStyle('minesweeper')" [class.selected]="isDesktopIconSelected('minesweeper')" (click)="runDesktopIcon('minesweeper', $event)">
           <span class="np-desktop-icon-glyph minesweeper"></span>
           <span>{{ 'WINDOWS.MINESWEEPER' | translate }}</span>
         </button>
-        <button class="np-desktop-icon" (click)="openWallpaperSettings()">
+        <button class="np-desktop-icon" data-icon="wallpaper" [ngStyle]="desktopIconStyle('wallpaper')" [class.selected]="isDesktopIconSelected('wallpaper')" (click)="runDesktopIcon('wallpaper', $event)">
           <span class="np-desktop-icon-glyph wallpaper"></span>
-          <span>Fondo</span>
+          <span>{{ 'WINDOWS.WALLPAPER_SHORT' | translate }}</span>
         </button>
       </div>
+      <div class="np-desktop-selection" *ngIf="desktopSelection" [ngStyle]="desktopSelectionStyle()"></div>
     </div>
   </div>
 
+  <!-- ═══ START MENU (XP style) ═══ -->
   <div class="np-start-menu" *ngIf="desktopStartOpen && !isFullscreen" (click)="$event.stopPropagation()">
-    <div class="np-start-banner">
+
+    <!-- Header -->
+    <div class="np-start-header">
       <span class="np-start-avatar"></span>
-      <div>
+      <div class="np-start-userinfo">
         <strong>NAS XP</strong>
         <span>Music Edition</span>
       </div>
     </div>
-    <div class="np-start-main">
-      <button class="np-start-item" (click)="openExplorerWindow()">
-        <span class="np-start-item-icon folder"></span>
-        <div>
-          <strong>NAS Explorer</strong>
-          <span>{{ 'WINDOWS.START_NAS_EXPLORER_DESC' | translate }}</span>
+
+    <!-- Two-column body -->
+    <div class="np-start-body">
+
+      <!-- Left: programs -->
+      <div class="np-start-left">
+
+        <div class="np-start-section-label">{{ 'WINDOWS.START_QUICK_ACCESS' | translate }}</div>
+        <button class="np-xp-item bold" (click)="openExplorerWindow()">
+          <span class="np-start-item-icon folder"></span>
+          <div><strong>NAS Explorer</strong></div>
+        </button>
+        <button class="np-xp-item bold" (click)="openMusicManager()">
+          <span class="np-start-item-icon manager"></span>
+          <div><strong>{{ 'WINDOWS.MANAGER_TITLE' | translate }}</strong><small>{{ 'WINDOWS.MANAGER_DESC' | translate }}</small></div>
+        </button>
+        <button class="np-xp-item bold" (click)="desktopStartOpen = false">
+          <span class="np-start-item-icon player"></span>
+          <div><strong>{{ 'WINDOWS.MEDIA_PLAYER' | translate }}</strong><small>{{ currentSkinName }}</small></div>
+        </button>
+        <button class="np-xp-item bold" (click)="openMessengerWindow()">
+          <span class="np-start-item-icon messenger"></span>
+          <div><strong>Messenger</strong></div>
+        </button>
+        <button class="np-xp-item bold" (click)="openYoutubeDownloader()">
+          <span class="np-start-item-icon youtube"></span>
+          <div><strong>YouTube XP</strong></div>
+        </button>
+
+        <div class="np-start-separator"></div>
+        <div class="np-start-section-label">{{ 'WINDOWS.START_ACCESSORIES' | translate }}</div>
+
+        <button class="np-xp-item" (click)="openCalculator()">
+          <span class="np-start-item-icon calculator"></span>
+          <div><strong>{{ 'WINDOWS.CALCULATOR' | translate }}</strong></div>
+        </button>
+        <button class="np-xp-item" (click)="openNotepad()">
+          <span class="np-start-item-icon notepad"></span>
+          <div><strong>{{ 'WINDOWS.NOTEPAD' | translate }}</strong></div>
+        </button>
+        <button class="np-xp-item" (click)="openEqualizer()">
+          <span class="np-start-item-icon equalizer"></span>
+          <div><strong>{{ 'WINDOWS.EQUALIZER' | translate }}</strong></div>
+        </button>
+
+        <div class="np-start-separator"></div>
+        <div class="np-start-section-label">{{ 'WINDOWS.START_GAMES' | translate }}</div>
+
+        <button class="np-xp-item" (click)="openSnake()">
+          <span class="np-start-item-icon snake"></span>
+          <div><strong>Snake</strong></div>
+        </button>
+        <button class="np-xp-item" (click)="openMinesweeper()">
+          <span class="np-start-item-icon minesweeper"></span>
+          <div><strong>{{ 'WINDOWS.MINESWEEPER' | translate }}</strong></div>
+        </button>
+
+      </div>
+
+      <!-- Right: places & settings -->
+      <div class="np-start-right">
+
+        <button class="np-xp-place" (click)="openCurrentTrackFolder()">
+          <span class="np-start-item-icon music"></span>
+          <span>{{ 'WINDOWS.MY_MUSIC' | translate }}</span>
+        </button>
+        <button class="np-xp-place" (click)="openExplorerWindow()">
+          <span class="np-start-item-icon folder"></span>
+          <span>NAS Explorer</span>
+        </button>
+        <button class="np-xp-place" (click)="openMusicManager('queue')">
+          <span class="np-start-item-icon manager"></span>
+          <span>{{ 'WINDOWS.MANAGER_QUEUE' | translate }}</span>
+        </button>
+        <button class="np-xp-place" (click)="toggleFullscreen()">
+          <span class="np-start-item-icon player"></span>
+          <span>{{ isFullscreen ? ('WINDOWS.START_EXIT_FULLSCREEN' | translate) : ('WINDOWS.START_FULLSCREEN' | translate) }}</span>
+        </button>
+
+        <div class="np-start-right-sep"></div>
+
+        <button class="np-xp-place" (click)="openWallpaperSettings()">
+          <span class="np-start-item-icon wallpaper"></span>
+          <span>{{ 'WINDOWS.WALLPAPER_START' | translate }}</span>
+        </button>
+
+        <div class="np-start-right-sep"></div>
+
+        <div class="np-start-skin-compact">
+          <div class="np-start-skin-compact-label">{{ 'WINDOWS.PLAYER_SKIN' | translate }}</div>
+          <div class="np-start-skin-compact-row">
+            <button *ngFor="let s of skinOptions"
+                    class="np-xp-skin-chip"
+                    [class.active]="playerSkin === s.id"
+                    (click)="setSkin(s.id)"
+                    [title]="s.name">{{ s.name }}</button>
+          </div>
         </div>
-      </button>
-      <button class="np-start-item" (click)="openCurrentTrackFolder()">
-        <span class="np-start-item-icon music"></span>
-        <div>
-          <strong>{{ 'WINDOWS.START_NOW_PLAYING_FOLDER' | translate }}</strong>
-          <span>{{ 'WINDOWS.START_NOW_PLAYING_DESC' | translate }}</span>
-        </div>
-      </button>
-      <button class="np-start-item" (click)="openMessengerWindow()">
-        <span class="np-start-item-icon messenger"></span>
-        <div>
-          <strong>Messenger</strong>
-          <span>{{ 'WINDOWS.START_MESSENGER_DESC' | translate }}</span>
-        </div>
-      </button>
-      <button class="np-start-item" (click)="openYoutubeDownloader()">
-        <span class="np-start-item-icon youtube"></span>
-        <div>
-          <strong>YouTube XP Downloader</strong>
-          <span>{{ 'WINDOWS.YOUTUBE_XP_DESC' | translate }}</span>
-        </div>
-      </button>
-      <button class="np-start-item" (click)="openMinesweeper()">
-        <span class="np-start-item-icon minesweeper"></span>
-        <div>
-          <strong>{{ 'WINDOWS.MINESWEEPER' | translate }}</strong>
-          <span>{{ 'WINDOWS.MINESWEEPER_DESC' | translate }}</span>
-        </div>
-      </button>
-      <button class="np-start-item" (click)="toggleFullscreen()">
-        <span class="np-start-item-icon player"></span>
-        <div>
-          <strong>{{ isFullscreen ? ('WINDOWS.START_EXIT_FULLSCREEN' | translate) : ('WINDOWS.START_FULLSCREEN' | translate) }}</strong>
-          <span>{{ 'WINDOWS.START_THEATRE_DESC' | translate }}</span>
-        </div>
-      </button>
-      <button class="np-start-item" (click)="openWallpaperSettings()">
-        <span class="np-start-item-icon wallpaper"></span>
-        <div>
-          <strong>{{ 'WINDOWS.WALLPAPER_START' | translate }}</strong>
-          <span>{{ 'WINDOWS.WALLPAPER_START_DESC' | translate }}</span>
-        </div>
-      </button>
-      <button class="np-start-item danger" (click)="close()">
+
+      </div>
+    </div>
+
+    <!-- Footer bar -->
+    <div class="np-start-footer">
+      <button class="np-xp-footer-btn" (click)="close()">
         <span class="np-start-item-icon shutdown"></span>
-        <div>
-          <strong>{{ 'WINDOWS.START_CLOSE' | translate }}</strong>
-          <span>{{ 'WINDOWS.START_CLOSE_DESC' | translate }}</span>
-        </div>
+        <span>{{ 'WINDOWS.SHUTDOWN' | translate }}</span>
       </button>
     </div>
+
   </div>
 
   <div class="np-wallpaper-window" *ngIf="wallpaperSettingsOpen && !isFullscreen" (click)="$event.stopPropagation()">
@@ -141,7 +217,117 @@
     <input #wallpaperInput type="file" accept="image/*" hidden (change)="onWallpaperUpload($event)" />
   </div>
 
-  <div class="np-explorer-window" *ngIf="desktopExplorerOpen && !isFullscreen && !explorerMinimized" (click)="focusWindow('explorer'); $event.stopPropagation()" [ngStyle]="explorerWindowStyle">
+  <div class="np-music-manager-window"
+       *ngIf="musicManagerOpen && !isFullscreen && !musicManagerMinimized"
+       (click)="focusWindow('manager'); $event.stopPropagation()"
+       [class.np-win-focused]="activeDesktopWindow === 'manager'"
+       [ngStyle]="musicManagerWindowStyle">
+    <div class="np-music-manager-titlebar" (mousedown)="beginWindowDrag($event, 'manager')">
+      <div class="np-explorer-titlecopy">
+        <span class="np-start-item-icon manager"></span>
+        <strong>{{ 'WINDOWS.MANAGER_TITLE' | translate }}</strong>
+      </div>
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
+        <button class="np-window-min-btn" (click)="minimizeWindow('manager')">_</button>
+        <button class="np-explorer-close" (click)="closeMusicManager()">x</button>
+      </div>
+    </div>
+    <div class="np-music-manager-menubar">
+      <span>{{ 'WINDOWS.MENU_FILE' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_VIEW' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_TOOLS' | translate }}</span>
+      <button (click)="downloadCurrentMetadata('json')" [disabled]="!state?.currentTrack">{{ 'WINDOWS.MANAGER_EXPORT_CURRENT' | translate }}</button>
+      <button (click)="downloadQueueMetadata('json')" [disabled]="!winampQueue.tracks.length">{{ 'WINDOWS.MANAGER_EXPORT_QUEUE' | translate }}</button>
+    </div>
+    <div class="np-music-manager-tabs">
+      <button [class.active]="musicManagerTab === 'properties'" (click)="musicManagerTab = 'properties'">{{ 'WINDOWS.MANAGER_PROPERTIES' | translate }}</button>
+      <button [class.active]="musicManagerTab === 'queue'" (click)="musicManagerTab = 'queue'">{{ 'WINDOWS.MANAGER_QUEUE' | translate }} <span>{{ winampQueue.tracks.length }}</span></button>
+      <button [class.active]="musicManagerTab === 'history'" (click)="musicManagerTab = 'history'; loadMusicHistory()">{{ 'WINDOWS.MANAGER_HISTORY' | translate }}</button>
+    </div>
+    <div class="np-music-manager-body">
+      <section class="np-manager-pane" *ngIf="musicManagerTab === 'properties'">
+        <div class="np-manager-now">
+          <div class="np-manager-cover">
+            <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" (error)="$any($event.target).style.display='none'" />
+            <span *ngIf="!playerHasCover()">♪</span>
+          </div>
+          <div class="np-manager-now-copy">
+            <h3>{{ state?.currentTrack?.title || state?.currentTrack?.name || ('WINDOWS.MANAGER_NO_TRACK' | translate) }}</h3>
+            <p>{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</p>
+            <div class="np-manager-actions">
+              <button (click)="state?.currentTrack && toggleLike($event, state!.currentTrack!)" [disabled]="!state?.currentTrack">{{ state?.currentTrack && isLiked(state!.currentTrack!) ? ('COMMON.REMOVE_FAVORITE' | translate) : ('COMMON.ADD_FAVORITE' | translate) }}</button>
+              <button (click)="refreshCoverForCurrentTrack()" [disabled]="!state?.currentTrack">{{ 'WINDOWS.MANAGER_FETCH_METADATA' | translate }}</button>
+              <button (click)="downloadCurrentMetadata('json')" [disabled]="!state?.currentTrack">JSON</button>
+              <button (click)="downloadCurrentMetadata('csv')" [disabled]="!state?.currentTrack">CSV</button>
+            </div>
+            <small *ngIf="musicManagerStatus">{{ musicManagerStatus | translate }}</small>
+          </div>
+        </div>
+        <div class="np-manager-details">
+          <div><span>{{ 'NAS.METADATA_TITLE' | translate }}</span><strong>{{ state?.currentTrack?.title || '-' }}</strong></div>
+          <div><span>{{ 'NAS.METADATA_ARTIST' | translate }}</span><strong>{{ state?.currentTrack?.artist || '-' }}</strong></div>
+          <div><span>{{ 'NAS.METADATA_ALBUM' | translate }}</span><strong>{{ state?.currentTrack?.album || '-' }}</strong></div>
+          <div><span>{{ 'WINDOWS.MANAGER_DURATION' | translate }}</span><strong>{{ fmt(state?.duration || state?.currentTrack?.duration || 0) }}</strong></div>
+          <div><span>{{ 'WINDOWS.MANAGER_FORMAT' | translate }}</span><strong>{{ state?.currentTrack?.format || '-' }}</strong></div>
+          <div><span>{{ 'WINDOWS.MANAGER_SIZE' | translate }}</span><strong>{{ currentTrackSizeLabel }}</strong></div>
+          <div class="wide"><span>{{ 'WINDOWS.MANAGER_PATH' | translate }}</span><strong>{{ state?.currentTrack?.path || '-' }}</strong></div>
+        </div>
+      </section>
+
+      <section class="np-manager-pane" *ngIf="musicManagerTab === 'queue'">
+        <div class="np-manager-toolbar">
+          <strong>{{ 'WINDOWS.MANAGER_QUEUE_SUMMARY' | translate:{count: winampQueue.tracks.length, duration: queueDurationLabel} }}</strong>
+          <div>
+            <button (click)="downloadQueueMetadata('json')" [disabled]="!winampQueue.tracks.length">JSON</button>
+            <button (click)="downloadQueueMetadata('csv')" [disabled]="!winampQueue.tracks.length">CSV</button>
+            <button (click)="clearQueue()" [disabled]="!winampQueue.tracks.length">{{ 'WINDOWS.MANAGER_CLEAR_QUEUE' | translate }}</button>
+          </div>
+        </div>
+        <div class="np-manager-list" *ngIf="winampQueue.tracks.length; else noQueue">
+          <button class="np-manager-track" *ngFor="let track of winampQueue.tracks; let i = index" [class.active]="i === winampQueue.index" (dblclick)="playQueueTrack(i)">
+            <span class="num">{{ i + 1 }}</span>
+            <span class="copy"><strong>{{ track.title || track.name }}</strong><small>{{ track.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ fmt(track.duration) }}</small></span>
+            <span class="np-manager-row-actions">
+              <i (click)="playQueueTrack(i); $event.stopPropagation()">▶</i>
+              <i (click)="moveQueueTrack(i, -1); $event.stopPropagation()">↑</i>
+              <i (click)="moveQueueTrack(i, 1); $event.stopPropagation()">↓</i>
+              <i (click)="removeQueueTrack(i); $event.stopPropagation()">x</i>
+            </span>
+          </button>
+        </div>
+        <ng-template #noQueue><div class="np-manager-empty">{{ 'WINDOWS.MANAGER_EMPTY_QUEUE' | translate }}</div></ng-template>
+      </section>
+
+      <section class="np-manager-pane" *ngIf="musicManagerTab === 'history'">
+        <div class="np-manager-toolbar">
+          <strong>{{ 'WINDOWS.MANAGER_HISTORY' | translate }}</strong>
+          <div>
+            <button (click)="loadMusicHistory()">{{ 'ADMIN.REFRESH' | translate }}</button>
+            <button (click)="downloadHistoryMetadata('json')" [disabled]="!historyItems.length">JSON</button>
+            <button (click)="downloadHistoryMetadata('csv')" [disabled]="!historyItems.length">CSV</button>
+          </div>
+        </div>
+        <div class="np-manager-list" *ngIf="historyItems.length; else noHistory">
+          <button class="np-manager-track" *ngFor="let item of historyItems" (dblclick)="playHistoryItem(item)">
+            <span class="num">♪</span>
+            <span class="copy"><strong>{{ item.title || item.name || item.trackPath }}</strong><small>{{ item.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ item.playedAt || item.createdAt || '' }}</small></span>
+            <span class="np-manager-row-actions"><i (click)="playHistoryItem(item); $event.stopPropagation()">▶</i></span>
+          </button>
+        </div>
+        <ng-template #noHistory><div class="np-manager-empty">{{ 'WINDOWS.MANAGER_EMPTY_HISTORY' | translate }}</div></ng-template>
+      </section>
+    </div>
+    <div class="np-music-manager-status">
+      <span>{{ state?.currentTrack ? ('WINDOWS.MANAGER_READY' | translate) : ('WINDOWS.MANAGER_NO_TRACK' | translate) }}</span>
+      <span>{{ winampQueue.tracks.length }} {{ 'MUSIC.UI_TRACKS' | translate }}</span>
+    </div>
+    <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'manager', 'left', 'top')"></span>
+    <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'manager', 'right', 'top')"></span>
+    <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'manager', 'left', 'bottom')"></span>
+    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'manager', 'right', 'bottom')"></span>
+  </div>
+
+  <div class="np-explorer-window" *ngIf="desktopExplorerOpen && !isFullscreen && !explorerMinimized" (click)="focusWindow('explorer'); closeExplorerCtxMenu(); $event.stopPropagation()" [ngStyle]="explorerWindowStyle">
     <div class="np-explorer-titlebar" (mousedown)="beginWindowDrag($event, 'explorer')">
       <div class="np-explorer-titlecopy">
         <span class="np-start-item-icon folder"></span>
@@ -221,12 +407,14 @@
         <div class="np-explorer-state" *ngIf="explorerLoading">{{ 'WINDOWS.STATE_LOADING' | translate }}</div>
         <div class="np-explorer-state error" *ngIf="!explorerLoading && explorerError">{{ explorerError }}</div>
 
-        <div class="np-explorer-list" *ngIf="!explorerLoading && !explorerError">
+        <div class="np-explorer-list" *ngIf="!explorerLoading && !explorerError"
+             (contextmenu)="openExplorerCtxMenu($event, null)">
           <button
             class="np-explorer-item folder"
             *ngFor="let folder of explorerFolders"
             (click)="selectExplorerItem(folder)"
             (dblclick)="openExplorerFolder(folder)"
+            (contextmenu)="openExplorerCtxMenu($event, folder)"
             [class.selected]="isExplorerItemSelected(folder)">
             <span class="icon folder"></span>
             <div class="copy">
@@ -241,6 +429,7 @@
             *ngFor="let track of explorerTracks"
             (click)="selectExplorerItem(track)"
             (dblclick)="playExplorerTrack(track)"
+            (contextmenu)="openExplorerCtxMenu($event, track)"
             [class.active]="state?.currentTrack?.path === track.path"
             [class.selected]="isExplorerItemSelected(track)">
             <span class="icon track"></span>
@@ -254,6 +443,51 @@
           <div class="np-explorer-state" *ngIf="!explorerFolders.length && !explorerTracks.length">{{ 'WINDOWS.STATE_EMPTY' | translate }}</div>
         </div>
       </section>
+    </div>
+    <!-- Explorer right-click context menu -->
+    <div class="np-exp-ctx-backdrop" *ngIf="explorerCtxOpen" (click)="closeExplorerCtxMenu()" (contextmenu)="closeExplorerCtxMenu(); $event.preventDefault()"></div>
+    <div class="np-exp-ctx-menu" *ngIf="explorerCtxOpen" [style.left.px]="explorerCtxX" [style.top.px]="explorerCtxY" (click)="$event.stopPropagation()">
+      <ng-container *ngIf="explorerCtxTarget && !explorerCtxTarget.directory">
+        <div class="np-exp-ctx-item" (click)="explorerCtxPlay()">
+          <span class="np-exp-ctx-icon play"></span> Reproducir
+        </div>
+        <div class="np-exp-ctx-separator"></div>
+      </ng-container>
+      <ng-container *ngIf="explorerCtxTarget && canManageNas">
+        <div class="np-exp-ctx-item" (click)="explorerCtxCopy()">
+          <span class="np-exp-ctx-icon copy"></span> Copiar
+        </div>
+        <div class="np-exp-ctx-item" *ngIf="!explorerCtxTarget.directory" (click)="explorerCtxCut()">
+          <span class="np-exp-ctx-icon cut"></span> Cortar
+        </div>
+      </ng-container>
+      <div class="np-exp-ctx-item" *ngIf="explorerClipboard && canManageNas" (click)="explorerCtxPaste()">
+        <span class="np-exp-ctx-icon paste"></span>
+        Pegar <span class="np-exp-ctx-hint">({{ explorerClipboard.item.name }})</span>
+      </div>
+      <ng-container *ngIf="explorerCtxTarget && canManageNas">
+        <div class="np-exp-ctx-separator"></div>
+        <div class="np-exp-ctx-item" (click)="explorerCtxRename()">
+          <span class="np-exp-ctx-icon rename"></span> Renombrar
+        </div>
+        <div class="np-exp-ctx-item danger" (click)="explorerCtxDelete()">
+          <span class="np-exp-ctx-icon delete"></span> Eliminar
+        </div>
+      </ng-container>
+      <div class="np-exp-ctx-separator" *ngIf="explorerCtxTarget"></div>
+      <div class="np-exp-ctx-item" (click)="explorerCtxDownload()" *ngIf="explorerCtxTarget">
+        <span class="np-exp-ctx-icon download"></span> Descargar
+      </div>
+      <div class="np-exp-ctx-item" *ngIf="!explorerCtxTarget && canManageNas" (click)="explorerCtxNewFolder()">
+        <span class="np-exp-ctx-icon folder"></span> Nueva carpeta
+      </div>
+      <div class="np-exp-ctx-item" *ngIf="!explorerCtxTarget && explorerClipboard && canManageNas" (click)="explorerCtxPaste()">
+        <span class="np-exp-ctx-icon paste"></span>
+        Pegar <span class="np-exp-ctx-hint">({{ explorerClipboard.item.name }})</span>
+      </div>
+      <div class="np-exp-ctx-item" (click)="loadExplorerItems(); closeExplorerCtxMenu()">
+        <span class="np-exp-ctx-icon refresh"></span> Actualizar
+      </div>
     </div>
     <input #uploadFilesInput type="file" multiple hidden (change)="onExplorerFilesSelected($event)" />
     <input #uploadFolderInput type="file" multiple webkitdirectory hidden (change)="onExplorerFolderSelected($event)" />
@@ -430,6 +664,345 @@
     </div>
   </div>
 
+  <!-- ═══ CALCULATOR ═══ -->
+  <div class="np-calc-window" *ngIf="calculatorOpen && !isFullscreen && !calculatorMinimized"
+       (click)="focusWindow('calculator'); $event.stopPropagation()"
+       [class.np-win-focused]="activeDesktopWindow === 'calculator'"
+       [class.np-win-maximized]="calculatorMaximized"
+       [ngStyle]="calculatorMaximized ? {left:'0',top:'0',width:'100%',height:'100%',zIndex:9520} : {left: calculatorWindowPosition.x + 'px', top: calculatorWindowPosition.y + 'px', width: calculatorWindowSize.width + 'px', height: calculatorWindowSize.height + 'px', zIndex: activeDesktopWindow === 'calculator' ? 9520 : 9510}">
+    <div class="np-calc-titlebar" (mousedown)="beginWindowDrag($event, 'calculator')" (dblclick)="toggleCalculatorMaximize()">
+      <div class="np-calc-title-copy">
+        <span class="np-start-item-icon calculator"></span>
+        <strong>{{ 'WINDOWS.CALCULATOR' | translate }}</strong>
+      </div>
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
+        <button class="np-window-min-btn" (click)="minimizeWindow('calculator')">_</button>
+        <button class="np-window-min-btn" (click)="toggleCalculatorMaximize()">
+          <svg *ngIf="!calculatorMaximized" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm0-7h2V5h-5v2h3v3z"/></svg>
+          <svg *ngIf="calculatorMaximized" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-4v4h-2v-6h6v2zM5 11h6v6H9v-4H5v-2zm4-4v4H7V5h6v2H9zm6 0v4h2V7h4V5h-6z"/></svg>
+        </button>
+        <button class="np-explorer-close" (click)="closeCalculator()">×</button>
+      </div>
+    </div>
+    <div class="np-calc-menubar"><span>Ver</span><span>Editar</span><span>Ayuda</span></div>
+    <div class="np-calc-display">{{ calcDisplay }}</div>
+    <div class="np-calc-grid">
+      <button class="np-calc-btn np-calc-fn" (click)="calcClear()">C</button>
+      <button class="np-calc-btn np-calc-fn" (click)="calcClearEntry()">CE</button>
+      <button class="np-calc-btn np-calc-fn" (click)="calcBackspace()">⌫</button>
+      <button class="np-calc-btn np-calc-op" (click)="calcOperation('/')">÷</button>
+      <button class="np-calc-btn" (click)="calcInput('7')">7</button>
+      <button class="np-calc-btn" (click)="calcInput('8')">8</button>
+      <button class="np-calc-btn" (click)="calcInput('9')">9</button>
+      <button class="np-calc-btn np-calc-op" (click)="calcOperation('*')">×</button>
+      <button class="np-calc-btn" (click)="calcInput('4')">4</button>
+      <button class="np-calc-btn" (click)="calcInput('5')">5</button>
+      <button class="np-calc-btn" (click)="calcInput('6')">6</button>
+      <button class="np-calc-btn np-calc-op" (click)="calcOperation('-')">−</button>
+      <button class="np-calc-btn" (click)="calcInput('1')">1</button>
+      <button class="np-calc-btn" (click)="calcInput('2')">2</button>
+      <button class="np-calc-btn" (click)="calcInput('3')">3</button>
+      <button class="np-calc-btn np-calc-op np-calc-eq-tall" (click)="calcEquals()" style="grid-row: span 2">+</button>
+      <button class="np-calc-btn" (click)="calcPlusMinus()">±</button>
+      <button class="np-calc-btn" (click)="calcInput('0')">0</button>
+      <button class="np-calc-btn" (click)="calcInput('.')">.</button>
+      <button class="np-calc-btn np-calc-op np-calc-equals" (click)="calcEquals()">=</button>
+      <button class="np-calc-btn np-calc-fn" (click)="calcSqrt()">√</button>
+      <button class="np-calc-btn np-calc-fn" (click)="calcPercent()">%</button>
+      <button class="np-calc-btn np-calc-fn" (click)="calcOperation('+')">+</button>
+    </div>
+    <span class="np-resize-handle top-left"     (mousedown)="beginWindowResize($event,'calculator','left','top')"></span>
+    <span class="np-resize-handle top-right"    (mousedown)="beginWindowResize($event,'calculator','right','top')"></span>
+    <span class="np-resize-handle bottom-left"  (mousedown)="beginWindowResize($event,'calculator','left','bottom')"></span>
+    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event,'calculator','right','bottom')"></span>
+  </div>
+
+  <!-- ═══ NOTEPAD ═══ -->
+  <div class="np-notepad-window" *ngIf="notepadOpen && !isFullscreen && !notepadMinimized"
+       (click)="focusWindow('notepad'); $event.stopPropagation()"
+       [class.np-win-focused]="activeDesktopWindow === 'notepad'"
+       [class.np-win-maximized]="notepadMaximized"
+       [ngStyle]="notepadMaximized ? {left:'0',top:'0',width:'100%',height:'100%',zIndex:9520} : {left: notepadWindowPosition.x + 'px', top: notepadWindowPosition.y + 'px', width: notepadWindowSize.width + 'px', height: notepadWindowSize.height + 'px', zIndex: activeDesktopWindow === 'notepad' ? 9520 : 9510}">
+    <div class="np-notepad-titlebar" (mousedown)="beginWindowDrag($event, 'notepad')" (dblclick)="toggleNotepadMaximize()">
+      <div class="np-notepad-title-copy">
+        <span class="np-start-item-icon notepad"></span>
+        <strong>{{ 'WINDOWS.NOTEPAD' | translate }} - {{ notepadFileName }}</strong>
+      </div>
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
+        <button class="np-window-min-btn" (click)="minimizeWindow('notepad')">_</button>
+        <button class="np-window-min-btn" (click)="toggleNotepadMaximize()">
+          <svg *ngIf="!notepadMaximized" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm0-7h2V5h-5v2h3v3z"/></svg>
+          <svg *ngIf="notepadMaximized" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-4v4h-2v-6h6v2zM5 11h6v6H9v-4H5v-2zm4-4v4H7V5h6v2H9zm6 0v4h2V7h4V5h-6z"/></svg>
+        </button>
+        <button class="np-explorer-close" (click)="closeNotepad()">×</button>
+      </div>
+    </div>
+    <div class="np-notepad-menubar">
+      <button (click)="createNotepadFile()">{{ 'WINDOWS.NOTEPAD_NEW' | translate }}</button>
+      <button (click)="saveNotepad()">{{ 'WINDOWS.NOTEPAD_SAVE' | translate }}</button>
+      <button (click)="renameNotepadFile()">{{ 'WINDOWS.NOTEPAD_RENAME' | translate }}</button>
+      <span>{{ 'WINDOWS.MENU_EDIT' | translate }}</span><span>{{ 'WINDOWS.NOTEPAD_FORMAT' | translate }}</span><span>{{ 'WINDOWS.MENU_VIEW' | translate }}</span><span>{{ 'WINDOWS.MENU_HELP' | translate }}</span>
+    </div>
+    <div class="np-notepad-workspace">
+      <aside class="np-notepad-disk">
+        <div class="np-notepad-disk-title">
+          <span class="np-start-item-icon xp"></span>
+          <div>
+            <strong>{{ 'WINDOWS.MY_COMPUTER' | translate }}</strong>
+            <small>{{ notepadDiskLabel }}</small>
+          </div>
+        </div>
+        <button
+          class="np-notepad-file"
+          *ngFor="let file of notepadFiles"
+          [class.active]="file.id === activeNotepadFileId"
+          (click)="selectNotepadFile(file.id)">
+          <span class="np-start-item-icon notepad"></span>
+          <span>{{ file.name }}</span>
+          <i (click)="deleteNotepadFile(file, $event)">x</i>
+        </button>
+      </aside>
+      <section class="np-notepad-editor">
+        <div class="np-notepad-filebar">
+          <label>
+            <span>{{ 'WINDOWS.MENU_FILE' | translate }}</span>
+            <input [(ngModel)]="notepadFileName" (blur)="saveNotepad()" (mousedown)="$event.stopPropagation()" />
+          </label>
+          <em>{{ notepadSaveStatus | translate }}</em>
+        </div>
+        <textarea class="np-notepad-area" [(ngModel)]="notepadText" (ngModelChange)="onNotepadInput()" (blur)="saveNotepad()" (mousedown)="$event.stopPropagation()" [placeholder]="'WINDOWS.NOTEPAD_PLACEHOLDER' | translate"></textarea>
+      </section>
+    </div>
+    <span class="np-resize-handle top-left"     (mousedown)="beginWindowResize($event,'notepad','left','top')"></span>
+    <span class="np-resize-handle top-right"    (mousedown)="beginWindowResize($event,'notepad','right','top')"></span>
+    <span class="np-resize-handle bottom-left"  (mousedown)="beginWindowResize($event,'notepad','left','bottom')"></span>
+    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event,'notepad','right','bottom')"></span>
+  </div>
+
+  <!-- ═══ EQUALIZER ═══ -->
+  <div class="np-eq-window" *ngIf="equalizerOpen && !isFullscreen && !equalizerMinimized"
+       (click)="focusWindow('equalizer'); $event.stopPropagation()"
+       [class.np-win-focused]="activeDesktopWindow === 'equalizer'"
+       [class.np-win-maximized]="equalizerMaximized"
+       [ngStyle]="equalizerMaximized ? {left:'0',top:'0',width:'100%',height:'100%',zIndex:9520} : {left: equalizerWindowPosition.x + 'px', top: equalizerWindowPosition.y + 'px', width: equalizerWindowSize.width + 'px', height: equalizerWindowSize.height + 'px', zIndex: activeDesktopWindow === 'equalizer' ? 9520 : 9510}">
+    <div class="np-eq-titlebar" (mousedown)="beginWindowDrag($event, 'equalizer')" (dblclick)="toggleEqualizerMaximize()">
+      <div class="np-eq-title-copy">
+        <span class="np-start-item-icon equalizer"></span>
+        <strong>{{ 'WINDOWS.EQUALIZER_GRAPHIC' | translate }}</strong>
+      </div>
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
+        <button class="np-window-min-btn" (click)="minimizeWindow('equalizer')">_</button>
+        <button class="np-window-min-btn" (click)="toggleEqualizerMaximize()">
+          <svg *ngIf="!equalizerMaximized" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm0-7h2V5h-5v2h3v3z"/></svg>
+          <svg *ngIf="equalizerMaximized" width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-4v4h-2v-6h6v2zM5 11h6v6H9v-4H5v-2zm4-4v4H7V5h6v2H9zm6 0v4h2V7h4V5h-6z"/></svg>
+        </button>
+        <button class="np-explorer-close" (click)="closeEqualizer()">×</button>
+      </div>
+    </div>
+    <div class="np-eq-body">
+      <div class="np-eq-band">
+        <label>{{ 'WINDOWS.EQ_LOW' | translate }}</label>
+        <input type="range" min="-12" max="12" step="1" [value]="eqLow" (input)="setEqBand('low', $any($event.target).value)" class="np-eq-slider" orient="vertical" (mousedown)="$event.stopPropagation()" />
+        <span class="np-eq-val">{{ eqLow > 0 ? '+' : '' }}{{ eqLow }} dB</span>
+      </div>
+      <div class="np-eq-band">
+        <label>{{ 'WINDOWS.EQ_MID' | translate }}</label>
+        <input type="range" min="-12" max="12" step="1" [value]="eqMid" (input)="setEqBand('mid', $any($event.target).value)" class="np-eq-slider" orient="vertical" (mousedown)="$event.stopPropagation()" />
+        <span class="np-eq-val">{{ eqMid > 0 ? '+' : '' }}{{ eqMid }} dB</span>
+      </div>
+      <div class="np-eq-band">
+        <label>{{ 'WINDOWS.EQ_HIGH' | translate }}</label>
+        <input type="range" min="-12" max="12" step="1" [value]="eqHigh" (input)="setEqBand('high', $any($event.target).value)" class="np-eq-slider" orient="vertical" (mousedown)="$event.stopPropagation()" />
+        <span class="np-eq-val">{{ eqHigh > 0 ? '+' : '' }}{{ eqHigh }} dB</span>
+      </div>
+      <div class="np-eq-actions">
+        <button class="np-eq-reset" (click)="resetEq()">Reset</button>
+        <div class="np-eq-presets">
+          <button (click)="setEqBand('low',6); setEqBand('mid',-2); setEqBand('high',4)">Rock</button>
+          <button (click)="setEqBand('low',8); setEqBand('mid',4); setEqBand('high',2)">Bass</button>
+          <button (click)="setEqBand('low',-2); setEqBand('mid',4); setEqBand('high',6)">Vocal</button>
+          <button (click)="setEqBand('low',0); setEqBand('mid',0); setEqBand('high',0)">Flat</button>
+        </div>
+      </div>
+    </div>
+    <span class="np-resize-handle top-left"     (mousedown)="beginWindowResize($event,'equalizer','left','top')"></span>
+    <span class="np-resize-handle top-right"    (mousedown)="beginWindowResize($event,'equalizer','right','top')"></span>
+    <span class="np-resize-handle bottom-left"  (mousedown)="beginWindowResize($event,'equalizer','left','bottom')"></span>
+    <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event,'equalizer','right','bottom')"></span>
+  </div>
+
+  <!-- ═══ SNAKE ═══ -->
+  <div class="np-snake-window" *ngIf="snakeOpen && !isFullscreen && !snakeMinimized"
+       (click)="focusWindow('snake'); $event.stopPropagation()"
+       [class.np-win-focused]="activeDesktopWindow === 'snake'"
+       [ngStyle]="{left: snakeWindowPosition.x + 'px', top: snakeWindowPosition.y + 'px', zIndex: activeDesktopWindow === 'snake' ? 9520 : 9510}">
+    <div class="np-snake-titlebar" (mousedown)="beginWindowDrag($event, 'snake')">
+      <div class="np-snake-title-copy">
+        <span class="np-start-item-icon snake"></span>
+        <strong>Snake</strong>
+        <span class="np-snake-score" *ngIf="snakeStatus === 'playing'">{{ 'WINDOWS.SNAKE_SCORE' | translate }}: {{ snakeScore }}</span>
+      </div>
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
+        <button class="np-snake-lb-btn" [class.active]="snakeShowLeaderboard"
+                (click)="snakeShowLeaderboard ? closeSnakeLeaderboard() : openSnakeLeaderboard()"
+                title="{{ 'WINDOWS.SNAKE_LEADERBOARD' | translate }}">🏆</button>
+        <button class="np-window-min-btn" (click)="minimizeWindow('snake')">_</button>
+        <button class="np-explorer-close" (click)="closeSnake()">×</button>
+      </div>
+    </div>
+    <!-- Canvas — always mounted so the element exists for drawing -->
+    <div class="np-snake-body">
+      <canvas #snakeCanvas [width]="SNAKE_COLS * SNAKE_CELL" [height]="SNAKE_ROWS * SNAKE_CELL"
+              class="np-snake-canvas" (keydown)="onSnakeKey($event)" tabindex="0"></canvas>
+
+      <!-- START screen -->
+      <div class="np-snake-controls" *ngIf="snakeStatus === 'ready'">
+        <button class="np-snake-start-btn" (click)="startSnake(); $event.stopPropagation()">
+          {{ 'WINDOWS.SNAKE_START' | translate }}
+        </button>
+        <p class="np-snake-hint">{{ 'WINDOWS.SNAKE_HINT' | translate }}</p>
+      </div>
+
+      <!-- GAME OVER + leaderboard (always inline, no panel swap) -->
+      <div class="np-snake-dead" *ngIf="snakeStatus === 'dead'">
+        <div class="np-snake-dead-header">
+          <span class="np-snake-dead-title">GAME OVER</span>
+          <span class="np-snake-dead-score">{{ 'WINDOWS.SNAKE_SCORE' | translate }}: <strong>{{ snakeScore }}</strong></span>
+          <button class="np-snake-start-btn np-snake-lb-replay" (click)="startSnake(); $event.stopPropagation()">
+            ▶ {{ 'WINDOWS.SNAKE_PLAY_AGAIN' | translate }}
+          </button>
+        </div>
+
+        <div class="np-snake-lb-loading" *ngIf="snakeLeaderboardLoading">⏳</div>
+        <div class="np-snake-lb-empty" *ngIf="!snakeLeaderboardLoading && snakeLeaderboard.length === 0">
+          {{ 'WINDOWS.SNAKE_NO_SCORES' | translate }}
+        </div>
+        <table class="np-snake-lb-table" *ngIf="!snakeLeaderboardLoading && snakeLeaderboard.length > 0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th colspan="2">{{ 'WINDOWS.SNAKE_PLAYER' | translate }}</th>
+              <th>{{ 'WINDOWS.SNAKE_BEST' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of snakeLeaderboard"
+                [class.np-snake-lb-top1]="entry.rank === 1"
+                [class.np-snake-lb-top2]="entry.rank === 2"
+                [class.np-snake-lb-top3]="entry.rank === 3">
+              <td class="np-snake-lb-rank">
+                <span *ngIf="entry.rank === 1">🥇</span>
+                <span *ngIf="entry.rank === 2">🥈</span>
+                <span *ngIf="entry.rank === 3">🥉</span>
+                <span *ngIf="entry.rank > 3">{{ entry.rank }}</span>
+              </td>
+              <td class="np-snake-lb-avatar">
+                <img *ngIf="entry.avatarUrl" [src]="entry.avatarUrl" class="np-snake-lb-pic" alt="" />
+                <div *ngIf="!entry.avatarUrl" class="np-snake-lb-pic np-snake-lb-nopic">
+                  {{ entry.username.charAt(0).toUpperCase() }}
+                </div>
+              </td>
+              <td class="np-snake-lb-name">{{ entry.username }}</td>
+              <td class="np-snake-lb-score">{{ entry.score }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Manual leaderboard view (🏆 button, during ready/playing) -->
+      <div class="np-snake-lb" *ngIf="snakeShowLeaderboard && snakeStatus !== 'dead'">
+        <div class="np-snake-lb-loading" *ngIf="snakeLeaderboardLoading">⏳</div>
+        <div class="np-snake-lb-empty" *ngIf="!snakeLeaderboardLoading && snakeLeaderboard.length === 0">
+          {{ 'WINDOWS.SNAKE_NO_SCORES' | translate }}
+        </div>
+        <table class="np-snake-lb-table" *ngIf="!snakeLeaderboardLoading && snakeLeaderboard.length > 0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th colspan="2">{{ 'WINDOWS.SNAKE_PLAYER' | translate }}</th>
+              <th>{{ 'WINDOWS.SNAKE_BEST' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of snakeLeaderboard"
+                [class.np-snake-lb-top1]="entry.rank === 1"
+                [class.np-snake-lb-top2]="entry.rank === 2"
+                [class.np-snake-lb-top3]="entry.rank === 3">
+              <td class="np-snake-lb-rank">
+                <span *ngIf="entry.rank === 1">🥇</span>
+                <span *ngIf="entry.rank === 2">🥈</span>
+                <span *ngIf="entry.rank === 3">🥉</span>
+                <span *ngIf="entry.rank > 3">{{ entry.rank }}</span>
+              </td>
+              <td class="np-snake-lb-avatar">
+                <img *ngIf="entry.avatarUrl" [src]="entry.avatarUrl" class="np-snake-lb-pic" alt="" />
+                <div *ngIf="!entry.avatarUrl" class="np-snake-lb-pic np-snake-lb-nopic">
+                  {{ entry.username.charAt(0).toUpperCase() }}
+                </div>
+              </td>
+              <td class="np-snake-lb-name">{{ entry.username }}</td>
+              <td class="np-snake-lb-score">{{ entry.score }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREENSAVER ═══ -->
+  <div class="np-screensaver" *ngIf="screensaverActive" (click)="dismissScreensaver()" (keydown)="dismissScreensaver()">
+    <div class="np-screensaver-logo" [style.left.px]="dvdX" [style.top.px]="dvdY" [style.color]="dvdColor">
+      <span class="np-ss-text">EVERLOAD</span>
+      <span class="np-ss-sub">XP</span>
+    </div>
+  </div>
+
+  <!-- ═══ BSOD ═══ -->
+  <div class="np-bsod" *ngIf="bsodActive" (click)="$event.stopPropagation()">
+    <div class="np-bsod-inner">
+      <p class="np-bsod-smiley">:(</p>
+      <p class="np-bsod-title">{{ 'WINDOWS.BSOD_TITLE' | translate }}</p>
+      <p class="np-bsod-body">
+        {{ 'WINDOWS.BSOD_BODY' | translate }}<br><br>
+        <strong>MUSIC_PLAYER_CRITICAL_EXCEPTION (0x0000007E)</strong><br><br>
+        {{ 'WINDOWS.BSOD_MORE_INFO' | translate }}: everload.local/error
+      </p>
+      <div class="np-bsod-progress-wrap">
+        <div class="np-bsod-progress-bar"></div>
+        <span>{{ 'WINDOWS.BSOD_COMPLETE' | translate }}</span>
+      </div>
+      <p class="np-bsod-hint">{{ 'WINDOWS.BSOD_ENTER_HINT' | translate }}</p>
+    </div>
+  </div>
+
+  <!-- ═══ XP NOTIFICATIONS ═══ -->
+  <div class="np-xp-notifs-container">
+    <div class="np-xp-notif" *ngFor="let n of xpNotifs" (click)="dismissXpNotif(n.id)">
+      <div class="np-xp-notif-head">
+        <span class="np-xp-notif-icon">♪</span>
+        <span class="np-xp-notif-app">{{ 'WINDOWS.NOTIF_NOW_PLAYING' | translate }}</span>
+        <button class="np-xp-notif-close" (click)="dismissXpNotif(n.id); $event.stopPropagation()">×</button>
+      </div>
+      <div class="np-xp-notif-body">
+        <strong>{{ n.title }}</strong>
+        <span>{{ n.body }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CONTEXT MENU ═══ -->
+  <div class="np-ctx-menu" *ngIf="ctxMenuOpen" [style.left.px]="ctxMenuX" [style.top.px]="ctxMenuY" (click)="$event.stopPropagation()">
+    <button class="np-ctx-item" (click)="openWallpaperSettings(); closeCtxMenu()">{{ 'WINDOWS.CHANGE_WALLPAPER' | translate }}</button>
+    <button class="np-ctx-item" (click)="openCalculator(); closeCtxMenu()">{{ 'WINDOWS.CALCULATOR' | translate }}</button>
+    <button class="np-ctx-item" (click)="openNotepad(); closeCtxMenu()">{{ 'WINDOWS.NOTEPAD' | translate }}</button>
+    <button class="np-ctx-item" (click)="openEqualizer(); closeCtxMenu()">{{ 'WINDOWS.EQUALIZER' | translate }}</button>
+    <button class="np-ctx-item" (click)="openSnake(); closeCtxMenu()">🐍 Snake</button>
+    <div class="np-ctx-sep"></div>
+    <button class="np-ctx-item" (click)="cycleSkin(); closeCtxMenu()">{{ 'WINDOWS.CHANGE_PLAYER_SKIN' | translate }}</button>
+    <div class="np-ctx-sep"></div>
+    <button class="np-ctx-item" (click)="toggleFullscreen(); closeCtxMenu()">{{ 'WINDOWS.START_FULLSCREEN' | translate }}</button>
+  </div>
+
   <div class="np-desktop-taskbar" [class.hidden]="isFullscreen">
     <button class="np-start-btn" (click)="toggleStartMenu()">
       <span class="np-windows-flag" aria-hidden="true">
@@ -450,6 +1023,15 @@
               title="NAS Explorer">
         <span class="np-task-icon folder"></span>
         <span>NAS Explorer</span>
+      </button>
+      <button class="np-task-chip"
+              *ngIf="musicManagerOpen"
+              [class.active]="activeDesktopWindow === 'manager' && !musicManagerMinimized"
+              [class.minimized]="musicManagerMinimized"
+              (click)="toggleTaskWindow('manager')"
+              [title]="'WINDOWS.MANAGER_TITLE' | translate">
+        <span class="np-task-icon manager"></span>
+        <span>{{ 'WINDOWS.MANAGER_TITLE' | translate }}</span>
       </button>
       <button class="np-task-chip"
               *ngIf="messengerOpen"
@@ -478,13 +1060,25 @@
         <span class="np-task-icon minesweeper"></span>
         <span>{{ 'WINDOWS.MINESWEEPER' | translate }}</span>
       </button>
+      <button class="np-task-chip" *ngIf="calculatorOpen" [class.active]="activeDesktopWindow === 'calculator' && !calculatorMinimized" [class.minimized]="calculatorMinimized" (click)="toggleTaskWindow('calculator')" [title]="'WINDOWS.CALCULATOR' | translate">
+        <span class="np-task-icon calculator"></span><span>{{ 'WINDOWS.CALCULATOR' | translate }}</span>
+      </button>
+      <button class="np-task-chip" *ngIf="notepadOpen" [class.active]="activeDesktopWindow === 'notepad' && !notepadMinimized" [class.minimized]="notepadMinimized" (click)="toggleTaskWindow('notepad')" [title]="'WINDOWS.NOTEPAD' | translate">
+        <span class="np-task-icon notepad"></span><span>{{ 'WINDOWS.NOTEPAD' | translate }}</span>
+      </button>
+      <button class="np-task-chip" *ngIf="equalizerOpen" [class.active]="activeDesktopWindow === 'equalizer' && !equalizerMinimized" [class.minimized]="equalizerMinimized" (click)="toggleTaskWindow('equalizer')" [title]="'WINDOWS.EQUALIZER' | translate">
+        <span class="np-task-icon equalizer"></span><span>{{ 'WINDOWS.EQUALIZER' | translate }}</span>
+      </button>
+      <button class="np-task-chip" *ngIf="snakeOpen" [class.active]="activeDesktopWindow === 'snake' && !snakeMinimized" [class.minimized]="snakeMinimized" (click)="toggleTaskWindow('snake')" title="Snake">
+        <span class="np-task-icon snake"></span><span>Snake</span>
+      </button>
       <button class="np-task-chip"
               [class.active]="activeDesktopWindow === 'player' && !playerMinimized"
               [class.minimized]="playerMinimized"
               (click)="toggleTaskWindow('player')"
-              title="Windows Media Player">
+              [title]="'WINDOWS.MEDIA_PLAYER' | translate">
         <span class="np-task-icon player"></span>
-        <span>Windows Media Player</span>
+        <span>{{ 'WINDOWS.MEDIA_PLAYER' | translate }}</span>
       </button>
     </div>
     <div class="np-taskbar-volume">
@@ -497,20 +1091,23 @@
   </div>
 </div>
 
-<div class="np-panel" *ngIf="isOpen && !playerMinimized" (click)="focusWindow('player'); $event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" [ngStyle]="desktopPanelStyle" #desktopPanel>
+<div class="np-panel" *ngIf="isOpen && !playerMinimized" (click)="focusWindow('player'); $event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" [class.np-panel-winamp]="isDesktopWmp && playerSkin === 'winamp'" [class.np-panel-foobar]="isDesktopWmp && playerSkin === 'foobar'" [ngStyle]="desktopPanelStyle" #desktopPanel>
   <ng-container *ngIf="isDesktopWmp; else mobilePanel">
-    <div class="wmp-window">
+    <ng-container [ngSwitch]="playerSkin">
+
+    <!-- ═══════════════ WMP SKIN ═══════════════ -->
+    <div *ngSwitchCase="'wmp'" class="wmp-window">
       <div class="wmp-titlebar" (mousedown)="beginWindowDrag($event, 'player')">
         <div class="wmp-title-copy">
           <span class="wmp-title-orb">
             <span class="wmp-title-orb-ring"></span>
             <span class="wmp-title-orb-play"></span>
           </span>
-          <strong>Windows Media Player</strong>
+          <strong>{{ 'WINDOWS.MEDIA_PLAYER_FULL' | translate }}</strong>
         </div>
         <div class="wmp-title-actions">
           <button class="wmp-close-btn wmp-minimize-btn" (click)="minimizeWindow('player')" title="Minimizar">_</button>
-          <button class="wmp-close-btn wmp-fullscreen-btn" (click)="toggleFullscreen()" [title]="isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'">
+          <button class="wmp-close-btn wmp-fullscreen-btn" (click)="toggleFullscreen()" [title]="isFullscreen ? ('WINDOWS.START_EXIT_FULLSCREEN' | translate) : ('WINDOWS.START_FULLSCREEN' | translate)">
             <svg *ngIf="!isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm0-7h2V5h-5v2h3v3z"/></svg>
             <svg *ngIf="isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-4v4h-2v-6h6v2zM5 11h6v6H9v-4H5v-2zm4-4v4H7V5h6v2H9zm6 0v4h2V7h4V5h-6z"/></svg>
           </button>
@@ -524,6 +1121,12 @@
         <span>{{ 'WINDOWS.WMP_MENU_PLAY' | translate }}</span>
         <span>{{ 'WINDOWS.MENU_TOOLS' | translate }}</span>
         <span>{{ 'WINDOWS.MENU_HELP' | translate }}</span>
+        <span class="wmp-skin-picker-trigger" (click)="$event.stopPropagation()">
+          Skin: <span class="wmp-skin-label">{{ playerSkin | uppercase }}</span>
+          <div class="wmp-skin-dropdown">
+            <button *ngFor="let s of skinOptions" [class.active]="playerSkin === s.id" (click)="setSkin(s.id)">{{ s.name }}</button>
+          </div>
+        </span>
       </div>
 
       <div class="wmp-toolbar">
@@ -636,6 +1239,299 @@
         <span>{{ state?.pathId != null ? 'NAS' : 'LOCAL' }}</span>
       </div>
     </div>
+
+    <!-- ═══════════════ WINAMP SKIN ═══════════════ -->
+    <div *ngSwitchCase="'winamp'" class="wa-shell" (mousedown)="beginWindowDrag($event, 'player')">
+
+      <!-- ── MAIN PLAYER ── -->
+      <div class="wa-main">
+        <div class="wa-titlebar">
+          <div class="wa-titlebar-left">
+            <span class="wa-logo">WINAMP</span>
+          </div>
+          <div class="wa-titlebar-right" (mousedown)="$event.stopPropagation()">
+            <button class="wa-wbtn" (click)="cycleSkin(); $event.stopPropagation()" [title]="'WINDOWS.CHANGE_SKIN' | translate">◈</button>
+            <button class="wa-wbtn" (click)="minimizeWindow('player'); $event.stopPropagation()">_</button>
+            <button class="wa-wbtn wa-wbtn-close" (click)="closePlayerWindow(); $event.stopPropagation()">×</button>
+          </div>
+        </div>
+
+        <div class="wa-display">
+          <!-- Left: spectrum viz -->
+          <div class="wa-vis-col">
+            <canvas #panelCanvas class="wa-spectrum-canvas"></canvas>
+          </div>
+          <!-- Center: time + meta -->
+          <div class="wa-info-col">
+            <div class="wa-play-badge">
+              <span *ngIf="state?.playing">▶</span>
+              <span *ngIf="state?.loading">⏳</span>
+              <span *ngIf="!state?.playing && !state?.loading">⏸</span>
+            </div>
+            <div class="wa-digital-time">{{ fmt(state?.currentTime || 0) }}</div>
+            <div class="wa-bitrate-row">
+              <span class="wa-kbps">128 kbps</span>
+              <span class="wa-khz">44 kHz</span>
+            </div>
+            <div class="wa-stereo-badge">stereo</div>
+          </div>
+          <!-- Track title scrolling -->
+          <div class="wa-marquee-col">
+            <div class="wa-track-marquee">{{ (state?.currentTrack?.title || state?.currentTrack?.name || '*** No track loaded ***') + ' — ' + (state?.currentTrack?.artist || '') }}</div>
+          </div>
+          <!-- EQ / PL toggles -->
+          <div class="wa-eqpl-col" (mousedown)="$event.stopPropagation()">
+            <button class="wa-eqpl-btn" [class.active]="waEqVisible" (click)="waEqVisible = !waEqVisible; $event.stopPropagation()">EQ</button>
+            <button class="wa-eqpl-btn" [class.active]="waPlVisible" (click)="waPlVisible = !waPlVisible; $event.stopPropagation()">PL</button>
+          </div>
+        </div>
+
+        <!-- Sliders row: volume + balance -->
+        <div class="wa-sliders-row" (mousedown)="$event.stopPropagation()">
+          <div class="wa-vol-group">
+            <span class="wa-slider-lbl">VOL</span>
+            <input type="range" class="wa-hslider wa-vol-slider" min="0" max="100" [value]="currentVolumePercent"
+                   (input)="setDesktopVolume($any($event.target).value)" (click)="$event.stopPropagation()" />
+          </div>
+          <div class="wa-bal-group">
+            <span class="wa-slider-lbl">BAL</span>
+            <input type="range" class="wa-hslider wa-bal-slider" min="-50" max="50" value="0" (click)="$event.stopPropagation()" />
+          </div>
+        </div>
+
+        <!-- Position seek bar -->
+        <div class="wa-posbar" (click)="onSeek($event); $event.stopPropagation()" (mousedown)="$event.stopPropagation()">
+          <div class="wa-posbar-fill" [style.width.%]="(state?.currentTime||0)/(state?.duration||1)*100"></div>
+          <div class="wa-posbar-thumb" [style.left.%]="(state?.currentTime||0)/(state?.duration||1)*100"></div>
+        </div>
+
+        <!-- Transport buttons -->
+        <div class="wa-transport" (mousedown)="$event.stopPropagation()">
+          <button class="wa-tbtn wa-prev" (click)="musicService.playPrevMain(); $event.stopPropagation()" title="Anterior">
+            <span class="wa-tbtn-icon">⏮</span>
+          </button>
+          <button class="wa-tbtn wa-play" (click)="musicService.mainPlayer.togglePlay(); $event.stopPropagation()" title="Play">
+            <span class="wa-tbtn-icon">▶</span>
+          </button>
+          <button class="wa-tbtn wa-pause" (click)="musicService.mainPlayer.togglePlay(); $event.stopPropagation()" title="Pause">
+            <span class="wa-tbtn-icon">⏸</span>
+          </button>
+          <button class="wa-tbtn wa-stop" (click)="musicService.mainPlayer.seek(0); $event.stopPropagation()" title="Stop">
+            <span class="wa-tbtn-icon">⏹</span>
+          </button>
+          <button class="wa-tbtn wa-next" (click)="musicService.playNextMain(); $event.stopPropagation()" title="Siguiente">
+            <span class="wa-tbtn-icon">⏭</span>
+          </button>
+          <button class="wa-tbtn wa-eject" (click)="openExplorerWindow(); $event.stopPropagation()" title="Abrir">
+            <span class="wa-tbtn-icon">⏏</span>
+          </button>
+          <div class="wa-transport-spacer"></div>
+          <button class="wa-text-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle(); $event.stopPropagation()">SHUFFLE</button>
+          <button class="wa-text-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat(); $event.stopPropagation()">⟳</button>
+          <button *ngIf="state?.currentTrack" class="wa-text-btn wa-like-btn" [class.active]="isLiked(state!.currentTrack!)" (click)="toggleLike($event, state!.currentTrack!)">♥</button>
+        </div>
+      </div><!-- /wa-main -->
+
+      <!-- ── EQUALIZER ── -->
+      <div class="wa-eq-window" *ngIf="waEqVisible">
+        <div class="wa-eq-titlebar">
+          <span class="wa-eq-title-text">WINAMP EQUALIZER</span>
+          <div class="wa-eq-header-btns" (mousedown)="$event.stopPropagation()">
+            <button class="wa-eq-hbtn" [class.on]="waEqOn" (click)="toggleWaEq()">ON</button>
+            <button class="wa-eq-hbtn">AUTO</button>
+            <button class="wa-eq-presets-btn" (click)="resetWaEq()">PRESETS</button>
+          </div>
+        </div>
+        <div class="wa-eq-body" (mousedown)="$event.stopPropagation()">
+          <div class="wa-eq-db-col">
+            <span>+12db</span>
+            <span>0db</span>
+            <span>-12db</span>
+          </div>
+          <!-- Preamp -->
+          <div class="wa-eq-band-col">
+            <input type="range" orient="vertical" class="wa-eq-vslider" min="-12" max="12" value="0" (click)="$event.stopPropagation()" />
+            <span class="wa-eq-band-lbl">PREAMP</span>
+          </div>
+          <div class="wa-eq-vsep"></div>
+          <!-- 10 bands -->
+          <div class="wa-eq-band-col" *ngFor="let b of waEqBands; let i = index">
+            <input type="range" orient="vertical" class="wa-eq-vslider" min="-12" max="12" [value]="b"
+                   (input)="setWaEqBand(i, $any($event.target).value)" (mousedown)="$event.stopPropagation()" />
+            <span class="wa-eq-band-lbl">{{ waEqBandNames[i] }}</span>
+          </div>
+        </div>
+      </div><!-- /wa-eq-window -->
+
+      <!-- ── PLAYLIST ── -->
+      <div class="wa-pl-window" *ngIf="waPlVisible">
+        <div class="wa-pl-titlebar">
+          <span>WINAMP PLAYLIST</span>
+        </div>
+        <div class="wa-pl-body">
+          <div class="wa-pl-empty" *ngIf="winampQueue.tracks.length === 0">Sin pistas en la cola — abre el NAS Explorer y haz doble clic en una canción</div>
+          <div class="wa-pl-entry"
+               *ngFor="let track of winampQueue.tracks; let i = index"
+               [class.wa-pl-active]="i === winampQueue.index"
+               (click)="musicService.setQueue(winampQueue.pathId, winampQueue.tracks, i); $event.stopPropagation()">
+            <span class="wa-pl-num">{{ i + 1 }}.</span>
+            <span class="wa-pl-name">{{ track.artist ? track.artist + ' - ' : '' }}{{ track.title || track.name }}</span>
+            <span class="wa-pl-dur">{{ fmt(track.duration) }}</span>
+          </div>
+        </div>
+        <div class="wa-pl-footer" (mousedown)="$event.stopPropagation()">
+          <div class="wa-pl-footer-left">
+            <button class="wa-pl-fbtn" (click)="openExplorerWindow(); $event.stopPropagation()">ADD</button>
+            <button class="wa-pl-fbtn" (click)="musicService.setQueue(winampQueue.pathId, [], -1); $event.stopPropagation()">REM</button>
+            <button class="wa-pl-fbtn">SEL</button>
+            <button class="wa-pl-fbtn">MISC</button>
+          </div>
+          <div class="wa-pl-footer-time">{{ fmt(state?.currentTime||0) }} / {{ fmt(state?.duration||0) }}</div>
+          <div class="wa-pl-footer-right">
+            <button class="wa-pl-fbtn">SORT</button>
+            <button class="wa-pl-fbtn">BUTS</button>
+          </div>
+        </div>
+      </div><!-- /wa-pl-window -->
+
+    </div><!-- /wa-shell -->
+
+    <!-- ═══════════════ macOS MUSIC SKIN ═══════════════ -->
+    <div *ngSwitchCase="'macos'" class="macos-window">
+      <div class="macos-titlebar" (mousedown)="beginWindowDrag($event, 'player')">
+        <div class="macos-traffic">
+          <span class="macos-traffic-btn macos-close" (click)="closePlayerWindow(); $event.stopPropagation()"></span>
+          <span class="macos-traffic-btn macos-min" (click)="minimizeWindow('player'); $event.stopPropagation()"></span>
+          <span class="macos-traffic-btn macos-max" (click)="toggleFullscreen(); $event.stopPropagation()"></span>
+        </div>
+        <span class="macos-app-title">Music</span>
+        <button class="macos-skin-btn" (click)="cycleSkin(); $event.stopPropagation()" [title]="'WINDOWS.CHANGE_SKIN' | translate">◈</button>
+      </div>
+      <div class="macos-body">
+        <div class="macos-sidebar">
+          <div class="macos-art">
+            <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" (error)="$any($event.target).style.display='none'" />
+            <div *ngIf="!playerHasCover()" class="macos-art-placeholder">♪</div>
+          </div>
+          <canvas #panelCanvas class="macos-canvas"></canvas>
+        </div>
+        <div class="macos-main">
+          <div class="macos-track-info">
+            <div class="macos-track-title">{{ state?.currentTrack?.title || state?.currentTrack?.name || 'Sin reproducción' }}</div>
+            <div class="macos-track-artist">{{ state?.currentTrack?.artist || 'Artista desconocido' }}</div>
+            <div class="macos-track-album">{{ state?.currentTrack?.album || '' }}</div>
+          </div>
+          <div class="macos-like-row">
+            <button *ngIf="state?.currentTrack" class="macos-like-btn" (click)="toggleLike($event, state!.currentTrack!)" [class.active]="isLiked(state!.currentTrack!)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+            <span class="macos-format-badge" *ngIf="state?.currentTrack?.format">{{ state?.currentTrack?.format }}</span>
+          </div>
+          <div class="macos-progress-row">
+            <span class="macos-time">{{ fmt(state?.currentTime || 0) }}</span>
+            <div class="macos-seek-track" (click)="onSeek($event)">
+              <div class="macos-seek-fill" [style.width.%]="(state?.currentTime||0)/(state?.duration||1)*100"></div>
+              <div class="macos-seek-thumb" [style.left.%]="(state?.currentTime||0)/(state?.duration||1)*100"></div>
+            </div>
+            <span class="macos-time">{{ fmt(state?.duration || 0) }}</span>
+          </div>
+          <div class="macos-controls">
+            <button class="macos-ctrl" (click)="musicService.toggleShuffle(); $event.stopPropagation()" [class.active]="shuffle" title="Aleatorio">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+            </button>
+            <button class="macos-ctrl macos-ctrl-prev" (click)="musicService.playPrevMain(); $event.stopPropagation()">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
+            <button class="macos-ctrl macos-ctrl-play" (click)="musicService.mainPlayer.togglePlay(); $event.stopPropagation()">
+              <svg *ngIf="!state?.playing" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              <svg *ngIf="state?.playing" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button class="macos-ctrl macos-ctrl-next" (click)="musicService.playNextMain(); $event.stopPropagation()">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
+            </button>
+            <button class="macos-ctrl" (click)="musicService.toggleRepeat(); $event.stopPropagation()" [class.active]="repeat !== 'none'" title="Repetir">
+              <svg *ngIf="repeat !== 'one'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+              <svg *ngIf="repeat === 'one'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-2V9h-1l-2 1v1h1.5v4H13z"/></svg>
+            </button>
+          </div>
+          <div class="macos-vol-row">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 12A4.5 4.5 0 0 0 16 8.1V15.9A4.5 4.5 0 0 0 18.5 12zM5 9v6h4l5 5V4L9 9H5z"/></svg>
+            <input type="range" min="0" max="100" [value]="currentVolumePercent" (input)="setDesktopVolume($any($event.target).value)" class="macos-vol-slider" (click)="$event.stopPropagation()" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5 12A4.5 4.5 0 0 0 16 8.1V15.9A4.5 4.5 0 0 0 18.5 12zM5 9v6h4l5 5V4L9 9H5zm13.5-2c3 1.77 3 6.46 0 8.94V6.06z"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ FOOBAR2000 SKIN ═══════════════ -->
+    <div *ngSwitchDefault class="foobar-window">
+      <div class="foobar-titlebar" (mousedown)="beginWindowDrag($event, 'player')">
+        <span class="foobar-icon">🎵</span>
+        <span class="foobar-title-text">foobar2000 v2.1 — {{ state?.currentTrack?.title || state?.currentTrack?.name || 'No track' }}</span>
+        <div class="foobar-title-btns">
+          <button class="foobar-tbtn" (click)="cycleSkin(); $event.stopPropagation()" [title]="'WINDOWS.CHANGE_SKIN' | translate">⋯</button>
+          <button class="foobar-tbtn" (click)="minimizeWindow('player'); $event.stopPropagation()">—</button>
+          <button class="foobar-tbtn foobar-tbtn-close" (click)="closePlayerWindow(); $event.stopPropagation()">✕</button>
+        </div>
+      </div>
+      <div class="foobar-menubar">
+        <span>File</span><span>Edit</span><span>View</span><span>Playback</span><span>Library</span><span>Help</span>
+      </div>
+      <div class="foobar-toolbar">
+        <button class="foobar-btn" (click)="musicService.playPrevMain(); $event.stopPropagation()" title="Anterior">|◄</button>
+        <button class="foobar-btn" (click)="musicService.mainPlayer.togglePlay(); $event.stopPropagation()" title="Play/Pause">
+          <span *ngIf="!state?.playing">▶</span><span *ngIf="state?.playing">⏸</span>
+        </button>
+        <button class="foobar-btn" (click)="musicService.mainPlayer.togglePlay(); $event.stopPropagation()" title="Stop">■</button>
+        <button class="foobar-btn" (click)="musicService.playNextMain(); $event.stopPropagation()" title="Siguiente">►|</button>
+        <div class="foobar-tb-sep"></div>
+        <button class="foobar-btn" [class.foobar-active]="shuffle" (click)="musicService.toggleShuffle(); $event.stopPropagation()" title="Aleatorio">Shuffle</button>
+        <button class="foobar-btn" [class.foobar-active]="repeat !== 'none'" (click)="musicService.toggleRepeat(); $event.stopPropagation()" title="Repetir">Repeat</button>
+        <div class="foobar-tb-sep"></div>
+        <span class="foobar-time-display">{{ fmt(state?.currentTime||0) }} / {{ fmt(state?.duration||0) }}</span>
+        <div class="foobar-tb-vol">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M5 9v6h4l5 5V4L9 9H5z"/></svg>
+          <input type="range" min="0" max="100" [value]="currentVolumePercent" (input)="setDesktopVolume($any($event.target).value)" class="foobar-vol-slider" (click)="$event.stopPropagation()" />
+          <span>{{ currentVolumePercent }}%</span>
+        </div>
+      </div>
+      <div class="foobar-seekbar-row" (click)="onSeek($event)">
+        <div class="foobar-seekbar-track">
+          <div class="foobar-seekbar-fill" [style.width.%]="(state?.currentTime||0)/(state?.duration||1)*100"></div>
+          <div class="foobar-seekbar-thumb" [style.left.%]="(state?.currentTime||0)/(state?.duration||1)*100"></div>
+        </div>
+      </div>
+      <div class="foobar-body">
+        <div class="foobar-np-panel">
+          <div class="foobar-np-art">
+            <img *ngIf="playerHasCover()" [src]="playerCoverUrl()" (error)="$any($event.target).style.display='none'" />
+            <div *ngIf="!playerHasCover()" class="foobar-art-ph">♪</div>
+          </div>
+          <div class="foobar-np-info">
+            <div class="foobar-info-row"><span class="foobar-lbl">Title</span><span class="foobar-val">{{ state?.currentTrack?.title || state?.currentTrack?.name || '—' }}</span></div>
+            <div class="foobar-info-row"><span class="foobar-lbl">Artist</span><span class="foobar-val">{{ state?.currentTrack?.artist || '—' }}</span></div>
+            <div class="foobar-info-row"><span class="foobar-lbl">Album</span><span class="foobar-val">{{ state?.currentTrack?.album || '—' }}</span></div>
+            <div class="foobar-info-row"><span class="foobar-lbl">Format</span><span class="foobar-val">{{ state?.currentTrack?.format || '—' }}</span></div>
+            <div class="foobar-info-row"><span class="foobar-lbl">Duration</span><span class="foobar-val">{{ fmt(state?.duration||0) }}</span></div>
+            <div class="foobar-info-row"><span class="foobar-lbl">Source</span><span class="foobar-val">{{ state?.pathId != null ? 'NAS' : 'Local' }}</span></div>
+            <div class="foobar-actions-row">
+              <button *ngIf="state?.currentTrack" class="foobar-like-btn" (click)="toggleLike($event, state!.currentTrack!)" [class.foobar-liked]="isLiked(state!.currentTrack!)">
+                {{ isLiked(state!.currentTrack!) ? '♥ Liked' : '♡ Like' }}
+              </button>
+              <button class="foobar-like-btn" (click)="openExplorerWindow(); $event.stopPropagation()">📁 Library</button>
+            </div>
+            <canvas #panelCanvas class="foobar-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="foobar-statusbar">
+        <span>{{ state?.currentTrack ? 'Playing' : 'Stopped' }}</span>
+        <div class="foobar-status-mid">foobar2000 · Everload Edition</div>
+        <span>{{ state?.pathId != null ? 'NAS' : 'LOCAL' }}</span>
+      </div>
+    </div>
+
+    </ng-container>
     <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'player', 'left', 'top')"></span>
     <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'player', 'right', 'top')"></span>
     <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'player', 'left', 'bottom')"></span>
