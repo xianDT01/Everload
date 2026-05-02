@@ -5,6 +5,7 @@ import { HomeComponent } from './components/home/home.component';
 import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
 import { PendingApprovalComponent } from './components/pending-approval/pending-approval.component';
+import { AndroidAppComponent } from './components/android-app/android-app.component';
 
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
@@ -17,6 +18,7 @@ const routes: Routes = [
 
   // ── Home (always-loaded, shown first after login) ─────────────────────────
   { path: '', component: HomeComponent, canActivate: [AuthGuard] },
+  { path: 'android-app', component: AndroidAppComponent, canActivate: [AuthGuard] },
 
   // ── Downloads (lazy) ──────────────────────────────────────────────────────
   {

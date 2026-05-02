@@ -13,6 +13,8 @@ public class BackupDto {
     private String name;
     private long sizeBytes;
     private String createdAt;
+    private String type;
+    private String description;
 
     /** Human-readable size, e.g. "2.4 MB" */
     public String getSizeFormatted() {

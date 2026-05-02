@@ -46,6 +46,10 @@
           <span class="np-desktop-icon-glyph youtube"></span>
           <span>YouTube XP</span>
         </button>
+        <button class="np-desktop-icon" data-icon="browser" [ngStyle]="desktopIconStyle('browser')" [class.selected]="isDesktopIconSelected('browser')" (click)="runDesktopIcon('browser', $event)">
+          <span class="np-desktop-icon-glyph browser"></span>
+          <span>{{ 'WINDOWS.BROWSER' | translate }}</span>
+        </button>
         <button class="np-desktop-icon" data-icon="minesweeper" [ngStyle]="desktopIconStyle('minesweeper')" [class.selected]="isDesktopIconSelected('minesweeper')" (click)="runDesktopIcon('minesweeper', $event)">
           <span class="np-desktop-icon-glyph minesweeper"></span>
           <span>{{ 'WINDOWS.MINESWEEPER' | translate }}</span>
@@ -97,6 +101,10 @@
         <button class="np-xp-item bold" (click)="openYoutubeDownloader()">
           <span class="np-start-item-icon youtube"></span>
           <div><strong>YouTube XP</strong></div>
+        </button>
+        <button class="np-xp-item bold" (click)="openBrowser()">
+          <span class="np-start-item-icon browser"></span>
+          <div><strong>{{ 'WINDOWS.BROWSER' | translate }}</strong><small>{{ 'WINDOWS.BROWSER_DESC' | translate }}</small></div>
         </button>
 
         <div class="np-start-separator"></div>
@@ -354,9 +362,9 @@
       <button class="np-explorer-nav" (click)="goExplorerUp()" [disabled]="!explorerSubPath">{{ 'WINDOWS.NAV_BACK' | translate }}</button>
       <ng-container *ngIf="canManageNas">
         <button class="np-explorer-nav" (click)="createExplorerFolder()">{{ 'WINDOWS.NAV_NEW_FOLDER' | translate }}</button>
-        <button class="np-explorer-nav" (click)="renameExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.NAV_RENAME' | translate }}</button>
-        <button class="np-explorer-nav" (click)="moveExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.NAV_MOVE' | translate }}</button>
-        <button class="np-explorer-nav danger" (click)="deleteExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.NAV_DELETE' | translate }}</button>
+        <button class="np-explorer-nav" (click)="renameExplorerItem()" [disabled]="!explorerCanRename">{{ 'WINDOWS.NAV_RENAME' | translate }}</button>
+        <button class="np-explorer-nav" (click)="moveExplorerItem()" [disabled]="!explorerCanBulkOperate">{{ 'WINDOWS.NAV_MOVE' | translate }}</button>
+        <button class="np-explorer-nav danger" (click)="deleteExplorerItem()" [disabled]="!explorerCanBulkOperate">{{ 'WINDOWS.NAV_DELETE' | translate }}</button>
         <button class="np-explorer-nav" (click)="uploadFilesInput.click()">{{ 'WINDOWS.NAV_UPLOAD_FILES' | translate }}</button>
         <button class="np-explorer-nav" (click)="uploadFolderInput.click()">{{ 'WINDOWS.NAV_UPLOAD_FOLDER' | translate }}</button>
       </ng-container>
@@ -372,9 +380,9 @@
         </div>
         <div class="np-explorer-sidegroup" *ngIf="canManageNas">
           <h4>{{ 'WINDOWS.SIDE_FILE_TASKS' | translate }}</h4>
-          <button class="np-explorer-sideaction" (click)="renameExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.SIDE_RENAME_ITEM' | translate }}</button>
-          <button class="np-explorer-sideaction" (click)="moveExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.SIDE_MOVE_ITEM' | translate }}</button>
-          <button class="np-explorer-sideaction danger" (click)="deleteExplorerItem()" [disabled]="!explorerSelectedItem">{{ 'WINDOWS.SIDE_DELETE_ITEM' | translate }}</button>
+          <button class="np-explorer-sideaction" (click)="renameExplorerItem()" [disabled]="!explorerCanRename">{{ 'WINDOWS.SIDE_RENAME_ITEM' | translate }}</button>
+          <button class="np-explorer-sideaction" (click)="moveExplorerItem()" [disabled]="!explorerCanBulkOperate">{{ 'WINDOWS.SIDE_MOVE_ITEM' | translate }}</button>
+          <button class="np-explorer-sideaction danger" (click)="deleteExplorerItem()" [disabled]="!explorerCanBulkOperate">{{ 'WINDOWS.SIDE_DELETE_ITEM' | translate }}</button>
         </div>
         <div class="np-explorer-sidegroup">
           <h4>{{ 'WINDOWS.SIDE_OTHER_PLACES' | translate }}</h4>
@@ -385,6 +393,13 @@
             (click)="selectExplorerPath(path.id)">
             {{ path.name }}
           </button>
+        </div>
+        <div class="np-explorer-sidegroup details" *ngIf="explorerSelectionCount > 1">
+          <h4>{{ 'WINDOWS.SIDE_DETAILS' | translate }}</h4>
+          <div class="np-explorer-sidecopy">
+            <strong>{{ 'WINDOWS.SIDE_SELECTED_COUNT' | translate:{ count: explorerSelectionCount } }}</strong>
+            <span>{{ 'WINDOWS.SIDE_SELECTED_READY' | translate }}</span>
+          </div>
         </div>
         <div class="np-explorer-sidegroup details" *ngIf="explorerSelectedItem as selected">
           <h4>{{ 'WINDOWS.SIDE_DETAILS' | translate }}</h4>
@@ -412,7 +427,7 @@
           <button
             class="np-explorer-item folder"
             *ngFor="let folder of explorerFolders"
-            (click)="selectExplorerItem(folder)"
+            (click)="selectExplorerItem(folder, $event)"
             (dblclick)="openExplorerFolder(folder)"
             (contextmenu)="openExplorerCtxMenu($event, folder)"
             [class.selected]="isExplorerItemSelected(folder)">
@@ -427,7 +442,7 @@
           <button
             class="np-explorer-item track"
             *ngFor="let track of explorerTracks"
-            (click)="selectExplorerItem(track)"
+            (click)="selectExplorerItem(track, $event)"
             (dblclick)="playExplorerTrack(track)"
             (contextmenu)="openExplorerCtxMenu($event, track)"
             [class.active]="state?.currentTrack?.path === track.path"
@@ -447,7 +462,7 @@
     <!-- Explorer right-click context menu -->
     <div class="np-exp-ctx-backdrop" *ngIf="explorerCtxOpen" (click)="closeExplorerCtxMenu()" (contextmenu)="closeExplorerCtxMenu(); $event.preventDefault()"></div>
     <div class="np-exp-ctx-menu" *ngIf="explorerCtxOpen" [style.left.px]="explorerCtxX" [style.top.px]="explorerCtxY" (click)="$event.stopPropagation()">
-      <ng-container *ngIf="explorerCtxTarget && !explorerCtxTarget.directory">
+      <ng-container *ngIf="explorerCtxTarget && !explorerCtxTarget.directory && explorerSelectionCount <= 1">
         <div class="np-exp-ctx-item" (click)="explorerCtxPlay()">
           <span class="np-exp-ctx-icon play"></span> Reproducir
         </div>
@@ -455,23 +470,23 @@
       </ng-container>
       <ng-container *ngIf="explorerCtxTarget && canManageNas">
         <div class="np-exp-ctx-item" (click)="explorerCtxCopy()">
-          <span class="np-exp-ctx-icon copy"></span> Copiar
+          <span class="np-exp-ctx-icon copy"></span> Copiar<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
         </div>
-        <div class="np-exp-ctx-item" *ngIf="!explorerCtxTarget.directory" (click)="explorerCtxCut()">
-          <span class="np-exp-ctx-icon cut"></span> Cortar
+        <div class="np-exp-ctx-item" (click)="explorerCtxCut()">
+          <span class="np-exp-ctx-icon cut"></span> Cortar<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
         </div>
       </ng-container>
       <div class="np-exp-ctx-item" *ngIf="explorerClipboard && canManageNas" (click)="explorerCtxPaste()">
         <span class="np-exp-ctx-icon paste"></span>
-        Pegar <span class="np-exp-ctx-hint">({{ explorerClipboard.item.name }})</span>
+        Pegar <span class="np-exp-ctx-hint">({{ explorerClipboardLabel }})</span>
       </div>
       <ng-container *ngIf="explorerCtxTarget && canManageNas">
         <div class="np-exp-ctx-separator"></div>
-        <div class="np-exp-ctx-item" (click)="explorerCtxRename()">
+        <div class="np-exp-ctx-item" *ngIf="explorerCanRename" (click)="explorerCtxRename()">
           <span class="np-exp-ctx-icon rename"></span> Renombrar
         </div>
         <div class="np-exp-ctx-item danger" (click)="explorerCtxDelete()">
-          <span class="np-exp-ctx-icon delete"></span> Eliminar
+          <span class="np-exp-ctx-icon delete"></span> Eliminar<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
         </div>
       </ng-container>
       <div class="np-exp-ctx-separator" *ngIf="explorerCtxTarget"></div>
@@ -483,7 +498,7 @@
       </div>
       <div class="np-exp-ctx-item" *ngIf="!explorerCtxTarget && explorerClipboard && canManageNas" (click)="explorerCtxPaste()">
         <span class="np-exp-ctx-icon paste"></span>
-        Pegar <span class="np-exp-ctx-hint">({{ explorerClipboard.item.name }})</span>
+        Pegar <span class="np-exp-ctx-hint">({{ explorerClipboardLabel }})</span>
       </div>
       <div class="np-exp-ctx-item" (click)="loadExplorerItems(); closeExplorerCtxMenu()">
         <span class="np-exp-ctx-icon refresh"></span> Actualizar
@@ -618,6 +633,75 @@
       <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'youtube', 'right', 'top')"></span>
       <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'youtube', 'left', 'bottom')"></span>
       <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'youtube', 'right', 'bottom')"></span>
+    </ng-container>
+  </div>
+
+  <div class="np-browser-window" *ngIf="browserOpen && !isFullscreen && !browserMinimized" (click)="focusWindow('browser'); $event.stopPropagation()" [ngStyle]="browserWindowStyle">
+    <div class="np-browser-titlebar" (mousedown)="beginWindowDrag($event, 'browser')">
+      <div class="np-browser-titlecopy">
+        <span class="np-start-item-icon browser"></span>
+        <strong>{{ 'WINDOWS.BROWSER_TITLE' | translate }}</strong>
+      </div>
+      <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
+        <button class="np-window-min-btn" (click)="minimizeWindow('browser')" title="Minimizar">_</button>
+        <button class="np-window-max-btn" (click)="toggleBrowserMaximize()" [title]="browserMaximized ? 'Restaurar' : 'Maximizar'">
+          <span *ngIf="!browserMaximized"></span>
+          <span *ngIf="browserMaximized" class="restore"></span>
+        </button>
+        <button class="np-explorer-close" (click)="closeBrowser()">x</button>
+      </div>
+    </div>
+    <div class="np-browser-menubar">
+      <span>{{ 'WINDOWS.MENU_FILE' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_EDIT' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_VIEW' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_FAVORITES' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_TOOLS' | translate }}</span>
+      <span>{{ 'WINDOWS.MENU_HELP' | translate }}</span>
+    </div>
+    <div class="np-browser-toolbar">
+      <button (click)="browserBack()" [disabled]="browserHistoryIndex <= 0" title="Atrás">‹</button>
+      <button (click)="browserForward()" [disabled]="browserHistoryIndex >= browserHistory.length - 1" title="Adelante">›</button>
+      <button (click)="browserRefresh()" title="Actualizar">↻</button>
+      <button (click)="browserHome()" title="Inicio">⌂</button>
+      <button
+        (click)="addBrowserFavorite()"
+        [disabled]="isBrowserFavorite()"
+        [title]="isBrowserFavorite() ? ('WINDOWS.BROWSER_FAVORITE_SAVED' | translate) : ('WINDOWS.BROWSER_ADD_FAVORITE' | translate)">
+        Fav
+      </button>
+      <form class="np-browser-address" (submit)="submitBrowserAddress(); $event.preventDefault()">
+        <span>{{ 'WINDOWS.BROWSER_ADDRESS' | translate }}</span>
+        <input [(ngModel)]="browserAddress" name="browserAddress" autocomplete="off" />
+        <button type="submit">{{ 'WINDOWS.BROWSER_GO' | translate }}</button>
+      </form>
+    </div>
+    <div class="np-browser-links">
+      <button (click)="navigateBrowser('https://example.com')">Example</button>
+      <button (click)="navigateBrowser('https://www.wikipedia.org')">Wikipedia</button>
+      <button (click)="navigateBrowser('https://archive.org')">Archive</button>
+      <button (click)="openBrowserExternal()">{{ 'WINDOWS.BROWSER_OPEN_EXTERNAL' | translate }}</button>
+      <span *ngIf="browserLoading">{{ 'WINDOWS.BROWSER_LOADING' | translate }}</span>
+    </div>
+    <div class="np-browser-favorites">
+      <span>{{ 'WINDOWS.BROWSER_FAVORITES_BAR' | translate }}</span>
+      <button *ngFor="let favorite of browserFavorites" (click)="navigateBrowser(favorite.url)">
+        <span>{{ favorite.title }}</span>
+        <em (click)="removeBrowserFavorite($event, favorite)" [title]="'WINDOWS.BROWSER_REMOVE_FAVORITE' | translate">x</em>
+      </button>
+    </div>
+    <div class="np-browser-content">
+      <iframe *ngIf="browserFrameUrl" [src]="browserFrameUrl" (load)="onBrowserFrameLoad()" referrerpolicy="no-referrer"></iframe>
+      <div class="np-browser-block-note">
+        {{ 'WINDOWS.BROWSER_BLOCK_NOTE' | translate }}
+      </div>
+    </div>
+    <div class="np-browser-status">{{ browserCurrentUrl }}</div>
+    <ng-container *ngIf="!browserMaximized">
+      <span class="np-resize-handle top-left" (mousedown)="beginWindowResize($event, 'browser', 'left', 'top')"></span>
+      <span class="np-resize-handle top-right" (mousedown)="beginWindowResize($event, 'browser', 'right', 'top')"></span>
+      <span class="np-resize-handle bottom-left" (mousedown)="beginWindowResize($event, 'browser', 'left', 'bottom')"></span>
+      <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'browser', 'right', 'bottom')"></span>
     </ng-container>
   </div>
 
@@ -997,6 +1081,7 @@
     <button class="np-ctx-item" (click)="openNotepad(); closeCtxMenu()">{{ 'WINDOWS.NOTEPAD' | translate }}</button>
     <button class="np-ctx-item" (click)="openEqualizer(); closeCtxMenu()">{{ 'WINDOWS.EQUALIZER' | translate }}</button>
     <button class="np-ctx-item" (click)="openSnake(); closeCtxMenu()">🐍 Snake</button>
+    <button class="np-ctx-item" (click)="openBrowser(); closeCtxMenu()">{{ 'WINDOWS.BROWSER' | translate }}</button>
     <div class="np-ctx-sep"></div>
     <button class="np-ctx-item" (click)="cycleSkin(); closeCtxMenu()">{{ 'WINDOWS.CHANGE_PLAYER_SKIN' | translate }}</button>
     <div class="np-ctx-sep"></div>
@@ -1050,6 +1135,15 @@
               title="YouTube XP Downloader">
         <span class="np-task-icon youtube"></span>
         <span>YouTube XP</span>
+      </button>
+      <button class="np-task-chip"
+              *ngIf="browserOpen"
+              [class.active]="activeDesktopWindow === 'browser' && !browserMinimized"
+              [class.minimized]="browserMinimized"
+              (click)="toggleTaskWindow('browser')"
+              [title]="'WINDOWS.BROWSER_TITLE' | translate">
+        <span class="np-task-icon browser"></span>
+        <span>{{ 'WINDOWS.BROWSER' | translate }}</span>
       </button>
       <button class="np-task-chip"
               *ngIf="minesweeperOpen"

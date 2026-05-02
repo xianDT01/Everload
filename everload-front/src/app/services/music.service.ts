@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { ApiBaseService } from './api-base.service';
 
 export interface PagedMusicResult {
   items: MusicMetadataDto[];
@@ -519,18 +520,13 @@ export class DeckPlayer {
 @Injectable({ providedIn: 'root' })
 export class MusicService {
 
-  readonly BASE: string = (() => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : '';
-    const port = typeof window !== 'undefined' ? window.location.port : '';
-    // Use absolute URL only when running the Angular dev server (port 4200).
-    // In Docker/Caddy (https://localhost) or any other host, use relative URLs
-    // so the browser stays same-origin and CORS / mixed-content issues are avoided.
-    return (host === 'localhost' || host === '127.0.0.1') && port === '4200'
-      ? 'http://localhost:8080'
-      : '';
-  })();
+  get BASE(): string {
+    return this.apiBase.backendUrl;
+  }
 
-  private readonly api = `${this.BASE}/api/music`;
+  private get api(): string {
+    return `${this.BASE}/api/music`;
+  }
 
   // Library main player
   public mainPlayer: DeckPlayer;
@@ -575,8 +571,11 @@ export class MusicService {
   private preloadAudio: HTMLAudioElement | null = null;
   private preloadedPath: string | null = null;
   private preloadTriggeredForPath: string | null = null;
+  private nativeAudioListenerReady = false;
+  private nativeAudioLastSync = 0;
+  private nativeAudioLastKey = '';
 
-  constructor(private http: HttpClient, private auth: AuthService) {
+  constructor(private http: HttpClient, private auth: AuthService, private apiBase: ApiBaseService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
     this.deckAPlayer = new DeckPlayer(this, 'deckA');
     this.deckBPlayer = new DeckPlayer(this, 'deckB');
@@ -602,6 +601,7 @@ export class MusicService {
 
     this.loadPersistedState();
     this.setupMediaSession();
+    this.setupNativeAudioSession();
     this.setupNowPlayingNotifications();
     this.setupPreloading();
   }
@@ -639,6 +639,76 @@ export class MusicService {
         });
       }
     });
+  }
+
+  private setupNativeAudioSession(): void {
+    const plugin = this.getNativeAudioPlugin();
+    if (!plugin || this.nativeAudioListenerReady) return;
+
+    this.nativeAudioListenerReady = true;
+    plugin.requestNotificationPermission?.().catch?.(() => {});
+    plugin.addListener?.('mediaAction', (event: { action?: string }) => {
+      const action = event?.action || '';
+      if (action === 'play') {
+        this.mainPlayer.resumeAudioContext().then(() => this.mainPlayer.play());
+      } else if (action === 'pause') {
+        this.mainPlayer.pause();
+      } else if (action === 'next') {
+        this.mainPlayer.resumeAudioContext().then(() => this.playNextMain());
+      } else if (action === 'previous') {
+        this.mainPlayer.resumeAudioContext().then(() => this.playPrevMain());
+      } else if (action.startsWith('seek:')) {
+        const ms = Number(action.slice(5));
+        if (Number.isFinite(ms)) this.mainPlayer.seek(ms / 1000);
+      }
+    });
+
+    this.mainPlayer.state$.subscribe(state => this.syncNativeAudioSession(state));
+  }
+
+  private syncNativeAudioSession(state: PlayerState): void {
+    const plugin = this.getNativeAudioPlugin();
+    if (!plugin) return;
+
+    if (!state.currentTrack) {
+      plugin.stop?.().catch?.(() => {});
+      return;
+    }
+
+    const track = state.currentTrack;
+    const now = Date.now();
+    const syncKey = [
+      state.playing ? '1' : '0',
+      track.path,
+      track.title || track.name,
+      track.artist || '',
+      track.album || '',
+      this.getAbsoluteCoverUrl(state.pathId ?? 0, track),
+      Math.floor(state.currentTime),
+      Math.floor(state.duration || 0)
+    ].join('|');
+
+    if (syncKey === this.nativeAudioLastKey) return;
+    if (now - this.nativeAudioLastSync < 1000 && syncKey.split('|').slice(0, 5).join('|') === this.nativeAudioLastKey.split('|').slice(0, 5).join('|')) {
+      return;
+    }
+
+    this.nativeAudioLastKey = syncKey;
+    this.nativeAudioLastSync = now;
+    plugin.update?.({
+      title: track.title || track.name || 'EverLoad',
+      artist: track.artist || '',
+      album: track.album || '',
+      artworkUrl: this.getAbsoluteCoverUrl(state.pathId ?? 0, track),
+      playing: state.playing,
+      duration: Number.isFinite(state.duration) ? state.duration : 0,
+      position: Number.isFinite(state.currentTime) ? state.currentTime : 0,
+    }).catch?.(() => {});
+  }
+
+  private getNativeAudioPlugin(): any {
+    const capacitor = typeof window !== 'undefined' ? (window as any).Capacitor : null;
+    return capacitor?.Plugins?.EverLoadAudio || null;
   }
 
   private setupNowPlayingNotifications(): void {

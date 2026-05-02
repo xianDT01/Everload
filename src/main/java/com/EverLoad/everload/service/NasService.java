@@ -373,11 +373,14 @@ public class NasService {
 
     public void copyFileTo(Long sourcePathId, String sourcePath, Long destPathId, String destPath) throws IOException {
         Path source = resolveValidatedPath(sourcePathId, sourcePath);
-        if (!source.toFile().isFile()) throw new IllegalArgumentException("El origen no es un archivo");
+        if (!Files.exists(source)) throw new IllegalArgumentException("El origen no existe");
         Path destDir = resolveValidatedPath(destPathId, destPath);
         if (!destDir.toFile().isDirectory()) throw new IllegalArgumentException("El destino no es una carpeta");
         Path target = destDir.resolve(source.getFileName());
-        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+        if (Files.isDirectory(source) && target.normalize().startsWith(source.normalize())) {
+            throw new IllegalArgumentException("No se puede copiar una carpeta dentro de si misma");
+        }
+        copyRecursively(source, target);
     }
 
     // ── Shared path helpers (used by MusicService and others) ────────────────
@@ -448,6 +451,20 @@ public class NasService {
             }
         }
         Files.deleteIfExists(path);
+    }
+
+    private void copyRecursively(Path source, Path target) throws IOException {
+        if (Files.isDirectory(source)) {
+            Files.createDirectories(target);
+            try (var stream = Files.list(source)) {
+                for (Path child : stream.toList()) {
+                    copyRecursively(child, target.resolve(child.getFileName()));
+                }
+            }
+            return;
+        }
+        Files.createDirectories(target.getParent());
+        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
     }
 
     private boolean isAllowedAudioExtension(String filename) {
