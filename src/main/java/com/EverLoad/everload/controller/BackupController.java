@@ -3,7 +3,7 @@ package com.EverLoad.everload.controller;
 import com.EverLoad.everload.dto.BackupDto;
 import com.EverLoad.everload.service.AuditLogService;
 import com.EverLoad.everload.service.BackupService;
-import com.EverLoad.everload.service.MaintenanceService;
+import com.EverLoad.everload.service.BackupService.BackupType;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +24,6 @@ public class BackupController {
 
     private final BackupService backupService;
     private final AuditLogService auditLogService;
-    private final MaintenanceService maintenanceService;
 
     // ── List ───────────────────────────────────────────────────────────────────
 
@@ -41,11 +40,12 @@ public class BackupController {
     // ── Create ─────────────────────────────────────────────────────────────────
 
     @PostMapping
-    public ResponseEntity<?> create() {
+    public ResponseEntity<?> create(@RequestBody(required = false) Map<String, String> body) {
         try {
-            BackupDto dto = backupService.createBackup();
+            BackupType type = parseBackupType(body != null ? body.get("type") : null);
+            BackupDto dto = backupService.createBackup(type);
             auditLogService.log("BACKUP_CREATED", "Database", dto.getName(),
-                    "Tamaño: " + dto.getSizeFormatted());
+                    "Tipo: " + dto.getType() + " | Tamano: " + dto.getSizeFormatted());
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
             log.error("[BACKUP] Create failed: {}", e.getMessage());
@@ -71,11 +71,11 @@ public class BackupController {
         try {
             backupService.restore(filename);
             auditLogService.log("BACKUP_RESTORED", "Database", filename,
-                    "Base de datos restaurada correctamente");
+                    "Copia restaurada correctamente");
             log.warn("[BACKUP] Database restored from {}. Sessions may be stale — advise re-login.", filename);
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "Base de datos restaurada correctamente desde '" + filename + "'. " +
+                    "message", "Copia restaurada correctamente desde '" + filename + "'. " +
                                "Por seguridad, cierra sesión y vuelve a iniciar."));
         } catch (Exception e) {
             log.error("[BACKUP] Restore failed: {}", e.getMessage());
@@ -123,5 +123,14 @@ public class BackupController {
                     "retention=" + r);
         }
         return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    private BackupType parseBackupType(String type) {
+        if (type == null || type.isBlank()) return BackupType.QUICK;
+        try {
+            return BackupType.valueOf(type.trim().toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return BackupType.QUICK;
+        }
     }
 }

@@ -6,6 +6,7 @@ import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 import { ChatService, ChatGroupDto, ActiveUser } from '../../services/chat.service';
+import { ApiBaseService } from '../../services/api-base.service';
 
 interface QueueItem {
   id: string;
@@ -21,6 +22,15 @@ interface QueueItem {
   error?: string;
   nasPathId?: number;
   nasSubPath?: string;
+  downloadJobId?: string;
+}
+
+interface DirectDownloadJob {
+  jobId: string;
+  status: 'QUEUED' | 'RUNNING' | 'DONE' | 'ERROR';
+  progress: number;
+  filename?: string;
+  error?: string;
 }
 
 @Component({
@@ -31,10 +41,9 @@ interface QueueItem {
 export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   videoUrl: string = '';
   resolution: string = '720';
-  backendUrl: string = (() => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : '';
-    return (host === 'localhost' || host === '127.0.0.1') ? 'http://localhost:8080/api' : '/api';
-  })();
+  get backendUrl(): string {
+    return `${this.apiBase.backendUrl || ''}/api`;
+  }
 
   // Queue
   queue: QueueItem[] = [];
@@ -72,7 +81,8 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private authService: AuthService,
     private notificationService: NotificationService,
-    private chatService: ChatService
+    private chatService: ChatService,
+    private apiBase: ApiBaseService
   ) {
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
@@ -153,6 +163,9 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
     if (item.nasPathId) {
       return this.processItemToNas(item);
     }
+    if (item.type === 'music') {
+      return this.processMusicItemAsJob(item);
+    }
     // Normal: download to browser
     return new Promise<void>((resolve) => {
       this.ngZone.run(() => {
@@ -212,6 +225,130 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       this.cancelActiveDownload = () => {
         sub.unsubscribe();
         this.cancelActiveDownload = null;
+        this.ngZone.run(() => {
+          item.status = 'cancelled';
+          item.completedAt = new Date();
+        });
+        resolve();
+      };
+    });
+  }
+
+  private processMusicItemAsJob(item: QueueItem): Promise<void> {
+    return new Promise<void>((resolve) => {
+      let pollTimer: any = null;
+      let startSub: any = null;
+      let statusSub: any = null;
+      let fileSub: any = null;
+      let settled = false;
+
+      const cleanup = () => {
+        if (pollTimer) clearInterval(pollTimer);
+        startSub?.unsubscribe?.();
+        statusSub?.unsubscribe?.();
+        fileSub?.unsubscribe?.();
+        this.cancelActiveDownload = null;
+      };
+
+      const fail = (message: string) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        this.ngZone.run(() => {
+          item.status = 'failed';
+          item.error = message || 'Error al descargar';
+          item.completedAt = new Date();
+          this.notificationService.showToast('error', 'Error de descarga', item.error);
+        });
+        resolve();
+      };
+
+      const completeWithBlob = (blob: Blob, filename: string) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        this.ngZone.run(() => {
+          item.filename = filename;
+          item.status = 'completed';
+          item.progress = 100;
+          item.completedAt = new Date();
+          this.triggerDownload(blob, filename);
+          this.notificationService.showToast('success', 'Descarga completada', `${filename} listo`);
+        });
+        resolve();
+      };
+
+      const downloadPreparedFile = (job: DirectDownloadJob) => {
+        if (pollTimer) clearInterval(pollTimer);
+        this.ngZone.run(() => {
+          item.progress = Math.max(item.progress, 95);
+          item.filename = job.filename;
+        });
+        fileSub = this.http.get(`${this.backendUrl}/downloadMusic/jobs/${job.jobId}/file`, {
+          responseType: 'blob',
+          observe: 'events',
+          reportProgress: true
+        }).subscribe({
+          next: (event: HttpEvent<any>) => {
+            if (event.type === HttpEventType.DownloadProgress) {
+              this.ngZone.run(() => {
+                const transferProgress = event.total ? Math.round((event.loaded / event.total) * 5) : 1;
+                item.progress = Math.min(99, 95 + transferProgress);
+              });
+            } else if (event.type === HttpEventType.Response) {
+              const contentDisposition = event.headers?.get('content-disposition');
+              const match = contentDisposition?.match(/filename="(.+)"/);
+              const filename = match ? match[1] : (job.filename || `${item.videoId}.mp3`);
+              completeWithBlob(event.body, filename);
+            }
+          },
+          error: () => fail('El archivo se preparó, pero no se pudo descargar al navegador')
+        });
+      };
+
+      const pollJob = () => {
+        if (!item.downloadJobId || settled) return;
+        statusSub = this.http.get<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs/${item.downloadJobId}`).subscribe({
+          next: job => {
+            this.ngZone.run(() => {
+              item.progress = Math.max(item.progress, Math.min(job.progress || 0, 94));
+              item.filename = job.filename || item.filename;
+            });
+            if (job.status === 'DONE') {
+              downloadPreparedFile(job);
+            } else if (job.status === 'ERROR') {
+              fail(job.error || 'yt-dlp no pudo preparar la canción');
+            }
+          },
+          error: () => fail('No se pudo consultar el progreso de la descarga')
+        });
+      };
+
+      this.ngZone.run(() => {
+        item.status = 'downloading';
+        item.startedAt = new Date();
+        item.progress = 3;
+        item.error = undefined;
+      });
+
+      startSub = this.http.post<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs`, null, {
+        params: { videoId: item.videoId, format: 'mp3' }
+      }).subscribe({
+        next: job => {
+          this.ngZone.run(() => {
+            item.downloadJobId = job.jobId;
+            item.progress = Math.max(item.progress, job.progress || 5);
+          });
+          pollJob();
+          pollTimer = setInterval(pollJob, 2500);
+        },
+        error: err => fail(err?.error?.error || 'No se pudo iniciar la descarga')
+      });
+
+      this.cancelActiveDownload = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
         this.ngZone.run(() => {
           item.status = 'cancelled';
           item.completedAt = new Date();

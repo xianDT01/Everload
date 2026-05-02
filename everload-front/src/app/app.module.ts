@@ -18,6 +18,7 @@ import { HomeComponent } from './components/home/home.component';
 import { LoginComponent } from './components/login/login.component';
 import { RegisterComponent } from './components/register/register.component';
 import { PendingApprovalComponent } from './components/pending-approval/pending-approval.component';
+import { AndroidAppComponent } from './components/android-app/android-app.component';
 import { NotificationToastComponent } from './components/notification-toast/notification-toast.component';
 import { NotificationCenterComponent } from './components/notification-center/notification-center.component';
 import { GlobalPlayerComponent } from './components/global-player/global-player.component';
@@ -28,6 +29,8 @@ import { ChatModule } from './components/chat/chat.module';
 // Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { MaintenanceInterceptor } from './interceptors/maintenance.interceptor';
+import { ApiUrlInterceptor } from './interceptors/api-url.interceptor';
+import { ApiBaseService } from './services/api-base.service';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -46,6 +49,10 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
   };
 }
 
+export function initRuntimeConfig(apiBase: ApiBaseService): () => Promise<void> {
+  return () => apiBase.load();
+}
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -53,6 +60,7 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
     LoginComponent,
     RegisterComponent,
     PendingApprovalComponent,
+    AndroidAppComponent,
     NotificationToastComponent,
     NotificationCenterComponent,
     GlobalPlayerComponent,
@@ -82,6 +90,13 @@ export function initTranslations(translate: TranslateService): () => Promise<voi
   ],
   providers: [
     { provide: LOCALE_ID, useValue: 'es-ES' },
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initRuntimeConfig,
+      deps: [ApiBaseService],
+      multi: true
+    },
+    { provide: HTTP_INTERCEPTORS, useClass: ApiUrlInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: MaintenanceInterceptor, multi: true },
     {

@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -29,7 +30,7 @@ public class SecurityConfig {
     private final MaintenanceFilter maintenanceFilter;
 
     /** Comma-separated allowed CORS origins. Set via CORS_ALLOWED_ORIGINS env var. */
-    @Value("${cors.allowed-origins:http://localhost:4200,http://localhost:8080,http://localhost}")
+    @Value("${cors.allowed-origins:http://localhost:4200,http://localhost:8080,http://localhost,https://localhost,capacitor://localhost}")
     private String corsAllowedOrigins;
 
     @Bean
@@ -57,6 +58,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 // Maintenance status — public so Angular can check before login
                 .requestMatchers("/api/maintenance/status").permitAll()
+                // Android app release metadata/download (shown from the app download page)
+                .requestMatchers(HttpMethod.GET, "/api/app-release/android", "/api/app-release/android/download").permitAll()
                 // Health check (used by Docker + Caddy depends_on)
                 .requestMatchers("/actuator/health").permitAll()
                 // Avatar images (served publicly for chat/profile display)

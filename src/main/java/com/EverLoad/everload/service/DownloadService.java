@@ -1,6 +1,7 @@
 package com.EverLoad.everload.service;
 
 import com.EverLoad.everload.model.Download;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
@@ -13,19 +14,23 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class DownloadService {
 
     private static final String DOWNLOADS_DIR = "./downloads/";
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DownloadService.class);
+    private static final Pattern YT_DLP_PROGRESS = Pattern.compile("(\\d+\\.?\\d*)%");
 
     @Value("${app.downloads.max-concurrent:3}")
     private int maxConcurrent;
 
     private Semaphore downloadSemaphore;
+    private ExecutorService directDownloadExecutor;
+    private final ConcurrentHashMap<String, DirectDownloadJob> directDownloadJobs = new ConcurrentHashMap<>();
 
     private final DownloadHistoryService downloadHistoryService;
     private final NasService nasService;
@@ -40,6 +45,7 @@ public class DownloadService {
     @PostConstruct
     private void init() {
         downloadSemaphore = new Semaphore(maxConcurrent, true);
+        directDownloadExecutor = Executors.newFixedThreadPool(maxConcurrent);
     }
 
     /** Tries to acquire a download slot. Returns false if all slots are busy. */
@@ -136,6 +142,128 @@ public class DownloadService {
         } catch (Exception e) {
             logger.error("downloadMusic error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    public DirectDownloadJob queueMusicDownload(String videoId, String format) {
+        if (!isValidYouTubeId(videoId)) {
+            throw new IllegalArgumentException("ID de YouTube invalido");
+        }
+        String safeFormat = (format == null || format.isBlank()) ? "mp3" : format;
+        if (!ALLOWED_AUDIO_FORMATS.contains(safeFormat)) {
+            throw new IllegalArgumentException("Formato no permitido");
+        }
+
+        String jobId = UUID.randomUUID().toString();
+        DirectDownloadJob job = new DirectDownloadJob(jobId, videoId, safeFormat);
+        directDownloadJobs.put(jobId, job);
+        directDownloadExecutor.submit(() -> executeQueuedMusicDownload(job));
+        return job;
+    }
+
+    public DirectDownloadJob getDirectDownloadJob(String jobId) {
+        return directDownloadJobs.get(jobId);
+    }
+
+    public ResponseEntity<FileSystemResource> downloadQueuedFile(String jobId) {
+        DirectDownloadJob job = directDownloadJobs.get(jobId);
+        if (job == null) return ResponseEntity.notFound().build();
+        if (job.status != DirectDownloadStatus.DONE || job.filePath == null || job.filePath.isBlank()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        File file = new File(job.filePath);
+        if (!file.exists()) return ResponseEntity.notFound().build();
+        ResponseEntity<FileSystemResource> response = sendFile(file);
+        directDownloadJobs.remove(jobId);
+        return response;
+    }
+
+    private void executeQueuedMusicDownload(DirectDownloadJob job) {
+        if (!acquireSlot()) {
+            job.status = DirectDownloadStatus.ERROR;
+            job.error = "Demasiadas descargas simultaneas, intentalo de nuevo";
+            job.completedAt = System.currentTimeMillis();
+            return;
+        }
+
+        String tempDirPath = createTempDownloadDir();
+        try {
+            job.status = DirectDownloadStatus.RUNNING;
+            job.progress = 5;
+            String[] cmd = {
+                "yt-dlp",
+                "--ignore-errors",
+                "--print", "after_move:filepath",
+                "-x", "--audio-format", job.format, "--audio-quality", "0",
+                "--embed-thumbnail",
+                "--embed-metadata",
+                "--parse-metadata", "%(title)s:%(meta_title)s",
+                "--parse-metadata", "%(uploader)s:%(meta_artist)s",
+                "--no-playlist",
+                "-o", tempDirPath + "%(title)s.%(ext)s",
+                "https://www.youtube.com/watch?v=" + job.videoId
+            };
+
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            Process process = pb.start();
+
+            Thread stderrThread = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.contains("nsig extraction failed")) continue;
+                        Matcher matcher = YT_DLP_PROGRESS.matcher(line);
+                        if (matcher.find()) {
+                            try {
+                                job.progress = Math.max(job.progress, Math.min((int) Double.parseDouble(matcher.group(1)), 94));
+                            } catch (NumberFormatException ignored) {}
+                        } else {
+                            logger.info("yt-dlp queued music: {}", line);
+                        }
+                    }
+                } catch (IOException ignored) {}
+            });
+            stderrThread.start();
+
+            String finalPath;
+            try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                finalPath = outReader.readLine();
+            }
+            int exit = process.waitFor();
+            stderrThread.join(5000);
+
+            if (exit != 0 || finalPath == null || finalPath.isBlank()) {
+                throw new RuntimeException("yt-dlp fallo o no devolvio la ruta del archivo");
+            }
+
+            File finalFile = new File(finalPath.trim());
+            if (!finalFile.exists()) {
+                throw new RuntimeException("Archivo temporal no encontrado: " + finalPath);
+            }
+
+            String songTitle  = finalFile.getName();
+            String songArtist = "";
+            int dashIdx = songTitle.indexOf(" - ");
+            if (dashIdx > 0) {
+                songArtist = songTitle.substring(0, dashIdx).trim();
+                songTitle  = songTitle.substring(dashIdx + 3).trim();
+            }
+            musicService.ensureMetadata(finalFile, songTitle, songArtist);
+            downloadHistoryService.recordDownload(new Download(finalFile.getName(), "music", "YouTube"));
+
+            job.filename = finalFile.getName();
+            job.filePath = finalFile.getAbsolutePath();
+            job.progress = 100;
+            job.status = DirectDownloadStatus.DONE;
+            job.completedAt = System.currentTimeMillis();
+        } catch (Exception e) {
+            job.status = DirectDownloadStatus.ERROR;
+            job.error = e.getMessage();
+            job.completedAt = System.currentTimeMillis();
+            logger.error("Queued music download failed for {}: {}", job.videoId, e.getMessage());
+            cleanupTempDir(tempDirPath);
+        } finally {
+            downloadSemaphore.release();
         }
     }
 
@@ -310,6 +438,17 @@ public class DownloadService {
                 .body(resource);
     }
 
+    private void cleanupTempDir(String tempDirPath) {
+        try {
+            Path path = Path.of(tempDirPath);
+            if (!Files.exists(path)) return;
+            Files.walk(path)
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        } catch (IOException ignored) {}
+    }
+
     private String makeAsciiSafe(String input) {
         input = input.replace("\"", "'");
         return input.replaceAll("[^\\p{Print}]", "_")
@@ -412,5 +551,31 @@ public class DownloadService {
     public ResponseEntity<FileSystemResource> downloadTikTokVideo(String videoUrl) {
         return downloadMediaUrl(videoUrl, "vídeo", "TikTok",
                 "tiktok.com", "vm.tiktok.com");
+    }
+    public enum DirectDownloadStatus {
+        QUEUED,
+        RUNNING,
+        DONE,
+        ERROR
+    }
+
+    public static class DirectDownloadJob {
+        public final String jobId;
+        public final String videoId;
+        public final String format;
+        public volatile DirectDownloadStatus status = DirectDownloadStatus.QUEUED;
+        public volatile int progress = 0;
+        public volatile String filename;
+        @JsonIgnore
+        public volatile String filePath;
+        public volatile String error;
+        public final long createdAt = System.currentTimeMillis();
+        public volatile long completedAt;
+
+        public DirectDownloadJob(String jobId, String videoId, String format) {
+            this.jobId = jobId;
+            this.videoId = videoId;
+            this.format = format;
+        }
     }
 }

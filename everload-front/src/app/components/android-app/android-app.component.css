@@ -1,0 +1,500 @@
+.android-page {
+  min-height: 100vh;
+  padding: 28px;
+  box-sizing: border-box;
+  color: #f8fbff;
+  background:
+    linear-gradient(135deg, rgba(6, 19, 38, 0.88), rgba(8, 36, 29, 0.86)),
+    url('/assets/EverLoad home logo.png') center 28px / 360px auto no-repeat,
+    radial-gradient(circle at 10% 10%, rgba(41, 194, 130, 0.22), transparent 30%),
+    #07111f;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.android-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 8px;
+  color: #e7f6ff;
+  text-decoration: none;
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(14px);
+}
+
+.android-hero {
+  width: min(1160px, 100%);
+  min-height: 540px;
+  margin: 38px auto 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 430px);
+  align-items: center;
+  gap: 46px;
+}
+
+.android-kicker,
+.release-label {
+  color: #75f2bb;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.android-hero h1 {
+  margin: 10px 0 16px;
+  max-width: 720px;
+  font-size: clamp(2.4rem, 6vw, 5.6rem);
+  line-height: 0.92;
+}
+
+.android-hero p {
+  max-width: 660px;
+  margin: 0;
+  color: rgba(235, 246, 255, 0.82);
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+.android-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.android-primary,
+.android-secondary {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.android-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  color: #05131c;
+  background: linear-gradient(135deg, #78f7b7, #55c9ff);
+  box-shadow: 0 14px 34px rgba(85, 201, 255, 0.26);
+}
+
+.android-primary:disabled,
+.android-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.android-secondary {
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #f4fbff;
+  background: rgba(255,255,255,0.08);
+}
+
+.android-icon-download {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  position: relative;
+}
+
+.android-icon-download::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 1px;
+  width: 4px;
+  height: 11px;
+  background: currentColor;
+  box-shadow: -5px 9px 0 -2px currentColor, 5px 9px 0 -2px currentColor;
+}
+
+.android-icon-download::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  width: 10px;
+  height: 10px;
+  border-right: 4px solid currentColor;
+  border-bottom: 4px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.android-state {
+  margin-top: 14px !important;
+  font-size: 0.95rem !important;
+}
+
+.android-state.error { color: #ffb4b4; }
+.android-state.warning { color: #ffd98a; }
+
+.phone-stage {
+  min-height: 520px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  perspective: 900px;
+}
+
+.phone-shadow {
+  position: absolute;
+  width: 270px;
+  height: 52px;
+  bottom: 24px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.34);
+  filter: blur(18px);
+  animation: phoneShadowPulse 7s ease-in-out infinite;
+}
+
+.phone {
+  position: relative;
+  width: 282px;
+  height: 536px;
+  padding: 13px;
+  border-radius: 38px;
+  background: linear-gradient(145deg, #1c2532, #05070b 64%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.13),
+    inset 0 -18px 28px rgba(0,0,0,0.42),
+    0 26px 80px rgba(0,0,0,0.5);
+  transform: rotate(3deg);
+  animation: phoneFloat 7s ease-in-out infinite;
+}
+
+.phone::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 32px;
+  border: 1px solid rgba(120,247,183,0.16);
+  box-shadow: 0 0 34px rgba(85,201,255,0.16);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.phone::after {
+  content: '';
+  position: absolute;
+  inset: 18px 20px auto 20px;
+  height: 120px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.09), transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.phone-speaker {
+  width: 64px;
+  height: 6px;
+  margin: 0 auto 10px;
+  border-radius: 99px;
+  background: #293241;
+}
+
+.phone-screen {
+  position: relative;
+  height: calc(100% - 16px);
+  border-radius: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  padding: 22px;
+  box-sizing: border-box;
+  overflow: hidden;
+  background:
+    linear-gradient(160deg, rgba(19, 63, 83, 0.36), rgba(5, 12, 19, 0.15)),
+    radial-gradient(circle at 50% 25%, rgba(118,247,183,0.28), transparent 34%),
+    linear-gradient(180deg, #0d1c2b, #08251f);
+  animation: phoneScreenGlow 6s ease-in-out infinite;
+}
+
+.phone-status {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phone-status span {
+  display: block;
+  height: 5px;
+  border-radius: 99px;
+  background: rgba(255,255,255,0.58);
+}
+
+.phone-status span:first-child { width: 34px; }
+.phone-status span:last-child { width: 48px; opacity: 0.34; }
+
+.phone-logo {
+  width: 86px;
+  height: 86px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #78f7b7, #55c9ff);
+  color: #06131a;
+  font-size: 3rem;
+  font-weight: 900;
+  box-shadow: 0 14px 32px rgba(85, 201, 255, 0.26);
+  animation: phoneLogoPulse 5s ease-in-out infinite;
+}
+
+.phone-screen strong {
+  font-size: 1.5rem;
+}
+
+.phone-screen small {
+  color: rgba(255,255,255,0.72);
+}
+
+.phone-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.phone-card > span {
+  display: block;
+  width: 58%;
+  height: 8px;
+  margin-bottom: 9px;
+  border-radius: 99px;
+  background: rgba(255,255,255,0.2);
+}
+
+.phone-card > span.wide {
+  width: 78%;
+  background: rgba(120,247,183,0.38);
+}
+
+.phone-progress {
+  height: 8px;
+  margin-top: 14px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.11);
+}
+
+.phone-progress i {
+  display: block;
+  width: 64%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #78f7b7, #55c9ff);
+  animation: phoneProgress 4.8s ease-in-out infinite;
+}
+
+.phone-dock {
+  width: 72%;
+  box-sizing: border-box;
+  margin-top: 12px;
+  padding: 9px 10px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 18px;
+  background: rgba(0,0,0,0.22);
+}
+
+.phone-dock i {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.18);
+}
+
+.phone-dock i:nth-child(2) { background: rgba(120,247,183,0.42); }
+.phone-dock i:nth-child(3) { background: rgba(85,201,255,0.34); }
+
+@keyframes phoneFloat {
+  0%, 100% { transform: translateY(0) rotate(3deg); }
+  50% { transform: translateY(-9px) rotate(2deg); }
+}
+
+@keyframes phoneShadowPulse {
+  0%, 100% { transform: scaleX(1); opacity: 0.5; }
+  50% { transform: scaleX(0.9); opacity: 0.34; }
+}
+
+@keyframes phoneScreenGlow {
+  0%, 100% { filter: saturate(1) brightness(1); }
+  50% { filter: saturate(1.08) brightness(1.04); }
+}
+
+@keyframes phoneLogoPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 14px 32px rgba(85, 201, 255, 0.22); }
+  50% { transform: scale(1.02); box-shadow: 0 18px 40px rgba(120, 247, 183, 0.28); }
+}
+
+@keyframes phoneProgress {
+  0%, 100% { transform: translateX(-8%); }
+  50% { transform: translateX(12%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone,
+  .phone::before,
+  .phone::after,
+  .phone-shadow,
+  .phone-screen,
+  .phone-logo,
+  .phone-progress i {
+    animation: none;
+  }
+}
+
+.android-release-panel {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+  gap: 16px;
+}
+
+.release-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.22);
+  backdrop-filter: blur(16px);
+}
+
+.release-card.main {
+  grid-row: span 2;
+}
+
+.release-card h2 {
+  margin: 8px 0 18px;
+  font-size: 2rem;
+}
+
+.release-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.release-grid div {
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.18);
+}
+
+.release-grid span {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(235,246,255,0.62);
+  font-size: 0.82rem;
+}
+
+.release-grid strong {
+  color: #fff;
+}
+
+.release-card.notes p {
+  margin: 10px 0 0;
+  color: rgba(235,246,255,0.78);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.release-card.install ol {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  color: rgba(235,246,255,0.82);
+  line-height: 1.8;
+}
+
+@media (max-width: 820px) {
+  .android-page {
+    padding: 18px;
+    background-size: 240px auto;
+  }
+
+  .android-hero {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 26px;
+  }
+
+  .phone-stage {
+    min-height: 360px;
+  }
+
+  .phone {
+    width: 202px;
+    height: 390px;
+    padding: 10px;
+    border-radius: 30px;
+  }
+
+  .phone-screen {
+    padding: 16px;
+    gap: 8px;
+    border-radius: 22px;
+  }
+
+  .phone-status {
+    top: 14px;
+    left: 18px;
+    right: 18px;
+  }
+
+  .phone-logo {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    font-size: 2.2rem;
+  }
+
+  .phone-screen strong {
+    font-size: 1.18rem;
+  }
+
+  .phone-card {
+    margin-top: 8px;
+    padding: 11px;
+  }
+
+  .phone-dock {
+    margin-top: 6px;
+    padding: 7px 8px;
+  }
+
+  .phone-dock i {
+    width: 18px;
+    height: 18px;
+  }
+
+  .android-release-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .release-card.main {
+    grid-row: auto;
+  }
+
+  .release-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { ApiBaseService } from './api-base.service';
 
 export interface ChatGroupDto {
   id: number;
@@ -83,13 +84,9 @@ export interface NewMessageAlert {
 @Injectable({ providedIn: 'root' })
 export class ChatService implements OnDestroy {
 
-  readonly BASE: string = (() => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : '';
-    const port = typeof window !== 'undefined' ? window.location.port : '';
-    return (host === 'localhost' || host === '127.0.0.1') && port === '4200'
-      ? 'http://localhost:8080'
-      : '';
-  })();
+  get BASE(): string {
+    return this.apiBase.backendUrl;
+  }
 
   private groupsSubject = new BehaviorSubject<ChatGroupDto[]>([]);
   groups$ = this.groupsSubject.asObservable();
@@ -116,7 +113,7 @@ export class ChatService implements OnDestroy {
   private pausedMessageCallback: ((msgs: any[]) => void) | null = null;
   private readonly visibilityHandler = () => this.onVisibilityChange();
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private apiBase: ApiBaseService) {
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', this.visibilityHandler);
     }
