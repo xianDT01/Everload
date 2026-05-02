@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '../../services/auth.service';
+import { ApiBaseService } from '../../services/api-base.service';
 
 @Component({
   selector: 'app-spotify-downloads',
@@ -16,7 +17,12 @@ export class SpotifyDownloadsComponent {
   showNasBrowser = false;
   get hasNasAccess(): boolean { return this.authService.hasNasAccess(); }
 
-  constructor(private http: HttpClient, private translate: TranslateService, private authService: AuthService) { }
+  constructor(
+    private http: HttpClient,
+    private translate: TranslateService,
+    private authService: AuthService,
+    private apiBase: ApiBaseService
+  ) { }
 
     changeLanguage(lang: string) {
     this.translate.use(lang);
@@ -59,7 +65,7 @@ export class SpotifyDownloadsComponent {
     setTimeout(() => {
       const enlace = document.createElement('a');
    //   enlace.href = `http://localhost:8080/api/downloadMusic?videoId=${videoId}&format=mp3`;
-      enlace.href = `/api/downloadMusic?videoId=${videoId}&format=mp3`;
+      enlace.href = this.apiBase.withBackend(`/api/downloadMusic?videoId=${videoId}&format=mp3`);
       enlace.target = '_blank';
       enlace.click();
     }, delay);
@@ -70,7 +76,7 @@ export class SpotifyDownloadsComponent {
   descargarCancion(url: string) {
     const videoId = this.extraerId(url);
  //   window.open(`http://localhost:8080/api/downloadMusic?videoId=${videoId}&format=mp3`, '_blank');
-    window.open(`/api/downloadMusic?videoId=${videoId}&format=mp3`, '_blank');
+    window.open(this.apiBase.withBackend(`/api/downloadMusic?videoId=${videoId}&format=mp3`), '_blank');
   }
 
   extraerId(url: string): string {

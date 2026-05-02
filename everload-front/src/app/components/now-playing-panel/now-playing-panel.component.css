@@ -268,6 +268,32 @@
   font-weight: 800;
 }
 
+.np-desktop-icon-glyph.browser,
+.np-start-item-icon.browser,
+.np-task-icon.browser {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.2) 22%, transparent 23%),
+    radial-gradient(circle at 50% 52%, #67d1ff 0%, #1687d9 48%, #0d3b9d 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55), 0 1px 4px rgba(0,0,0,0.35);
+}
+
+.np-desktop-icon-glyph.browser::before,
+.np-start-item-icon.browser::before,
+.np-task-icon.browser::before {
+  content: 'e';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 900;
+  font-style: italic;
+  font-size: 19px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+}
+
 .np-desktop-icon-glyph.minesweeper,
 .np-start-item-icon.minesweeper,
 .np-task-icon.minesweeper {
@@ -648,6 +674,20 @@
   background: linear-gradient(180deg, #fff6f6 0%, #ffe0e0 100%);
 }
 
+.np-browser-window {
+  position: fixed;
+  z-index: 9494;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 2px solid #0a246a;
+  border-radius: 7px 7px 0 0;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.42);
+  background: #d4d0c8;
+  font-family: Tahoma, Verdana, sans-serif;
+}
+
 .np-youtube-titlebar {
   flex: none;
   display: flex;
@@ -658,6 +698,227 @@
   background: linear-gradient(180deg, #ff6f6f 0%, #d11212 48%, #9a0000 49%, #c20b0b 100%);
   cursor: move;
   user-select: none;
+}
+
+.np-browser-titlebar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  color: #fff;
+  background: linear-gradient(180deg, #2a83ff 0%, #0b5ee9 44%, #0043bf 45%, #0b51d3 100%);
+  cursor: move;
+  user-select: none;
+}
+
+.np-browser-titlecopy {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.45);
+}
+
+.np-browser-menubar,
+.np-browser-toolbar,
+.np-browser-links,
+.np-browser-favorites {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #ece9d8;
+  border-bottom: 1px solid #aca899;
+  color: #111;
+  font-size: 11px;
+}
+
+.np-browser-menubar {
+  gap: 0;
+  padding: 2px 5px;
+}
+
+.np-browser-menubar span {
+  padding: 3px 9px;
+  border-radius: 2px;
+}
+
+.np-browser-menubar span:hover {
+  color: #fff;
+  background: #316ac5;
+}
+
+.np-browser-toolbar {
+  padding: 5px 6px;
+  background: linear-gradient(180deg, #f8f7ef 0%, #d8d2bd 100%);
+}
+
+.np-browser-toolbar > button,
+.np-browser-address button,
+.np-browser-links button {
+  min-width: 26px;
+  height: 24px;
+  border: 1px solid #808080;
+  border-top-color: #fff;
+  border-left-color: #fff;
+  background: linear-gradient(180deg, #ffffff 0%, #d8d3c0 100%);
+  color: #111;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.np-browser-toolbar > button:disabled {
+  color: #888;
+  cursor: default;
+  opacity: 0.65;
+}
+
+.np-browser-address {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+}
+
+.np-browser-address span {
+  flex: none;
+  color: #333;
+}
+
+.np-browser-address input {
+  min-width: 80px;
+  flex: 1;
+  height: 24px;
+  box-sizing: border-box;
+  padding: 2px 6px;
+  border: 2px inset #fff;
+  background: #fff;
+  color: #111;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 12px;
+}
+
+.np-browser-links {
+  min-height: 28px;
+  padding: 3px 6px;
+  background: #f3f1e7;
+}
+
+.np-browser-links button {
+  height: 22px;
+  min-width: 0;
+  padding: 0 8px;
+  font-size: 11px;
+}
+
+.np-browser-links span {
+  margin-left: auto;
+  color: #315f9d;
+}
+
+.np-browser-favorites {
+  min-height: 30px;
+  gap: 5px;
+  padding: 4px 6px;
+  overflow-x: auto;
+  background: #fbfaf1;
+}
+
+.np-browser-favorites > span {
+  flex: none;
+  color: #4a4a4a;
+  font-weight: 700;
+}
+
+.np-browser-favorites button {
+  flex: none;
+  max-width: 170px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 8px;
+  border: 1px solid #b7b7a4;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fff 0%, #e7e2ce 100%);
+  color: #111;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.np-browser-favorites button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.np-browser-favorites button em {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  color: #8a2b2b;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.np-browser-favorites button em:hover {
+  color: #fff;
+  background: #c03a2b;
+}
+
+.np-browser-content {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  background: #fff;
+  border-top: 1px solid #808080;
+}
+
+.np-browser-content iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.np-browser-block-note {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid rgba(49, 106, 197, 0.35);
+  background: rgba(255,255,225,0.94);
+  color: #333;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.np-browser-status {
+  flex: none;
+  min-height: 22px;
+  padding: 4px 8px;
+  border-top: 1px solid #aca899;
+  background: #ece9d8;
+  color: #333;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .np-youtube-titlecopy {

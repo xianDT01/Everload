@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { ApiBaseService } from './api-base.service';
 
 export interface AuthResponse {
   token: string;
@@ -25,18 +26,14 @@ export interface LoginRequest {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
-  readonly BASE: string = (() => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : '';
-    const port = typeof window !== 'undefined' ? window.location.port : '';
-    return (host === 'localhost' || host === '127.0.0.1') && port === '4200'
-      ? 'http://localhost:8080'
-      : '';
-  })();
+  get BASE(): string {
+    return this.apiBase.backendUrl;
+  }
 
   private currentUserSubject = new BehaviorSubject<AuthResponse | null>(this.loadFromStorage());
   currentUser$ = this.currentUserSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private apiBase: ApiBaseService) {}
 
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.BASE}/api/auth/register`, request);

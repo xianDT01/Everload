@@ -8,6 +8,7 @@ import { MusicService } from './services/music.service';
 import { NotificationService } from './services/notification.service';
 import { MaintenanceService, MaintenanceState } from './services/maintenance.service';
 import { PwaUpdateService } from './services/pwa-update.service';
+import { ApiBaseService } from './services/api-base.service';
 
 @Component({
   selector: 'app-root',
@@ -32,6 +33,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     public maintenanceService: MaintenanceService,
     private pwaUpdate: PwaUpdateService,
+    private apiBase: ApiBaseService,
     private http: HttpClient,
     private router: Router
   ) {
@@ -84,7 +86,7 @@ export class AppComponent implements OnInit, OnDestroy {
           if (alert.senderAvatarUrl) {
             avatarUrl = alert.senderAvatarUrl.startsWith('http')
               ? alert.senderAvatarUrl
-              : `${this.chatService.BASE}${alert.senderAvatarUrl}`;
+              : this.apiBase.withBackend(alert.senderAvatarUrl);
           }
 
           this.notificationService.showToast('info', title, message, 6000, avatarUrl, alert.groupId);
@@ -108,10 +110,10 @@ export class AppComponent implements OnInit, OnDestroy {
   @HostListener('window:beforeunload')
   onBeforeUnload(): void {
     const token = this.authService.getToken();
-    const base = this.chatService.BASE;
+    const base = this.apiBase.backendUrl;
     if (token) {
       // keepalive ensures the request completes even after the page starts unloading
-      fetch(`${base}/api/presence/offline`, {
+      fetch(this.apiBase.withBackend(`${base}/api/presence/offline`), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         keepalive: true

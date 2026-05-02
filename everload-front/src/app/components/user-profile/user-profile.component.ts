@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { ApiBaseService } from '../../services/api-base.service';
 import { Router } from '@angular/router';
 
 interface ProfileData {
@@ -28,10 +29,9 @@ export class UserProfileComponent implements OnInit {
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
-  private readonly BASE: string = (() => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : '';
-    return (host === 'localhost' || host === '127.0.0.1') ? 'http://localhost:8080' : '';
-  })();
+  private get BASE(): string {
+    return this.apiBase.backendUrl;
+  }
 
   profile: ProfileData | null = null;
 
@@ -62,6 +62,7 @@ export class UserProfileComponent implements OnInit {
   constructor(
     private http: HttpClient,
     public authService: AuthService,
+    private apiBase: ApiBaseService,
     private router: Router
   ) {}
 

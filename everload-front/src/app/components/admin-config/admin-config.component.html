@@ -37,6 +37,7 @@
     <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'; cargarHistorial()">📜 {{ 'ADMIN.TAB_HISTORY' | translate }}</button>
     <button [class.active]="activeTab === 'chat'" (click)="activeTab = 'chat'; loadChatGroups()">💬 {{ 'ADMIN.TAB_CHAT' | translate }}</button>
     <button [class.active]="activeTab === 'audit'" (click)="activeTab = 'audit'; loadAuditLogs(0)">🔍 {{ 'ADMIN.TAB_AUDIT' | translate }}</button>
+    <button [class.active]="activeTab === 'app'" (click)="activeTab = 'app'; loadAndroidRelease()">APK {{ 'ADMIN.TAB_APP' | translate }}</button>
     <button [class.active]="activeTab === 'sistema'" (click)="activeTab = 'sistema'; onSistemaTab()">🛠️ {{ 'ADMIN.TAB_SYSTEM' | translate }}</button>
   </div>
 
@@ -494,6 +495,91 @@
   </div>
 
   <!-- ══ TAB: SISTEMA ══════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'app'" class="tab-content app-release-tab">
+    <div class="app-release-hero">
+      <div>
+        <span class="app-release-kicker">{{ 'ADMIN.APP_KICKER' | translate }}</span>
+        <h3>{{ 'ADMIN.APP_TITLE' | translate }}</h3>
+        <p>{{ 'ADMIN.APP_DESC' | translate }}</p>
+      </div>
+      <a routerLink="/android-app" class="btn secondary">{{ 'ADMIN.APP_VIEW_PUBLIC' | translate }}</a>
+    </div>
+
+    <div class="app-release-grid">
+      <section class="app-release-card upload">
+        <h4>{{ 'ADMIN.APP_UPLOAD_TITLE' | translate }}</h4>
+        <div class="app-upload-drop">
+          <input #androidApkInput type="file" accept=".apk,application/vnd.android.package-archive" (change)="onAndroidApkSelected($event)" hidden />
+          <button type="button" class="btn primary" (click)="androidApkInput.click()" [disabled]="androidUploading">
+            {{ 'ADMIN.APP_CHOOSE_APK' | translate }}
+          </button>
+          <span>{{ androidApkFile?.name || ('ADMIN.APP_NO_FILE' | translate) }}</span>
+        </div>
+
+        <div class="app-release-form">
+          <label>
+            <span>{{ 'ADMIN.APP_VERSION_NAME' | translate }}</span>
+            <input [(ngModel)]="androidVersionName" placeholder="1.0.0" />
+          </label>
+          <label>
+            <span>{{ 'ADMIN.APP_VERSION_CODE' | translate }}</span>
+            <input [(ngModel)]="androidVersionCode" placeholder="100" />
+          </label>
+          <label>
+            <span>{{ 'ADMIN.APP_MIN_ANDROID' | translate }}</span>
+            <input [(ngModel)]="androidMinVersion" placeholder="Android 8.0+" />
+          </label>
+          <label class="full">
+            <span>{{ 'ADMIN.APP_RELEASE_NOTES' | translate }}</span>
+            <textarea [(ngModel)]="androidReleaseNotes" rows="5"></textarea>
+          </label>
+        </div>
+
+        <div class="app-progress" *ngIf="androidUploading">
+          <span [style.width.%]="androidUploadProgress"></span>
+        </div>
+
+        <div class="app-release-actions">
+          <button class="btn primary" (click)="uploadAndroidApk()" [disabled]="androidUploading">
+            {{ androidUploading ? ('ADMIN.APP_UPLOADING' | translate) : ('ADMIN.APP_PUBLISH' | translate) }}
+          </button>
+          <button class="btn danger" (click)="deleteAndroidRelease()" [disabled]="androidUploading || !androidRelease?.available">
+            {{ 'ADMIN.APP_DELETE' | translate }}
+          </button>
+          <button class="btn secondary" (click)="loadAndroidRelease()" [disabled]="androidUploading">
+            {{ 'ADMIN.REFRESH' | translate }}
+          </button>
+        </div>
+
+        <p *ngIf="androidMsg" class="message">{{ androidMsg }}</p>
+      </section>
+
+      <aside class="app-release-card current">
+        <span class="app-release-kicker">{{ 'ADMIN.APP_CURRENT' | translate }}</span>
+        <h4>{{ androidRelease?.available ? (androidRelease?.versionName || 'EverLoad APK') : ('ADMIN.APP_NOT_PUBLISHED' | translate) }}</h4>
+        <dl>
+          <div>
+            <dt>{{ 'ADMIN.APP_VERSION_CODE' | translate }}</dt>
+            <dd>{{ androidRelease?.versionCode || '-' }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'ADMIN.APP_SIZE' | translate }}</dt>
+            <dd>{{ androidRelease?.sizeFormatted || '-' }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'ADMIN.APP_MIN_ANDROID' | translate }}</dt>
+            <dd>{{ androidRelease?.minAndroidVersion || '-' }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'ADMIN.APP_UPLOADED_AT' | translate }}</dt>
+            <dd>{{ androidRelease?.uploadedAt ? (androidRelease?.uploadedAt | date:'dd/MM/yyyy HH:mm') : '-' }}</dd>
+          </div>
+        </dl>
+        <p class="app-release-notes">{{ androidRelease?.releaseNotes || ('ADMIN.APP_NO_NOTES' | translate) }}</p>
+      </aside>
+    </div>
+  </div>
+
   <div *ngIf="activeTab === 'sistema'" class="tab-content sistema-tab">
 
     <!-- ── Modo Mantenimiento ─────────────────────────────────────────── -->
@@ -547,11 +633,23 @@
         <button class="btn secondary small" (click)="saveBackupConfig()">{{ 'GUARDAR' | translate }}</button>
       </div>
 
+      <div class="backup-type-grid">
+        <button class="backup-type-card" [disabled]="backupLoading" (click)="createBackup('QUICK')">
+          <strong>{{ 'ADMIN.BACKUP_QUICK_TITLE' | translate }}</strong>
+          <span>{{ 'ADMIN.BACKUP_QUICK_DESC' | translate }}</span>
+        </button>
+        <button class="backup-type-card" [disabled]="backupLoading" (click)="createBackup('COMPLETE_APP')">
+          <strong>{{ 'ADMIN.BACKUP_COMPLETE_APP_TITLE' | translate }}</strong>
+          <span>{{ 'ADMIN.BACKUP_COMPLETE_APP_DESC' | translate }}</span>
+        </button>
+        <button class="backup-type-card danger" [disabled]="backupLoading" (click)="createBackup('COMPLETE_TOTAL')">
+          <strong>{{ 'ADMIN.BACKUP_COMPLETE_TOTAL_TITLE' | translate }}</strong>
+          <span>{{ 'ADMIN.BACKUP_COMPLETE_TOTAL_DESC' | translate }}</span>
+        </button>
+      </div>
+
       <!-- Actions row -->
       <div class="sistema-actions-row">
-        <button class="btn primary" [disabled]="backupLoading" (click)="createBackup()">
-          {{ 'ADMIN.BACKUP_CREATE' | translate }}
-        </button>
         <button class="btn secondary small" [disabled]="backupLoading" (click)="loadBackups()">
           {{ 'ADMIN.BACKUP_REFRESH' | translate }}
         </button>
@@ -571,7 +669,8 @@
         <div *ngFor="let b of backups" class="backup-item">
           <div class="backup-info">
             <span class="backup-name">{{ b.name }}</span>
-            <span class="backup-meta">{{ b.createdAt }} · {{ b.sizeFormatted }}</span>
+            <span class="backup-meta">{{ b.createdAt }} · {{ b.sizeFormatted }} · {{ getBackupTypeLabel(b.type) }}</span>
+            <span class="backup-desc" *ngIf="b.description">{{ b.description }}</span>
           </div>
           <div class="backup-actions">
             <button class="btn-icon restore-btn" (click)="confirmRestore(b)" [title]="'ADMIN.BACKUP_RESTORE' | translate">

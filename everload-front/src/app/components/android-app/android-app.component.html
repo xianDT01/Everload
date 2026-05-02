@@ -1,0 +1,83 @@
+<main class="android-page">
+  <a routerLink="/" class="android-back">{{ 'ANDROID.BACK_HOME' | translate }}</a>
+
+  <section class="android-hero">
+    <div class="android-hero-copy">
+      <span class="android-kicker">{{ 'ANDROID.KICKER' | translate }}</span>
+      <h1>{{ 'ANDROID.TITLE' | translate }}</h1>
+      <p>{{ 'ANDROID.SUBTITLE' | translate }}</p>
+      <div class="android-actions">
+        <button class="android-primary" type="button" (click)="download()" [disabled]="!release?.available || downloading || loading">
+          <span class="android-icon-download"></span>
+          {{ downloading ? ('ANDROID.DOWNLOADING' | translate) : ('ANDROID.DOWNLOAD_APK' | translate) }}
+        </button>
+        <button class="android-secondary" type="button" (click)="loadRelease()" [disabled]="loading">
+          {{ 'ANDROID.REFRESH' | translate }}
+        </button>
+      </div>
+      <p class="android-state" *ngIf="loading">{{ 'ANDROID.LOADING' | translate }}</p>
+      <p class="android-state error" *ngIf="error">{{ error }}</p>
+      <p class="android-state warning" *ngIf="!loading && release && !release.available">{{ 'ANDROID.NOT_AVAILABLE' | translate }}</p>
+    </div>
+
+    <div class="phone-stage" aria-hidden="true">
+      <div class="phone-shadow"></div>
+      <div class="phone">
+        <div class="phone-speaker"></div>
+        <div class="phone-screen">
+          <div class="phone-status"><span></span><span></span></div>
+          <div class="phone-logo">
+            <span>E</span>
+          </div>
+          <strong>EverLoad</strong>
+          <small>{{ 'ANDROID.PHONE_LABEL' | translate }}</small>
+          <div class="phone-card">
+            <span class="wide"></span>
+            <span></span>
+            <div class="phone-progress"><i></i></div>
+          </div>
+          <div class="phone-dock"><i></i><i></i><i></i></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="android-release-panel">
+    <div class="release-card main">
+      <span class="release-label">{{ 'ANDROID.CURRENT_RELEASE' | translate }}</span>
+      <h2>{{ release?.versionName || ('ANDROID.NO_VERSION' | translate) }}</h2>
+      <div class="release-grid">
+        <div>
+          <span>{{ 'ANDROID.VERSION_CODE' | translate }}</span>
+          <strong>{{ release?.versionCode || '-' }}</strong>
+        </div>
+        <div>
+          <span>{{ 'ANDROID.MIN_ANDROID' | translate }}</span>
+          <strong>{{ release?.minAndroidVersion || 'Android 8.0+' }}</strong>
+        </div>
+        <div>
+          <span>{{ 'ANDROID.FILE_SIZE' | translate }}</span>
+          <strong>{{ release?.sizeFormatted || '-' }}</strong>
+        </div>
+        <div>
+          <span>{{ 'ANDROID.UPLOADED_AT' | translate }}</span>
+          <strong>{{ uploadedDate ? (uploadedDate | date:'dd/MM/yyyy HH:mm') : '-' }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="release-card notes">
+      <span class="release-label">{{ 'ANDROID.RELEASE_NOTES' | translate }}</span>
+      <p>{{ release?.releaseNotes || ('ANDROID.NO_NOTES' | translate) }}</p>
+    </div>
+
+    <div class="release-card install">
+      <span class="release-label">{{ 'ANDROID.INSTALL_TITLE' | translate }}</span>
+      <ol>
+        <li>{{ 'ANDROID.STEP_1' | translate }}</li>
+        <li>{{ 'ANDROID.STEP_2' | translate }}</li>
+        <li>{{ 'ANDROID.STEP_3' | translate }}</li>
+      </ol>
+    </div>
+  </section>
+</main>

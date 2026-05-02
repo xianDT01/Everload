@@ -1,8 +1,10 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEventType, HttpParams } from '@angular/common/http';
 import { TranslateService } from '@ngx-translate/core';
 import { NasService, NasPath } from '../../services/nas.service';
+import { ApiBaseService } from '../../services/api-base.service';
 import { AuthService } from '../../services/auth.service';
+import { AndroidRelease, AndroidReleaseService } from '../../services/android-release.service';
 
 // ── Sistema tab interfaces ─────────────────────────────────────────────────────
 
@@ -16,6 +18,8 @@ interface BackupDto {
   sizeBytes: number;
   sizeFormatted: string;
   createdAt: string;
+  type?: string;
+  description?: string;
 }
 
 interface SystemInfoDto {
@@ -116,13 +120,11 @@ interface AdminChatMember {
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
 
-  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' | 'sistema' = 'config';
+  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' | 'app' | 'sistema' = 'config';
 
-  private readonly BASE: string = (() => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : '';
-    if (host === 'localhost' || host === '127.0.0.1') return 'http://localhost:8080';
-    return '';
-  })();
+  private get BASE(): string {
+    return this.apiBase.backendUrl;
+  }
 
   config: AdminConfig = { clientId: '', clientSecret: '', apiKey: '', acoustidApiKey: '', githubToken: '' };
   showGithubToken = false;
@@ -172,11 +174,23 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   cleanupInfo:    Record<string, boolean> = {};
   cleanupDays:    Record<string, number>  = { history: 90, audit: 90 };
 
+  androidRelease: AndroidRelease | null = null;
+  androidVersionName = '';
+  androidVersionCode = '';
+  androidMinVersion = 'Android 8.0+';
+  androidReleaseNotes = '';
+  androidApkFile: File | null = null;
+  androidUploading = false;
+  androidUploadProgress = 0;
+  androidMsg = '';
+
   constructor(
     private http: HttpClient,
     private translate: TranslateService,
     private nasService: NasService,
-    private authService: AuthService
+    private apiBase: ApiBaseService,
+    private authService: AuthService,
+    private androidReleaseService: AndroidReleaseService
   ) {
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
@@ -229,6 +243,80 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     this.http.post(`${this.BASE}/api/admin/config`, this.config).subscribe({
       next: () => { this.mensaje = this.translate.instant('ADMIN.FORM_SAVE_SUCCESS'); this.cargando = false; },
       error: () => { this.mensaje = this.translate.instant('ADMIN.FORM_SAVE_ERROR'); this.cargando = false; }
+    });
+  }
+
+  loadAndroidRelease(): void {
+    this.androidMsg = '';
+    this.androidReleaseService.getRelease().subscribe({
+      next: release => {
+        this.androidRelease = release;
+        this.androidVersionName = release.versionName || this.androidVersionName;
+        this.androidVersionCode = release.versionCode || this.androidVersionCode;
+        this.androidMinVersion = release.minAndroidVersion || this.androidMinVersion || 'Android 8.0+';
+        this.androidReleaseNotes = release.releaseNotes || this.androidReleaseNotes;
+      },
+      error: () => this.androidMsg = '❌ ' + this.translate.instant('ADMIN.APP_LOAD_ERROR')
+    });
+  }
+
+  onAndroidApkSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] || null;
+    this.androidApkFile = file;
+    if (file && !file.name.toLowerCase().endsWith('.apk')) {
+      this.androidMsg = '❌ ' + this.translate.instant('ADMIN.APP_APK_ONLY');
+      this.androidApkFile = null;
+      input.value = '';
+      return;
+    }
+    this.androidMsg = file ? this.translate.instant('ADMIN.APP_FILE_READY', { name: file.name }) : '';
+  }
+
+  uploadAndroidApk(): void {
+    if (!this.androidApkFile) {
+      this.androidMsg = '❌ ' + this.translate.instant('ADMIN.APP_SELECT_FILE');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('file', this.androidApkFile);
+    formData.append('versionName', this.androidVersionName || '');
+    formData.append('versionCode', this.androidVersionCode || '');
+    formData.append('minAndroidVersion', this.androidMinVersion || '');
+    formData.append('releaseNotes', this.androidReleaseNotes || '');
+
+    this.androidUploading = true;
+    this.androidUploadProgress = 0;
+    this.androidMsg = this.translate.instant('ADMIN.APP_UPLOADING');
+    this.androidReleaseService.uploadRelease(formData).subscribe({
+      next: event => {
+        if (event.type === HttpEventType.UploadProgress && event.total) {
+          this.androidUploadProgress = Math.round((event.loaded / event.total) * 100);
+        }
+        if (event.type === HttpEventType.Response) {
+          this.androidRelease = event.body || null;
+          this.androidUploading = false;
+          this.androidUploadProgress = 100;
+          this.androidApkFile = null;
+          this.androidMsg = '✅ ' + this.translate.instant('ADMIN.APP_UPLOAD_SUCCESS');
+        }
+      },
+      error: err => {
+        this.androidUploading = false;
+        this.androidMsg = '❌ ' + (err.error?.error || this.translate.instant('ADMIN.APP_UPLOAD_ERROR'));
+      }
+    });
+  }
+
+  deleteAndroidRelease(): void {
+    if (!confirm(this.translate.instant('ADMIN.APP_DELETE_CONFIRM'))) return;
+    this.androidReleaseService.deleteRelease().subscribe({
+      next: () => {
+        this.androidRelease = null;
+        this.androidMsg = '✅ ' + this.translate.instant('ADMIN.APP_DELETE_SUCCESS');
+        this.loadAndroidRelease();
+      },
+      error: () => this.androidMsg = '❌ ' + this.translate.instant('ADMIN.APP_DELETE_ERROR')
     });
   }
 
@@ -711,10 +799,10 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     });
   }
 
-  createBackup(): void {
+  createBackup(type: 'QUICK' | 'COMPLETE_APP' | 'COMPLETE_TOTAL' = 'QUICK'): void {
     this.backupLoading = true;
-    this.backupMsg = this.translate.instant('ADMIN.BACKUP_CREATING'); // (Wait, I should add this key or use a generic one)
-    this.http.post<BackupDto>(`${this.BASE}/api/admin/backup`, null).subscribe({
+    this.backupMsg = this.translate.instant('ADMIN.BACKUP_CREATING');
+    this.http.post<BackupDto>(`${this.BASE}/api/admin/backup`, { type }).subscribe({
       next: data => {
         this.backupLoading = false;
         this.backupMsg = this.translate.instant('ADMIN.BACKUP_CREATED', { name: data.name, size: data.sizeFormatted });
@@ -725,6 +813,10 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
         this.backupMsg = '❌ ' + (err?.error?.error || this.translate.instant('ADMIN.BACKUP_CREATE_ERROR'));
       }
     });
+  }
+
+  getBackupTypeLabel(type?: string): string {
+    return this.translate.instant(`ADMIN.BACKUP_TYPE_${type || 'LEGACY_DATABASE'}`);
   }
 
   confirmRestore(backup: BackupDto): void {

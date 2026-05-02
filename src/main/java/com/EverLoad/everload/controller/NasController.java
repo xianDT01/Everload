@@ -199,7 +199,7 @@ public class NasController {
         }
     }
 
-    @Operation(summary = "Copiar archivo a otra carpeta NAS")
+    @Operation(summary = "Copiar archivo o carpeta a otra carpeta NAS")
     @PostMapping("/copy")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<?> copyFile(

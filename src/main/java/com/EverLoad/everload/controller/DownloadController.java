@@ -1,6 +1,7 @@
 package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.service.DownloadService;
+import com.EverLoad.everload.service.DownloadService.DirectDownloadJob;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.FileSystemResource;
@@ -37,6 +38,32 @@ public class DownloadController {
             @RequestParam String videoId,
             @RequestParam String format) {
         return downloadService.downloadMusic(videoId, format);
+    }
+
+    @Operation(summary = "Encolar descarga de música de YouTube")
+    @PostMapping("/downloadMusic/jobs")
+    public ResponseEntity<?> queueMusicDownload(
+            @RequestParam String videoId,
+            @RequestParam(defaultValue = "mp3") String format) {
+        try {
+            return ResponseEntity.ok(downloadService.queueMusicDownload(videoId, format));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Consultar estado de descarga de música")
+    @GetMapping("/downloadMusic/jobs/{jobId}")
+    public ResponseEntity<DirectDownloadJob> getMusicDownloadJob(@PathVariable String jobId) {
+        DirectDownloadJob job = downloadService.getDirectDownloadJob(jobId);
+        if (job == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(job);
+    }
+
+    @Operation(summary = "Descargar archivo de música preparado")
+    @GetMapping("/downloadMusic/jobs/{jobId}/file")
+    public ResponseEntity<FileSystemResource> downloadQueuedMusicFile(@PathVariable String jobId) {
+        return downloadService.downloadQueuedFile(jobId);
     }
 
     @Operation(summary = "Descargar video de Twitter/X")
