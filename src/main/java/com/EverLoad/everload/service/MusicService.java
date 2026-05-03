@@ -37,6 +37,8 @@ public class MusicService {
             Arrays.asList("mp3", "flac", "m4a", "wav", "ogg", "aac", "opus", "wma", "alac");
 
     private static final String DJ_CACHE_DIR = "./downloads/dj_cache/";
+    private static final long STREAM_CHUNK_SIZE_BYTES = 8L * 1024L * 1024L;
+    private static final int STREAM_BUFFER_SIZE_BYTES = 256 * 1024;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -303,18 +305,51 @@ public class MusicService {
                 .toString();
 
         response.setHeader("Accept-Ranges", "bytes");
+        response.setHeader("Cache-Control", "private, max-age=3600");
+        response.setHeader("X-Content-Type-Options", "nosniff");
         response.setContentType(contentType);
 
         long start = 0;
         long end   = fileLength - 1;
+        boolean partial = false;
 
         if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
-            String rangeSpec = rangeHeader.substring(6);          // e.g. "0-" or "0-999999"
-            String[] parts   = rangeSpec.split("-", 2);
-            start = parts[0].isEmpty() ? 0 : Long.parseLong(parts[0]);
-            end   = (parts.length > 1 && !parts[1].isEmpty()) ? Long.parseLong(parts[1]) : fileLength - 1;
-            end   = Math.min(end, fileLength - 1);
+            try {
+                String rangeSpec = rangeHeader.substring(6).split(",", 2)[0].trim();
+                String[] parts   = rangeSpec.split("-", 2);
+                boolean openEnded = parts.length < 2 || parts[1].isEmpty();
 
+                if (parts[0].isEmpty() && parts.length > 1 && !parts[1].isEmpty()) {
+                    long suffixLength = Long.parseLong(parts[1]);
+                    start = Math.max(fileLength - suffixLength, 0);
+                    end = fileLength - 1;
+                    openEnded = false;
+                } else {
+                    start = parts[0].isEmpty() ? 0 : Long.parseLong(parts[0]);
+                    end = openEnded ? fileLength - 1 : Long.parseLong(parts[1]);
+                }
+
+                end = Math.min(end, fileLength - 1);
+                if (openEnded) {
+                    end = Math.min(start + STREAM_CHUNK_SIZE_BYTES - 1, fileLength - 1);
+                }
+                partial = true;
+            } catch (NumberFormatException e) {
+                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+                response.setHeader("Content-Range", "bytes */" + fileLength);
+                response.setContentLengthLong(0);
+                return;
+            }
+        }
+
+        if (fileLength <= 0 || start < 0 || start >= fileLength || end < start) {
+            response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+            response.setHeader("Content-Range", "bytes */" + fileLength);
+            response.setContentLengthLong(0);
+            return;
+        }
+
+        if (partial) {
             response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
             response.setHeader("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
         } else {
@@ -327,7 +362,7 @@ public class MusicService {
         try (RandomAccessFile raf = new RandomAccessFile(file, "r");
              OutputStream out     = response.getOutputStream()) {
             raf.seek(start);
-            byte[] buf       = new byte[65536]; // 64 KB buffer
+            byte[] buf       = new byte[STREAM_BUFFER_SIZE_BYTES];
             long   remaining = length;
             int    read;
             while (remaining > 0 &&
@@ -335,7 +370,24 @@ public class MusicService {
                 out.write(buf, 0, read);
                 remaining -= read;
             }
+            out.flush();
+        } catch (IOException e) {
+            if (isClientAbort(e)) return;
+            throw e;
         }
+    }
+
+    private boolean isClientAbort(IOException e) {
+        String className = e.getClass().getName();
+        String message = Optional.ofNullable(e.getMessage()).orElse("").toLowerCase(Locale.ROOT);
+        return className.contains("ClientAbortException")
+                || message.contains("broken pipe")
+                || message.contains("connection reset")
+                || message.contains("forcibly closed")
+                || message.contains("abort")
+                || message.contains("anulada")
+                || message.contains("restablecida")
+                || message.contains("cerrada");
     }
 
     // ── Metadata write ────────────────────────────────────────────────────────
