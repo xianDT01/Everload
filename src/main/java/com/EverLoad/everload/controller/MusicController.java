@@ -5,6 +5,7 @@ import com.EverLoad.everload.dto.PagedMusicResult;
 import com.EverLoad.everload.service.MusicService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -122,6 +123,70 @@ public class MusicController {
     }
 
     // ── Cover art ─────────────────────────────────────────────────────────────
+
+    @Operation(summary = "Preparar cache HLS para audios largos")
+    @PostMapping("/hls/prepare")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> prepareHls(@RequestParam Long pathId,
+                                        @RequestParam String subPath) {
+        try {
+            return ResponseEntity.ok(musicService.prepareHlsStream(pathId, subPath));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Estado de cache HLS para audios largos")
+    @GetMapping("/hls/status")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> hlsStatus(@RequestParam Long pathId,
+                                       @RequestParam String subPath) {
+        try {
+            return ResponseEntity.ok(musicService.getHlsStatus(pathId, subPath));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Playlist HLS cacheada para audios largos")
+    @GetMapping(value = "/hls/playlist", produces = "application/vnd.apple.mpegurl")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> hlsPlaylist(@RequestParam Long pathId,
+                                              @RequestParam String subPath,
+                                              HttpServletRequest request) {
+        try {
+            String playlist = musicService.getHlsPlaylist(pathId, subPath, request.getParameter("token"));
+            HttpHeaders headers = new HttpHeaders();
+            headers.setCacheControl("private, max-age=30");
+            return new ResponseEntity<>(playlist, headers, HttpStatus.OK);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body("#EXTM3U\n");
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("");
+        }
+    }
+
+    @Operation(summary = "Segmento HLS cacheado para audios largos")
+    @GetMapping("/hls/segment")
+    @PreAuthorize("isAuthenticated()")
+    public void hlsSegment(@RequestParam Long pathId,
+                           @RequestParam String subPath,
+                           @RequestParam String segment,
+                           HttpServletResponse response) {
+        try {
+            musicService.streamHlsSegmentToResponse(pathId, subPath, segment, response);
+        } catch (SecurityException e) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        }
+    }
 
     @Operation(summary = "Carátula embebida en los tags ID3 del archivo de audio")
     @GetMapping("/cover")
