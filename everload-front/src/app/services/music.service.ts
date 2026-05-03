@@ -76,6 +76,7 @@ export class DeckPlayer {
   private ytReady = false;
   private ytInterval: any = null;
   private activeSource: 'nas' | 'youtube' | 'local' | null = null;
+  private loadNonce = 0;
 
   private audioCtx: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
@@ -111,6 +112,7 @@ export class DeckPlayer {
   constructor(private musicService: MusicService, private deckId: string) {
     this.ytContainerId = 'yt-player-' + deckId;
     this.audio = new Audio();
+    this.audio.preload = 'metadata';
     this.audio.crossOrigin = 'anonymous'; // Important for CORS Web Audio
     this.setupAudioNodes();
 
@@ -118,15 +120,28 @@ export class DeckPlayer {
       this.patch({ currentTime: this.audio.currentTime });
       this.checkLoop();
     });
-    this.audio.addEventListener('play',           () => this.patch({ playing: true, error: null }));
+    this.audio.addEventListener('play',           () => this.patch({ playing: true, loading: false, error: null }));
+    this.audio.addEventListener('playing',        () => this.patch({ playing: true, loading: false, error: null }));
     this.audio.addEventListener('pause',          () => this.patch({ playing: false }));
-    this.audio.addEventListener('loadedmetadata', () => this.patch({ duration: this.audio.duration }));
+    this.audio.addEventListener('loadedmetadata', () => this.patch({ duration: this.audio.duration, loading: false }));
+    this.audio.addEventListener('canplay',        () => this.patch({ loading: false }));
+    this.audio.addEventListener('seeked',         () => this.patch({ loading: false, currentTime: this.audio.currentTime }));
+    this.audio.addEventListener('seeking',        () => {
+      if (this.state.currentTrack) this.patch({ loading: true });
+    });
+    this.audio.addEventListener('waiting',        () => {
+      if (this.state.currentTrack) this.patch({ loading: true });
+    });
+    this.audio.addEventListener('stalled',        () => {
+      if (this.state.currentTrack) this.patch({ loading: true });
+    });
     this.audio.addEventListener('volumechange',   () => this.patch({ volume: this.audio.volume }));
     this.audio.addEventListener('ended',          () => {
       this.patch({ playing: false, currentTime: 0 });
       if (this.onTrackEnded) this.onTrackEnded();
     });
     this.audio.addEventListener('error', () => {
+      if (!this.audio.currentSrc && !this.audio.src) return;
       const e = this.audio.error;
       const msg = e ? `Audio error (code ${e.code}): ${e.message || 'stream no disponible'}` : 'Error de reproduccion';
       this.patch({ playing: false, loading: false, error: msg });
@@ -221,42 +236,50 @@ export class DeckPlayer {
   // ── Load ──────────────────────────────────────────────────────────────────
 
   async load(track: MusicMetadataDto, pathId: number) {
+    const loadId = ++this.loadNonce;
     this.stopAll();
     this.patch({ currentTrack: track, pathId, currentTime: 0, playing: false, duration: 0, loading: true, error: null });
 
     if (track.source === 'youtube') {
       this.activeSource = 'youtube';
-      await this.loadYoutube(track.path);
+      await this.loadYoutube(track.path, loadId);
     } else if (track.source === 'local') {
       this.activeSource = 'local';
-      this.loadLocal(track);
+      this.loadLocal(track, loadId);
     } else {
       this.activeSource = 'nas';
-      this.loadNas(track, pathId);
+      this.loadNas(track, pathId, loadId);
     }
   }
 
-  private loadLocal(track: MusicMetadataDto) {
+  private isStaleLoad(loadId: number): boolean {
+    return loadId !== this.loadNonce;
+  }
+
+  private loadLocal(track: MusicMetadataDto, loadId: number) {
+    if (this.isStaleLoad(loadId)) return;
     // Para local, track.path contiene directamente la URL de blob: generada
+    this.audio.preload = 'auto';
     this.audio.src = track.path;
     this.audio.load();
-    this.patch({ loading: false });
   }
 
-  private loadNas(track: MusicMetadataDto, pathId: number) {
+  private loadNas(track: MusicMetadataDto, pathId: number, loadId: number) {
+    if (this.isStaleLoad(loadId)) return;
     const url = this.musicService.getStreamUrl(pathId, track.path);
+    this.audio.preload = 'auto';
     this.audio.src = url;
     this.audio.load();
-    this.patch({ loading: false });
   }
 
-  private async loadYoutube(videoId: string) {
+  private async loadYoutube(videoId: string, loadId: number) {
     await ensureYouTubeAPI();
+    if (this.isStaleLoad(loadId)) return;
     this.ensureYtContainer();
 
     if (this.ytPlayer && this.ytReady) {
       this.ytPlayer.loadVideoById(videoId);
-      this.patch({ loading: false });
+      if (!this.isStaleLoad(loadId)) this.patch({ loading: false });
     } else {
       // Destroy old broken player if exists
       if (this.ytPlayer) {
@@ -275,12 +298,14 @@ export class DeckPlayer {
         playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1 },
         events: {
           onReady: () => {
+            if (this.isStaleLoad(loadId)) return;
             this.ytReady = true;
             this.ytPlayer.setVolume(this.state.volume * 100);
             this.patch({ loading: false, duration: this.ytPlayer.getDuration() || 0 });
           },
           onStateChange: (event: any) => this.onYtStateChange(event),
           onError: (event: any) => {
+            if (this.isStaleLoad(loadId)) return;
             const codes: Record<number, string> = {
               2: 'ID de video invalido', 5: 'Error del reproductor HTML5',
               100: 'Video no encontrado', 101: 'Reproduccion restringida', 150: 'Reproduccion restringida'
@@ -382,10 +407,18 @@ export class DeckPlayer {
   }
 
   seek(time: number) {
+    if (!Number.isFinite(time)) return;
     if (this.activeSource === 'youtube') {
       if (this.ytPlayer && this.ytReady) this.ytPlayer.seekTo(time, true);
     } else {
-      this.audio.currentTime = time;
+      const duration = this.state.duration;
+      const target = duration > 0 ? Math.max(0, Math.min(time, duration)) : Math.max(0, time);
+      try {
+        this.patch({ loading: true, currentTime: target });
+        this.audio.currentTime = target;
+      } catch (err: any) {
+        this.patch({ loading: false, error: 'No se pudo saltar en la pista: ' + (err?.message || err) });
+      }
     }
   }
 
@@ -507,7 +540,8 @@ export class DeckPlayer {
 
   private stopAll() {
     this.audio.pause();
-    this.audio.src = '';
+    this.audio.removeAttribute('src');
+    this.audio.load();
     this.stopYtPolling();
     if (this.ytPlayer && this.ytReady) {
       try { this.ytPlayer.stopVideo(); } catch (_) {}
@@ -571,6 +605,7 @@ export class MusicService {
   private preloadAudio: HTMLAudioElement | null = null;
   private preloadedPath: string | null = null;
   private preloadTriggeredForPath: string | null = null;
+  private preloadTimer?: ReturnType<typeof setTimeout>;
   private nativeAudioListenerReady = false;
   private nativeAudioLastSync = 0;
   private nativeAudioLastKey = '';
@@ -1037,7 +1072,7 @@ export class MusicService {
 
       this.preloadTriggeredForPath = state.currentTrack.path;
       const next = this.peekNextTrack();
-      if (next && next.track.source !== 'youtube') {
+      if (next && next.track.source !== 'youtube' && next.track.path !== state.currentTrack.path) {
         this.doPreload(next.track, next.pathId);
       }
     });
@@ -1063,10 +1098,7 @@ export class MusicService {
   }
 
   private doPreload(track: MusicMetadataDto, pathId: number): void {
-    if (this.preloadAudio) {
-      this.preloadAudio.src = '';
-      this.preloadAudio = null;
-    }
+    this.releasePreloadAudio();
     const el = new Audio();
     el.preload = 'auto';
     el.crossOrigin = 'anonymous';
@@ -1076,15 +1108,46 @@ export class MusicService {
     this.preloadedPath = track.path;
   }
 
+  private releasePreloadAudio(resetTrigger = false): void {
+    if (this.preloadTimer) {
+      clearTimeout(this.preloadTimer);
+      this.preloadTimer = undefined;
+    }
+    if (this.preloadAudio) {
+      this.preloadAudio.pause();
+      this.preloadAudio.removeAttribute('src');
+      this.preloadAudio.load();
+      this.preloadAudio = null;
+    }
+    this.preloadedPath = null;
+    if (resetTrigger) this.preloadTriggeredForPath = null;
+  }
+
+  private scheduleNextPreload(delayMs = 1500): void {
+    if (this.preloadTimer) clearTimeout(this.preloadTimer);
+    const expectedPath = this.mainPlayer.state.currentTrack?.path;
+    this.preloadTimer = setTimeout(() => {
+      this.preloadTimer = undefined;
+      if (!expectedPath || this.mainPlayer.state.currentTrack?.path !== expectedPath) return;
+      const next = this.peekNextTrack();
+      if (next && next.track.source !== 'youtube' && next.track.path !== expectedPath) {
+        this.preloadTriggeredForPath = expectedPath;
+        this.doPreload(next.track, next.pathId);
+      }
+    }, delayMs);
+  }
+
   // ── Queue / Library controls ──────────────────────────────────────────────
 
   setQueue(pathId: number, tracks: MusicMetadataDto[], index: number) {
+    this.releasePreloadAudio(true);
     this.queueSubj.next({ tracks, pathId, index });
     if (this._shuffle) this.buildShuffleOrder();
     this.persistState();
     if (tracks[index]) {
       this.mainPlayer.load(tracks[index], pathId).then(() => {
         this.mainPlayer.play();
+        this.scheduleNextPreload();
       });
     }
   }
@@ -1099,11 +1162,13 @@ export class MusicService {
   // Advances to a track within the current queue without rebuilding shuffleOrder,
   // so the full shuffle sequence is preserved across playback.
   private advanceToTrack(pathId: number, tracks: MusicMetadataDto[], index: number) {
+    this.releasePreloadAudio(true);
     this.queueSubj.next({ tracks, pathId, index });
     this.persistState();
     if (tracks[index]) {
       this.mainPlayer.load(tracks[index], pathId).then(() => {
         this.mainPlayer.play();
+        this.scheduleNextPreload();
       });
     }
   }
