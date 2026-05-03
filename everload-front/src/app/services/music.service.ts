@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
-import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, Observable, Subject } from 'rxjs';
 import { ApiBaseService } from './api-base.service';
 
 export interface PagedMusicResult {
@@ -44,6 +44,17 @@ export interface PlayerState {
   loopEnd: number;
 }
 
+interface HlsPrepareResult {
+  key: string;
+  eligible: boolean;
+  status: 'DIRECT' | 'IDLE' | 'RUNNING' | 'READY' | 'FAILED';
+  ready: boolean;
+  progress: number;
+  durationSeconds: number;
+  fileSizeBytes: number;
+  error?: string;
+}
+
 // ── YouTube IFrame API loader ─────────────────────────────────────────────────
 
 let ytApiReady: Promise<void> | null = null;
@@ -77,6 +88,9 @@ export class DeckPlayer {
   private ytInterval: any = null;
   private activeSource: 'nas' | 'youtube' | 'local' | null = null;
   private loadNonce = 0;
+  private hls: any = null;
+  private hlsCtorPromise?: Promise<any | null>;
+  private hlsPollTimer?: ReturnType<typeof setTimeout>;
 
   private audioCtx: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
@@ -248,7 +262,7 @@ export class DeckPlayer {
       this.loadLocal(track, loadId);
     } else {
       this.activeSource = 'nas';
-      this.loadNas(track, pathId, loadId);
+      await this.loadNas(track, pathId, loadId);
     }
   }
 
@@ -264,12 +278,141 @@ export class DeckPlayer {
     this.audio.load();
   }
 
-  private loadNas(track: MusicMetadataDto, pathId: number, loadId: number) {
+  private async loadNas(track: MusicMetadataDto, pathId: number, loadId: number) {
     if (this.isStaleLoad(loadId)) return;
     const url = this.musicService.getStreamUrl(pathId, track.path);
+    const preferHls = this.musicService.shouldUseHls(track);
+
+    if (!preferHls || !(await this.canPlayHls())) {
+      this.loadDirectAudio(url);
+      return;
+    }
+
+    try {
+      const info = await firstValueFrom(this.musicService.prepareHls(pathId, track.path));
+      if (this.isStaleLoad(loadId)) return;
+
+      if (info.ready) {
+        await this.loadHlsAudio(this.musicService.getHlsPlaylistUrl(pathId, track.path), loadId, url);
+        return;
+      }
+
+      this.loadDirectAudio(url);
+      this.pollHlsReady(track, pathId, loadId, url);
+    } catch (_) {
+      if (!this.isStaleLoad(loadId)) this.loadDirectAudio(url);
+    }
+  }
+
+  private loadDirectAudio(url: string) {
+    this.destroyHls();
     this.audio.preload = 'auto';
     this.audio.src = url;
     this.audio.load();
+  }
+
+  private async canPlayHls(): Promise<boolean> {
+    if (this.audio.canPlayType('application/vnd.apple.mpegurl') !== '') return true;
+    const HlsCtor = await this.getHlsCtor();
+    return !!HlsCtor?.isSupported?.();
+  }
+
+  private getHlsCtor(): Promise<any | null> {
+    if (!this.hlsCtorPromise) {
+      this.hlsCtorPromise = import('hls.js')
+        .then(mod => mod.default)
+        .catch(() => null);
+    }
+    return this.hlsCtorPromise;
+  }
+
+  private async loadHlsAudio(
+    playlistUrl: string,
+    loadId: number,
+    fallbackUrl: string,
+    resumeAt = 0,
+    autoPlay = false
+  ): Promise<void> {
+    if (this.isStaleLoad(loadId)) return;
+
+    this.destroyHls();
+    this.audio.preload = 'auto';
+
+    const ready = () => {
+      if (this.isStaleLoad(loadId)) return;
+      if (resumeAt > 0 && Number.isFinite(resumeAt)) {
+        try { this.audio.currentTime = resumeAt; } catch (_) {}
+      }
+      this.patch({ loading: false });
+      if (autoPlay) this.play();
+    };
+
+    if (this.audio.canPlayType('application/vnd.apple.mpegurl')) {
+      this.audio.src = playlistUrl;
+      this.audio.addEventListener('loadedmetadata', ready, { once: true });
+      this.audio.load();
+      return;
+    }
+
+    const HlsCtor = await this.getHlsCtor();
+    if (!HlsCtor?.isSupported?.()) {
+      this.loadDirectAudio(fallbackUrl);
+      return;
+    }
+
+    const hls = new HlsCtor({
+      maxBufferLength: 45,
+      backBufferLength: 30,
+      startPosition: resumeAt > 0 ? resumeAt : -1,
+    });
+    this.hls = hls;
+
+    hls.on(HlsCtor.Events.MEDIA_ATTACHED, () => hls.loadSource(playlistUrl));
+    hls.on(HlsCtor.Events.MANIFEST_PARSED, ready);
+    hls.on(HlsCtor.Events.ERROR, (_event: any, data: any) => {
+      if (!data?.fatal || this.isStaleLoad(loadId)) return;
+      const current = this.audio.currentTime || resumeAt || 0;
+      const wasPlaying = this.state.playing;
+      this.destroyHls();
+      this.loadDirectAudio(fallbackUrl);
+      if (current > 0) {
+        try { this.audio.currentTime = current; } catch (_) {}
+      }
+      if (wasPlaying) this.play();
+    });
+
+    hls.attachMedia(this.audio);
+  }
+
+  private pollHlsReady(
+    track: MusicMetadataDto,
+    pathId: number,
+    loadId: number,
+    fallbackUrl: string,
+    attempt = 0
+  ): void {
+    if (this.hlsPollTimer) clearTimeout(this.hlsPollTimer);
+    if (this.isStaleLoad(loadId) || attempt > 45) return;
+
+    this.hlsPollTimer = setTimeout(async () => {
+      this.hlsPollTimer = undefined;
+      if (this.isStaleLoad(loadId) || this.state.currentTrack?.path !== track.path) return;
+
+      try {
+        const info = await firstValueFrom(this.musicService.getHlsStatus(pathId, track.path));
+        if (this.isStaleLoad(loadId) || this.state.currentTrack?.path !== track.path) return;
+
+        if (info.ready) {
+          const current = this.state.currentTime || 0;
+          const wasPlaying = this.state.playing;
+          this.loadHlsAudio(this.musicService.getHlsPlaylistUrl(pathId, track.path), loadId, fallbackUrl, current, wasPlaying);
+          return;
+        }
+        if (info.status === 'FAILED' || !info.eligible) return;
+      } catch (_) {}
+
+      this.pollHlsReady(track, pathId, loadId, fallbackUrl, attempt + 1);
+    }, attempt < 3 ? 2500 : 5000);
   }
 
   private async loadYoutube(videoId: string, loadId: number) {
@@ -539,6 +682,11 @@ export class DeckPlayer {
   }
 
   private stopAll() {
+    if (this.hlsPollTimer) {
+      clearTimeout(this.hlsPollTimer);
+      this.hlsPollTimer = undefined;
+    }
+    this.destroyHls();
     this.audio.pause();
     this.audio.removeAttribute('src');
     this.audio.load();
@@ -546,6 +694,12 @@ export class DeckPlayer {
     if (this.ytPlayer && this.ytReady) {
       try { this.ytPlayer.stopVideo(); } catch (_) {}
     }
+  }
+
+  private destroyHls(): void {
+    if (!this.hls) return;
+    try { this.hls.destroy(); } catch (_) {}
+    this.hls = null;
   }
 }
 
@@ -874,6 +1028,27 @@ export class MusicService {
   getStreamUrl(pathId: number, trackPath: string): string {
     const token = this.auth.getToken();
     return `${this.api}/stream?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}`;
+  }
+
+  shouldUseHls(track: MusicMetadataDto): boolean {
+    if (!track || track.source === 'youtube' || track.source === 'local') return false;
+    return (track.duration || 0) >= 1200 || (track.size || 0) >= 80 * 1024 * 1024;
+  }
+
+  prepareHls(pathId: number, trackPath: string): Observable<HlsPrepareResult> {
+    const params = new URLSearchParams({ pathId: String(pathId), subPath: trackPath });
+    return this.http.post<HlsPrepareResult>(`${this.api}/hls/prepare?${params}`, {});
+  }
+
+  getHlsStatus(pathId: number, trackPath: string): Observable<HlsPrepareResult> {
+    const params = new URLSearchParams({ pathId: String(pathId), subPath: trackPath });
+    return this.http.get<HlsPrepareResult>(`${this.api}/hls/status?${params}`);
+  }
+
+  getHlsPlaylistUrl(pathId: number, trackPath: string): string {
+    const token = this.auth.getToken();
+    const params = new URLSearchParams({ pathId: String(pathId), subPath: trackPath, token: token || '' });
+    return `${this.api}/hls/playlist?${params}`;
   }
 
   getCoverUrl(pathId: number, trackPath: string, source?: string): string {

@@ -66,6 +66,9 @@ services:
       # Admin config.json (Spotify/YouTube API keys) — on the DB volume so credentials persist
       APP_CONFIG_PATH: /app/data/config.json
 
+      # HLS cache for long NAS tracks — on the DB/data volume so prepared sessions survive restarts
+      MUSIC_HLS_CACHE_DIR: /app/data/hls-cache
+
     volumes:
       - everload-db:/app/data
       - everload-avatars:/app/avatars

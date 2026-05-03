@@ -46,7 +46,7 @@ public class SecurityConfig {
                         .collect(java.util.stream.Collectors.toList());
                 config.setAllowedOriginPatterns(origins);
                 config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+                config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Range"));
                 config.setExposedHeaders(java.util.List.of("Content-Disposition", "Accept-Ranges", "Content-Range", "Content-Length"));
                 config.setAllowCredentials(false);
                 return config;
