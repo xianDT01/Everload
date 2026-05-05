@@ -3,11 +3,15 @@ import { Injectable } from '@angular/core';
 interface RuntimeConfig {
   backendUrl?: string;
   fallbackBackendUrls?: string[];
+  androidVersionCode?: number | string;
+  androidVersionName?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ApiBaseService {
   private configuredBackendUrl = '';
+  private configuredAndroidVersionCode = 0;
+  private configuredAndroidVersionName = '';
 
   async load(): Promise<void> {
     if (typeof window === 'undefined') return;
@@ -17,6 +21,9 @@ export class ApiBaseService {
       if (!response.ok) return;
 
       const config = await response.json() as RuntimeConfig;
+      this.configuredAndroidVersionCode = this.readVersionCode(config.androidVersionCode);
+      this.configuredAndroidVersionName = (config.androidVersionName || '').trim();
+
       const candidates = [
         config.backendUrl,
         ...(config.fallbackBackendUrls || [])
@@ -26,6 +33,18 @@ export class ApiBaseService {
     } catch {
       this.configuredBackendUrl = '';
     }
+  }
+
+  get androidVersionCode(): number {
+    return this.configuredAndroidVersionCode;
+  }
+
+  get androidVersionName(): string {
+    return this.configuredAndroidVersionName;
+  }
+
+  isNativePlatform(): boolean {
+    return this.isCapacitor();
   }
 
   get backendUrl(): string {
@@ -67,6 +86,11 @@ export class ApiBaseService {
 
   private normalize(url: string): string {
     return url.trim().replace(/\/+$/, '');
+  }
+
+  private readVersionCode(value: number | string | undefined): number {
+    const parsed = typeof value === 'number' ? value : Number(value || 0);
+    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
   }
 
   private async resolveReachableBackend(candidates: string[]): Promise<string> {

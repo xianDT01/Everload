@@ -8,15 +8,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 16px;
-  background: rgba(13, 13, 26, 0.95);
-  border: 1px solid rgba(108, 99, 255, 0.5);
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(108, 99, 255, 0.2), 0 2px 8px rgba(0, 0, 0, 0.6);
+  padding: 12px;
+  background: rgba(14, 16, 28, 0.96);
+  border: 1px solid rgba(88, 166, 255, 0.35);
+  border-radius: 8px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   min-width: 280px;
-  max-width: calc(100vw - 32px);
+  width: min(560px, calc(100vw - 32px));
   animation: slide-up 0.3s ease;
 }
 
@@ -34,20 +34,51 @@
 .update-banner__content {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.update-banner__icon {
-  font-size: 16px;
-  color: #6c63ff;
+.update-banner__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(88, 166, 255, 0.16);
+  color: #8ec5ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
   flex-shrink: 0;
 }
 
-.update-banner__text {
+.update-banner__copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.update-banner__title {
   font-size: 14px;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+.update-banner__text {
+  font-size: 13px;
   font-weight: 500;
-  color: #e2e2f0;
+  color: #c9d4e6;
+  line-height: 1.3;
+}
+
+.update-banner__notes {
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 12px;
+  color: #92a1ba;
 }
 
 .update-banner__actions {
@@ -69,7 +100,7 @@
 }
 
 .update-banner__btn--apply {
-  background: linear-gradient(135deg, #6c63ff, #4f46e5);
+  background: linear-gradient(135deg, #2f81f7, #1f6feb);
   color: #fff;
 }
 
@@ -91,4 +122,19 @@
 /* Cuando el player mini está visible, subimos el banner */
 :host-context(.player-visible) .update-banner {
   bottom: 104px;
+}
+
+@media (max-width: 520px) {
+  .update-banner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .update-banner__actions {
+    justify-content: flex-end;
+  }
+
+  .update-banner__notes {
+    max-width: 100%;
+  }
 }

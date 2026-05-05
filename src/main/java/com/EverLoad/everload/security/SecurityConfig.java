@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -12,7 +13,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -33,13 +33,15 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins:http://localhost:4200,http://localhost:8080,http://localhost,https://localhost,capacitor://localhost}")
     private String corsAllowedOrigins;
 
+    @Value("${app.security.swagger-public:false}")
+    private boolean swaggerPublic;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(request -> {
                 org.springframework.web.cors.CorsConfiguration config = new org.springframework.web.cors.CorsConfiguration();
-                // Parse comma-separated origins from application property / CORS_ALLOWED_ORIGINS env var
                 java.util.List<String> origins = java.util.Arrays.stream(corsAllowedOrigins.split(","))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
@@ -53,36 +55,33 @@ public class SecurityConfig {
             }))
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                // Auth endpoints (public)
-                .requestMatchers("/api/auth/**").permitAll()
-                // Maintenance status — public so Angular can check before login
-                .requestMatchers("/api/maintenance/status").permitAll()
-                // Android app release metadata/download (shown from the app download page)
-                .requestMatchers(HttpMethod.GET, "/api/app-release/android", "/api/app-release/android/download").permitAll()
-                // Health check (used by Docker + Caddy depends_on)
-                .requestMatchers("/actuator/health").permitAll()
-                // Avatar images (served publicly for chat/profile display)
-                .requestMatchers("/api/user/avatar/img/**").permitAll()
-                // Swagger (dev tools)
-                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
-                // Angular frontend — root, HTML entry point, and all static assets
-                .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
-                .requestMatchers("/**/*.js", "/**/*.css", "/**/*.map").permitAll()
-                .requestMatchers("/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.svg", "/**/*.ico", "/**/*.webp").permitAll()
-                .requestMatchers("/assets/**", "/media/**").permitAll()
-                // PWA files
-                .requestMatchers("/manifest.webmanifest", "/ngsw.json", "/ngsw-worker.js",
-                                 "/safety-worker.js", "/worker-basic.min.js", "/icons/**").permitAll()
-                // All API endpoints require authentication
-                .requestMatchers("/api/**").authenticated()
-                // Any other non-API path (e.g. Angular client-side routes) serves index.html — allow
-                .anyRequest().permitAll()
-            )
+            .authorizeHttpRequests(auth -> {
+                auth
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/maintenance/status").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/app-release/android", "/api/app-release/android/download").permitAll()
+                    .requestMatchers("/actuator/health").permitAll()
+                    .requestMatchers("/api/user/avatar/img/**").permitAll();
+
+                if (swaggerPublic) {
+                    auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll();
+                } else {
+                    auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").denyAll();
+                }
+
+                auth
+                    .requestMatchers("/", "/index.html", "/favicon.ico").permitAll()
+                    .requestMatchers("/**/*.js", "/**/*.css", "/**/*.map").permitAll()
+                    .requestMatchers("/**/*.png", "/**/*.jpg", "/**/*.jpeg", "/**/*.svg", "/**/*.ico", "/**/*.webp").permitAll()
+                    .requestMatchers("/assets/**", "/media/**").permitAll()
+                    .requestMatchers("/manifest.webmanifest", "/ngsw.json", "/ngsw-worker.js",
+                                     "/safety-worker.js", "/worker-basic.min.js", "/icons/**").permitAll()
+                    .requestMatchers("/api/**").authenticated()
+                    .anyRequest().permitAll();
+            })
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            // MaintenanceFilter runs AFTER JWT so it can inspect the user's role
             .addFilterAfter(maintenanceFilter, JwtAuthenticationFilter.class);
 
         return http.build();

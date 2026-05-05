@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -51,6 +52,12 @@ public class MusicService {
     private static final long STREAM_CHUNK_SIZE_BYTES = 8L * 1024L * 1024L;
     private static final int STREAM_BUFFER_SIZE_BYTES = 256 * 1024;
     private static final Pattern HLS_SEGMENT_NAME = Pattern.compile("[A-Za-z0-9._-]+\\.(ts|m4s|aac|vtt)");
+    private static final int SEARCH_SCAN_LIMIT = 20000;
+    private static final int SEARCH_CACHE_CHUNK_SIZE = 700;
+    private static final int SEARCH_DEEP_METADATA_LIMIT = 350;
+    private static final long DIRECTORY_LISTING_CACHE_TTL_MS = 15_000L;
+    private static final int DIRECTORY_LISTING_CACHE_MAX = 512;
+    private static final int METADATA_WARMUP_LIMIT_PER_PAGE = 80;
 
     @Value("${music.hls.cache-dir:./hls-cache}")
     private String hlsCacheDir;
@@ -62,8 +69,15 @@ public class MusicService {
     private long hlsMinSizeBytes;
 
     private final Map<String, HlsCacheJob> hlsJobs = new ConcurrentHashMap<>();
+    private final Map<String, CachedDirectoryListing> directoryListingCache = new ConcurrentHashMap<>();
+    private final Set<String> metadataWarmupInFlight = ConcurrentHashMap.newKeySet();
     private final ExecutorService hlsExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "everload-hls-cache");
+        t.setDaemon(true);
+        return t;
+    });
+    private final ExecutorService metadataExecutor = Executors.newFixedThreadPool(2, r -> {
+        Thread t = new Thread(r, "everload-metadata-cache");
         t.setDaemon(true);
         return t;
     });
@@ -123,18 +137,9 @@ public class MusicService {
         if (!dir.exists() || !dir.isDirectory()) return new PagedMusicResult(Collections.emptyList(), 0, page, size);
         if (!dir.canRead()) throw new SecurityException("Sin permisos de lectura en: " + target);
 
-        File[] files = dir.listFiles();
-        if (files == null) return new PagedMusicResult(Collections.emptyList(), 0, page, size);
-
-        List<File> dirs = Arrays.stream(files)
-                .filter(File::isDirectory)
-                .sorted(Comparator.comparing(f -> f.getName().toLowerCase()))
-                .collect(Collectors.toList());
-
-        List<File> audioFiles = Arrays.stream(files)
-                .filter(f -> f.isFile() && isAudio(f))
-                .sorted(Comparator.comparing(f -> f.getName().toLowerCase()))
-                .collect(Collectors.toList());
+        CachedDirectoryListing listing = getCachedDirectoryListing(pathId, subPath, dir);
+        List<File> dirs = listing.dirs;
+        List<File> audioFiles = listing.audioFiles;
 
         int totalTracks = audioFiles.size();
         int fromIdx = page * size;
@@ -147,7 +152,8 @@ public class MusicService {
         if (fromIdx < totalTracks) {
             List<File> pageFiles = audioFiles.subList(fromIdx, toIdx);
             Map<String, TrackMetadataCache> cacheMap = batchFetchCache(pathId, pageFiles, base);
-            pageFiles.stream().map(f -> buildDto(f, base, pathId, cacheMap)).forEach(items::add);
+            pageFiles.stream().map(f -> buildDto(f, base, pathId, cacheMap, false)).forEach(items::add);
+            warmMetadataCacheAsync(pathId, pageFiles, base, cacheMap);
         }
 
         return new PagedMusicResult(items, totalTracks, page, size);
@@ -727,14 +733,62 @@ public class MusicService {
         File startDir = startPath.toFile();
         if (!startDir.exists() || !startDir.isDirectory()) return Collections.emptyList();
 
-        String lowerQuery = query.toLowerCase().trim();
-        List<MusicMetadataDto> results = new ArrayList<>();
-        searchRecursive(startDir, pathId, base, lowerQuery, results, limit);
-        return results;
+        List<String> tokens = searchTokens(query);
+        if (tokens.isEmpty()) return Collections.emptyList();
+
+        List<File> audioFiles = new ArrayList<>();
+        collectAudioFilesForSearch(startDir, audioFiles, SEARCH_SCAN_LIMIT);
+        Map<String, TrackMetadataCache> cacheMap = batchFetchCacheChunked(pathId, audioFiles, base);
+
+        List<SearchHit> hits = new ArrayList<>();
+        Set<String> hitPaths = new HashSet<>();
+        for (File file : audioFiles) {
+            String relPath = relativePath(base, file);
+            TrackMetadataCache cached = validCache(cacheMap.get(relPath), file);
+            int score = scoreSearchHit(file, relPath, cached, tokens);
+            if (score > 0) {
+                hits.add(new SearchHit(file, relPath, cached, score, null));
+                hitPaths.add(relPath);
+            }
+        }
+
+        // If cache is cold and filename/path did not find enough, inspect a small
+        // metadata slice. This keeps searches responsive while still improving
+        // artist/album searches in smaller folders.
+        int deepReads = 0;
+        if (hits.size() < limit) {
+            for (File file : audioFiles) {
+                if (deepReads >= SEARCH_DEEP_METADATA_LIMIT) break;
+                String relPath = relativePath(base, file);
+                if (hitPaths.contains(relPath)) continue;
+                if (validCache(cacheMap.get(relPath), file) != null) continue;
+
+                deepReads++;
+                MusicMetadataDto dto = buildDto(file, base, pathId, cacheMap);
+                int score = scoreSearchDto(dto, tokens);
+                if (score > 0) {
+                    hits.add(new SearchHit(file, relPath, null, score, dto));
+                    hitPaths.add(relPath);
+                }
+            }
+        }
+
+        return hits.stream()
+                .sorted(Comparator
+                        .comparingInt((SearchHit hit) -> hit.score).reversed()
+                        .thenComparing(hit -> normalizeSearchText(hit.file.getName())))
+                .limit(Math.max(1, limit))
+                .map(hit -> {
+                    MusicMetadataDto dto = hit.dto != null
+                            ? hit.dto
+                            : buildDto(hit.file, base, pathId, Collections.singletonMap(hit.relPath, hit.cached));
+                    dto.setNasPathId(pathId);
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
-    private void searchRecursive(File dir, Long pathId, Path base, String query,
-                                  List<MusicMetadataDto> results, int limit) {
+    private void collectAudioFilesForSearch(File dir, List<File> results, int limit) {
         if (results.size() >= limit) return;
         File[] files = dir.listFiles();
         if (files == null) return;
@@ -742,24 +796,102 @@ public class MusicService {
         for (File f : files) {
             if (results.size() >= limit) break;
             if (f.isDirectory()) {
-                searchRecursive(f, pathId, base, query, results, limit);
+                collectAudioFilesForSearch(f, results, limit);
             } else if (f.isFile() && isAudio(f)) {
-                MusicMetadataDto dto = buildDto(f, base, pathId, null);
-                dto.setNasPathId(pathId);
-                if (matchesQuery(dto, query)) results.add(dto);
+                results.add(f);
             }
         }
     }
 
-    private boolean matchesQuery(MusicMetadataDto dto, String query) {
-        return containsIc(dto.getName(),   query)
-            || containsIc(dto.getTitle(),  query)
-            || containsIc(dto.getArtist(), query)
-            || containsIc(dto.getAlbum(),  query);
+    private int scoreSearchHit(File file, String relPath, TrackMetadataCache cached, List<String> tokens) {
+        String name = normalizeSearchText(stripExtension(file.getName()));
+        String path = normalizeSearchText(relPath);
+        String title = cached != null ? normalizeSearchText(cached.getTitle()) : "";
+        String artist = cached != null ? normalizeSearchText(cached.getArtist()) : "";
+        String album = cached != null ? normalizeSearchText(cached.getAlbum()) : "";
+        return scoreSearchFields(tokens, name, title, artist, album, path);
     }
 
-    private boolean containsIc(String text, String query) {
-        return text != null && text.toLowerCase().contains(query);
+    private int scoreSearchDto(MusicMetadataDto dto, List<String> tokens) {
+        return scoreSearchFields(
+                tokens,
+                normalizeSearchText(stripExtension(dto.getName())),
+                normalizeSearchText(dto.getTitle()),
+                normalizeSearchText(dto.getArtist()),
+                normalizeSearchText(dto.getAlbum()),
+                normalizeSearchText(dto.getPath())
+        );
+    }
+
+    private int scoreSearchFields(List<String> tokens, String name, String title, String artist, String album, String path) {
+        String all = String.join(" ", name, title, artist, album, path).trim();
+        if (all.isBlank()) return 0;
+        for (String token : tokens) {
+            if (!all.contains(token)) return 0;
+        }
+
+        String query = String.join(" ", tokens);
+        int score = 10;
+        if (title.equals(query)) score += 1000;
+        if (name.equals(query)) score += 900;
+        if (artist.equals(query)) score += 700;
+        if (title.startsWith(query)) score += 520;
+        if (name.startsWith(query)) score += 470;
+        if (artist.startsWith(query)) score += 360;
+        if (title.contains(query)) score += 300;
+        if (name.contains(query)) score += 260;
+        if (artist.contains(query)) score += 220;
+        if (album.contains(query)) score += 120;
+        if (path.contains(query)) score += 60;
+
+        for (String token : tokens) {
+            if (title.startsWith(token)) score += 45;
+            else if (title.contains(token)) score += 28;
+            if (name.startsWith(token)) score += 40;
+            else if (name.contains(token)) score += 24;
+            if (artist.startsWith(token)) score += 34;
+            else if (artist.contains(token)) score += 20;
+            if (album.contains(token)) score += 10;
+            if (path.contains(token)) score += 5;
+        }
+        return score;
+    }
+
+    private List<String> searchTokens(String query) {
+        String normalized = normalizeSearchText(query);
+        if (normalized.isBlank()) return Collections.emptyList();
+        return Arrays.stream(normalized.split("\\s+"))
+                .filter(token -> token.length() > 1 || normalized.length() == 1)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private String normalizeSearchText(String text) {
+        if (text == null) return "";
+        String withoutAccents = Normalizer.normalize(text, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+        return withoutAccents
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim()
+                .replaceAll("\\s+", " ");
+    }
+
+    private String relativePath(Path base, File file) {
+        return base.relativize(file.toPath()).toString().replace("\\", "/");
+    }
+
+    private TrackMetadataCache validCache(TrackMetadataCache cached, File file) {
+        return cached != null && cached.getLastModified() == file.lastModified() ? cached : null;
+    }
+
+    private Map<String, TrackMetadataCache> batchFetchCacheChunked(Long pathId, List<File> files, Path base) {
+        Map<String, TrackMetadataCache> out = new HashMap<>();
+        for (int i = 0; i < files.size(); i += SEARCH_CACHE_CHUNK_SIZE) {
+            List<File> chunk = files.subList(i, Math.min(i + SEARCH_CACHE_CHUNK_SIZE, files.size()));
+            out.putAll(batchFetchCache(pathId, chunk, base));
+        }
+        return out;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -786,6 +918,10 @@ public class MusicService {
     }
 
     private MusicMetadataDto buildDto(File f, Path base, Long pathId, Map<String, TrackMetadataCache> preloaded) {
+        return buildDto(f, base, pathId, preloaded, true);
+    }
+
+    private MusicMetadataDto buildDto(File f, Path base, Long pathId, Map<String, TrackMetadataCache> preloaded, boolean allowDiskRead) {
         String relPath = base.relativize(f.toPath()).toString().replace("\\", "/");
         MusicMetadataDto.MusicMetadataDtoBuilder b = MusicMetadataDto.builder()
                 .name(f.getName())
@@ -819,6 +955,18 @@ public class MusicService {
         }
 
         // Cache miss or stale — read from disk
+        if (!allowDiskRead) {
+            return b.title(stripExtension(f.getName()))
+                    .artist("")
+                    .album("")
+                    .format(extension(f.getName()))
+                    .year("")
+                    .duration(0)
+                    .hasCover(false)
+                    .bpm(0)
+                    .build();
+        }
+
         try {
             AudioFile af = AudioFileIO.read(f);
             String format   = af.getExt().toLowerCase();
@@ -871,6 +1019,83 @@ public class MusicService {
         return b.build();
     }
 
+    private CachedDirectoryListing getCachedDirectoryListing(Long pathId, String subPath, File dir) {
+        String key = directoryListingKey(pathId, subPath, dir);
+        long now = System.currentTimeMillis();
+        long dirLastModified = dir.lastModified();
+
+        CachedDirectoryListing cached = directoryListingCache.get(key);
+        if (cached != null
+                && cached.dirLastModified == dirLastModified
+                && now - cached.loadedAtMillis <= DIRECTORY_LISTING_CACHE_TTL_MS) {
+            return cached;
+        }
+
+        File[] files = dir.listFiles();
+        if (files == null) {
+            CachedDirectoryListing empty = new CachedDirectoryListing(
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    dirLastModified,
+                    now
+            );
+            directoryListingCache.put(key, empty);
+            return empty;
+        }
+
+        List<File> dirs = Arrays.stream(files)
+                .filter(File::isDirectory)
+                .sorted(Comparator.comparing(f -> f.getName().toLowerCase(Locale.ROOT)))
+                .collect(Collectors.toUnmodifiableList());
+
+        List<File> audioFiles = Arrays.stream(files)
+                .filter(f -> f.isFile() && isAudio(f))
+                .sorted(Comparator.comparing(f -> f.getName().toLowerCase(Locale.ROOT)))
+                .collect(Collectors.toUnmodifiableList());
+
+        trimDirectoryListingCacheIfNeeded();
+        CachedDirectoryListing listing = new CachedDirectoryListing(dirs, audioFiles, dirLastModified, now);
+        directoryListingCache.put(key, listing);
+        return listing;
+    }
+
+    private void warmMetadataCacheAsync(Long pathId, List<File> pageFiles, Path base, Map<String, TrackMetadataCache> cacheMap) {
+        int scheduled = 0;
+        for (File file : pageFiles) {
+            if (scheduled >= METADATA_WARMUP_LIMIT_PER_PAGE) return;
+
+            String relPath = relativePath(base, file);
+            TrackMetadataCache cached = cacheMap.get(relPath);
+            if (validCache(cached, file) != null) continue;
+
+            String key = pathId + "\u0000" + relPath + "\u0000" + file.lastModified();
+            if (!metadataWarmupInFlight.add(key)) continue;
+
+            scheduled++;
+            metadataExecutor.submit(() -> {
+                try {
+                    buildDto(file, base, pathId, null, true);
+                } finally {
+                    metadataWarmupInFlight.remove(key);
+                }
+            });
+        }
+    }
+
+    private String directoryListingKey(Long pathId, String subPath, File dir) {
+        return pathId + "\u0000" + (subPath == null ? "" : subPath) + "\u0000" + dir.getAbsolutePath();
+    }
+
+    private void trimDirectoryListingCacheIfNeeded() {
+        if (directoryListingCache.size() < DIRECTORY_LISTING_CACHE_MAX) return;
+        int toRemove = Math.max(1, DIRECTORY_LISTING_CACHE_MAX / 10);
+        directoryListingCache.entrySet().stream()
+                .sorted(Comparator.comparingLong(e -> e.getValue().loadedAtMillis))
+                .limit(toRemove)
+                .map(Map.Entry::getKey)
+                .forEach(directoryListingCache::remove);
+    }
+
     private Map<String, TrackMetadataCache> batchFetchCache(Long pathId, List<File> files, Path base) {
         List<String> paths = files.stream()
                 .map(f -> base.relativize(f.toPath()).toString().replace("\\", "/"))
@@ -905,5 +1130,35 @@ public class MusicService {
         long fileSizeBytes;
         boolean eligible;
         String error;
+    }
+
+    private static class CachedDirectoryListing {
+        final List<File> dirs;
+        final List<File> audioFiles;
+        final long dirLastModified;
+        final long loadedAtMillis;
+
+        CachedDirectoryListing(List<File> dirs, List<File> audioFiles, long dirLastModified, long loadedAtMillis) {
+            this.dirs = dirs;
+            this.audioFiles = audioFiles;
+            this.dirLastModified = dirLastModified;
+            this.loadedAtMillis = loadedAtMillis;
+        }
+    }
+
+    private static class SearchHit {
+        final File file;
+        final String relPath;
+        final TrackMetadataCache cached;
+        final int score;
+        final MusicMetadataDto dto;
+
+        SearchHit(File file, String relPath, TrackMetadataCache cached, int score, MusicMetadataDto dto) {
+            this.file = file;
+            this.relPath = relPath;
+            this.cached = cached;
+            this.score = score;
+            this.dto = dto;
+        }
     }
 }

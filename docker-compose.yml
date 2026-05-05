@@ -40,8 +40,6 @@ services:
     container_name: everload
     expose:
       - "8080"
-    ports:
-      - "${EVERLOAD_BACKEND_BIND:-127.0.0.1:8080}:8080"
     environment:
       # --- Security: CHANGE JWT_SECRET IN PRODUCTION ---
       JWT_SECRET: ${JWT_SECRET:-EverloadSecretKey2024!SuperSeguro_CambiarEnProduccion_32chars+}

@@ -20,10 +20,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Multi-tier IP-based rate limiter for all API endpoints.
  *
  * Tiers (per unique client IP):
- *  - AUTH     /api/auth/**         - 10  req/min  (brute-force protection)
- *  - DOWNLOAD /api/download/**     - 8   req/min  (heavy resource use)
- *  - UPLOAD   paths ending /upload - 15  req/min  (file writes)
- *  - GLOBAL   all other /api/**    - 300 req/min  (flood protection)
+ *  - AUTH     /api/auth/**        - 10  req/min  (brute-force protection)
+ *  - DOWNLOAD download/search     - 8   req/min  (heavy resource use)
+ *  - UPLOAD   upload/write jobs   - 15  req/min  (file writes)
+ *  - GLOBAL   all other /api/**   - 300 req/min  (flood protection)
  *
  * Non-API paths (static assets, Angular) are not filtered.
  */
@@ -39,7 +39,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        // Only rate-limit API paths
         return !path.startsWith("/api/");
     }
 
@@ -47,38 +46,51 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String ip   = resolveClientIp(request);
+        String ip = resolveClientIp(request);
         String path = request.getServletPath();
-        Tier   tier = classifyTier(path);
+        Tier tier = classifyTier(path);
 
         Bucket bucket = buckets.computeIfAbsent(tier.name() + ":" + ip,
                 k -> newBucket(tier));
 
         if (bucket.tryConsume(1)) {
             chain.doFilter(request, response);
-        } else {
-            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write(
-                    "{\"error\":\"Demasiadas peticiones. Espera un momento e inténtalo de nuevo.\"}");
+            return;
         }
+
+        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+        response.setContentType("application/json;charset=UTF-8");
+        response.setHeader("Retry-After", "60");
+        response.getWriter().write(
+                "{\"error\":\"Demasiadas peticiones. Espera un momento e intentalo de nuevo.\"}");
     }
 
     private enum Tier { AUTH, DOWNLOAD, UPLOAD, GLOBAL }
 
     private Tier classifyTier(String path) {
         if (path.startsWith("/api/auth/")) return Tier.AUTH;
-        if (path.startsWith("/api/download/")) return Tier.DOWNLOAD;
-        if (path.endsWith("/upload") || path.endsWith("/mkdir")) return Tier.UPLOAD;
+        if (path.startsWith("/api/download")
+                || path.startsWith("/api/playlistVideos")
+                || path.startsWith("/api/youtube/search")
+                || path.startsWith("/api/spotify/playlist")) {
+            return Tier.DOWNLOAD;
+        }
+        if (path.endsWith("/upload")
+                || path.endsWith("/mkdir")
+                || path.endsWith("/cover")
+                || path.startsWith("/api/saveMusicToNas")
+                || path.startsWith("/api/nas/ytdlp/queue")) {
+            return Tier.UPLOAD;
+        }
         return Tier.GLOBAL;
     }
 
     private Bucket newBucket(Tier tier) {
         int rpm = switch (tier) {
-            case AUTH     -> authRpm;          // 10
+            case AUTH -> authRpm;
             case DOWNLOAD -> 8;
-            case UPLOAD   -> 15;
-            case GLOBAL   -> 300;
+            case UPLOAD -> 15;
+            case GLOBAL -> 300;
         };
         return Bucket.builder()
                 .addLimit(Bandwidth.classic(rpm, Refill.greedy(rpm, Duration.ofMinutes(1))))
@@ -88,11 +100,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
     /** Reads real client IP respecting X-Forwarded-For from Caddy/Nginx. */
     private String resolveClientIp(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank())
+        if (forwarded != null && !forwarded.isBlank()) {
             return forwarded.split(",")[0].trim();
+        }
         String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank())
+        if (realIp != null && !realIp.isBlank()) {
             return realIp.trim();
+        }
         return request.getRemoteAddr();
     }
 }
