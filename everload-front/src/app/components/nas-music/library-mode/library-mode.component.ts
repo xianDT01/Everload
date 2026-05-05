@@ -85,6 +85,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   searchResults: MusicMetadataDto[] | null = null;
   searchLoading = false;
   private searchDebounce?: ReturnType<typeof setTimeout>;
+  private searchSub?: Subscription;
+  private searchRequestId = 0;
   likedSortBy: 'date' | 'title' | 'artist' = 'date';
 
   private static readonly RANDOM_GRADIENTS = [
@@ -883,6 +885,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.musicService.globalPlayerHidden = false;
     this.subs.forEach(s => s.unsubscribe());
+    this.searchSub?.unsubscribe();
+    clearTimeout(this.searchDebounce);
     clearInterval(this.bannerInterval);
     this.stopPollJobs();
     this.stopViz();
@@ -1242,6 +1246,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   onSearchChange(): void {
     clearTimeout(this.searchDebounce);
     if (!this.searchQuery.trim()) {
+      this.searchRequestId++;
+      this.searchSub?.unsubscribe();
       this.searchResults = null;
       this.searchLoading = false;
       return;
@@ -1253,14 +1259,19 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private runSearch(): void {
     if (!this.selectedPathId || !this.searchQuery.trim()) return;
     const subPath = this.currentSubPath || undefined;
-    this.musicService.search(this.selectedPathId, subPath, this.searchQuery.trim()).subscribe({
+    const requestId = ++this.searchRequestId;
+    this.searchSub?.unsubscribe();
+    this.searchSub = this.musicService.search(this.selectedPathId, subPath, this.searchQuery.trim()).subscribe({
       next: (results: MusicMetadataDto[]) => {
+        if (requestId !== this.searchRequestId) return;
         this.searchResults = results;
         this.searchLoading = false;
         results.filter((t: MusicMetadataDto) => !this.musicService.hasCoverToShow(t))
                .forEach((t: MusicMetadataDto) => this.musicService.fetchCoverIfNeeded(t));
       },
-      error: () => { this.searchLoading = false; }
+      error: () => {
+        if (requestId === this.searchRequestId) this.searchLoading = false;
+      }
     });
   }
 
@@ -1616,7 +1627,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.dialog.value.trim()) return;
     this.dialog.loading = true;
     this.nasService.rename(pid, item.path, this.dialog.value.trim()).subscribe({
-      next: () => { this.closeDialog(); this.load(); },
+      next: () => { this.invalidateCurrentBrowseCache(); this.closeDialog(); this.load(); },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_RENAME'); }
     });
   }
@@ -1627,7 +1638,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;
     this.dialog.loading = true;
     this.nasService.deleteFile(pid, item.path).subscribe({
-      next: () => { this.closeDialog(); this.load(); },
+      next: () => { this.invalidateCurrentBrowseCache(); this.closeDialog(); this.load(); },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_DELETE'); }
     });
   }
@@ -1638,7 +1649,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const pid = (item.nasPathId != null ? item.nasPathId : this.selectedPathId)!;
     this.dialog.loading = true;
     this.nasService.move(pid, item.path, this.dialog.value.trim()).subscribe({
-      next: () => { this.closeDialog(); this.load(); },
+      next: () => { this.invalidateCurrentBrowseCache(); this.closeDialog(); this.load(); },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_MOVE'); }
     });
   }
@@ -1649,7 +1660,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const pid = (track.nasPathId != null ? track.nasPathId : this.selectedPathId)!;
     this.dialog.loading = true;
     this.nasService.updateMetadata(pid, track.path, this.dialog.title, this.dialog.artist, this.dialog.album, this.dialog.year).subscribe({
-      next: () => { this.closeDialog(); this.load(); },
+      next: () => { this.invalidateCurrentBrowseCache(); this.closeDialog(); this.load(); },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_METADATA'); }
     });
   }
@@ -1659,7 +1670,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!this.selectedPathId || !this.dialog.value.trim()) return;
     this.dialog.loading = true;
     this.nasService.mkdir(this.selectedPathId, this.dialog.value.trim(), this.currentSubPath).subscribe({
-      next: () => { this.closeDialog(); this.load(); },
+      next: () => { this.invalidateCurrentBrowseCache(); this.closeDialog(); this.load(); },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_CREATE_FOLDER'); }
     });
   }
@@ -1675,6 +1686,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.nasService.uploadFolderCover(pid, folderPath, file).subscribe({
       next: () => {
         this.musicService.invalidateFolderCover(pid, folderPath);
+        this.invalidateCurrentBrowseCache();
         this.closeDialog();
         this.load();
       },
@@ -1811,6 +1823,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
           this.uploadState.status = results.some((r: any) => r.status === 'error') ? 'error' : 'done';
           this.uploadState.results = results;
           this.uploadState.progress = 100;
+          this.invalidateCurrentBrowseCache();
           this.load();
         }
       },
@@ -1828,6 +1841,14 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   closeUploadPanel(): void {
     this.uploadState = { active: false, progress: 0, status: 'idle', results: [], totalFiles: 0 };
+  }
+
+  private invalidateCurrentBrowseCache(): void {
+    if (this.selectedPathId == null) {
+      this.musicService.invalidateBrowseCache();
+      return;
+    }
+    this.musicService.invalidateBrowseCache(this.selectedPathId, this.currentSubPath);
   }
 
   // ── Download ──────────────────────────────────────────────────────────────

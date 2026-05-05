@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
-import { BehaviorSubject, firstValueFrom, Observable, Subject } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, Observable, of, Subject, tap } from 'rxjs';
 import { ApiBaseService } from './api-base.service';
 
 export interface PagedMusicResult {
@@ -763,6 +763,8 @@ export class MusicService {
   private nativeAudioListenerReady = false;
   private nativeAudioLastSync = 0;
   private nativeAudioLastKey = '';
+  private browseCache = new Map<string, { result: PagedMusicResult; timestamp: number }>();
+  private readonly browseCacheTtlMs = 15_000;
 
   constructor(private http: HttpClient, private auth: AuthService, private apiBase: ApiBaseService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
@@ -1022,7 +1024,29 @@ export class MusicService {
   browse(pathId: number, subPath?: string, page = 0, size = 50): Observable<PagedMusicResult> {
     let url = `${this.api}/metadata?pathId=${pathId}&page=${page}&size=${size}`;
     if (subPath) url += `&subPath=${encodeURIComponent(subPath)}`;
-    return this.http.get<PagedMusicResult>(url);
+    const key = `${pathId}|${subPath || ''}|${page}|${size}`;
+    const cached = this.browseCache.get(key);
+    if (cached && Date.now() - cached.timestamp <= this.browseCacheTtlMs) {
+      return of(cached.result);
+    }
+    return this.http.get<PagedMusicResult>(url).pipe(
+      tap(result => {
+        if (this.browseCache.size > 250) this.browseCache.clear();
+        this.browseCache.set(key, { result, timestamp: Date.now() });
+      })
+    );
+  }
+
+  invalidateBrowseCache(pathId?: number, subPath?: string): void {
+    if (pathId == null) {
+      this.browseCache.clear();
+      return;
+    }
+
+    const prefix = `${pathId}|${subPath || ''}`;
+    Array.from(this.browseCache.keys())
+      .filter(key => key.startsWith(prefix))
+      .forEach(key => this.browseCache.delete(key));
   }
 
   getStreamUrl(pathId: number, trackPath: string): string {

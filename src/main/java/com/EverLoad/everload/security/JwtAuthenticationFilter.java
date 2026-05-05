@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
-        } else if (request.getParameter("token") != null) {
+        } else if (allowsQueryToken(request.getServletPath()) && request.getParameter("token") != null) {
             jwt = request.getParameter("token");
         }
 
@@ -66,5 +66,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean allowsQueryToken(String path) {
+        return path.equals("/api/music/stream")
+                || path.equals("/api/music/hls/playlist")
+                || path.equals("/api/music/hls/segment")
+                || path.equals("/api/music/cover")
+                || path.equals("/api/music/folder-cover")
+                || path.equals("/api/music/youtube/stream")
+                || path.equals("/api/music/youtube/cover");
     }
 }

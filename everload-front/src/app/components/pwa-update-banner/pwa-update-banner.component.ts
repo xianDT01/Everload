@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { PwaUpdateService } from '../../services/pwa-update.service';
+import { AppUpdatePrompt, PwaUpdateService } from '../../services/pwa-update.service';
 
 @Component({
   selector: 'app-pwa-update-banner',
@@ -8,14 +8,14 @@ import { PwaUpdateService } from '../../services/pwa-update.service';
   styleUrls: ['./pwa-update-banner.component.css']
 })
 export class PwaUpdateBannerComponent implements OnInit, OnDestroy {
-  visible = false;
+  prompt: AppUpdatePrompt | null = null;
   private sub?: Subscription;
 
   constructor(private pwaUpdate: PwaUpdateService) {}
 
   ngOnInit(): void {
-    this.sub = this.pwaUpdate.updateAvailable$.subscribe(available => {
-      this.visible = available;
+    this.sub = this.pwaUpdate.updatePrompt$.subscribe(prompt => {
+      this.prompt = prompt;
     });
   }
 

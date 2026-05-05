@@ -1,14 +1,23 @@
-<div class="update-banner" *ngIf="visible" role="alert">
+<div class="update-banner" *ngIf="prompt as update" role="alert">
   <div class="update-banner__content">
-    <span class="update-banner__icon">✦</span>
-    <span class="update-banner__text">Nueva versión disponible</span>
+    <span class="update-banner__badge">{{ update.type === 'android' ? 'APK' : 'WEB' }}</span>
+    <div class="update-banner__copy">
+      <strong class="update-banner__title">{{ update.titleKey | translate }}</strong>
+      <span class="update-banner__text">
+        {{ update.messageKey | translate:{ version: update.versionName || update.versionCode } }}
+      </span>
+      <span class="update-banner__notes" *ngIf="update.releaseNotes">{{ update.releaseNotes }}</span>
+    </div>
   </div>
   <div class="update-banner__actions">
     <button class="update-banner__btn update-banner__btn--apply" (click)="reload()">
-      Actualizar
+      {{ update.actionKey | translate }}
     </button>
-    <button class="update-banner__btn update-banner__btn--dismiss" (click)="dismiss()" aria-label="Cerrar">
-      ✕
+    <button
+      class="update-banner__btn update-banner__btn--dismiss"
+      (click)="dismiss()"
+      [attr.aria-label]="'UPDATE.DISMISS' | translate">
+      x
     </button>
   </div>
 </div>

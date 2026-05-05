@@ -1122,4 +1122,12 @@
   "ADMIN.CLEANUP_AUDIT_TITLE": "Rexistros de auditoría antigos",
   "ADMIN.CLEANUP_AUDIT_WHAT": "Elimina os rexistros de auditoría (accións de admin como aprobar usuarios, cambiar roles, borrar mensaxes…) que teñan máis dos días indicados. Os rexistros recentes quedan intactos para seguimento.",
   "ADMIN.CLEANUP_AUDIT_WHEN": "Mensualmente ou cando o apartado de auditoría acumule miles de entradas. 90 días adoita ser máis que suficiente para revisar calquera incidencia recente."
+  ,
+  "UPDATE.WEB_TITLE": "Nova versión dispoñible",
+  "UPDATE.WEB_MESSAGE": "Hai melloras listas para cargar na web.",
+  "UPDATE.WEB_ACTION": "Actualizar",
+  "UPDATE.ANDROID_TITLE": "Nova APK dispoñible",
+  "UPDATE.ANDROID_MESSAGE": "Versión {{version}} lista para descargar.",
+  "UPDATE.ANDROID_ACTION": "Descargar APK",
+  "UPDATE.DISMISS": "Pechar"
 }
