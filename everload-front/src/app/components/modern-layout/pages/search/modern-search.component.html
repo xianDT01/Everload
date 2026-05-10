@@ -1,0 +1,33 @@
+<div class="msrch-page">
+  <h1 class="msrch-title">Buscar</h1>
+  <div class="msrch-input-wrap">
+    <span class="msrch-icon">🔍</span>
+    <input class="msrch-input" type="text" placeholder="Buscar canciones, artistas, álbumes..."
+           [(ngModel)]="query" (input)="onInput()" autofocus />
+  </div>
+
+  <div class="msrch-loading" *ngIf="loading">Buscando…</div>
+
+  <div class="msrch-results" *ngIf="!loading && results.length">
+    <div class="msrch-row" *ngFor="let t of results; let i = index" (dblclick)="play(i)">
+      <div class="msrch-cover">
+        <img [src]="cover(t)" (error)="$any($event.target).style.display='none'" />
+      </div>
+      <div class="msrch-meta">
+        <span class="msrch-name">{{ t.title || t.name }}</span>
+        <span class="msrch-artist">{{ t.artist }}</span>
+      </div>
+      <span class="msrch-album">{{ t.album }}</span>
+      <span class="msrch-dur">{{ fmt(t.duration) }}</span>
+    </div>
+  </div>
+
+  <div class="msrch-empty" *ngIf="!loading && !results.length && query.trim()">
+    Sin resultados para "{{ query }}"
+  </div>
+
+  <div class="msrch-hint" *ngIf="!query.trim()">
+    <span class="msrch-hint-icon">🎵</span>
+    <p>Escribe para buscar en tu biblioteca</p>
+  </div>
+</div>

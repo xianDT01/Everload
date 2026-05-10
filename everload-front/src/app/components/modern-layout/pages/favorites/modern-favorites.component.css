@@ -1,0 +1,48 @@
+.mfav-page { padding: 28px; }
+.mfav-title { font-size: 24px; font-weight: 800; color: #e4e4e7; margin: 0 0 24px; }
+.mfav-loading { color: #71717a; text-align: center; padding: 48px; }
+
+.mfav-list { display: flex; flex-direction: column; gap: 2px; }
+
+.mfav-row {
+  display: grid;
+  grid-template-columns: 36px 44px 1fr 1fr 36px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.mfav-row:hover { background: rgba(255,255,255,0.05); }
+
+.mfav-num { font-size: 12px; color: #52525b; text-align: right; }
+
+.mfav-cover {
+  width: 38px;
+  height: 38px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+.mfav-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.mfav-meta { display: flex; flex-direction: column; min-width: 0; }
+.mfav-title-text { font-size: 13px; color: #e4e4e7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mfav-artist { font-size: 11px; color: #71717a; }
+.mfav-album { font-size: 12px; color: #71717a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.mfav-heart {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.mfav-row:hover .mfav-heart { opacity: 1; }
+
+.mfav-empty { color: #52525b; text-align: center; padding: 48px; font-size: 14px; }

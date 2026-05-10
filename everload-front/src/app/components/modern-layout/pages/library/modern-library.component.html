@@ -1,0 +1,41 @@
+<div class="ml-page">
+  <div class="ml-header">
+    <h1 class="ml-title">Biblioteca</h1>
+    <div class="ml-search-wrap">
+      <input class="ml-search" type="text" placeholder="Buscar..." [(ngModel)]="query"
+             (keyup.enter)="onSearch()" (input)="onSearch()" />
+    </div>
+  </div>
+
+  <div class="ml-loading" *ngIf="loading">Cargando…</div>
+
+  <div class="ml-track-list" *ngIf="!loading">
+    <div class="ml-track-header">
+      <span class="ml-col-num">#</span>
+      <span class="ml-col-title">Título</span>
+      <span class="ml-col-album">Álbum</span>
+      <span class="ml-col-dur">⏱</span>
+    </div>
+    <div class="ml-track-row"
+         *ngFor="let t of tracks; let i = index"
+         [class.playing]="isPlaying(t)"
+         (dblclick)="play(i)">
+      <span class="ml-col-num">
+        <span class="ml-row-num" *ngIf="!isPlaying(t)">{{ i + 1 }}</span>
+        <span class="ml-row-play" *ngIf="isPlaying(t)">♪</span>
+      </span>
+      <div class="ml-col-title ml-track-info">
+        <div class="ml-track-cover">
+          <img [src]="cover(t)" (error)="$any($event.target).style.display='none'" />
+        </div>
+        <div class="ml-track-meta">
+          <span class="ml-track-name">{{ t.title || t.name }}</span>
+          <span class="ml-track-artist">{{ t.artist }}</span>
+        </div>
+      </div>
+      <span class="ml-col-album">{{ t.album }}</span>
+      <span class="ml-col-dur">{{ fmt(t.duration) }}</span>
+    </div>
+    <div class="ml-empty" *ngIf="tracks.length === 0">Sin resultados</div>
+  </div>
+</div>

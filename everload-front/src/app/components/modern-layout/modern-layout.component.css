@@ -1,0 +1,51 @@
+:host {
+  display: block;
+  height: 100vh;
+  width: 100vw;
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 900;
+  background: #0f0f0f;
+  color: #e4e4e7;
+  --accent: #6366f1;
+  --accent2: #8b5cf6;
+  --bg: #0f0f0f;
+  --bg2: #161616;
+  --bg3: #1e1e1e;
+  --bg4: #2a2a2a;
+  --text: #e4e4e7;
+  --text2: #a1a1aa;
+  --text3: #71717a;
+  --border: rgba(255,255,255,0.07);
+}
+
+.ml-shell {
+  display: grid;
+  grid-template:
+    "sidebar main"   1fr
+    "player  player" 90px
+    / 220px 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+.ml-sidebar {
+  grid-area: sidebar;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+}
+
+.ml-main {
+  grid-area: main;
+  overflow-y: auto;
+  background: var(--bg);
+  min-width: 0;
+}
+
+.ml-bottombar {
+  grid-area: player;
+  background: #111;
+  border-top: 1px solid var(--border);
+}

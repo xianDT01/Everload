@@ -1,0 +1,72 @@
+<div class="mh-page" *ngIf="!loading; else spinner">
+
+  <!-- Featured banner -->
+  <div class="mh-featured" *ngIf="featured"
+       [style.background-image]="'url(' + coverFor(featured.track, featured.pathId) + ')'">
+    <div class="mh-featured-overlay">
+      <div class="mh-featured-label">ÁLBUM DESTACADO</div>
+      <div class="mh-featured-title">{{ featured.track.album || featured.track.title }}</div>
+      <div class="mh-featured-artist">{{ featured.track.artist }}</div>
+      <button class="mh-featured-play" (click)="playFeatured()">▶ Escuchar</button>
+    </div>
+  </div>
+
+  <!-- Listen now -->
+  <section class="mh-section" *ngIf="listenNow.length">
+    <h2 class="mh-section-title">Escuchar ahora</h2>
+    <div class="mh-scroll-row">
+      <div class="mh-card" *ngFor="let card of listenNow" (dblclick)="playAlbum(card)">
+        <div class="mh-card-cover">
+          <img [src]="coverFor(card.track, card.pathId)"
+               (error)="$any($event.target).style.display='none'"
+               class="mh-card-img" />
+          <div class="mh-card-play" (click)="playAlbum(card)">▶</div>
+        </div>
+        <div class="mh-card-title">{{ card.album }}</div>
+        <div class="mh-card-sub">{{ card.artist }}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Top Artists -->
+  <section class="mh-section" *ngIf="topArtists.length">
+    <h2 class="mh-section-title">Artistas principales</h2>
+    <div class="mh-scroll-row">
+      <div class="mh-artist-card" *ngFor="let a of topArtists">
+        <div class="mh-artist-circle">
+          <img [src]="coverFor(a.track, a.pathId)"
+               (error)="$any($event.target).style.display='none'"
+               class="mh-artist-img" />
+          <div class="mh-artist-fallback">🎤</div>
+        </div>
+        <div class="mh-artist-name">{{ a.artist }}</div>
+        <div class="mh-artist-count">{{ a.count }} escuchas</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent tracks -->
+  <section class="mh-section" *ngIf="recentTracks.length">
+    <h2 class="mh-section-title">Recientes</h2>
+    <div class="mh-recent-list">
+      <div class="mh-recent-row" *ngFor="let t of recentTracks; let i = index"
+           (dblclick)="music.mainPlayer.load(t, t.nasPathId || 0)">
+        <span class="mh-recent-num">{{ i + 1 }}</span>
+        <div class="mh-recent-cover">
+          <img [src]="coverFor(t, t.nasPathId || 0)"
+               (error)="$any($event.target).style.display='none'" />
+        </div>
+        <div class="mh-recent-meta">
+          <span class="mh-recent-title">{{ t.title }}</span>
+          <span class="mh-recent-artist">{{ t.artist }}</span>
+        </div>
+        <span class="mh-recent-album">{{ t.album }}</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<ng-template #spinner>
+  <div class="mh-loading">Cargando…</div>
+</ng-template>

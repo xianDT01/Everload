@@ -75,6 +75,14 @@ const routes: Routes = [
       import('./components/admin-config/admin.module').then(m => m.AdminModule),
   },
 
+  // ── Modern layout (lazy) ──────────────────────────────────────────────────
+  {
+    path: 'modern',
+    canActivate: [AuthGuard],
+    loadChildren: () =>
+      import('./components/modern-layout/modern-layout.module').then(m => m.ModernLayoutModule),
+  },
+
   // ── Fallback ──────────────────────────────────────────────────────────────
   { path: '**', redirectTo: '' },
 ];

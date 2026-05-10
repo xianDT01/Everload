@@ -1,0 +1,30 @@
+<nav class="ms-nav">
+  <div class="ms-logo">
+    <span class="ms-logo-icon">⚡</span>
+    <span class="ms-logo-text">EverLoad</span>
+  </div>
+
+  <div class="ms-path-wrap" *ngIf="paths.length > 0">
+    <select class="ms-path-select" [value]="selectedPathId" (change)="onPathChange($any($event.target).value)">
+      <option *ngFor="let p of paths" [value]="p.id">{{ p.name }}</option>
+    </select>
+  </div>
+
+  <div class="ms-section">
+    <a *ngFor="let item of navItems"
+       class="ms-item"
+       [routerLink]="item.route"
+       routerLinkActive="active"
+       [routerLinkActiveOptions]="{ exact: item.exact || false }">
+      <span class="ms-icon">{{ item.icon }}</span>
+      <span class="ms-label">{{ item.label }}</span>
+    </a>
+  </div>
+
+  <div class="ms-divider"></div>
+
+  <button class="ms-item ms-back" (click)="goClassic()">
+    <span class="ms-icon">←</span>
+    <span class="ms-label">Vista clásica</span>
+  </button>
+</nav>
