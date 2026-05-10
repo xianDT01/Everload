@@ -52,7 +52,7 @@
       </div>
     </div>
     <div class="mh-artists-row">
-      <div class="mh-artist" *ngFor="let a of topArtists">
+      <div class="mh-artist" *ngFor="let a of topArtists" (click)="playArtist(a)" title="Reproducir artista">
         <div class="mh-artist-circle">
           <img [src]="coverFor(a.track, a.pathId)"
                (error)="$any($event.target).style.display='none'" />

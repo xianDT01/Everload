@@ -3,7 +3,7 @@
   <div class="mart-loading" *ngIf="loading">Cargando…</div>
   <div class="mart-grid" *ngIf="!loading">
     <div class="mart-card" *ngFor="let g of artists" (dblclick)="play(g)">
-      <div class="mart-circle">
+      <div class="mart-circle" (click)="play(g); $event.stopPropagation()" title="Reproducir artista">
         <img [src]="cover(g)" class="mart-img" (error)="$any($event.target).style.display='none'" />
         <div class="mart-fallback">🎤</div>
         <div class="mart-play-btn" (click)="play(g); $event.stopPropagation()">▶</div>

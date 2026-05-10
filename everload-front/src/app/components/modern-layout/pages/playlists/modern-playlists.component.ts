@@ -49,6 +49,5 @@ export class ModernPlaylistsComponent implements OnInit {
       nasPathId: t.nasPathId ?? pid
     }));
     this.music.setQueue(pid, tracks, 0);
-    this.music.mainPlayer.load(tracks[0], pid);
   }
 }

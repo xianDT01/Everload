@@ -21,6 +21,10 @@ export class AppComponent implements OnInit, OnDestroy {
   maintenanceState: MaintenanceState = { active: false, message: '' };
   currentUrl = '/';
 
+  get isModernRoute(): boolean {
+    return this.currentUrl.startsWith('/modern');
+  }
+
   private authSub?: Subscription;
   private alertSub?: Subscription;
   private maintenanceSub?: Subscription;
@@ -41,7 +45,9 @@ export class AppComponent implements OnInit, OnDestroy {
       if (event instanceof NavigationEnd) {
         const url = event.urlAfterRedirects || event.url;
         this.currentUrl = url;
-        if (url.includes('/nas-music')) {
+        if (url.startsWith('/modern')) {
+          this.playerMode = 'hidden';
+        } else if (url.includes('/nas-music')) {
           if (url.includes('mode=deck')) {
             this.playerMode = 'hidden';
           } else {

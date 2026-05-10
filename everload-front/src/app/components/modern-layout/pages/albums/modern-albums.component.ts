@@ -59,6 +59,5 @@ export class ModernAlbumsComponent implements OnInit, OnDestroy {
 
   play(g: AlbumGroup) {
     this.music.setQueue(g.pathId, g.tracks, 0);
-    this.music.mainPlayer.load(g.tracks[0], g.pathId);
   }
 }

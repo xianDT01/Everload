@@ -45,7 +45,6 @@ export class ModernSearchComponent implements OnInit, OnDestroy {
   play(i: number) {
     if (this.pathId == null) return;
     this.music.setQueue(this.pathId, this.results, i);
-    this.music.mainPlayer.load(this.results[i], this.pathId);
   }
 
   fmt(s: number): string {
