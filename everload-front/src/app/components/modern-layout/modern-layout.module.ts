@@ -16,6 +16,8 @@ import { ModernFavoritesComponent } from './pages/favorites/modern-favorites.com
 import { ModernActivityComponent } from './pages/activity/modern-activity.component';
 import { ModernSearchComponent } from './pages/search/modern-search.component';
 import { ModernDownloadsComponent } from './pages/downloads/modern-downloads.component';
+import { ModernQueueComponent } from './queue/modern-queue.component';
+import { ModernFullscreenComponent } from './fullscreen/modern-fullscreen.component';
 
 const routes: Routes = [
   {
@@ -49,6 +51,8 @@ const routes: Routes = [
     ModernActivityComponent,
     ModernSearchComponent,
     ModernDownloadsComponent,
+    ModernQueueComponent,
+    ModernFullscreenComponent,
   ],
   imports: [
     CommonModule,

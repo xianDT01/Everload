@@ -1,0 +1,35 @@
+<div class="mq-panel">
+  <div class="mq-header">
+    <span class="mq-title">Cola de reproducción</span>
+    <button class="mq-close" (click)="state.closeQueue()">✕</button>
+  </div>
+
+  <div class="mq-count" *ngIf="tracks.length">
+    {{ tracks.length }} pistas · {{ currentIndex + 1 }} reproduciendo
+  </div>
+
+  <div class="mq-list" *ngIf="tracks.length; else emptyTpl">
+    <div class="mq-item"
+         *ngFor="let t of tracks; let i = index"
+         [class.mq-active]="i === currentIndex"
+         (click)="playAt(i)">
+      <span class="mq-idx">{{ i + 1 }}</span>
+      <div class="mq-cover">
+        <img [src]="coverUrl(t)" (error)="$any($event.target).style.display='none'" />
+        <span class="mq-playing-icon" *ngIf="i === currentIndex">▶</span>
+      </div>
+      <div class="mq-meta">
+        <span class="mq-name">{{ t.title || t.name }}</span>
+        <span class="mq-artist">{{ t.artist || '—' }}</span>
+      </div>
+      <span class="mq-dur">{{ fmt(t.duration || 0) }}</span>
+    </div>
+  </div>
+
+  <ng-template #emptyTpl>
+    <div class="mq-empty">
+      <span>♫</span>
+      <p>La cola está vacía</p>
+    </div>
+  </ng-template>
+</div>

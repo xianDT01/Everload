@@ -1,24 +1,96 @@
-import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { MusicService } from '../../../../services/music.service';
+import { ModernStateService } from '../../modern-state.service';
+
+interface YtResult {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+  thumbnail: string;
+  duration?: string;
+}
+
+interface ActiveJob {
+  jobId: string;
+  videoId: string;
+  title: string;
+  status: string;
+  progress: number;
+  format: string;
+}
 
 @Component({
   selector: 'app-modern-downloads',
-  template: `
-    <div class="mdl-page">
-      <h1 class="mdl-title">⬇️ Descargas</h1>
-      <p class="mdl-desc">Las descargas se gestionan desde la vista clásica.</p>
-      <button class="mdl-btn" (click)="go()">Ir a descargas</button>
-    </div>
-  `,
-  styles: [`
-    .mdl-page { padding: 48px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-    .mdl-title { font-size: 24px; font-weight: 800; color: #e4e4e7; margin: 0; }
-    .mdl-desc { color: #71717a; font-size: 14px; margin: 0; }
-    .mdl-btn { background: #6366f1; border: none; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; }
-    .mdl-btn:hover { background: #818cf8; }
-  `]
+  templateUrl: './modern-downloads.component.html',
+  styleUrls: ['./modern-downloads.component.css']
 })
-export class ModernDownloadsComponent {
-  constructor(private router: Router) {}
-  go() { this.router.navigate(['/youtube-download']); }
+export class ModernDownloadsComponent implements OnInit, OnDestroy {
+  query = '';
+  results: YtResult[] = [];
+  searching = false;
+  activeJobs: ActiveJob[] = [];
+  queuedIds = new Set<string>();
+  format: 'bestaudio' | 'bestvideo+bestaudio' = 'bestaudio';
+  private pollRef: any;
+  private debounce: any;
+
+  constructor(private music: MusicService, public state: ModernStateService) {}
+
+  ngOnInit() { this.pollJobs(); }
+
+  ngOnDestroy() {
+    clearInterval(this.pollRef);
+    clearTimeout(this.debounce);
+  }
+
+  onInput() {
+    clearTimeout(this.debounce);
+    if (!this.query.trim()) { this.results = []; return; }
+    this.debounce = setTimeout(() => this.doSearch(), 500);
+  }
+
+  doSearch() {
+    if (!this.query.trim()) return;
+    this.searching = true;
+    this.music.searchYouTube(this.query, 10).subscribe({
+      next: (res: any) => {
+        this.results = (res.items || []).map((item: any) => ({
+          videoId: item.id?.videoId || item.videoId,
+          title: item.snippet?.title || item.title,
+          channelTitle: item.snippet?.channelTitle || item.channelTitle,
+          thumbnail: item.snippet?.thumbnails?.medium?.url || item.thumbnail,
+        }));
+        this.searching = false;
+      },
+      error: () => { this.searching = false; }
+    });
+  }
+
+  download(r: YtResult) {
+    const pid = this.state.pathId;
+    if (pid == null) return;
+    this.queuedIds.add(r.videoId);
+    this.music.ytDlpQueue(r.videoId, r.title, pid, '', this.format).subscribe({
+      next: () => this.pollJobs(),
+      error: () => this.queuedIds.delete(r.videoId)
+    });
+  }
+
+  private pollJobs() {
+    clearInterval(this.pollRef);
+    this.loadJobs();
+    this.pollRef = setInterval(() => this.loadJobs(), 4000);
+  }
+
+  private loadJobs() {
+    this.music.ytDlpActiveJobs().subscribe({
+      next: (jobs: any[]) => {
+        this.activeJobs = jobs;
+        jobs.forEach(j => {
+          if (j.status === 'DONE' || j.status === 'ERROR') this.queuedIds.delete(j.videoId);
+        });
+      },
+      error: () => {}
+    });
+  }
 }

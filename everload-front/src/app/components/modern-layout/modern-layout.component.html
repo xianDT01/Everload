@@ -1,7 +1,9 @@
-<div class="ml-shell">
-  <app-modern-sidebar class="ml-sidebar"></app-modern-sidebar>
+<div class="ml-shell" [ngClass]="['theme-' + currentTheme, showQueue ? 'ml-queue-open' : '']">
+  <app-modern-sidebar class="ml-sidebar" [currentTheme]="currentTheme" (themeChange)="setTheme($event)"></app-modern-sidebar>
   <main class="ml-main">
     <router-outlet></router-outlet>
   </main>
+  <app-modern-queue *ngIf="showQueue" class="ml-queue"></app-modern-queue>
   <app-modern-bottombar class="ml-bottombar"></app-modern-bottombar>
+  <app-modern-fullscreen *ngIf="showFullscreen"></app-modern-fullscreen>
 </div>

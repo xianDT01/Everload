@@ -1,30 +1,71 @@
 <nav class="ms-nav">
+
+  <!-- Logo -->
   <div class="ms-logo">
-    <span class="ms-logo-icon">⚡</span>
+    <span class="ms-logo-mark">E</span>
     <span class="ms-logo-text">EverLoad</span>
   </div>
 
-  <div class="ms-path-wrap" *ngIf="paths.length > 0">
+  <!-- NAS path selector -->
+  <div class="ms-source-tabs">
+    <button class="ms-source-btn">LOCAL</button>
+    <button class="ms-source-btn active">SERVER</button>
+  </div>
+
+  <div class="ms-section-top" *ngIf="paths.length > 0">
     <select class="ms-path-select" [value]="selectedPathId" (change)="onPathChange($any($event.target).value)">
       <option *ngFor="let p of paths" [value]="p.id">{{ p.name }}</option>
     </select>
   </div>
 
-  <div class="ms-section">
+  <!-- Navigation -->
+  <div class="ms-links">
     <a *ngFor="let item of navItems"
        class="ms-item"
        [routerLink]="item.route"
-       routerLinkActive="active"
+       routerLinkActive="ms-active"
        [routerLinkActiveOptions]="{ exact: item.exact || false }">
-      <span class="ms-icon">{{ item.icon }}</span>
+      <span class="ms-indicator"></span>
+      <span class="ms-icon" [ngSwitch]="item.icon">
+        <svg *ngSwitchCase="'home'" viewBox="0 0 24 24"><path d="M3 10.8 12 3l9 7.8V21h-6v-6H9v6H3V10.8Z"/></svg>
+        <svg *ngSwitchCase="'search'" viewBox="0 0 24 24"><path d="M10.5 4a6.5 6.5 0 0 1 5.12 10.5l4.44 4.44-1.42 1.42-4.44-4.44A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+        <svg *ngSwitchCase="'library'" viewBox="0 0 24 24"><path d="M5 4h14v2H5V4Zm0 5h14v2H5V9Zm0 5h9v2H5v-2Zm0 5h14v2H5v-2Z"/></svg>
+        <svg *ngSwitchCase="'album'" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 12a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm0-4a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"/></svg>
+        <svg *ngSwitchCase="'artist'" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
+        <svg *ngSwitchCase="'playlist'" viewBox="0 0 24 24"><path d="M4 6h11v2H4V6Zm0 4h11v2H4v-2Zm0 4h7v2H4v-2Zm13-8h2v8.18A3 3 0 1 1 17 11V6Z"/></svg>
+        <svg *ngSwitchCase="'heart'" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/></svg>
+        <svg *ngSwitchCase="'activity'" viewBox="0 0 24 24"><path d="M4 19h16v2H4v-2Zm1-3h3V9H5v7Zm5 0h3V4h-3v12Zm5 0h3v-6h-3v6Z"/></svg>
+        <svg *ngSwitchCase="'download'" viewBox="0 0 24 24"><path d="M11 4h2v9l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4L11 13V4ZM5 19h14v2H5v-2Z"/></svg>
+      </span>
       <span class="ms-label">{{ item.label }}</span>
     </a>
   </div>
 
   <div class="ms-divider"></div>
 
+  <!-- Theme picker -->
+  <button class="ms-item" (click)="showThemes = !showThemes">
+    <span class="ms-indicator"></span>
+    <span class="ms-icon"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.2a1.8 1.8 0 0 0 1.25-3.1 1.2 1.2 0 0 1 .83-2.1H17a7 7 0 0 0 0-14h-5Zm-4 8a1.4 1.4 0 1 1 0-2.8A1.4 1.4 0 0 1 8 11Zm3-3a1.4 1.4 0 1 1 0-2.8A1.4 1.4 0 0 1 11 8Zm4 1a1.4 1.4 0 1 1 0-2.8A1.4 1.4 0 0 1 15 9Z"/></svg></span>
+    <span class="ms-label">Tema</span>
+  </button>
+
+  <div class="ms-theme-list" *ngIf="showThemes">
+    <button *ngFor="let t of themes"
+            class="ms-theme-btn"
+            [class.ms-theme-active]="currentTheme === t.id"
+            (click)="selectTheme(t.id)">
+      {{ t.label }}
+    </button>
+  </div>
+
+  <div class="ms-divider"></div>
+
+  <!-- Back to classic -->
   <button class="ms-item ms-back" (click)="goClassic()">
-    <span class="ms-icon">←</span>
+    <span class="ms-indicator"></span>
+    <span class="ms-icon"><svg viewBox="0 0 24 24"><path d="m10.8 5.4 1.4 1.4L8 11h12v2H8l4.2 4.2-1.4 1.4L4.2 12l6.6-6.6Z"/></svg></span>
     <span class="ms-label">Vista clásica</span>
   </button>
+
 </nav>

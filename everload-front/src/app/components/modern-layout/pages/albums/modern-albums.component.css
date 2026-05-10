@@ -1,14 +1,22 @@
-.ma-page { padding: 28px; }
-.ma-title { font-size: 24px; font-weight: 800; color: #e4e4e7; margin: 0 0 24px; }
-.ma-loading { color: #71717a; text-align: center; padding: 48px; }
+.ma-page { padding: 32px; }
+.ma-title { font-size: 32px; font-weight: 900; color: var(--color-white); margin: 0 0 24px; }
+.ma-loading { color: var(--color-slate-400); text-align: center; padding: 48px; }
 
 .ma-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 24px;
 }
 
-.ma-card { cursor: pointer; }
+.ma-card {
+  padding: 16px;
+  background: color-mix(in srgb, var(--color-white) 5%, transparent);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ma-card:hover { background: color-mix(in srgb, var(--color-white) 10%, transparent); }
 
 .ma-cover {
   position: relative;
@@ -16,41 +24,38 @@
   aspect-ratio: 1;
   border-radius: 8px;
   overflow: hidden;
-  background: #1e1e1e;
-  margin-bottom: 10px;
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+  margin-bottom: 12px;
 }
 
-.ma-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s;
-}
-
+.ma-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
 .ma-card:hover .ma-img { transform: scale(1.05); }
 
 .ma-play-btn {
   position: absolute;
   bottom: 10px;
   right: 10px;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: #6366f1;
-  color: #fff;
+  background: var(--color-white);
+  color: var(--color-black);
+  border: none;
+  font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(8px);
   transition: opacity 0.2s, transform 0.2s;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  font-family: inherit;
 }
 
 .ma-card:hover .ma-play-btn { opacity: 1; transform: translateY(0); }
 
-.ma-album { font-size: 13px; font-weight: 600; color: #e4e4e7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ma-artist { font-size: 11px; color: #71717a; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ma-count { font-size: 10px; color: #52525b; margin-top: 2px; }
-.ma-empty { color: #52525b; text-align: center; padding: 48px; font-size: 14px; grid-column: 1/-1; }
+.ma-album { font-size: 14px; font-weight: 600; color: var(--color-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ma-artist { font-size: 12px; color: var(--color-slate-400); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ma-count { font-size: 11px; color: var(--color-slate-500); margin-top: 2px; }
+.ma-empty { color: var(--color-slate-500); text-align: center; padding: 48px; font-size: 14px; grid-column: 1/-1; }

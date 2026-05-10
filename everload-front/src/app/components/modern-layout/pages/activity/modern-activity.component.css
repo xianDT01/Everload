@@ -1,17 +1,12 @@
-.mact-page { padding: 28px; }
-.mact-title { font-size: 24px; font-weight: 800; color: #e4e4e7; margin: 0 0 24px; }
-.mact-loading { color: #71717a; text-align: center; padding: 48px; }
+.mact-page { padding: 32px; }
+.mact-title { font-size: 32px; font-weight: 900; color: var(--color-white); margin: 0 0 28px; }
+.mact-loading { color: var(--color-slate-400); text-align: center; padding: 48px; }
 
-.mact-summary {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 32px;
-  flex-wrap: wrap;
-}
+.mact-summary { display: flex; gap: 16px; margin-bottom: 36px; flex-wrap: wrap; }
 
 .mact-pill {
-  background: #1e1e1e;
-  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-white) 5%, transparent);
+  border-radius: 16px;
   padding: 20px 28px;
   display: flex;
   flex-direction: column;
@@ -19,28 +14,27 @@
   min-width: 160px;
 }
 
-.mact-pill-num { font-size: 28px; font-weight: 800; color: #818cf8; }
-.mact-pill-label { font-size: 12px; color: #71717a; }
-
-.mact-section { font-size: 16px; font-weight: 700; color: #e4e4e7; margin: 0 0 12px; }
-
+.mact-pill-num { font-size: 30px; font-weight: 900; color: var(--color-indigo-400); }
+.mact-pill-label { font-size: 12px; color: var(--color-slate-400); }
+.mact-section { font-size: 18px; font-weight: 700; color: var(--color-white); margin: 0 0 12px; }
 .mact-list { display: flex; flex-direction: column; gap: 2px; }
 
 .mact-row {
   display: grid;
-  grid-template-columns: 36px 1fr 80px;
+  grid-template-columns: 40px 1fr 80px;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
   border-radius: 8px;
   transition: background 0.12s;
+  height: 56px;
 }
 
-.mact-row:hover { background: rgba(255,255,255,0.05); }
+.mact-row:hover { background: color-mix(in srgb, var(--color-white) 5%, transparent); }
 
-.mact-rank { font-size: 13px; color: #52525b; text-align: right; font-weight: 600; }
+.mact-rank { font-size: 14px; color: var(--color-slate-500); text-align: right; font-weight: 700; }
 .mact-meta { display: flex; flex-direction: column; min-width: 0; }
-.mact-track-title { font-size: 13px; color: #e4e4e7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mact-artist { font-size: 11px; color: #71717a; }
-.mact-count { font-size: 12px; color: #818cf8; text-align: right; font-weight: 600; }
-.mact-empty { color: #52525b; text-align: center; padding: 48px; font-size: 14px; }
+.mact-track-title { font-size: 14px; font-weight: 500; color: color-mix(in srgb, var(--color-white) 90%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mact-artist { font-size: 12px; color: var(--color-slate-500); }
+.mact-count { font-size: 13px; color: var(--color-indigo-400); text-align: right; font-weight: 700; }
+.mact-empty { color: var(--color-slate-500); text-align: center; padding: 48px; font-size: 14px; }
