@@ -1,5 +1,16 @@
 .mart-page { padding: 32px; }
-.mart-title { font-size: 32px; font-weight: 900; color: var(--color-white); margin: 0 0 24px; }
+.mart-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 24px; }
+.mart-title { font-size: 32px; font-weight: 900; color: var(--color-white); margin: 0; }
+.mart-create {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
+  background: color-mix(in srgb, var(--color-white) 9%, transparent);
+  color: var(--color-white);
+  font: 900 22px/1 inherit;
+  cursor: pointer;
+}
 .mart-loading { color: var(--color-slate-400); text-align: center; padding: 48px; }
 
 .mart-grid {
@@ -8,7 +19,7 @@
   gap: 24px;
 }
 
-.mart-card { cursor: pointer; text-align: center; }
+.mart-card { cursor: pointer; text-align: center; position: relative; }
 
 .mart-circle {
   position: relative;
@@ -57,4 +68,88 @@
 
 .mart-name { font-size: 14px; font-weight: 700; color: var(--color-white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
 .mart-sub { font-size: 12px; color: var(--color-slate-400); margin-top: 4px; }
+.mart-edit {
+  margin-top: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
+  background: color-mix(in srgb, var(--color-white) 7%, transparent);
+  color: var(--color-slate-200);
+  border-radius: 7px;
+  padding: 7px 12px;
+  font: 700 11px/1 inherit;
+  cursor: pointer;
+}
+.mart-edit:hover,
+.mart-create:hover,
+.mart-empty-btn:hover { background: color-mix(in srgb, var(--color-white) 13%, transparent); }
 .mart-empty { color: var(--color-slate-500); text-align: center; padding: 48px; font-size: 14px; grid-column: 1/-1; }
+.mart-empty p { margin: 0 0 16px; }
+.mart-empty-btn,
+.mart-primary,
+.mart-secondary,
+.mart-danger {
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
+  padding: 10px 14px;
+  font: 800 12px/1 inherit;
+  cursor: pointer;
+}
+.mart-empty-btn,
+.mart-primary {
+  background: var(--color-indigo-500);
+  color: var(--color-white);
+}
+.mart-secondary {
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+  color: var(--color-white);
+}
+.mart-danger {
+  background: color-mix(in srgb, #ef4444 45%, transparent);
+  color: var(--color-white);
+}
+.mart-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, #000 62%, transparent);
+  padding: 24px;
+}
+.mart-dialog {
+  width: min(520px, 100%);
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
+  background: var(--ml-panel, #252321);
+  color: var(--color-white);
+  padding: 18px;
+  box-shadow: 0 24px 80px color-mix(in srgb, #000 45%, transparent);
+}
+.mart-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.mart-dialog-head h2 { margin: 0; font-size: 20px; }
+.mart-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--color-slate-300);
+  font-size: 22px;
+  cursor: pointer;
+}
+.mart-field { display: grid; gap: 7px; margin-bottom: 13px; color: var(--color-slate-300); font-size: 12px; font-weight: 800; }
+.mart-field input,
+.mart-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, #000 20%, transparent);
+  color: var(--color-white);
+  padding: 10px 12px;
+  font: 700 13px/1.3 inherit;
+}
+.mart-field textarea { min-height: 76px; resize: vertical; }
+.mart-error { color: #fca5a5; font-size: 12px; margin: 8px 0; }
+.mart-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
+.mart-primary:disabled { opacity: 0.5; cursor: not-allowed; }
