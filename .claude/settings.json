@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw spring-boot:run)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/actuator/health)",
+      "Bash(npm install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(kill 115189)",
+      "Bash(ps -p 41773 -o pid,cmd --no-headers)",
+      "Bash(sleep 12 && tail -8 /tmp/ng-serve.log)",
+      "Read(//tmp/**)",
+      "Bash(kill 124163)",
+      "Bash(grep -rn \"mb-heart\\\\|toggleFavorite\\\\|favorite\" /home/xideaProjects/Everload/everload-front/src/app/components/modern-layout/bottombar/ 2>/dev/null || echo \"Not found\")",
+      "Read(//home/xideaProjects/Everload/everload-front/src/app/components/modern-layout/**)",
+      "Bash(grep -n \"setEqBand\\\\|setEq\\\\|eqBands\\\\|eqGain\\\\|setCrossfade\\\\|crossfadeDuration\\\\|getLyrics\\\\|queue\\\\$\\\\|queue \" /home/xiandt/IdeaProjects/Everload/everload-front/src/app/services/music.service.ts)",
+      "Bash(grep -n \"queue\\\\$\\\\|queue\\\\b\\\\|mainQueue\\\\|playQueue\\\\|getQueue\\\\|queueTracks\" /home/xiandt/IdeaProjects/Everload/everload-front/src/app/services/music.service.ts)",
+      "Bash(xargs -I {} basename {})"
+    ]
+  }
+}
