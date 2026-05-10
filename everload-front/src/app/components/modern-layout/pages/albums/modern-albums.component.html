@@ -1,0 +1,18 @@
+<div class="ma-page">
+  <h1 class="ma-title">Álbumes</h1>
+
+  <div class="ma-loading" *ngIf="loading">Cargando…</div>
+
+  <div class="ma-grid" *ngIf="!loading">
+    <div class="ma-card" *ngFor="let g of albums" (dblclick)="play(g)">
+      <div class="ma-cover">
+        <img [src]="cover(g)" (error)="$any($event.target).style.display='none'" class="ma-img" />
+        <div class="ma-play-btn" (click)="play(g); $event.stopPropagation()">▶</div>
+      </div>
+      <div class="ma-album">{{ g.album }}</div>
+      <div class="ma-artist">{{ g.artist }}</div>
+      <div class="ma-count">{{ g.tracks.length }} pistas</div>
+    </div>
+    <div class="ma-empty" *ngIf="albums.length === 0">No hay álbumes</div>
+  </div>
+</div>

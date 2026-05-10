@@ -1,0 +1,28 @@
+<div class="mact-page">
+  <h1 class="mact-title">📊 Actividad</h1>
+  <div class="mact-loading" *ngIf="loading">Cargando…</div>
+  <ng-container *ngIf="!loading && stats">
+    <div class="mact-summary">
+      <div class="mact-pill">
+        <span class="mact-pill-num">{{ stats.totalPlays }}</span>
+        <span class="mact-pill-label">Reproducciones totales</span>
+      </div>
+      <div class="mact-pill">
+        <span class="mact-pill-num">{{ stats.topTracks?.length ?? 0 }}</span>
+        <span class="mact-pill-label">Canciones únicas</span>
+      </div>
+    </div>
+    <h2 class="mact-section">Top canciones</h2>
+    <div class="mact-list">
+      <div class="mact-row" *ngFor="let t of stats.topTracks; let i = index">
+        <span class="mact-rank">{{ i + 1 }}</span>
+        <div class="mact-meta">
+          <span class="mact-track-title">{{ t.title }}</span>
+          <span class="mact-artist">{{ t.artist }}</span>
+        </div>
+        <span class="mact-count">{{ t.playCount }} ▶</span>
+      </div>
+    </div>
+  </ng-container>
+  <div class="mact-empty" *ngIf="!loading && !stats">Sin datos de actividad.</div>
+</div>

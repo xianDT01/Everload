@@ -1,0 +1,46 @@
+.mact-page { padding: 28px; }
+.mact-title { font-size: 24px; font-weight: 800; color: #e4e4e7; margin: 0 0 24px; }
+.mact-loading { color: #71717a; text-align: center; padding: 48px; }
+
+.mact-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.mact-pill {
+  background: #1e1e1e;
+  border-radius: 12px;
+  padding: 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.mact-pill-num { font-size: 28px; font-weight: 800; color: #818cf8; }
+.mact-pill-label { font-size: 12px; color: #71717a; }
+
+.mact-section { font-size: 16px; font-weight: 700; color: #e4e4e7; margin: 0 0 12px; }
+
+.mact-list { display: flex; flex-direction: column; gap: 2px; }
+
+.mact-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 80px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: background 0.12s;
+}
+
+.mact-row:hover { background: rgba(255,255,255,0.05); }
+
+.mact-rank { font-size: 13px; color: #52525b; text-align: right; font-weight: 600; }
+.mact-meta { display: flex; flex-direction: column; min-width: 0; }
+.mact-track-title { font-size: 13px; color: #e4e4e7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mact-artist { font-size: 11px; color: #71717a; }
+.mact-count { font-size: 12px; color: #818cf8; text-align: right; font-weight: 600; }
+.mact-empty { color: #52525b; text-align: center; padding: 48px; font-size: 14px; }

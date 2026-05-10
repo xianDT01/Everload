@@ -1031,3 +1031,11 @@ main { transition: filter 0.3s ease; }
   .social-card,
   .utility-card { grid-column: span 1; height: 110px; }
 }
+
+.modern-mode-card {
+  text-decoration: none;
+}
+
+.modern-bg {
+  background: linear-gradient(135deg, #1a1a3e 0%, #2d1b69 40%, #4c1d95 70%, #6d28d9 100%);
+}

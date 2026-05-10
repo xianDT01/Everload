@@ -254,6 +254,18 @@
             </div>
           </div>
         </button>
+
+        <a class="social-card utility-card modern-mode-card" routerLink="/modern" *ngIf="hasNasAccess">
+          <div class="card-bg modern-bg"></div>
+          <div class="card-overlay"></div>
+          <div class="card-content">
+            <span class="card-icon">⚡</span>
+            <div>
+              <h2 class="card-title">Vista moderna</h2>
+              <p class="card-desc">Interfaz estilo Spotify con sidebar</p>
+            </div>
+          </div>
+        </a>
       </section>
 
     </div>

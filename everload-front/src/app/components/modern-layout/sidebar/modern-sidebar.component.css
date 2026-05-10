@@ -1,0 +1,97 @@
+.ms-nav {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0 0 12px 0;
+  font-size: 13px;
+}
+
+.ms-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px 16px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: #fff;
+}
+
+.ms-logo-icon {
+  font-size: 22px;
+}
+
+.ms-path-wrap {
+  padding: 0 12px 12px;
+}
+
+.ms-path-select {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #e4e4e7;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.ms-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+  flex: 1;
+}
+
+.ms-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #a1a1aa;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+}
+
+.ms-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: #e4e4e7;
+}
+
+.ms-item.active {
+  background: rgba(99,102,241,0.18);
+  color: #818cf8;
+}
+
+.ms-icon {
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.ms-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 10px 8px;
+}
+
+.ms-back {
+  color: #71717a;
+  font-size: 12px;
+}
+
+.ms-back:hover {
+  color: #e4e4e7;
+  background: rgba(255,255,255,0.04);
+}

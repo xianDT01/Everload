@@ -1,0 +1,19 @@
+<div class="mfav-page">
+  <h1 class="mfav-title">❤️ Favoritos</h1>
+  <div class="mfav-loading" *ngIf="loading">Cargando…</div>
+  <div class="mfav-list" *ngIf="!loading">
+    <div class="mfav-row" *ngFor="let t of tracks; let i = index" (dblclick)="play(i)">
+      <span class="mfav-num">{{ i + 1 }}</span>
+      <div class="mfav-cover">
+        <img [src]="cover(t)" (error)="$any($event.target).style.display='none'" />
+      </div>
+      <div class="mfav-meta">
+        <span class="mfav-title-text">{{ t.title }}</span>
+        <span class="mfav-artist">{{ t.artist }}</span>
+      </div>
+      <span class="mfav-album">{{ t.album }}</span>
+      <button class="mfav-heart" (click)="unfavorite(t); $event.stopPropagation()">❤️</button>
+    </div>
+    <div class="mfav-empty" *ngIf="tracks.length === 0">No hay favoritos aún.</div>
+  </div>
+</div>

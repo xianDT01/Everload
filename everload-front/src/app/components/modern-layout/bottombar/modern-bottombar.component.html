@@ -1,0 +1,48 @@
+<div class="mb-bar">
+  <!-- Track info -->
+  <div class="mb-track">
+    <div class="mb-cover-wrap" *ngIf="track">
+      <img *ngIf="track.hasCover || coverUrl" [src]="coverUrl" class="mb-cover" (error)="$any($event.target).style.display='none'" />
+      <div class="mb-cover-placeholder" *ngIf="!track.hasCover && !coverUrl">♪</div>
+    </div>
+    <div class="mb-track-empty" *ngIf="!track">
+      <span class="mb-cover-placeholder">♪</span>
+    </div>
+    <div class="mb-meta" *ngIf="track">
+      <span class="mb-title">{{ track.title || track.name }}</span>
+      <span class="mb-artist">{{ track.artist || '—' }}</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="mb-center">
+    <div class="mb-btns">
+      <button class="mb-btn mb-btn-sm" [class.active]="shuffle" (click)="toggleShuffle()" title="Shuffle">⇄</button>
+      <button class="mb-btn" (click)="prev()" title="Anterior">⏮</button>
+      <button class="mb-btn mb-btn-play" (click)="toggle()">
+        <span *ngIf="!playing">▶</span>
+        <span *ngIf="playing">⏸</span>
+      </button>
+      <button class="mb-btn" (click)="next()" title="Siguiente">⏭</button>
+      <button class="mb-btn mb-btn-sm" [class.active]="repeat !== 'none'" (click)="toggleRepeat()" title="Repetir">
+        <span *ngIf="repeat === 'none' || repeat === 'all'">↻</span>
+        <span *ngIf="repeat === 'one'">↺1</span>
+      </button>
+    </div>
+    <div class="mb-progress-row">
+      <span class="mb-time">{{ fmt(currentTime) }}</span>
+      <input type="range" class="mb-progress" min="0" max="100" step="0.1"
+             [value]="progress" (input)="onSeek($event)"
+             (mousedown)="$event.stopPropagation()" />
+      <span class="mb-time">{{ fmt(duration) }}</span>
+    </div>
+  </div>
+
+  <!-- Volume -->
+  <div class="mb-right">
+    <span class="mb-vol-icon">{{ volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊' }}</span>
+    <input type="range" class="mb-volume" min="0" max="100" step="1"
+           [value]="volume * 100" (input)="onVolume($event)"
+           (mousedown)="$event.stopPropagation()" />
+  </div>
+</div>

@@ -1,0 +1,96 @@
+.ml-page { padding: 28px; }
+
+.ml-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.ml-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #e4e4e7;
+  margin: 0;
+}
+
+.ml-search {
+  background: #1e1e1e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #e4e4e7;
+  padding: 8px 14px;
+  font-size: 13px;
+  width: 240px;
+  outline: none;
+}
+
+.ml-search:focus {
+  border-color: #6366f1;
+}
+
+.ml-loading {
+  color: #71717a;
+  padding: 48px;
+  text-align: center;
+}
+
+.ml-track-list { display: flex; flex-direction: column; }
+
+.ml-track-header, .ml-track-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 1fr 56px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.ml-track-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: #52525b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 4px;
+  border-radius: 0;
+}
+
+.ml-track-row {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.ml-track-row:hover { background: rgba(255,255,255,0.05); }
+.ml-track-row.playing { background: rgba(99,102,241,0.12); }
+.ml-track-row.playing .ml-track-name { color: #818cf8; }
+
+.ml-col-num { text-align: center; font-size: 12px; color: #52525b; }
+.ml-row-play { color: #818cf8; font-size: 14px; }
+.ml-col-album { font-size: 12px; color: #71717a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ml-col-dur { font-size: 12px; color: #71717a; text-align: right; }
+
+.ml-track-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+.ml-track-cover {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #1e1e1e;
+  flex-shrink: 0;
+}
+
+.ml-track-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ml-track-meta { display: flex; flex-direction: column; min-width: 0; }
+.ml-track-name { font-size: 13px; color: #e4e4e7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ml-track-artist { font-size: 11px; color: #71717a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ml-empty { color: #52525b; text-align: center; padding: 48px; font-size: 14px; }

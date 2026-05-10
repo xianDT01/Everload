@@ -1,0 +1,25 @@
+<div class="mpl-page">
+  <div class="mpl-header">
+    <h1 class="mpl-title">Playlists</h1>
+    <div class="mpl-create">
+      <input class="mpl-input" type="text" placeholder="Nueva playlist..." [(ngModel)]="newName"
+             (keyup.enter)="create()" />
+      <button class="mpl-btn-create" (click)="create()" [disabled]="creating || !newName.trim()">+</button>
+    </div>
+  </div>
+
+  <div class="mpl-loading" *ngIf="loading">Cargando…</div>
+
+  <div class="mpl-grid" *ngIf="!loading">
+    <div class="mpl-card" *ngFor="let pl of playlists">
+      <div class="mpl-cover" (dblclick)="play(pl)">
+        <span class="mpl-cover-icon">📋</span>
+        <div class="mpl-play-btn" (click)="play(pl); $event.stopPropagation()">▶</div>
+      </div>
+      <div class="mpl-name">{{ pl.name }}</div>
+      <div class="mpl-count">{{ pl.tracks?.length ?? 0 }} canciones</div>
+      <button class="mpl-delete" (click)="delete(pl.id)">✕</button>
+    </div>
+    <div class="mpl-empty" *ngIf="playlists.length === 0">No hay playlists. Crea una arriba.</div>
+  </div>
+</div>

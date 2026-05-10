@@ -1,0 +1,16 @@
+<div class="mart-page">
+  <h1 class="mart-title">Artistas</h1>
+  <div class="mart-loading" *ngIf="loading">Cargando…</div>
+  <div class="mart-grid" *ngIf="!loading">
+    <div class="mart-card" *ngFor="let g of artists" (dblclick)="play(g)">
+      <div class="mart-circle">
+        <img [src]="cover(g)" class="mart-img" (error)="$any($event.target).style.display='none'" />
+        <div class="mart-fallback">🎤</div>
+        <div class="mart-play-btn" (click)="play(g); $event.stopPropagation()">▶</div>
+      </div>
+      <div class="mart-name">{{ g.artist }}</div>
+      <div class="mart-sub">{{ g.tracks.length }} canciones · {{ g.albumCount }} álbumes</div>
+    </div>
+    <div class="mart-empty" *ngIf="artists.length === 0">No hay artistas</div>
+  </div>
+</div>
