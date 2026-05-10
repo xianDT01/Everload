@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -271,5 +272,54 @@ public class MusicController {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(java.net.URI.create("https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg"));
         return new ResponseEntity<>(headers, HttpStatus.FOUND);
+    }
+
+    // ── Lyrics ────────────────────────────────────────────────────────────────
+
+    @Operation(summary = "Obtener letra/LRC para una pista del NAS")
+    @GetMapping("/lyrics")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> getLyrics(
+            @RequestParam Long pathId,
+            @RequestParam String subPath,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String artist,
+            @RequestParam(required = false, defaultValue = "0") int duration) {
+
+        // 1. Look for a .lrc sidecar file next to the audio file
+        String lrc = musicService.findLrcSidecar(pathId, subPath);
+        if (lrc != null) {
+            return ResponseEntity.ok(Map.of("source", "file", "lrc", lrc));
+        }
+
+        // 2. Fallback: query LRCLIB (free, no key required)
+        if (title != null && !title.isBlank()) {
+            try {
+                String url = "https://lrclib.net/api/get?track_name=" +
+                        java.net.URLEncoder.encode(title, java.nio.charset.StandardCharsets.UTF_8) +
+                        (artist != null && !artist.isBlank()
+                                ? "&artist_name=" + java.net.URLEncoder.encode(artist, java.nio.charset.StandardCharsets.UTF_8)
+                                : "") +
+                        (duration > 0 ? "&duration=" + duration : "");
+
+                RestTemplate rt = new RestTemplate();
+                HttpHeaders h = new HttpHeaders();
+                h.set("User-Agent", "EverLoad/1.0 (https://github.com/everload)");
+                ResponseEntity<Map> resp = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class);
+
+                if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
+                    Object syncedLyrics = resp.getBody().get("syncedLyrics");
+                    Object plainLyrics  = resp.getBody().get("plainLyrics");
+                    if (syncedLyrics != null) {
+                        return ResponseEntity.ok(Map.of("source", "lrclib", "lrc", syncedLyrics));
+                    }
+                    if (plainLyrics != null) {
+                        return ResponseEntity.ok(Map.of("source", "lrclib_plain", "plain", plainLyrics));
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return ResponseEntity.ok(Map.of("source", "none"));
     }
 }

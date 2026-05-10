@@ -110,9 +110,34 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   explorerWindowSize = { width: 560, height: 420 };
   musicManagerWindowPosition = { x: 190, y: 96 };
   musicManagerWindowSize = { width: 760, height: 500 };
-  musicManagerTab: 'properties' | 'queue' | 'history' = 'properties';
+  musicManagerTab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' = 'properties';
   musicManagerStatus = '';
   historyItems: any[] = [];
+  statsData: { totalPlays: number; topTracks: any[] } | null = null;
+  statsLoading = false;
+
+  // ── Playlists ─────────────────────────────────────────────────────────────
+  playlists: any[] = [];
+  playlistsLoading = false;
+  newPlaylistName = '';
+  renamingPlaylistId: number | null = null;
+  renamingPlaylistName = '';
+
+  // ── Lyrics ─────────────────────────────────────────────────────────────
+  lyricsLines: { time: number; text: string }[] = [];
+  lyricsPlain = '';
+  lyricsSource: 'none' | 'file' | 'lrclib' | 'lrclib_plain' = 'none';
+  lyricsLoading = false;
+  lyricsTrackPath = '';
+  get currentLyricIndex(): number {
+    if (!this.lyricsLines.length || !this.state) return -1;
+    const t = this.state.currentTime;
+    let idx = -1;
+    for (let i = 0; i < this.lyricsLines.length; i++) {
+      if (this.lyricsLines[i].time <= t) idx = i; else break;
+    }
+    return idx;
+  }
   private explorerRestoreWindow = {
     position: { x: 132, y: 84 },
     size: { width: 560, height: 420 }
@@ -175,16 +200,30 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   private notepadOwnerKey = '';
   private notepadSaveTimer?: number;
 
+  // ── Channel Mode ─────────────────────────────────────────────────────────
+  readonly channelModes = [
+    { id: 'stereo' as const, label: 'ST' },
+    { id: 'mono'   as const, label: 'MO' },
+    { id: 'left'   as const, label: 'L'  },
+    { id: 'right'  as const, label: 'R'  },
+    { id: 'swap'   as const, label: 'SW' },
+  ];
+
+  setChannelMode(mode: 'stereo' | 'mono' | 'left' | 'right' | 'swap'): void {
+    this.musicService.mainPlayer.setChannelMode(mode);
+    this.musicService.deckAPlayer.setChannelMode(mode);
+    this.musicService.deckBPlayer.setChannelMode(mode);
+  }
+
   // ── Equalizer ─────────────────────────────────────────────────────────────
   equalizerOpen = false;
   equalizerMinimized = false;
   equalizerMaximized = false;
   equalizerWindowPosition = { x: 310, y: 200 };
-  equalizerWindowSize = { width: 360, height: 200 };
-  private equalizerRestoreWindow = { position: { x: 310, y: 200 }, size: { width: 360, height: 200 } };
-  eqLow = 0;
-  eqMid = 0;
-  eqHigh = 0;
+  equalizerWindowSize = { width: 460, height: 230 };
+  private equalizerRestoreWindow = { position: { x: 310, y: 200 }, size: { width: 460, height: 230 } };
+  eqBands: number[] = [0, 0, 0, 0, 0];
+  readonly eqBandNames = ['60 Hz', '250 Hz', '1 kHz', '4 kHz', '16 kHz'];
 
   // ── Winamp 10-band EQ + playlist ─────────────────────────────────────────
   waEqBands: number[] = new Array(10).fill(0);
@@ -345,6 +384,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
             s.currentTrack.artist || 'Artista desconocido'
           );
         }
+        this.loadLyricsForTrack();
       }
     }));
     this.subs.push(this.musicService.shuffle$.subscribe(v => { this.shuffle = v; }));
@@ -810,13 +850,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     });
   }
 
-  openMusicManager(tab: 'properties' | 'queue' | 'history' = this.musicManagerTab): void {
+  openMusicManager(tab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' = this.musicManagerTab): void {
     this.musicManagerOpen = true;
     this.musicManagerMinimized = false;
     this.musicManagerTab = tab;
     this.activeDesktopWindow = 'manager';
     this.desktopStartOpen = false;
     if (tab === 'history') this.loadMusicHistory();
+    if (tab === 'stats') this.loadStats();
+    if (tab === 'playlists') this.loadPlaylists();
   }
 
   closeMusicManager(): void {
@@ -830,6 +872,116 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       next: items => { this.historyItems = items || []; },
       error: () => { this.historyItems = []; }
     });
+  }
+
+  loadStats(): void {
+    if (this.statsLoading) return;
+    this.statsLoading = true;
+    this.musicService.getListeningStats(15).subscribe({
+      next: data => { this.statsData = data; this.statsLoading = false; },
+      error: () => { this.statsLoading = false; }
+    });
+  }
+
+  loadPlaylists(): void {
+    this.playlistsLoading = true;
+    this.musicService.getPlaylists().subscribe({
+      next: pl => { this.playlists = pl; this.playlistsLoading = false; },
+      error: () => { this.playlistsLoading = false; }
+    });
+  }
+
+  createPlaylist(): void {
+    const name = this.newPlaylistName.trim();
+    if (!name) return;
+    this.musicService.createPlaylist(name).subscribe({
+      next: pl => { this.playlists = [pl, ...this.playlists]; this.newPlaylistName = ''; }
+    });
+  }
+
+  deletePlaylist(id: number, e: Event): void {
+    e.stopPropagation();
+    this.musicService.deletePlaylist(id).subscribe({
+      next: () => { this.playlists = this.playlists.filter(p => p.id !== id); }
+    });
+  }
+
+  startRenamePlaylist(pl: any, e: Event): void {
+    e.stopPropagation();
+    this.renamingPlaylistId = pl.id;
+    this.renamingPlaylistName = pl.name;
+  }
+
+  confirmRenamePlaylist(pl: any): void {
+    const name = this.renamingPlaylistName.trim();
+    if (!name) return;
+    this.musicService.renamePlaylist(pl.id, name).subscribe({
+      next: updated => {
+        const idx = this.playlists.findIndex(p => p.id === pl.id);
+        if (idx >= 0) this.playlists[idx] = updated;
+        this.renamingPlaylistId = null;
+      }
+    });
+  }
+
+  addCurrentTrackToPlaylist(playlistId: number): void {
+    const track = this.state?.currentTrack;
+    const pathId = this.state?.pathId;
+    if (!track || pathId == null) return;
+    this.musicService.addTrackToPlaylist(playlistId, track, pathId).subscribe({
+      next: () => this.loadPlaylists()
+    });
+  }
+
+  playPlaylist(pl: any): void {
+    if (!pl.tracks?.length) return;
+    const tracks = pl.tracks.map((t: any) => ({
+      name: t.title, path: t.trackPath, title: t.title,
+      artist: t.artist, album: t.album, duration: t.durationSeconds,
+      directory: false, size: 0, lastModified: '', format: '', hasCover: false, bpm: 0,
+      source: 'nas' as const, nasPathId: t.nasPathId
+    }));
+    this.musicService.setQueue(pl.tracks[0].nasPathId, tracks, 0);
+  }
+
+  loadLyricsForTrack(): void {
+    const track = this.state?.currentTrack;
+    const pathId = this.state?.pathId;
+    if (!track || pathId == null || track.source === 'youtube' || track.source === 'local') {
+      this.lyricsLines = []; this.lyricsPlain = ''; this.lyricsSource = 'none';
+      return;
+    }
+    if (this.lyricsTrackPath === track.path) return;
+    this.lyricsTrackPath = track.path;
+    this.lyricsLoading = true;
+    this.lyricsLines = []; this.lyricsPlain = '';
+    this.musicService.getLyrics(pathId, track.path, track.title || track.name, track.artist, track.duration)
+      .subscribe({
+        next: res => {
+          this.lyricsSource = (res.source as any) || 'none';
+          if ((res.source === 'file' || res.source === 'lrclib') && res.lrc) {
+            this.lyricsLines = this.parseLrc(res.lrc);
+          } else if (res.source === 'lrclib_plain' && res.plain) {
+            this.lyricsPlain = res.plain;
+          }
+          this.lyricsLoading = false;
+        },
+        error: () => { this.lyricsLoading = false; this.lyricsSource = 'none'; }
+      });
+  }
+
+  private parseLrc(lrc: string): { time: number; text: string }[] {
+    const lines: { time: number; text: string }[] = [];
+    const re = /\[(\d{2}):(\d{2})\.(\d{1,3})\](.*)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(lrc)) !== null) {
+      const min = parseInt(m[1], 10);
+      const sec = parseInt(m[2], 10);
+      const ms  = parseInt(m[3].padEnd(3, '0'), 10);
+      const text = m[4].trim();
+      lines.push({ time: min * 60 + sec + ms / 1000, text });
+    }
+    return lines.sort((a, b) => a.time - b.time);
   }
 
   playQueueTrack(index: number): void {
@@ -2809,43 +2961,43 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     }
   }
 
-  setEqBand(band: 'low' | 'mid' | 'high', value: string | number): void {
+  setEqBand(index: number, value: string | number): void {
     const dB = parseFloat(value as string);
-    if (band === 'low') this.eqLow = dB;
-    if (band === 'mid') this.eqMid = dB;
-    if (band === 'high') this.eqHigh = dB;
-    this.musicService.mainPlayer.setEq(band, dB);
+    this.eqBands[index] = dB;
+    this.musicService.mainPlayer.setEqBand(index, dB);
   }
 
-  resetEq(): void { ['low', 'mid', 'high'].forEach(b => this.setEqBand(b as any, 0)); }
+  applyEqPreset(bands: number[]): void {
+    bands.forEach((dB, i) => this.setEqBand(i, dB));
+  }
 
+  resetEq(): void { this.applyEqPreset([0, 0, 0, 0, 0]); }
+
+  // Winamp 10-band maps pairs to 5 EQ bands: [0+1]→0, [2+3]→1, [4+5]→2, [6+7]→3, [8+9]→4
   setWaEqBand(index: number, value: string | number): void {
     this.waEqBands[index] = parseFloat(value as string);
     if (!this.waEqOn) return;
-    const low  = (this.waEqBands[0] + this.waEqBands[1] + this.waEqBands[2]) / 3;
-    const mid  = (this.waEqBands[3] + this.waEqBands[4] + this.waEqBands[5]) / 3;
-    const high = (this.waEqBands[6] + this.waEqBands[7] + this.waEqBands[8] + this.waEqBands[9]) / 4;
-    this.musicService.mainPlayer.setEq('low', low);
-    this.musicService.mainPlayer.setEq('mid', mid);
-    this.musicService.mainPlayer.setEq('high', high);
+    const group = Math.floor(index / 2);
+    const avg = (this.waEqBands[group * 2] + this.waEqBands[group * 2 + 1]) / 2;
+    this.eqBands[group] = avg;
+    this.musicService.mainPlayer.setEqBand(group, avg);
   }
 
   toggleWaEq(): void {
     this.waEqOn = !this.waEqOn;
     if (!this.waEqOn) {
-      this.musicService.mainPlayer.setEq('low', 0);
-      this.musicService.mainPlayer.setEq('mid', 0);
-      this.musicService.mainPlayer.setEq('high', 0);
+      [0, 1, 2, 3, 4].forEach(i => this.musicService.mainPlayer.setEqBand(i, 0));
     } else {
-      this.setWaEqBand(0, this.waEqBands[0]);
+      for (let g = 0; g < 5; g++) {
+        const avg = (this.waEqBands[g * 2] + this.waEqBands[g * 2 + 1]) / 2;
+        this.musicService.mainPlayer.setEqBand(g, avg);
+      }
     }
   }
 
   resetWaEq(): void {
     this.waEqBands = new Array(10).fill(0);
-    this.musicService.mainPlayer.setEq('low', 0);
-    this.musicService.mainPlayer.setEq('mid', 0);
-    this.musicService.mainPlayer.setEq('high', 0);
+    [0, 1, 2, 3, 4].forEach(i => this.musicService.mainPlayer.setEqBand(i, 0));
   }
 
   // ── Snake ──────────────────────────────────────────────────────────────────

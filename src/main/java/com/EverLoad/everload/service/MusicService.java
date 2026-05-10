@@ -894,6 +894,22 @@ public class MusicService {
         return out;
     }
 
+    // ── Lyrics ────────────────────────────────────────────────────────────────
+
+    public String findLrcSidecar(Long pathId, String trackRelPath) {
+        try {
+            Path target = nasService.resolveValidatedPath(pathId, trackRelPath);
+            String name = target.getFileName().toString();
+            int dot = name.lastIndexOf('.');
+            String baseName = dot >= 0 ? name.substring(0, dot) : name;
+            Path lrcPath = target.getParent().resolve(baseName + ".lrc");
+            if (java.nio.file.Files.exists(lrcPath) && java.nio.file.Files.isReadable(lrcPath)) {
+                return java.nio.file.Files.readString(lrcPath, java.nio.charset.StandardCharsets.UTF_8);
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private File resolveFile(Long pathId, String relativePath) {

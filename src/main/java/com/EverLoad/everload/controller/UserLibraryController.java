@@ -100,4 +100,35 @@ public class UserLibraryController {
         playbackHistoryRepository.save(dto);
         return ResponseEntity.ok(Map.of("message", "History recorded"));
     }
+
+    // ── Stats ────────────────────────────────────────────────────────────────
+
+    @Operation(summary = "Estadísticas de escucha del usuario")
+    @GetMapping("/stats")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> getStats(@AuthenticationPrincipal UserDetails userDetails,
+                                      @RequestParam(defaultValue = "10") int topLimit) {
+        User user = getAuthenticatedUser(userDetails);
+
+        long totalPlays = playbackHistoryRepository.countByUser(user);
+
+        List<Object[]> topRaw = playbackHistoryRepository.findTopPlayedByUser(
+                user, PageRequest.of(0, topLimit));
+
+        List<Map<String, Object>> topTracks = topRaw.stream().map(row -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("trackPath", row[0]);
+            m.put("title",     row[1]);
+            m.put("artist",    row[2]);
+            m.put("album",     row[3]);
+            m.put("nasPathId", row[4]);
+            m.put("playCount", row[5]);
+            return m;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(Map.of(
+                "totalPlays", totalPlays,
+                "topTracks",  topTracks
+        ));
+    }
 }

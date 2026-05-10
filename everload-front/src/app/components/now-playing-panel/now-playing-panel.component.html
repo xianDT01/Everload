@@ -251,6 +251,8 @@
       <button [class.active]="musicManagerTab === 'properties'" (click)="musicManagerTab = 'properties'">{{ 'WINDOWS.MANAGER_PROPERTIES' | translate }}</button>
       <button [class.active]="musicManagerTab === 'queue'" (click)="musicManagerTab = 'queue'">{{ 'WINDOWS.MANAGER_QUEUE' | translate }} <span>{{ winampQueue.tracks.length }}</span></button>
       <button [class.active]="musicManagerTab === 'history'" (click)="musicManagerTab = 'history'; loadMusicHistory()">{{ 'WINDOWS.MANAGER_HISTORY' | translate }}</button>
+      <button [class.active]="musicManagerTab === 'stats'" (click)="musicManagerTab = 'stats'; loadStats()">{{ 'WINDOWS.MANAGER_STATS' | translate }}</button>
+      <button [class.active]="musicManagerTab === 'playlists'" (click)="musicManagerTab = 'playlists'; loadPlaylists()">{{ 'MUSIC.PLAYLISTS' | translate }}</button>
     </div>
     <div class="np-music-manager-body">
       <section class="np-manager-pane" *ngIf="musicManagerTab === 'properties'">
@@ -279,6 +281,48 @@
           <div><span>{{ 'WINDOWS.MANAGER_FORMAT' | translate }}</span><strong>{{ state?.currentTrack?.format || '-' }}</strong></div>
           <div><span>{{ 'WINDOWS.MANAGER_SIZE' | translate }}</span><strong>{{ currentTrackSizeLabel }}</strong></div>
           <div class="wide"><span>{{ 'WINDOWS.MANAGER_PATH' | translate }}</span><strong>{{ state?.currentTrack?.path || '-' }}</strong></div>
+        </div>
+
+        <!-- Channel Mode + Crossfade -->
+        <div class="np-manager-audio-controls">
+          <div class="np-manager-control-row">
+            <span class="np-ctrl-label">{{ 'MUSIC.CHANNEL_MODE' | translate }}</span>
+            <div class="np-channel-btns">
+              <button *ngFor="let m of channelModes" [class.active]="musicService.mainPlayer.channelMode === m.id"
+                      (click)="setChannelMode(m.id)" [title]="m.label">{{ m.label }}</button>
+            </div>
+          </div>
+          <div class="np-manager-control-row">
+            <span class="np-ctrl-label">{{ 'MUSIC.CROSSFADE' | translate }} <small>{{ musicService.crossfadeDuration }}s</small></span>
+            <input type="range" min="0" max="12" step="1" [value]="musicService.crossfadeDuration"
+                   (input)="musicService.crossfadeDuration = +$any($event.target).value"
+                   class="np-crossfade-slider" (mousedown)="$event.stopPropagation()" />
+          </div>
+        </div>
+
+        <!-- Lyrics panel -->
+        <div class="np-lyrics-panel" *ngIf="state?.currentTrack">
+          <div class="np-lyrics-header">
+            <span>{{ 'MUSIC.LYRICS' | translate }}</span>
+            <span *ngIf="lyricsSource !== 'none'" class="np-lyrics-badge">{{ lyricsSource === 'file' ? 'LRC' : 'LRCLIB' }}</span>
+            <button (click)="lyricsTrackPath=''; loadLyricsForTrack()" [disabled]="lyricsLoading">↺</button>
+          </div>
+          <div class="np-lyrics-body">
+            <div *ngIf="lyricsLoading" class="np-lyrics-loading">…</div>
+            <!-- Synced LRC -->
+            <ng-container *ngIf="!lyricsLoading && lyricsLines.length">
+              <div *ngFor="let line of lyricsLines; let i = index"
+                   class="np-lyric-line"
+                   [class.active]="i === currentLyricIndex"
+                   (click)="musicService.mainPlayer.seek(line.time)">{{ line.text }}</div>
+            </ng-container>
+            <!-- Plain text -->
+            <pre *ngIf="!lyricsLoading && !lyricsLines.length && lyricsPlain" class="np-lyrics-plain">{{ lyricsPlain }}</pre>
+            <!-- None -->
+            <div *ngIf="!lyricsLoading && !lyricsLines.length && !lyricsPlain && lyricsSource === 'none'" class="np-lyrics-empty">
+              {{ 'MUSIC.LYRICS_NONE' | translate }}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -323,6 +367,74 @@
           </button>
         </div>
         <ng-template #noHistory><div class="np-manager-empty">{{ 'WINDOWS.MANAGER_EMPTY_HISTORY' | translate }}</div></ng-template>
+      </section>
+
+      <section class="np-manager-pane" *ngIf="musicManagerTab === 'stats'">
+        <div class="np-manager-toolbar">
+          <strong>{{ 'WINDOWS.MANAGER_STATS' | translate }}</strong>
+          <button (click)="loadStats()">{{ 'ADMIN.REFRESH' | translate }}</button>
+        </div>
+        <div *ngIf="statsLoading" class="np-manager-empty">...</div>
+        <ng-container *ngIf="!statsLoading && statsData">
+          <div class="np-stats-summary">
+            <span class="np-stats-pill">{{ statsData.totalPlays }} {{ 'MUSIC.STATS_TOTAL_PLAYS' | translate }}</span>
+          </div>
+          <div class="np-manager-list">
+            <button class="np-manager-track" *ngFor="let t of statsData.topTracks; let i = index"
+                    (dblclick)="musicService.mainPlayer.state.currentTrack && playHistoryItem(t)">
+              <span class="num">{{ i + 1 }}</span>
+              <span class="copy">
+                <strong>{{ t.title || t.trackPath }}</strong>
+                <small>{{ t.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ t.playCount }}×</small>
+              </span>
+              <span class="np-stats-plays">{{ t.playCount }}</span>
+            </button>
+          </div>
+        </ng-container>
+        <ng-container *ngIf="!statsLoading && !statsData">
+          <div class="np-manager-empty">{{ 'WINDOWS.MANAGER_EMPTY_HISTORY' | translate }}</div>
+        </ng-container>
+      </section>
+
+      <!-- ── Playlists tab ── -->
+      <section class="np-manager-pane" *ngIf="musicManagerTab === 'playlists'">
+        <div class="np-manager-toolbar">
+          <strong>{{ 'MUSIC.PLAYLISTS' | translate }}</strong>
+          <button (click)="loadPlaylists()">{{ 'ADMIN.REFRESH' | translate }}</button>
+        </div>
+        <!-- New playlist input -->
+        <div class="np-playlist-create">
+          <input type="text" [(ngModel)]="newPlaylistName"
+                 [placeholder]="'MUSIC.PLAYLIST_NEW' | translate"
+                 (keydown.enter)="createPlaylist()"
+                 class="np-playlist-input" (mousedown)="$event.stopPropagation()" />
+          <button (click)="createPlaylist()" [disabled]="!newPlaylistName.trim()">+</button>
+        </div>
+        <div *ngIf="playlistsLoading" class="np-manager-empty">...</div>
+        <div class="np-manager-list" *ngIf="!playlistsLoading">
+          <div class="np-playlist-row" *ngFor="let pl of playlists">
+            <ng-container *ngIf="renamingPlaylistId !== pl.id; else renameMode">
+              <span class="np-playlist-name" (dblclick)="playPlaylist(pl)" [title]="'MUSIC.PLAYLIST_DBLCLICK' | translate">{{ pl.name }}</span>
+              <span class="np-playlist-count">{{ pl.tracks?.length || 0 }}</span>
+              <span class="np-playlist-actions">
+                <i (click)="playPlaylist(pl)" title="▶">▶</i>
+                <i (click)="addCurrentTrackToPlaylist(pl.id)" [title]="'MUSIC.PLAYLIST_ADD_CURRENT' | translate">+♪</i>
+                <i (click)="startRenamePlaylist(pl, $event)" title="✎">✎</i>
+                <i (click)="deletePlaylist(pl.id, $event)" title="×">×</i>
+              </span>
+            </ng-container>
+            <ng-template #renameMode>
+              <input type="text" [(ngModel)]="renamingPlaylistName"
+                     class="np-playlist-input" style="flex:1"
+                     (keydown.enter)="confirmRenamePlaylist(pl)"
+                     (keydown.escape)="renamingPlaylistId = null"
+                     (mousedown)="$event.stopPropagation()" />
+              <button (click)="confirmRenamePlaylist(pl)">✓</button>
+              <button (click)="renamingPlaylistId = null">✕</button>
+            </ng-template>
+          </div>
+          <div *ngIf="!playlists.length" class="np-manager-empty">{{ 'MUSIC.PLAYLIST_EMPTY' | translate }}</div>
+        </div>
       </section>
     </div>
     <div class="np-music-manager-status">
@@ -884,28 +996,19 @@
       </div>
     </div>
     <div class="np-eq-body">
-      <div class="np-eq-band">
-        <label>{{ 'WINDOWS.EQ_LOW' | translate }}</label>
-        <input type="range" min="-12" max="12" step="1" [value]="eqLow" (input)="setEqBand('low', $any($event.target).value)" class="np-eq-slider" orient="vertical" (mousedown)="$event.stopPropagation()" />
-        <span class="np-eq-val">{{ eqLow > 0 ? '+' : '' }}{{ eqLow }} dB</span>
-      </div>
-      <div class="np-eq-band">
-        <label>{{ 'WINDOWS.EQ_MID' | translate }}</label>
-        <input type="range" min="-12" max="12" step="1" [value]="eqMid" (input)="setEqBand('mid', $any($event.target).value)" class="np-eq-slider" orient="vertical" (mousedown)="$event.stopPropagation()" />
-        <span class="np-eq-val">{{ eqMid > 0 ? '+' : '' }}{{ eqMid }} dB</span>
-      </div>
-      <div class="np-eq-band">
-        <label>{{ 'WINDOWS.EQ_HIGH' | translate }}</label>
-        <input type="range" min="-12" max="12" step="1" [value]="eqHigh" (input)="setEqBand('high', $any($event.target).value)" class="np-eq-slider" orient="vertical" (mousedown)="$event.stopPropagation()" />
-        <span class="np-eq-val">{{ eqHigh > 0 ? '+' : '' }}{{ eqHigh }} dB</span>
+      <div class="np-eq-band" *ngFor="let band of eqBands; let i = index">
+        <label>{{ eqBandNames[i] }}</label>
+        <input type="range" min="-12" max="12" step="1" [value]="band" (input)="setEqBand(i, $any($event.target).value)" class="np-eq-slider" orient="vertical" (mousedown)="$event.stopPropagation()" />
+        <span class="np-eq-val">{{ band > 0 ? '+' : '' }}{{ band }}</span>
       </div>
       <div class="np-eq-actions">
         <button class="np-eq-reset" (click)="resetEq()">Reset</button>
         <div class="np-eq-presets">
-          <button (click)="setEqBand('low',6); setEqBand('mid',-2); setEqBand('high',4)">Rock</button>
-          <button (click)="setEqBand('low',8); setEqBand('mid',4); setEqBand('high',2)">Bass</button>
-          <button (click)="setEqBand('low',-2); setEqBand('mid',4); setEqBand('high',6)">Vocal</button>
-          <button (click)="setEqBand('low',0); setEqBand('mid',0); setEqBand('high',0)">Flat</button>
+          <button (click)="applyEqPreset([4,2,0,2,4])">Rock</button>
+          <button (click)="applyEqPreset([8,5,0,-2,-2])">Bass</button>
+          <button (click)="applyEqPreset([-2,0,4,4,2])">Vocal</button>
+          <button (click)="applyEqPreset([3,1,-1,1,3])">Pop</button>
+          <button (click)="applyEqPreset([0,0,0,0,0])">Flat</button>
         </div>
       </div>
     </div>
