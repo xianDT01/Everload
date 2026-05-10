@@ -4849,6 +4849,186 @@
   transition: background 0.15s;
 }
 .np-eq-presets button:hover { background: rgba(74,158,255,0.25); color: #fff; }
+.np-eq-band label { font-size: 10px; }
+
+/* ── Stats tab ────────────────────────────────────────────────────────────── */
+.np-stats-summary {
+  padding: 10px 14px 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.np-stats-pill {
+  background: rgba(74,158,255,0.15);
+  border: 1px solid rgba(74,158,255,0.3);
+  color: #7af;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+.np-stats-plays {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4a9eff;
+  padding-right: 4px;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ── Channel Mode + Crossfade controls ─────────────────────────────────── */
+.np-manager-audio-controls {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.np-manager-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.np-ctrl-label {
+  font-size: 11px;
+  color: #8ab;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+.np-ctrl-label small { color: #4a9eff; margin-left: 4px; }
+.np-channel-btns { display: flex; gap: 4px; }
+.np-channel-btns button {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(100,180,255,0.2);
+  color: #8ab;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.np-channel-btns button.active { background: rgba(74,158,255,0.25); border-color: #4a9eff; color: #fff; }
+.np-channel-btns button:hover { background: rgba(74,158,255,0.15); color: #fff; }
+.np-crossfade-slider { flex: 1; accent-color: #4a9eff; cursor: pointer; }
+
+/* ── Lyrics panel ─────────────────────────────────────────────────────────── */
+.np-lyrics-panel {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+}
+.np-lyrics-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 6px;
+  font-size: 11px;
+  color: #8ab;
+  font-weight: 600;
+}
+.np-lyrics-header button {
+  margin-left: auto;
+  background: none;
+  border: 1px solid rgba(100,180,255,0.2);
+  color: #8ab;
+  border-radius: 3px;
+  padding: 1px 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.np-lyrics-badge {
+  background: rgba(74,158,255,0.15);
+  border: 1px solid rgba(74,158,255,0.3);
+  color: #7af;
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.np-lyrics-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px 14px 10px;
+}
+.np-lyric-line {
+  font-size: 12px;
+  color: rgba(200,220,255,0.45);
+  padding: 3px 0;
+  cursor: pointer;
+  transition: color 0.2s;
+  line-height: 1.5;
+}
+.np-lyric-line.active {
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+}
+.np-lyric-line:hover { color: rgba(200,220,255,0.8); }
+.np-lyrics-plain {
+  font-size: 11px;
+  color: rgba(200,220,255,0.6);
+  white-space: pre-wrap;
+  font-family: inherit;
+  margin: 0;
+  line-height: 1.6;
+}
+.np-lyrics-loading, .np-lyrics-empty {
+  font-size: 11px;
+  color: #8ab;
+  padding: 8px 0;
+  text-align: center;
+}
+
+/* ── Playlists tab ─────────────────────────────────────────────────────────── */
+.np-playlist-create {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.np-playlist-input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(100,180,255,0.2);
+  color: #ddf;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  outline: none;
+}
+.np-playlist-input:focus { border-color: #4a9eff; }
+.np-playlist-create button, .np-playlist-row button {
+  background: rgba(74,158,255,0.15);
+  border: 1px solid rgba(74,158,255,0.3);
+  color: #7af;
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.np-playlist-create button:hover, .np-playlist-row button:hover { background: rgba(74,158,255,0.3); }
+.np-playlist-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  min-height: 32px;
+}
+.np-playlist-row:hover { background: rgba(255,255,255,0.04); }
+.np-playlist-name { flex: 1; font-size: 12px; color: #ddf; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.np-playlist-count { font-size: 10px; color: #8ab; min-width: 20px; text-align: right; }
+.np-playlist-actions { display: flex; gap: 4px; }
+.np-playlist-actions i {
+  font-style: normal;
+  font-size: 12px;
+  color: #8ab;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+}
+.np-playlist-actions i:hover { color: #fff; background: rgba(255,255,255,0.1); }
 
 /* ══════════════════════════════════════════════════════
    SNAKE

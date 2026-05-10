@@ -96,10 +96,17 @@ export class DeckPlayer {
   private analyserNode: AnalyserNode | null = null;
   private analyserData: Uint8Array | null = null;
 
-  // EQ Filters
-  private filterLow: BiquadFilterNode | null = null;
-  private filterMid: BiquadFilterNode | null = null;
-  private filterHigh: BiquadFilterNode | null = null;
+  // EQ Filters (5-band: 60Hz, 250Hz, 1kHz, 4kHz, 16kHz)
+  private filterBands: BiquadFilterNode[] = [];
+
+  // Channel Mode
+  private channelSplitter: ChannelSplitterNode | null = null;
+  private channelMerger: ChannelMergerNode | null = null;
+  private channelModeGains: GainNode[] = [];
+  channelMode: 'stereo' | 'mono' | 'left' | 'right' | 'swap' = 'stereo';
+
+  // Master gain — used for crossfade in/out (separate from user volume)
+  private masterGain: GainNode | null = null;
 
   // Combo Filter
   private comboFilter: BiquadFilterNode | null = null;
@@ -193,18 +200,22 @@ export class DeckPlayer {
       this.audioCtx = new AudioCtx();
       const source = this.audioCtx.createMediaElementSource(this.audio);
 
-      this.filterLow = this.audioCtx.createBiquadFilter();
-      this.filterLow.type = 'lowshelf';
-      this.filterLow.frequency.value = 320;
-
-      this.filterMid = this.audioCtx.createBiquadFilter();
-      this.filterMid.type = 'peaking';
-      this.filterMid.frequency.value = 1000;
-      this.filterMid.Q.value = 0.5;
-
-      this.filterHigh = this.audioCtx.createBiquadFilter();
-      this.filterHigh.type = 'highshelf';
-      this.filterHigh.frequency.value = 3200;
+      // 5-band EQ: 60Hz lowshelf, 250Hz peaking, 1kHz peaking, 4kHz peaking, 16kHz highshelf
+      const bandDefs: Array<{ type: BiquadFilterType; freq: number; Q?: number }> = [
+        { type: 'lowshelf',  freq: 60 },
+        { type: 'peaking',   freq: 250,   Q: 1.0 },
+        { type: 'peaking',   freq: 1000,  Q: 1.0 },
+        { type: 'peaking',   freq: 4000,  Q: 1.0 },
+        { type: 'highshelf', freq: 16000 },
+      ];
+      this.filterBands = bandDefs.map(def => {
+        const f = this.audioCtx!.createBiquadFilter();
+        f.type = def.type;
+        f.frequency.value = def.freq;
+        if (def.Q !== undefined) f.Q.value = def.Q;
+        f.gain.value = 0;
+        return f;
+      });
 
       // Combo Filter (HP / LP)
       this.comboFilter = this.audioCtx.createBiquadFilter();
@@ -224,11 +235,12 @@ export class DeckPlayer {
       this.analyserNode.fftSize = 2048;
       this.analyserNode.smoothingTimeConstant = 0.8;
 
-      // Routing: source -> EQ -> ComboFilter -> [Dry / Wet(Delay)] -> Analyser -> Destination
-      source.connect(this.filterLow);
-      this.filterLow.connect(this.filterMid);
-      this.filterMid.connect(this.filterHigh);
-      this.filterHigh.connect(this.comboFilter);
+      // Routing: source -> 5-band EQ chain -> ComboFilter -> [Dry / Wet(Delay)] -> Analyser -> Destination
+      source.connect(this.filterBands[0]);
+      for (let i = 0; i < this.filterBands.length - 1; i++) {
+        this.filterBands[i].connect(this.filterBands[i + 1]);
+      }
+      this.filterBands[this.filterBands.length - 1].connect(this.comboFilter);
       
       // FX Routing
       this.comboFilter.connect(this.dryGain);
@@ -240,7 +252,29 @@ export class DeckPlayer {
       this.dryGain.connect(this.analyserNode);
       this.wetGain.connect(this.analyserNode);
 
-      this.analyserNode.connect(this.audioCtx.destination);
+      // Channel mode routing: analyser → splitter → 4 gain crosspoints → merger → destination
+      // channelModeGains = [gLL, gRL, gLR, gRR]
+      this.channelSplitter = this.audioCtx.createChannelSplitter(2);
+      this.channelMerger   = this.audioCtx.createChannelMerger(2);
+      this.channelModeGains = [
+        this.audioCtx.createGain(), // gLL: splitter[0] → merger[0]
+        this.audioCtx.createGain(), // gRL: splitter[1] → merger[0]
+        this.audioCtx.createGain(), // gLR: splitter[0] → merger[1]
+        this.audioCtx.createGain(), // gRR: splitter[1] → merger[1]
+      ];
+      this.analyserNode.connect(this.channelSplitter);
+      this.channelSplitter.connect(this.channelModeGains[0], 0);
+      this.channelSplitter.connect(this.channelModeGains[1], 1);
+      this.channelSplitter.connect(this.channelModeGains[2], 0);
+      this.channelSplitter.connect(this.channelModeGains[3], 1);
+      this.channelModeGains[0].connect(this.channelMerger, 0, 0);
+      this.channelModeGains[1].connect(this.channelMerger, 0, 0);
+      this.channelModeGains[2].connect(this.channelMerger, 0, 1);
+      this.channelModeGains[3].connect(this.channelMerger, 0, 1);
+      this.masterGain = this.audioCtx.createGain();
+      this.channelMerger.connect(this.masterGain);
+      this.masterGain.connect(this.audioCtx.destination);
+      this.setChannelMode('stereo');
     } catch (e) {
       console.error('[DeckPlayer ' + this.deckId + '] Web Audio API setup failed — EQ will not work:', e);
       this.audioCtx = null;
@@ -252,6 +286,7 @@ export class DeckPlayer {
   async load(track: MusicMetadataDto, pathId: number) {
     const loadId = ++this.loadNonce;
     this.stopAll();
+    this.resetMasterGain();
     this.patch({ currentTrack: track, pathId, currentTime: 0, playing: false, duration: 0, loading: true, error: null });
 
     if (track.source === 'youtube') {
@@ -596,11 +631,56 @@ export class DeckPlayer {
     return buf;
   }
 
+  setEqBand(index: number, dB: number) {
+    const f = this.filterBands[index];
+    if (f) f.gain.value = dB;
+  }
+
   setEq(band: 'low' | 'mid' | 'high', dB: number) {
-    if (!this.audioCtx) return;
-    if (band === 'low' && this.filterLow) this.filterLow.gain.value = dB;
-    if (band === 'mid' && this.filterMid) this.filterMid.gain.value = dB;
-    if (band === 'high' && this.filterHigh) this.filterHigh.gain.value = dB;
+    const map: Record<string, number> = { low: 0, mid: 2, high: 4 };
+    this.setEqBand(map[band], dB);
+  }
+
+  // ── Channel Mode ──────────────────────────────────────────────────────────
+  // Gain matrix [gLL, gRL, gLR, gRR] — each row is an output channel (L, R)
+  // splitter[0]=L, splitter[1]=R → merger[0]=L, merger[1]=R
+  setChannelMode(mode: 'stereo' | 'mono' | 'left' | 'right' | 'swap') {
+    this.channelMode = mode;
+    const g = this.channelModeGains;
+    if (!g.length) return;
+    const t = this.audioCtx?.currentTime ?? 0;
+    const matrices: Record<string, number[]> = {
+      stereo: [1, 0, 0, 1],
+      mono:   [0.5, 0.5, 0.5, 0.5],
+      left:   [1, 0, 1, 0],
+      right:  [0, 1, 0, 1],
+      swap:   [0, 1, 1, 0],
+    };
+    const m = matrices[mode] ?? matrices['stereo'];
+    m.forEach((v, i) => g[i].gain.setTargetAtTime(v, t, 0.02));
+  }
+
+  scheduleFadeOut(durationSec: number) {
+    if (!this.masterGain || !this.audioCtx) return;
+    const t = this.audioCtx.currentTime;
+    this.masterGain.gain.cancelScheduledValues(t);
+    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, t);
+    this.masterGain.gain.linearRampToValueAtTime(0, t + Math.max(0.05, durationSec));
+  }
+
+  scheduleFadeIn(durationSec: number) {
+    if (!this.masterGain || !this.audioCtx) return;
+    const t = this.audioCtx.currentTime;
+    this.masterGain.gain.cancelScheduledValues(t);
+    this.masterGain.gain.setValueAtTime(0, t);
+    this.masterGain.gain.linearRampToValueAtTime(1, t + Math.max(0.05, durationSec));
+  }
+
+  resetMasterGain() {
+    if (!this.masterGain || !this.audioCtx) return;
+    const t = this.audioCtx.currentTime;
+    this.masterGain.gain.cancelScheduledValues(t);
+    this.masterGain.gain.setValueAtTime(1, t);
   }
 
   setPlaybackRate(rate: number) {
@@ -755,6 +835,9 @@ export class MusicService {
   private folderCoverBust = new Map<string, number>();
   private static readonly COVER_CACHE_KEY = 'ev_covers_v2';
   private static readonly COVER_NOT_FOUND_KEY = 'ev_covers_nf_v1';
+
+  crossfadeDuration = 0; // seconds, 0 = disabled
+  private crossfadeTriggeredForPath: string | null = null;
 
   private preloadAudio: HTMLAudioElement | null = null;
   private preloadedPath: string | null = null;
@@ -1238,6 +1321,55 @@ export class MusicService {
     return this.http.get<any[]>(`${this.api.replace('/music', '/library')}/history?limit=${limit}`);
   }
 
+  getListeningStats(topLimit = 10): Observable<{ totalPlays: number; topTracks: any[] }> {
+    return this.http.get<{ totalPlays: number; topTracks: any[] }>(
+      `${this.api.replace('/music', '/library')}/stats?topLimit=${topLimit}`
+    );
+  }
+
+  // ── Playlists ─────────────────────────────────────────────────────────────
+
+  private get playlistApi(): string { return `${this.BASE}/api/playlists`; }
+
+  getPlaylists(): Observable<any[]> {
+    return this.http.get<any[]>(this.playlistApi);
+  }
+
+  createPlaylist(name: string): Observable<any> {
+    return this.http.post<any>(this.playlistApi, { name });
+  }
+
+  renamePlaylist(id: number, name: string): Observable<any> {
+    return this.http.put<any>(`${this.playlistApi}/${id}`, { name });
+  }
+
+  deletePlaylist(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.playlistApi}/${id}`);
+  }
+
+  addTrackToPlaylist(playlistId: number, track: MusicMetadataDto, nasPathId: number): Observable<any> {
+    return this.http.post<any>(`${this.playlistApi}/${playlistId}/tracks`, {
+      trackPath: track.path,
+      title: track.title || track.name,
+      artist: track.artist || '',
+      album: track.album || '',
+      nasPathId,
+      durationSeconds: track.duration || 0,
+    });
+  }
+
+  removeTrackFromPlaylist(playlistId: number, trackId: number): Observable<any> {
+    return this.http.delete<any>(`${this.playlistApi}/${playlistId}/tracks/${trackId}`);
+  }
+
+  getLyrics(pathId: number, subPath: string, title?: string, artist?: string, duration?: number): Observable<{ source: string; lrc?: string; plain?: string }> {
+    let url = `${this.api}/lyrics?pathId=${pathId}&subPath=${encodeURIComponent(subPath)}`;
+    if (title)    url += `&title=${encodeURIComponent(title)}`;
+    if (artist)   url += `&artist=${encodeURIComponent(artist)}`;
+    if (duration) url += `&duration=${Math.round(duration)}`;
+    return this.http.get<{ source: string; lrc?: string; plain?: string }>(url);
+  }
+
   recordHistory(track: MusicMetadataDto | null, pathId: number | null) {
     if (!track || pathId == null || pathId < 0) return;
     this.http.post(`${this.api.replace('/music', '/library')}/history`, {
@@ -1259,14 +1391,31 @@ export class MusicService {
       if (!state.currentTrack || !state.duration || state.duration < 1) return;
       if (state.currentTrack.source === 'youtube') return;
 
-      // Reset trigger when the current track changes
+      // Reset triggers when track changes
       if (state.currentTrack.path !== this.preloadTriggeredForPath &&
           state.currentTrack.path !== this.preloadedPath) {
         this.preloadTriggeredForPath = null;
       }
+      if (state.currentTrack.path !== this.crossfadeTriggeredForPath) {
+        // New track started — apply fade-in if crossfade is on
+        if (this.crossfadeDuration > 0 && state.currentTrack.path !== this.crossfadeTriggeredForPath) {
+          this.crossfadeTriggeredForPath = state.currentTrack.path;
+          this.mainPlayer.scheduleFadeIn(Math.min(this.crossfadeDuration, 5));
+        }
+      }
 
       const timeLeft = state.duration - state.currentTime;
-      if (timeLeft > 30 || timeLeft <= 0) return;
+      if (timeLeft <= 0) return;
+
+      // Auto-crossfade: schedule fade-out when we enter the crossfade window
+      if (this.crossfadeDuration > 0 && state.playing &&
+          timeLeft <= this.crossfadeDuration + 0.1 &&
+          timeLeft > this.crossfadeDuration - 0.5) {
+        this.mainPlayer.scheduleFadeOut(timeLeft);
+      }
+
+      // Preload next track within 30 s
+      if (timeLeft > 30) return;
       if (this.preloadTriggeredForPath === state.currentTrack.path) return;
 
       this.preloadTriggeredForPath = state.currentTrack.path;
