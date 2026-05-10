@@ -16,11 +16,11 @@
         </svg>
         {{ 'MUSIC.MODE_LIBRARY' | translate }}
       </button>
-      <button class="pill" [class.pill-active]="mode === 'deck'" (click)="mode = 'deck'">
+      <button class="pill" routerLink="/modern">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 3v9.28a4 4 0 1 0 2 0V5h3V3h-5zm-1 14a2 2 0 1 1 4 0 2 2 0 0 1-4 0z"/>
+          <path d="M4 5h16v4H4V5Zm0 6h7v8H4v-8Zm9 0h7v8h-7v-8Z"/>
         </svg>
-        {{ 'MUSIC.MODE_DECK' | translate }}
+        NAS Library
       </button>
     </div>
 

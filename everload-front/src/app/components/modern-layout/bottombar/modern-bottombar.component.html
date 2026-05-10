@@ -1,48 +1,136 @@
 <div class="mb-bar">
-  <!-- Track info -->
+
+  <!-- Left: Track info -->
   <div class="mb-track">
-    <div class="mb-cover-wrap" *ngIf="track">
-      <img *ngIf="track.hasCover || coverUrl" [src]="coverUrl" class="mb-cover" (error)="$any($event.target).style.display='none'" />
-      <div class="mb-cover-placeholder" *ngIf="!track.hasCover && !coverUrl">♪</div>
-    </div>
-    <div class="mb-track-empty" *ngIf="!track">
-      <span class="mb-cover-placeholder">♪</span>
+    <div class="mb-cover" (click)="openFullscreen()" title="Abrir reproductor">
+      <img *ngIf="track && coverUrl" [src]="coverUrl"
+           (error)="$any($event.target).style.display='none'" class="mb-cover-img" />
+      <span class="mb-cover-icon">♪</span>
+      <div class="mb-cover-hover">⤢</div>
     </div>
     <div class="mb-meta" *ngIf="track">
       <span class="mb-title">{{ track.title || track.name }}</span>
       <span class="mb-artist">{{ track.artist || '—' }}</span>
     </div>
+    <button class="mb-heart" [class.mb-heart-active]="isFav" (click)="toggleFav()" title="Favorito" *ngIf="track">
+      <svg viewBox="0 0 24 24">
+        <path *ngIf="isFav" d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/>
+        <path *ngIf="!isFav" fill="none" stroke="currentColor" stroke-width="1.5" d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/>
+      </svg>
+    </button>
   </div>
 
-  <!-- Controls -->
+  <!-- Center: Controls + progress -->
   <div class="mb-center">
-    <div class="mb-btns">
-      <button class="mb-btn mb-btn-sm" [class.active]="shuffle" (click)="toggleShuffle()" title="Shuffle">⇄</button>
-      <button class="mb-btn" (click)="prev()" title="Anterior">⏮</button>
-      <button class="mb-btn mb-btn-play" (click)="toggle()">
-        <span *ngIf="!playing">▶</span>
-        <span *ngIf="playing">⏸</span>
+    <div class="mb-controls">
+      <button class="mb-btn" [class.mb-active]="shuffle" (click)="toggleShuffle()" title="Shuffle">
+        <svg viewBox="0 0 24 24"><path d="M16 3h5v5h-2V6.4l-4.8 4.8-1.4-1.4L17.6 5H16V3ZM4 7h3.6l10 10H21v2h-4.2l-10-10H4V7Zm8.8 7.2 1.4 1.4L10.8 19H8v-2h2l2.8-2.8Z"/></svg>
       </button>
-      <button class="mb-btn" (click)="next()" title="Siguiente">⏭</button>
-      <button class="mb-btn mb-btn-sm" [class.active]="repeat !== 'none'" (click)="toggleRepeat()" title="Repetir">
-        <span *ngIf="repeat === 'none' || repeat === 'all'">↻</span>
-        <span *ngIf="repeat === 'one'">↺1</span>
+      <button class="mb-btn mb-btn-lg" (click)="prev()" title="Anterior">
+        <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6V5Zm3 7 10-7v14L9 12Z"/></svg>
+      </button>
+      <button class="mb-play" (click)="toggle()">
+        <svg *ngIf="!playing" viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+        <svg *ngIf="playing" viewBox="0 0 24 24"><path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z"/></svg>
+      </button>
+      <button class="mb-btn mb-btn-lg" (click)="next()" title="Siguiente">
+        <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2V5ZM5 19V5l10 7-10 7Z"/></svg>
+      </button>
+      <button class="mb-btn" [class.mb-active]="repeat !== 'none'" (click)="toggleRepeat()" title="Repetir">
+        <svg *ngIf="repeat !== 'one'" viewBox="0 0 24 24"><path d="M7 7h9.2l-2.6-2.6L15 3l5 5-5 5-1.4-1.4L16.2 9H7a3 3 0 0 0 0 6h1v2H7A5 5 0 0 1 7 7Zm10 8a3 3 0 0 0 0-6h-1V7h1a5 5 0 0 1 0 10H7.8l2.6 2.6L9 21l-5-5 5-5 1.4 1.4L7.8 15H17Z"/></svg>
+        <span *ngIf="repeat === 'one'" class="mb-repeat1">1</span>
       </button>
     </div>
+
+    <!-- Progress bar -->
     <div class="mb-progress-row">
       <span class="mb-time">{{ fmt(currentTime) }}</span>
-      <input type="range" class="mb-progress" min="0" max="100" step="0.1"
-             [value]="progress" (input)="onSeek($event)"
-             (mousedown)="$event.stopPropagation()" />
+      <div class="mb-progress-wrap">
+        <div class="mb-progress-fill" [style.width.%]="progress"></div>
+        <input type="range" class="mb-progress-input" min="0" max="100" step="0.1"
+               [value]="progress" (input)="onSeek($event)"
+               (mousedown)="$event.stopPropagation()" />
+      </div>
       <span class="mb-time">{{ fmt(duration) }}</span>
     </div>
   </div>
 
-  <!-- Volume -->
+  <!-- Right: Volume + EQ + queue -->
   <div class="mb-right">
-    <span class="mb-vol-icon">{{ volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊' }}</span>
-    <input type="range" class="mb-volume" min="0" max="100" step="1"
-           [value]="volume * 100" (input)="onVolume($event)"
-           (mousedown)="$event.stopPropagation()" />
+    <button class="mb-btn mb-vol-icon" (click)="onMuteToggle()">
+      <svg *ngIf="volume === 0" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12.6 1.4L18.2 12l-1.6 1.6 1.4 1.4 1.6-1.6 1.6 1.6 1.4-1.4L21 12l1.6-1.6L21.2 9l-1.6 1.6L18 9l-1.4 1.4Z"/></svg>
+      <svg *ngIf="volume > 0 && volume < 0.5" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12 1a3 3 0 0 1 0 4v-4Z"/></svg>
+      <svg *ngIf="volume >= 0.5" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12.5-2.5a7 7 0 0 1 0 11l-1.4-1.4a5 5 0 0 0 0-8.2l1.4-1.4Zm-2.4 2.4a3.5 3.5 0 0 1 0 6.2l-1.3-1.5a1.5 1.5 0 0 0 0-3.2l1.3-1.5Z"/></svg>
+    </button>
+    <div class="mb-vol-wrap">
+      <div class="mb-vol-fill" [style.width.%]="volume * 100"></div>
+      <input type="range" class="mb-vol-input" min="0" max="100" step="1"
+             [value]="volume * 100" (input)="onVolume($event)"
+             (mousedown)="$event.stopPropagation()" />
+    </div>
+
+    <!-- EQ button -->
+    <button class="mb-btn mb-icon-btn" [class.mb-active]="showEq" (click)="toggleEq()" title="Ecualizador">
+      <svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3ZM3 5v2h10V5H3Zm10 16v-2h8v-2h-8v-2h-2v6h2ZM7 9v2H3v2h4v2h2V9H7Zm14 4v-2H11v2h10Zm-6-4h2V7h4V5h-4V3h-2v6Z"/></svg>
+    </button>
+
+    <!-- Queue button -->
+    <button class="mb-btn mb-icon-btn" [class.mb-active]="showQueue" (click)="toggleQueuePanel()" title="Cola">
+      <svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 5h18v2H3v-2Zm0 5h12v2H3v-2Z"/></svg>
+    </button>
   </div>
+
+</div>
+
+<!-- EQ / Settings Panel -->
+<div class="mb-eq-panel" *ngIf="showEq">
+
+  <!-- EQ Presets -->
+  <div class="mb-eq-presets">
+    <button class="mb-eq-preset-btn" *ngFor="let p of eqPresets" (click)="applyPreset(p)">{{ p.label }}</button>
+  </div>
+
+  <!-- EQ Bands -->
+  <div class="mb-eq-header">
+    <span class="mb-eq-title">EQ</span>
+    <button class="mb-eq-reset" (click)="resetEq()">Reset</button>
+  </div>
+  <div class="mb-eq-bands">
+    <div class="mb-eq-band" *ngFor="let b of eqBands; let i = index">
+      <input type="range" class="mb-eq-slider" orient="vertical"
+             min="-12" max="12" step="0.5"
+             [value]="eqBands[i]"
+             (input)="onEqBand(i, $event)" />
+      <span class="mb-eq-val">{{ eqBands[i] > 0 ? '+' : '' }}{{ eqBands[i] | number:'1.0-1' }}</span>
+      <span class="mb-eq-label">{{ eqLabels[i] }}</span>
+    </div>
+  </div>
+
+  <!-- Crossfade -->
+  <div class="mb-eq-cf">
+    <span class="mb-eq-cf-label">Crossfade</span>
+    <input type="range" class="mb-eq-cf-slider" min="0" max="12" step="0.5"
+           [value]="crossfade" (input)="onCrossfade($event)" />
+    <span class="mb-eq-cf-val">{{ crossfade }}s</span>
+  </div>
+
+  <!-- Channel Mode -->
+  <div class="mb-eq-section">
+    <span class="mb-eq-section-label">Canal</span>
+    <div class="mb-eq-channels">
+      <button *ngFor="let m of channelModes"
+              class="mb-ch-btn"
+              [class.mb-ch-active]="channelMode === m"
+              (click)="onChannelMode(m)">{{ m }}</button>
+    </div>
+  </div>
+
+  <!-- Reduce Animations -->
+  <div class="mb-eq-toggle-row">
+    <span class="mb-eq-cf-label">Reducir animaciones</span>
+    <button class="mb-eq-toggle" [class.mb-eq-toggle-on]="reduceAnimations" (click)="toggleReduceAnimations()">
+      {{ reduceAnimations ? 'ON' : 'OFF' }}
+    </button>
+  </div>
+
 </div>

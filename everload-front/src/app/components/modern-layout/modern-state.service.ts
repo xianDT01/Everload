@@ -8,7 +8,14 @@ export class ModernStateService {
   private _pathId = new BehaviorSubject<number | null>(null);
   pathId$ = this._pathId.asObservable();
 
+  private _showQueue = new BehaviorSubject<boolean>(false);
+  private _showFullscreen = new BehaviorSubject<boolean>(false);
+  showQueue$ = this._showQueue.asObservable();
+  showFullscreen$ = this._showFullscreen.asObservable();
+
   get pathId(): number | null { return this._pathId.value; }
+  get showQueue(): boolean { return this._showQueue.value; }
+  get showFullscreen(): boolean { return this._showFullscreen.value; }
 
   constructor(private nas: NasService) {
     this.nas.getPaths().subscribe(paths => {
@@ -25,4 +32,9 @@ export class ModernStateService {
     this._pathId.next(id);
     localStorage.setItem('modern_path_id', String(id));
   }
+
+  toggleQueue() { this._showQueue.next(!this._showQueue.value); }
+  toggleFullscreen() { this._showFullscreen.next(!this._showFullscreen.value); }
+  closeFullscreen() { this._showFullscreen.next(false); }
+  closeQueue() { this._showQueue.next(false); }
 }

@@ -1,0 +1,56 @@
+<div class="mdl-page">
+  <h1 class="mdl-title">⬇️ Descargas</h1>
+
+  <!-- Format selector -->
+  <div class="mdl-format-row">
+    <span class="mdl-label">Formato:</span>
+    <button class="mdl-fmt-btn" [class.mdl-fmt-active]="format === 'bestaudio'" (click)="format = 'bestaudio'">🎵 Solo audio</button>
+    <button class="mdl-fmt-btn" [class.mdl-fmt-active]="format === 'bestvideo+bestaudio'" (click)="format = 'bestvideo+bestaudio'">🎬 Vídeo+Audio</button>
+  </div>
+
+  <!-- Search -->
+  <div class="mdl-search-wrap">
+    <span class="mdl-search-icon">🔍</span>
+    <input class="mdl-search" type="text" placeholder="Buscar en YouTube..."
+           [(ngModel)]="query" (input)="onInput()" (keyup.enter)="doSearch()" />
+    <div class="mdl-searching" *ngIf="searching">●</div>
+  </div>
+
+  <!-- Results -->
+  <div class="mdl-results" *ngIf="results.length">
+    <div class="mdl-result" *ngFor="let r of results">
+      <img class="mdl-thumb" [src]="r.thumbnail" alt="" />
+      <div class="mdl-result-meta">
+        <span class="mdl-result-title">{{ r.title }}</span>
+        <span class="mdl-result-channel">{{ r.channelTitle }}</span>
+      </div>
+      <button class="mdl-dl-btn"
+              [disabled]="queuedIds.has(r.videoId)"
+              (click)="download(r)">
+        {{ queuedIds.has(r.videoId) ? '⏳' : '⬇' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="mdl-hint" *ngIf="!results.length && !searching && !query.trim()">
+    <span>🎬</span>
+    <p>Busca un vídeo o canción de YouTube para descargarlo a tu NAS</p>
+  </div>
+
+  <!-- Active jobs -->
+  <div class="mdl-jobs" *ngIf="activeJobs.length">
+    <h2 class="mdl-jobs-title">En progreso</h2>
+    <div class="mdl-job" *ngFor="let j of activeJobs">
+      <div class="mdl-job-meta">
+        <span class="mdl-job-title">{{ j.title }}</span>
+        <span class="mdl-job-status" [class.mdl-done]="j.status === 'DONE'" [class.mdl-error]="j.status === 'ERROR'">
+          {{ j.status }}
+        </span>
+      </div>
+      <div class="mdl-job-bar">
+        <div class="mdl-job-fill" [style.width.%]="j.progress"></div>
+      </div>
+      <span class="mdl-job-pct">{{ j.progress }}%</span>
+    </div>
+  </div>
+</div>

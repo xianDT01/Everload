@@ -1,51 +1,66 @@
 :host {
   display: block;
-  height: 100vh;
-  width: 100vw;
   position: fixed;
-  top: 0; left: 0;
+  inset: 0;
   z-index: 900;
-  background: #0f0f0f;
-  color: #e4e4e7;
-  --accent: #6366f1;
-  --accent2: #8b5cf6;
-  --bg: #0f0f0f;
-  --bg2: #161616;
-  --bg3: #1e1e1e;
-  --bg4: #2a2a2a;
-  --text: #e4e4e7;
-  --text2: #a1a1aa;
-  --text3: #71717a;
-  --border: rgba(255,255,255,0.07);
 }
 
 .ml-shell {
+  --ml-bg: var(--color-black, #242220);
+  --ml-panel: color-mix(in srgb, var(--color-black, #242220) 82%, var(--color-neutral-900, #2a2826));
+  --ml-main: color-mix(in srgb, var(--color-black, #242220) 72%, var(--color-neutral-900, #302e2b));
+  --ml-card: color-mix(in srgb, var(--color-white, #fff2c4) 7%, transparent);
+  --ml-card-hover: color-mix(in srgb, var(--color-white, #fff2c4) 11%, transparent);
+  --ml-border: color-mix(in srgb, var(--color-white, #fff2c4) 7%, transparent);
+  --ml-text: var(--color-white, #fff2c4);
+  --ml-muted: var(--color-slate-400, #9c9489);
+  --ml-faint: var(--color-slate-500, #746f68);
+  --ml-accent: var(--color-indigo-400, #fff0bf);
+  --ml-accent-strong: var(--color-indigo-500, #fff0bf);
+  --ml-good: var(--color-green-500, #b9c686);
+  --ml-danger: var(--color-red-400, #f87171);
   display: grid;
   grid-template:
     "sidebar main"   1fr
-    "player  player" 90px
+    "player  player" 68px
     / 220px 1fr;
   height: 100%;
   overflow: hidden;
+  background: var(--ml-bg);
+  color: var(--ml-text);
+  font-family: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.ml-shell.ml-queue-open {
+  grid-template:
+    "sidebar main queue"   1fr
+    "player  player player" 68px
+    / 220px 1fr 280px;
 }
 
 .ml-sidebar {
   grid-area: sidebar;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--bg2);
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--ml-border);
+  background: var(--ml-panel);
 }
 
 .ml-main {
   grid-area: main;
   overflow-y: auto;
-  background: var(--bg);
   min-width: 0;
+  background: var(--ml-main);
+}
+
+.ml-queue {
+  grid-area: queue;
+  overflow: hidden;
+  border-left: 1px solid var(--ml-border);
 }
 
 .ml-bottombar {
   grid-area: player;
-  background: #111;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--ml-border);
+  position: relative;
 }

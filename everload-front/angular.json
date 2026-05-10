@@ -28,7 +28,8 @@
               "src/icons"
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "src/assets/modern-themes.css"
             ],
             "scripts": []
           },

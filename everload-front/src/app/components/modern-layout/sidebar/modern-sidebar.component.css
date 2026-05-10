@@ -2,96 +2,197 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 0 0 12px 0;
-  font-size: 13px;
+  padding: 10px 9px;
+  background: var(--ml-panel);
+  color: var(--ml-muted);
+  user-select: none;
 }
 
 .ms-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 20px 18px 16px;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: #fff;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 9px 13px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--ml-muted);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
 }
 
-.ms-logo-icon {
-  font-size: 22px;
+.ms-logo-mark {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--ml-accent) 28%, transparent);
+  border-radius: 3px;
+  color: var(--ml-accent);
+  font-size: 10px;
+  letter-spacing: 0;
 }
 
-.ms-path-wrap {
-  padding: 0 12px 12px;
+.ms-source-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 0 0 11px;
+}
+
+.ms-section-top {
+  padding: 0 0 9px;
+}
+
+.ms-source-btn {
+  height: 34px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ml-card);
+  color: var(--ml-faint);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.ms-source-btn.active {
+  color: var(--ml-text);
+  background: color-mix(in srgb, var(--ml-accent) 16%, transparent);
 }
 
 .ms-path-select {
   width: 100%;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #e4e4e7;
-  border-radius: 8px;
-  padding: 6px 10px;
+  background: var(--ml-main);
+  border: 1px solid var(--ml-border);
+  color: var(--ml-text);
+  border-radius: 5px;
+  padding: 7px 9px;
   font-size: 12px;
   cursor: pointer;
   outline: none;
+  font-family: inherit;
 }
 
-.ms-section {
+.ms-links {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 8px;
+  gap: 4px;
+  padding: 0;
   flex: 1;
 }
 
 .ms-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: #a1a1aa;
+  gap: 10px;
+  padding: 0;
+  border-radius: 5px;
+  color: var(--ml-muted);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 700;
+  font-size: 13px;
   transition: background 0.15s, color 0.15s;
   cursor: pointer;
   background: none;
   border: none;
   width: 100%;
   text-align: left;
-  font-size: 13px;
+  font-family: inherit;
+  overflow: hidden;
 }
 
 .ms-item:hover {
-  background: rgba(255,255,255,0.05);
-  color: #e4e4e7;
+  background: var(--ml-card);
+  color: var(--ml-text);
 }
 
-.ms-item.active {
-  background: rgba(99,102,241,0.18);
-  color: #818cf8;
+.ms-active {
+  background: var(--ml-card-hover);
+  color: var(--ml-text);
+}
+
+/* Left indicator bar */
+.ms-indicator {
+  width: 0;
+  height: 34px;
+  border-radius: 0 2px 2px 0;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.15s, height 0.15s;
+  align-self: center;
+}
+
+.ms-active .ms-indicator {
+  background: transparent;
 }
 
 .ms-icon {
-  font-size: 15px;
   width: 20px;
-  text-align: center;
+  height: 20px;
   flex-shrink: 0;
+  margin-left: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ms-icon svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+  fill: currentColor;
+}
+
+.ms-label {
+  flex: 1;
+  padding: 9px 0;
 }
 
 .ms-divider {
   height: 1px;
-  background: rgba(255,255,255,0.07);
-  margin: 10px 8px;
+  background: var(--ml-border);
+  margin: 9px 3px;
+}
+
+/* Theme list */
+.ms-theme-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 2px 4px;
+  max-height: 170px;
+  overflow-y: auto;
+}
+
+.ms-theme-btn {
+  background: none;
+  border: none;
+  color: var(--ml-muted);
+  font-size: 12px;
+  padding: 7px 11px;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+
+.ms-theme-btn:hover {
+  background: var(--ml-card);
+  color: var(--ml-text);
+}
+
+.ms-theme-active {
+  color: var(--ml-text);
+  background: color-mix(in srgb, var(--ml-accent) 14%, transparent);
 }
 
 .ms-back {
-  color: #71717a;
+  color: var(--ml-faint);
   font-size: 12px;
-}
-
-.ms-back:hover {
-  color: #e4e4e7;
-  background: rgba(255,255,255,0.04);
+  margin: 0;
+  width: 100%;
 }
