@@ -1,16 +1,65 @@
 <div class="mart-page">
-  <h1 class="mart-title">Artistas</h1>
+  <div class="mart-header">
+    <h1 class="mart-title">Artistas</h1>
+    <button class="mart-create" type="button" (click)="openCreate()">+</button>
+  </div>
   <div class="mart-loading" *ngIf="loading">Cargando…</div>
   <div class="mart-grid" *ngIf="!loading">
     <div class="mart-card" *ngFor="let g of artists" (dblclick)="play(g)">
       <div class="mart-circle" (click)="play(g); $event.stopPropagation()" title="Reproducir artista">
-        <img [src]="cover(g)" class="mart-img" (error)="$any($event.target).style.display='none'" />
+        <img *ngIf="cover(g)" [src]="cover(g)" class="mart-img" (error)="$any($event.target).style.display='none'" />
         <div class="mart-fallback">🎤</div>
-        <div class="mart-play-btn" (click)="play(g); $event.stopPropagation()">▶</div>
+        <div class="mart-play-btn" *ngIf="g.tracks.length" (click)="play(g); $event.stopPropagation()">▶</div>
       </div>
       <div class="mart-name">{{ g.artist }}</div>
-      <div class="mart-sub">{{ g.tracks.length }} canciones · {{ g.albumCount }} álbumes</div>
+      <div class="mart-sub">
+        {{ g.tracks.length }} canciones · {{ g.albumCount }} álbumes
+        <span *ngIf="g.profile"> · manual</span>
+      </div>
+      <button class="mart-edit" type="button" (click)="openEdit(g); $event.stopPropagation()">Editar</button>
     </div>
-    <div class="mart-empty" *ngIf="artists.length === 0">No hay artistas</div>
+    <div class="mart-empty" *ngIf="artists.length === 0">
+      <p>No hay artistas detectados.</p>
+      <button class="mart-empty-btn" type="button" (click)="openCreate()">Crear artista</button>
+    </div>
+  </div>
+
+  <div class="mart-modal" *ngIf="editorOpen" (click)="closeEditor()">
+    <div class="mart-dialog" (click)="$event.stopPropagation()">
+      <div class="mart-dialog-head">
+        <h2>{{ editing?.profile ? 'Editar artista' : 'Crear artista' }}</h2>
+        <button type="button" class="mart-close" (click)="closeEditor()">×</button>
+      </div>
+
+      <label class="mart-field">
+        <span>Nombre</span>
+        <input type="text" [(ngModel)]="editName" placeholder="Nombre del artista" />
+      </label>
+
+      <label class="mart-field">
+        <span>Alias</span>
+        <textarea [(ngModel)]="editAliases" placeholder="Un alias por línea o separado por comas"></textarea>
+      </label>
+
+      <label class="mart-field">
+        <span>Descripción</span>
+        <textarea [(ngModel)]="editDescription" placeholder="Opcional"></textarea>
+      </label>
+
+      <label class="mart-field">
+        <span>Imagen</span>
+        <input type="file" accept="image/*" (change)="onImageSelected($event)" />
+      </label>
+
+      <div class="mart-error" *ngIf="error">{{ error }}</div>
+
+      <div class="mart-actions">
+        <button type="button" class="mart-danger" *ngIf="editing?.profile" (click)="deleteArtist()">Eliminar</button>
+        <button type="button" class="mart-secondary" *ngIf="editing?.profile?.imageUrl" (click)="removeImage()">Quitar imagen</button>
+        <button type="button" class="mart-primary" (click)="saveArtist()" [disabled]="saving || !editName.trim()">
+          {{ saving ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+    </div>
   </div>
 </div>

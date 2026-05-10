@@ -29,6 +29,14 @@ export interface MusicMetadataDto {
   nasPathId?: number; // Set when track comes from favorites/history
 }
 
+export interface ArtistProfileDto {
+  id: number;
+  name: string;
+  aliases: string;
+  description: string;
+  imageUrl: string;
+}
+
 export interface PlayerState {
   playing: boolean;
   currentTime: number;
@@ -1360,6 +1368,36 @@ export class MusicService {
 
   removeTrackFromPlaylist(playlistId: number, trackId: number): Observable<any> {
     return this.http.delete<any>(`${this.playlistApi}/${playlistId}/tracks/${trackId}`);
+  }
+
+  // ── Manual artist profiles ────────────────────────────────────────────────
+
+  private get artistApi(): string { return `${this.BASE}/api/artists`; }
+
+  getArtistProfiles(): Observable<ArtistProfileDto[]> {
+    return this.http.get<ArtistProfileDto[]>(this.artistApi);
+  }
+
+  createArtistProfile(name: string, aliases = '', description = ''): Observable<ArtistProfileDto> {
+    return this.http.post<ArtistProfileDto>(this.artistApi, { name, aliases, description });
+  }
+
+  updateArtistProfile(id: number, name: string, aliases = '', description = ''): Observable<ArtistProfileDto> {
+    return this.http.put<ArtistProfileDto>(`${this.artistApi}/${id}`, { name, aliases, description });
+  }
+
+  deleteArtistProfile(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.artistApi}/${id}`);
+  }
+
+  uploadArtistImage(id: number, image: File): Observable<ArtistProfileDto> {
+    const form = new FormData();
+    form.append('image', image);
+    return this.http.post<ArtistProfileDto>(`${this.artistApi}/${id}/image`, form);
+  }
+
+  removeArtistImage(id: number): Observable<ArtistProfileDto> {
+    return this.http.delete<ArtistProfileDto>(`${this.artistApi}/${id}/image`);
   }
 
   getLyrics(pathId: number, subPath: string, title?: string, artist?: string, duration?: number): Observable<{ source: string; lrc?: string; plain?: string }> {

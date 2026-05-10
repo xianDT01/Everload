@@ -61,7 +61,8 @@ public class SecurityConfig {
                     .requestMatchers("/api/maintenance/status").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/app-release/android", "/api/app-release/android/download").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
-                    .requestMatchers("/api/user/avatar/img/**").permitAll();
+                    .requestMatchers("/api/user/avatar/img/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/artists/image/**").permitAll();
 
                 if (swaggerPublic) {
                     auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll();
