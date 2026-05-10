@@ -740,6 +740,18 @@ public class MusicService {
         collectAudioFilesForSearch(startDir, audioFiles, SEARCH_SCAN_LIMIT);
         Map<String, TrackMetadataCache> cacheMap = batchFetchCacheChunked(pathId, audioFiles, base);
 
+        if (tokens.isEmpty()) {
+            return audioFiles.stream()
+                    .limit(Math.max(1, limit))
+                    .map(file -> {
+                        String relPath = relativePath(base, file);
+                        MusicMetadataDto dto = buildDto(file, base, pathId, Collections.singletonMap(relPath, cacheMap.get(relPath)));
+                        dto.setNasPathId(pathId);
+                        return dto;
+                    })
+                    .collect(Collectors.toList());
+        }
+
         List<SearchHit> hits = new ArrayList<>();
         Set<String> hitPaths = new HashSet<>();
         for (File file : audioFiles) {
