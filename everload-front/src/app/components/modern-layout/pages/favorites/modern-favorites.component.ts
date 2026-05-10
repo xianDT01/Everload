@@ -35,7 +35,6 @@ export class ModernFavoritesComponent implements OnInit {
     const t = this.tracks[i];
     const pid = t.nasPathId ?? this.state.pathId ?? 0;
     this.music.setQueue(pid, this.tracks, i);
-    this.music.mainPlayer.load(t, pid);
   }
 
   unfavorite(t: MusicMetadataDto) {

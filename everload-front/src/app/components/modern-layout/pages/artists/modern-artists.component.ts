@@ -61,6 +61,5 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
 
   play(g: ArtistGroup) {
     this.music.setQueue(g.pathId, g.tracks, 0);
-    this.music.mainPlayer.load(g.tracks[0], g.pathId);
   }
 }

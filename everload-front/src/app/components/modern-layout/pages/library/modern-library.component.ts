@@ -41,7 +41,6 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
     if (this.pathId == null) return;
     const t = this.tracks[index];
     this.music.setQueue(this.pathId, this.tracks, index);
-    this.music.mainPlayer.load(t, this.pathId);
   }
 
   fmt(s: number): string {

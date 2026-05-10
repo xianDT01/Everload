@@ -52,7 +52,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   private load(pathId: number) {
     this.loading = true;
 
-    this.music.getHistory(50).subscribe({
+    this.music.getHistory(24).subscribe({
       next: (items: any[]) => {
         // Featured = most recent
         if (items[0]) {
@@ -81,9 +81,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
           }
         });
         this.topArtists = Array.from(artistMap.values()).slice(0, 10);
+        this.loading = false;
 
         // New releases / explore = random tracks grouped by album
-        this.music.getRandomTracks(20).subscribe({
+        this.music.getRandomTracks(14).subscribe({
           next: tracks => {
             const randMap = new Map<string, AlbumCard>();
             tracks.forEach(t => {
@@ -93,13 +94,12 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
               }
             });
             this.newReleases = Array.from(randMap.values()).slice(0, 10);
-            this.loading = false;
           },
-          error: () => { this.loading = false; }
+          error: () => {}
         });
       },
       error: () => {
-        this.music.getRandomTracks(16).subscribe({
+        this.music.getRandomTracks(14).subscribe({
           next: tracks => {
             if (tracks[0]) this.featured = { track: tracks[0], pathId };
             const m = new Map<string, AlbumCard>();
@@ -123,12 +123,15 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
 
   playAlbum(card: AlbumCard) {
     this.music.setQueue(card.pathId, card.tracks, 0);
-    this.music.mainPlayer.load(card.track, card.pathId);
   }
 
   playFeatured() {
     if (!this.featured) return;
-    this.music.mainPlayer.load(this.featured.track, this.featured.pathId);
+    this.music.mainPlayer.load(this.featured.track, this.featured.pathId).then(() => this.music.mainPlayer.play());
+  }
+
+  playArtist(artist: ArtistCard) {
+    this.music.setQueue(artist.pathId, [artist.track], 0);
   }
 
   toggleFavFeatured() {
