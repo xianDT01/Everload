@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { forkJoin } from 'rxjs';
-import { Subscription } from 'rxjs';
+import { forkJoin, map, of, Subscription } from 'rxjs';
 import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
 
@@ -97,11 +96,77 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
           }
         });
 
-        this.artists = Array.from(map.values()).sort((a, b) => a.artist.localeCompare(b.artist));
-        this.loading = false;
+        const unresolvedProfiles = profiles.filter(profile => {
+          const g = map.get(this.key(profile.name));
+          return !g || g.tracks.length === 0;
+        });
+
+        if (!unresolvedProfiles.length) {
+          this.finishLoad(map);
+          return;
+        }
+
+        forkJoin(unresolvedProfiles.map(profile => this.searchProfileTracks(pathId, profile))).subscribe({
+          next: resolved => {
+            resolved.forEach(({ profile, tracks }) => this.mergeProfileTracks(map, pathId, profile, tracks));
+            this.finishLoad(map);
+          },
+          error: () => this.finishLoad(map)
+        });
       },
       error: () => { this.loading = false; }
     });
+  }
+
+  private finishLoad(map: Map<string, ArtistGroup>) {
+    map.forEach(group => {
+      group.albumCount = new Set(group.tracks.map(t => t.album).filter(Boolean)).size;
+    });
+    this.artists = Array.from(map.values()).sort((a, b) => a.artist.localeCompare(b.artist));
+    this.loading = false;
+  }
+
+  private searchProfileTracks(pathId: number, profile: ArtistProfileDto) {
+    const queries = this.profileKeys(profile);
+    if (!queries.length) return of({ profile, tracks: [] as MusicMetadataDto[] });
+    return forkJoin(queries.map(query => this.music.search(pathId, undefined, query, 500))).pipe(
+      map((lists: MusicMetadataDto[][]) => {
+        const merged = new Map<string, MusicMetadataDto>();
+        const profileByKey = new Map(this.profileKeys(profile).map(k => [k, profile] as [string, ArtistProfileDto]));
+        lists.flat().forEach(track => {
+          if (this.findProfileForArtist(track.artist || '', profileByKey)) {
+            merged.set(track.path, track);
+          }
+        });
+        return { profile, tracks: Array.from(merged.values()) };
+      })
+    );
+  }
+
+  private mergeProfileTracks(map: Map<string, ArtistGroup>, pathId: number, profile: ArtistProfileDto, tracks: MusicMetadataDto[]) {
+    const key = this.key(profile.name);
+    let group = map.get(key);
+    if (!group) {
+      group = {
+        artist: profile.name,
+        tracks: [],
+        cover: null,
+        pathId,
+        albumCount: 0,
+        profile,
+        imageUrl: this.profileImage(profile)
+      };
+      map.set(key, group);
+    }
+
+    const existing = new Set(group.tracks.map(t => t.path));
+    tracks.forEach(track => {
+      if (existing.has(track.path)) return;
+      existing.add(track.path);
+      group!.tracks.push(track);
+      if (!group!.cover) group!.cover = track;
+    });
+    group.albumCount = new Set(group.tracks.map(t => t.album).filter(Boolean)).size;
   }
 
   cover(g: ArtistGroup): string {
