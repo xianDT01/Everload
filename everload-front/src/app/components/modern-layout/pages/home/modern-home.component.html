@@ -52,7 +52,7 @@
     <div class="mh-artists-row">
       <div class="mh-artist" *ngFor="let a of topArtists" (click)="openArtist(a)" title="Ver canciones del artista">
         <div class="mh-artist-circle">
-          <img [src]="coverFor(a.track, a.pathId)"
+          <img [src]="a.imageUrl || coverFor(a.track, a.pathId)"
                (error)="$any($event.target).style.display='none'" />
           <span class="mh-artist-fallback">
             <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>

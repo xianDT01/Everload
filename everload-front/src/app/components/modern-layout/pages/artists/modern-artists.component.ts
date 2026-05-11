@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { forkJoin, map, of, Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
 
@@ -33,6 +33,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   bulkLoading = false;
   bulkStatus = '';
   private sub!: Subscription;
+  private indexPoll?: ReturnType<typeof setTimeout>;
 
   constructor(public music: MusicService, private state: ModernStateService) {}
 
@@ -43,15 +44,23 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy() { this.sub?.unsubscribe(); }
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
+    if (this.indexPoll) clearTimeout(this.indexPoll);
+  }
 
   private load(pathId: number) {
     this.loading = true;
     forkJoin({
-      tracks: this.music.search(pathId, undefined, ' ', 500),
+      overview: this.music.getLibraryOverview(pathId, 5000),
       profiles: this.music.getArtistProfiles()
     }).subscribe({
-      next: ({ tracks, profiles }) => {
+      next: ({ overview, profiles }) => {
+        const tracks = overview.tracks || [];
+        if (this.indexPoll) clearTimeout(this.indexPoll);
+        if (overview.indexing) {
+          this.indexPoll = setTimeout(() => this.load(pathId), 6000);
+        }
         const map = new Map<string, ArtistGroup>();
         const profileByKey = new Map<string, ArtistProfileDto>();
 
@@ -107,8 +116,10 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
         }
 
         forkJoin(unresolvedProfiles.map(profile => this.searchProfileTracks(pathId, profile))).subscribe({
-          next: resolved => {
-            resolved.forEach(({ profile, tracks }) => this.mergeProfileTracks(map, pathId, profile, tracks));
+          next: resolvedLists => {
+            resolvedLists.forEach((tracks, index) => {
+              this.mergeProfileTracks(map, pathId, unresolvedProfiles[index], tracks);
+            });
             this.finishLoad(map);
           },
           error: () => this.finishLoad(map)
@@ -127,20 +138,8 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   private searchProfileTracks(pathId: number, profile: ArtistProfileDto) {
-    const queries = this.profileKeys(profile);
-    if (!queries.length) return of({ profile, tracks: [] as MusicMetadataDto[] });
-    return forkJoin(queries.map(query => this.music.search(pathId, undefined, query, 500))).pipe(
-      map((lists: MusicMetadataDto[][]) => {
-        const merged = new Map<string, MusicMetadataDto>();
-        const profileByKey = new Map(this.profileKeys(profile).map(k => [k, profile] as [string, ArtistProfileDto]));
-        lists.flat().forEach(track => {
-          if (this.findProfileForArtist(track.artist || '', profileByKey)) {
-            merged.set(track.path, track);
-          }
-        });
-        return { profile, tracks: Array.from(merged.values()) };
-      })
-    );
+    const aliases = (profile.aliases || '').split(/[\n,]+/).map(a => a.trim()).filter(Boolean);
+    return this.music.getArtistTracks(pathId, profile.name, aliases, 1000);
   }
 
   private mergeProfileTracks(map: Map<string, ArtistGroup>, pathId: number, profile: ArtistProfileDto, tracks: MusicMetadataDto[]) {
