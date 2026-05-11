@@ -1287,6 +1287,12 @@ export class MusicService {
     return this.http.post<any>(`${this.BASE}/api/music/fingerprint?${params}`, {});
   }
 
+  // ── YouTube metadata lookup ───────────────────────────────────────────────
+
+  fetchYoutubeMetadata(query: string): Observable<{ found: boolean; title?: string; artist?: string; videoId?: string; channelName?: string; rawTitle?: string }> {
+    return this.http.get<any>(`${this.api}/youtube-metadata?query=${encodeURIComponent(query)}`);
+  }
+
   // ── NAS yt-dlp async jobs ─────────────────────────────────────────────────
 
   search(pathId: number, subPath: string | undefined, query: string, limit = 200): Observable<MusicMetadataDto[]> {

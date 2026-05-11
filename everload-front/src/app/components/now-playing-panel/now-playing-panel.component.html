@@ -267,13 +267,47 @@
             <div class="np-manager-actions">
               <button (click)="state?.currentTrack && toggleLike($event, state!.currentTrack!)" [disabled]="!state?.currentTrack">{{ state?.currentTrack && isLiked(state!.currentTrack!) ? ('COMMON.REMOVE_FAVORITE' | translate) : ('COMMON.ADD_FAVORITE' | translate) }}</button>
               <button (click)="refreshCoverForCurrentTrack()" [disabled]="!state?.currentTrack">{{ 'WINDOWS.MANAGER_FETCH_METADATA' | translate }}</button>
+              <button (click)="openMetadataEdit()" [disabled]="!state?.currentTrack || !canManageNas" *ngIf="!metadataEditing">✎ {{ 'WINDOWS.MANAGER_EDIT_METADATA' | translate }}</button>
               <button (click)="downloadCurrentMetadata('json')" [disabled]="!state?.currentTrack">JSON</button>
               <button (click)="downloadCurrentMetadata('csv')" [disabled]="!state?.currentTrack">CSV</button>
             </div>
             <small *ngIf="musicManagerStatus">{{ musicManagerStatus | translate }}</small>
           </div>
         </div>
-        <div class="np-manager-details">
+
+        <!-- Metadata edit form -->
+        <div class="np-manager-meta-edit" *ngIf="metadataEditing && state?.currentTrack">
+          <div class="np-meta-field">
+            <label>{{ 'NAS.METADATA_TITLE' | translate }}</label>
+            <input type="text" [(ngModel)]="metaTitle" [placeholder]="'NAS.METADATA_TITLE' | translate" (mousedown)="$event.stopPropagation()" />
+          </div>
+          <div class="np-meta-field">
+            <label>{{ 'NAS.METADATA_ARTIST' | translate }}</label>
+            <input type="text" [(ngModel)]="metaArtist" [placeholder]="'NAS.METADATA_ARTIST' | translate" (mousedown)="$event.stopPropagation()" />
+          </div>
+          <div class="np-meta-field">
+            <label>{{ 'NAS.METADATA_ALBUM' | translate }}</label>
+            <input type="text" [(ngModel)]="metaAlbum" [placeholder]="'NAS.METADATA_ALBUM' | translate" (mousedown)="$event.stopPropagation()" />
+          </div>
+          <div class="np-meta-field">
+            <label>{{ 'NAS.METADATA_YEAR' | translate }}</label>
+            <input type="text" [(ngModel)]="metaYear" [placeholder]="'NAS.METADATA_YEAR_PLACEHOLDER' | translate" (mousedown)="$event.stopPropagation()" (keydown.enter)="saveMetadata()" />
+          </div>
+          <div class="np-meta-actions">
+            <button class="np-meta-yt-btn" (click)="fetchYoutubeMetadata()" [disabled]="metadataYtLoading || metadataLoading">
+              {{ metadataYtLoading ? ('WINDOWS.MANAGER_FETCHING_YT' | translate) : '🔍 ' + ('WINDOWS.MANAGER_FETCH_YT' | translate) }}
+            </button>
+            <button class="np-meta-save-btn" (click)="saveMetadata()" [disabled]="metadataLoading">
+              {{ metadataLoading ? '...' : '💾 ' + ('WINDOWS.MANAGER_SAVE_METADATA' | translate) }}
+            </button>
+            <button class="np-meta-cancel-btn" (click)="cancelMetadataEdit()" [disabled]="metadataLoading">
+              {{ 'WINDOWS.MANAGER_CANCEL_EDIT' | translate }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Read-only details (when not editing) -->
+        <div class="np-manager-details" *ngIf="!metadataEditing">
           <div><span>{{ 'NAS.METADATA_TITLE' | translate }}</span><strong>{{ state?.currentTrack?.title || '-' }}</strong></div>
           <div><span>{{ 'NAS.METADATA_ARTIST' | translate }}</span><strong>{{ state?.currentTrack?.artist || '-' }}</strong></div>
           <div><span>{{ 'NAS.METADATA_ALBUM' | translate }}</span><strong>{{ state?.currentTrack?.album || '-' }}</strong></div>
