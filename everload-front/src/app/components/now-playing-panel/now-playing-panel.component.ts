@@ -1061,6 +1061,91 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.musicManagerStatus = 'WINDOWS.MANAGER_STATUS_METADATA_REQUESTED';
   }
 
+  // ── Metadata editing (XP Music Manager) ──────────────────────────────────
+  metadataEditing = false;
+  metaTitle = '';
+  metaArtist = '';
+  metaAlbum = '';
+  metaYear = '';
+  metadataLoading = false;
+  metadataYtLoading = false;
+
+  openMetadataEdit(): void {
+    if (!this.state?.currentTrack) return;
+    const t = this.state.currentTrack;
+    this.metaTitle = t.title || t.name || '';
+    this.metaArtist = t.artist || '';
+    this.metaAlbum = t.album || '';
+    this.metaYear = (t as any).year || '';
+    this.metadataEditing = true;
+    this.musicManagerStatus = '';
+  }
+
+  cancelMetadataEdit(): void {
+    this.metadataEditing = false;
+    this.musicManagerStatus = '';
+  }
+
+  saveMetadata(): void {
+    if (!this.state?.currentTrack || !this.canManageNas) return;
+    const track = this.state.currentTrack;
+    const pathId = this.state.pathId ?? this.winampQueue.pathId;
+    if (!pathId) { this.musicManagerStatus = 'WINDOWS.MANAGER_METADATA_ERROR'; return; }
+
+    this.metadataLoading = true;
+    this.musicManagerStatus = '';
+    this.nasService.updateMetadata(pathId, track.path, this.metaTitle, this.metaArtist, this.metaAlbum, this.metaYear).subscribe({
+      next: () => {
+        // Update the in-memory track object so the UI reflects changes immediately
+        track.title = this.metaTitle;
+        track.artist = this.metaArtist;
+        track.album = this.metaAlbum;
+        (track as any).year = this.metaYear;
+        this.metadataLoading = false;
+        this.metadataEditing = false;
+        this.musicManagerStatus = 'WINDOWS.MANAGER_METADATA_SAVED';
+        // Also update the MediaSession if available
+        if (navigator.mediaSession?.metadata) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: this.metaTitle,
+            artist: this.metaArtist,
+            album: this.metaAlbum,
+          });
+        }
+      },
+      error: () => {
+        this.metadataLoading = false;
+        this.musicManagerStatus = 'WINDOWS.MANAGER_METADATA_ERROR';
+      }
+    });
+  }
+
+  fetchYoutubeMetadata(): void {
+    if (!this.state?.currentTrack) return;
+    const t = this.state.currentTrack;
+    const query = t.title || t.name || '';
+    if (!query) return;
+
+    this.metadataYtLoading = true;
+    this.musicManagerStatus = 'WINDOWS.MANAGER_FETCHING_YT';
+    this.musicService.fetchYoutubeMetadata(query).subscribe({
+      next: (res) => {
+        this.metadataYtLoading = false;
+        if (res.found && res.title) {
+          this.metaTitle = res.title;
+          if (res.artist) this.metaArtist = res.artist;
+          this.musicManagerStatus = 'WINDOWS.MANAGER_YT_FOUND';
+        } else {
+          this.musicManagerStatus = 'WINDOWS.MANAGER_YT_NOT_FOUND';
+        }
+      },
+      error: () => {
+        this.metadataYtLoading = false;
+        this.musicManagerStatus = 'WINDOWS.MANAGER_YT_NOT_FOUND';
+      }
+    });
+  }
+
   private downloadMetadata(items: any[], filename: string, format: 'json' | 'csv'): void {
     if (!items.length || typeof document === 'undefined') return;
     const payload = format === 'json'
