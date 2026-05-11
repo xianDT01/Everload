@@ -37,6 +37,11 @@ export interface ArtistProfileDto {
   imageUrl: string;
 }
 
+export interface LibraryOverviewDto {
+  tracks: MusicMetadataDto[];
+  indexing: boolean;
+}
+
 export interface PlayerState {
   playing: boolean;
   currentTime: number;
@@ -1309,6 +1314,20 @@ export class MusicService {
     let url = `${this.api}/search?pathId=${pathId}&query=${encodeURIComponent(query)}&limit=${limit}`;
     if (subPath) url += `&subPath=${encodeURIComponent(subPath)}`;
     return this.http.get<MusicMetadataDto[]>(url);
+  }
+
+  getLibraryOverview(pathId: number, limit = 5000): Observable<LibraryOverviewDto> {
+    return this.http.get<LibraryOverviewDto>(`${this.api}/library-overview?pathId=${pathId}&limit=${limit}`);
+  }
+
+  startLibraryIndex(pathId: number): Observable<any> {
+    return this.http.post<any>(`${this.api}/library-index?pathId=${pathId}`, {});
+  }
+
+  getArtistTracks(pathId: number, artist: string, aliases: string[] = [], limit = 500): Observable<MusicMetadataDto[]> {
+    const params = new URLSearchParams({ pathId: String(pathId), artist, limit: String(limit) });
+    aliases.filter(Boolean).forEach(alias => params.append('aliases', alias));
+    return this.http.get<MusicMetadataDto[]>(`${this.api}/artist-tracks?${params}`);
   }
 
   searchYouTube(query: string, maxResults = 8): Observable<any> {

@@ -71,6 +71,7 @@ public class MusicService {
     private final Map<String, HlsCacheJob> hlsJobs = new ConcurrentHashMap<>();
     private final Map<String, CachedDirectoryListing> directoryListingCache = new ConcurrentHashMap<>();
     private final Set<String> metadataWarmupInFlight = ConcurrentHashMap.newKeySet();
+    private final Set<Long> libraryIndexInFlight = ConcurrentHashMap.newKeySet();
     private final ExecutorService hlsExecutor = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "everload-hls-cache");
         t.setDaemon(true);
@@ -105,6 +106,93 @@ public class MusicService {
         List<MusicMetadataDto> pool = withCovers.isEmpty() ? candidates : withCovers;
         Collections.shuffle(pool);
         return pool.stream().limit(count).collect(Collectors.toList());
+    }
+
+    public Map<String, Object> getLibraryOverview(Long pathId, int limit) {
+        startLibraryIndex(pathId);
+
+        List<MusicMetadataDto> tracks = metadataCacheRepo.findByNasPathId(pathId).stream()
+                .sorted(Comparator
+                        .comparing((TrackMetadataCache c) -> safeLower(c.getArtist()))
+                        .thenComparing(c -> safeLower(c.getAlbum()))
+                        .thenComparing(c -> safeLower(c.getTitle())))
+                .limit(Math.max(1, limit))
+                .map(this::dtoFromCache)
+                .collect(Collectors.toList());
+
+        return Map.of(
+                "tracks", tracks,
+                "indexing", libraryIndexInFlight.contains(pathId)
+        );
+    }
+
+    public Map<String, Object> startLibraryIndex(Long pathId) {
+        Path base = nasService.getBasePath(pathId);
+        if (!Files.isDirectory(base) || !Files.isReadable(base)) {
+            throw new IllegalArgumentException("Ruta NAS no accesible");
+        }
+
+        if (!libraryIndexInFlight.add(pathId)) {
+            return Map.of("started", false, "indexing", true);
+        }
+
+        metadataExecutor.submit(() -> {
+            try {
+                indexLibrary(pathId, base);
+            } finally {
+                libraryIndexInFlight.remove(pathId);
+            }
+        });
+
+        return Map.of("started", true, "indexing", true);
+    }
+
+    public List<MusicMetadataDto> getCachedTracksByArtist(Long pathId, String artist, List<String> aliases, int limit) {
+        List<String> keys = new ArrayList<>();
+        if (artist != null && !artist.isBlank()) keys.add(normalizeSearchText(artist));
+        if (aliases != null) {
+            aliases.stream()
+                    .filter(a -> a != null && !a.isBlank())
+                    .map(this::normalizeSearchText)
+                    .filter(a -> !a.isBlank())
+                    .forEach(keys::add);
+        }
+        keys = keys.stream().filter(k -> !k.isBlank()).distinct().collect(Collectors.toList());
+        if (keys.isEmpty()) return Collections.emptyList();
+
+        List<String> finalKeys = keys;
+        return metadataCacheRepo.findByNasPathId(pathId).stream()
+                .filter(c -> artistParts(c.getArtist()).stream().anyMatch(finalKeys::contains))
+                .sorted(Comparator
+                        .comparing((TrackMetadataCache c) -> safeLower(c.getAlbum()))
+                        .thenComparing(c -> safeLower(c.getTitle()))
+                        .thenComparing(c -> safeLower(c.getRelativePath())))
+                .limit(Math.max(1, limit))
+                .map(this::dtoFromCache)
+                .collect(Collectors.toList());
+    }
+
+    private void indexLibrary(Long pathId, Path base) {
+        File root = base.toFile();
+        List<File> audioFiles = new ArrayList<>();
+        collectAudioFilesForSearch(root, audioFiles, SEARCH_SCAN_LIMIT);
+        Map<String, TrackMetadataCache> cacheMap = batchFetchCacheChunked(pathId, audioFiles, base);
+        Set<String> foundPaths = new HashSet<>();
+
+        for (File file : audioFiles) {
+            String relPath = relativePath(base, file);
+            foundPaths.add(relPath);
+            TrackMetadataCache cached = cacheMap.get(relPath);
+            if (validCache(cached, file) != null) continue;
+            buildDto(file, base, pathId, Collections.singletonMap(relPath, cached), true);
+        }
+
+        try {
+            List<TrackMetadataCache> stale = metadataCacheRepo.findByNasPathId(pathId).stream()
+                    .filter(entry -> !foundPaths.contains(entry.getRelativePath()))
+                    .collect(Collectors.toList());
+            if (!stale.isEmpty()) metadataCacheRepo.deleteAll(stale);
+        } catch (Exception ignored) {}
     }
 
     private void collectAudioFiles(File dir, Long pathId, Path base, List<MusicMetadataDto> out, int maxDepth, int maxFiles) {
@@ -1090,6 +1178,49 @@ public class MusicService {
                 .replaceAll("[^a-z0-9]+", " ")
                 .trim()
                 .replaceAll("\\s+", " ");
+    }
+
+    private List<String> artistParts(String artist) {
+        String full = normalizeSearchText(artist);
+        if (full.isBlank()) return Collections.emptyList();
+        List<String> parts = new ArrayList<>();
+        parts.add(full);
+        Arrays.stream(artist.split("(?i)\\s*(?:,|;|&|\\+|/|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bcon\\b|\\band\\b| y )\\s*"))
+                .map(this::normalizeSearchText)
+                .filter(part -> !part.isBlank())
+                .forEach(parts::add);
+        return parts.stream().distinct().collect(Collectors.toList());
+    }
+
+    private MusicMetadataDto dtoFromCache(TrackMetadataCache cache) {
+        String path = cache.getRelativePath();
+        String name = path;
+        int slash = name.lastIndexOf('/');
+        if (slash >= 0) name = name.substring(slash + 1);
+        String title = cache.getTitle() != null && !cache.getTitle().isBlank()
+                ? cache.getTitle()
+                : stripExtension(name);
+
+        return MusicMetadataDto.builder()
+                .name(name)
+                .path(path)
+                .directory(false)
+                .size(0)
+                .lastModified("")
+                .title(title)
+                .artist(cache.getArtist() != null ? cache.getArtist() : "")
+                .album(cache.getAlbum() != null ? cache.getAlbum() : "")
+                .format(cache.getFormat() != null ? cache.getFormat() : extension(name))
+                .year(cache.getYear() != null ? cache.getYear() : "")
+                .duration(cache.getDuration())
+                .hasCover(cache.isHasCover())
+                .bpm(cache.getBpm())
+                .nasPathId(cache.getNasPathId())
+                .build();
+    }
+
+    private String safeLower(String value) {
+        return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
     private String relativePath(Path base, File file) {

@@ -15,6 +15,7 @@ import java.util.Optional;
 @Repository
 public interface TrackMetadataCacheRepository extends JpaRepository<TrackMetadataCache, Long> {
     Optional<TrackMetadataCache> findByNasPathIdAndRelativePath(Long nasPathId, String relativePath);
+    List<TrackMetadataCache> findByNasPathId(Long nasPathId);
     List<TrackMetadataCache> findByNasPathIdAndRelativePathIn(Long nasPathId, Collection<String> relativePaths);
 
     @Modifying

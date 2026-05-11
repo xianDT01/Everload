@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
-import { MusicService, MusicMetadataDto } from '../../../../services/music.service';
+import { forkJoin, Subscription } from 'rxjs';
+import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
 
 interface AlbumCard {
@@ -15,6 +15,9 @@ interface ArtistCard {
   artist: string;
   track: MusicMetadataDto;
   pathId: number;
+  tracks: MusicMetadataDto[];
+  profile?: ArtistProfileDto;
+  imageUrl?: string;
 }
 
 @Component({
@@ -33,6 +36,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   artistError = '';
   loading = true;
   private sub!: Subscription;
+  private indexPoll?: ReturnType<typeof setTimeout>;
 
   constructor(public music: MusicService, private state: ModernStateService) {}
 
@@ -42,7 +46,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy() { this.sub?.unsubscribe(); }
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
+    if (this.indexPoll) clearTimeout(this.indexPoll);
+  }
 
   private toTrack(i: any, pathId: number): MusicMetadataDto {
     return {
@@ -56,11 +63,26 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   private load(pathId: number) {
     this.loading = true;
 
-    this.music.getHistory(24).subscribe({
-      next: (items: any[]) => {
+    forkJoin({
+      history: this.music.getHistory(24),
+      overview: this.music.getLibraryOverview(pathId, 5000),
+      profiles: this.music.getArtistProfiles()
+    }).subscribe({
+      next: ({ history, overview, profiles }) => {
+        const items = history || [];
+        const tracks = overview.tracks || [];
+        if (this.indexPoll) clearTimeout(this.indexPoll);
+        if (overview.indexing) {
+          this.indexPoll = setTimeout(() => this.load(pathId), 6000);
+        }
+        const profileByKey = new Map<string, ArtistProfileDto>();
+        profiles.forEach(profile => this.profileKeys(profile).forEach(key => profileByKey.set(key, profile)));
+
         // Featured = most recent
         if (items[0]) {
           this.featured = { track: this.toTrack(items[0], pathId), pathId: items[0].nasPathId ?? pathId };
+        } else if (tracks[0]) {
+          this.featured = { track: tracks[0], pathId: tracks[0].nasPathId ?? pathId };
         }
 
         // Listen Now = unique albums from history (horizontal cards)
@@ -74,37 +96,78 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
             albumMap.get(key)!.tracks.push(this.toTrack(i, pathId));
           }
         });
-        this.listenNow = Array.from(albumMap.values()).slice(0, 8);
-
-        // Top Artists = unique artists from history
-        const artistMap = new Map<string, ArtistCard>();
-        items.forEach((i: any) => {
-          const a = (i.artist || '').trim();
-          if (a && !artistMap.has(a)) {
-            artistMap.set(a, { artist: a, track: this.toTrack(i, pathId), pathId: i.nasPathId ?? pathId });
+        tracks.forEach(t => {
+          const key = (t.album || t.title || '').trim();
+          if (!key) return;
+          if (!albumMap.has(key)) {
+            albumMap.set(key, { album: t.album || t.title, artist: t.artist, track: t, pathId: t.nasPathId ?? pathId, tracks: [t] });
+          } else if (!albumMap.get(key)!.tracks.some(existing => existing.path === t.path)) {
+            albumMap.get(key)!.tracks.push(t);
           }
         });
-        this.topArtists = Array.from(artistMap.values()).slice(0, 10);
+        this.listenNow = Array.from(albumMap.values()).slice(0, 8);
+
+        // Top Artists = indexed artists + manual profiles
+        const artistMap = new Map<string, ArtistCard>();
+        tracks.forEach(t => {
+          const rawArtist = (t.artist || '').trim();
+          if (!rawArtist) return;
+          const profile = this.findProfileForArtist(rawArtist, profileByKey);
+          const displayName = profile?.name || rawArtist;
+          const key = this.key(displayName);
+          if (!artistMap.has(key)) {
+            artistMap.set(key, {
+              artist: displayName,
+              track: t,
+              pathId: t.nasPathId ?? pathId,
+              tracks: [t],
+              profile,
+              imageUrl: this.profileImage(profile)
+            });
+          } else {
+            const card = artistMap.get(key)!;
+            if (!card.tracks.some(existing => existing.path === t.path)) card.tracks.push(t);
+          }
+        });
+        profiles.forEach(profile => {
+          const key = this.key(profile.name);
+          if (!artistMap.has(key)) {
+            const placeholder = this.placeholderTrack(profile.name);
+            artistMap.set(key, {
+              artist: profile.name,
+              track: placeholder,
+              pathId,
+              tracks: [],
+              profile,
+              imageUrl: this.profileImage(profile)
+            });
+          } else {
+            const card = artistMap.get(key)!;
+            card.profile = profile;
+            card.imageUrl = this.profileImage(profile);
+          }
+        });
+        this.topArtists = Array.from(artistMap.values())
+          .sort((a, b) => b.tracks.length - a.tracks.length || a.artist.localeCompare(b.artist))
+          .slice(0, 14);
         this.loading = false;
 
-        // New releases / explore = random tracks grouped by album
-        this.music.getRandomTracks(14).subscribe({
-          next: tracks => {
-            const randMap = new Map<string, AlbumCard>();
-            tracks.forEach(t => {
-              const key = (t.album || t.title || '').trim();
-              if (key && !randMap.has(key)) {
-                randMap.set(key, { album: t.album || t.title, artist: t.artist, track: t, pathId, tracks: [t] });
-              }
-            });
-            this.newReleases = Array.from(randMap.values()).slice(0, 10);
-          },
-          error: () => {}
+        const exploreMap = new Map<string, AlbumCard>();
+        this.pickExploreTracks(tracks).forEach(t => {
+          const key = (t.album || t.title || '').trim();
+          if (key && !exploreMap.has(key)) {
+            exploreMap.set(key, { album: t.album || t.title, artist: t.artist, track: t, pathId: t.nasPathId ?? pathId, tracks: [t] });
+          }
         });
+        this.newReleases = Array.from(exploreMap.values()).slice(0, 10);
       },
       error: () => {
-        this.music.getRandomTracks(14).subscribe({
-          next: tracks => {
+        forkJoin({
+          random: this.music.getRandomTracks(14),
+          profiles: this.music.getArtistProfiles()
+        }).subscribe({
+          next: ({ random, profiles }) => {
+            const tracks = random || [];
             if (tracks[0]) this.featured = { track: tracks[0], pathId };
             const m = new Map<string, AlbumCard>();
             tracks.forEach(t => {
@@ -113,12 +176,57 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
             });
             this.listenNow = Array.from(m.values()).slice(0, 8);
             this.newReleases = Array.from(m.values()).slice(0, 10);
+            this.topArtists = profiles.map(profile => ({
+              artist: profile.name,
+              track: this.placeholderTrack(profile.name),
+              pathId,
+              tracks: [],
+              profile,
+              imageUrl: this.profileImage(profile)
+            })).slice(0, 14);
             this.loading = false;
           },
           error: () => { this.loading = false; }
         });
       }
     });
+  }
+
+  private placeholderTrack(name: string): MusicMetadataDto {
+    return {
+      name, path: '', directory: false, size: 0, lastModified: '',
+      title: name, artist: name, album: '', duration: 0, format: '', hasCover: false, bpm: 0, source: 'nas'
+    };
+  }
+
+  private pickExploreTracks(tracks: MusicMetadataDto[]): MusicMetadataDto[] {
+    return [...tracks]
+      .sort((a, b) => this.key(`${a.album} ${a.title} ${a.path}`).localeCompare(this.key(`${b.album} ${b.title} ${b.path}`)))
+      .slice(0, 80)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 14);
+  }
+
+  private profileImage(profile?: ArtistProfileDto): string {
+    if (!profile?.imageUrl) return '';
+    return profile.imageUrl.startsWith('http') ? profile.imageUrl : `${this.music.BASE}${profile.imageUrl}`;
+  }
+
+  private profileKeys(profile: ArtistProfileDto): string[] {
+    const aliases = (profile.aliases || '').split(/[\n,]+/).map(a => a.trim()).filter(Boolean);
+    return [profile.name, ...aliases].map(v => this.key(v)).filter(Boolean);
+  }
+
+  private findProfileForArtist(rawArtist: string, profileByKey: Map<string, ArtistProfileDto>): ArtistProfileDto | undefined {
+    const exact = profileByKey.get(this.key(rawArtist));
+    if (exact) return exact;
+
+    for (const part of this.artistParts(rawArtist)) {
+      const profile = profileByKey.get(part);
+      if (profile) return profile;
+    }
+
+    return undefined;
   }
 
   coverFor(t: MusicMetadataDto, pid: number): string {
@@ -140,15 +248,17 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     this.artistError = '';
     this.artistLoading = true;
 
-    this.music.search(artist.pathId, undefined, artist.artist, 500).subscribe({
+    const aliases = (artist.profile?.aliases || '').split(/[\n,]+/).map(a => a.trim()).filter(Boolean);
+    this.music.getArtistTracks(artist.pathId, artist.artist, aliases, 1000).subscribe({
       next: tracks => {
-        const artistKey = this.key(artist.artist);
-        this.selectedArtistTracks = tracks.filter(t => this.artistParts(t.artist || '').includes(artistKey));
-        if (!this.selectedArtistTracks.length) this.selectedArtistTracks = [artist.track];
+        const artistKeys = new Set([artist.artist, ...aliases].map(v => this.key(v)).filter(Boolean));
+        this.selectedArtistTracks = tracks.filter(t => this.artistParts(t.artist || '').some(part => artistKeys.has(part)));
+        if (!this.selectedArtistTracks.length && artist.tracks.length) this.selectedArtistTracks = artist.tracks;
+        if (!this.selectedArtistTracks.length && artist.track.path) this.selectedArtistTracks = [artist.track];
         this.artistLoading = false;
       },
       error: () => {
-        this.selectedArtistTracks = [artist.track];
+        this.selectedArtistTracks = artist.tracks.length ? artist.tracks : (artist.track.path ? [artist.track] : []);
         this.artistError = 'No se pudieron cargar todas las canciones.';
         this.artistLoading = false;
       }

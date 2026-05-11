@@ -54,6 +54,49 @@ public class MusicController {
         }
     }
 
+    @Operation(summary = "Resumen cacheado de la biblioteca musical")
+    @GetMapping("/library-overview")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> libraryOverview(@RequestParam Long pathId,
+                                             @RequestParam(defaultValue = "5000") int limit) {
+        try {
+            return ResponseEntity.ok(musicService.getLibraryOverview(pathId, Math.min(limit, 10000)));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Iniciar indexado cacheado de la biblioteca musical")
+    @PostMapping("/library-index")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> startLibraryIndex(@RequestParam Long pathId) {
+        try {
+            return ResponseEntity.ok(musicService.startLibraryIndex(pathId));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Canciones cacheadas de un artista")
+    @GetMapping("/artist-tracks")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> artistTracks(@RequestParam Long pathId,
+                                          @RequestParam String artist,
+                                          @RequestParam(required = false) List<String> aliases,
+                                          @RequestParam(defaultValue = "500") int limit) {
+        try {
+            return ResponseEntity.ok(musicService.getCachedTracksByArtist(pathId, artist, aliases, Math.min(limit, 1000)));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @Operation(summary = "Listar archivos de audio con metadatos ID3 (paginado)")
     @GetMapping("/metadata")
     @PreAuthorize("isAuthenticated()")
