@@ -27,6 +27,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   listenNow: AlbumCard[] = [];
   topArtists: ArtistCard[] = [];
   newReleases: AlbumCard[] = [];
+  selectedArtist: ArtistCard | null = null;
+  selectedArtistTracks: MusicMetadataDto[] = [];
+  artistLoading = false;
+  artistError = '';
   loading = true;
   private sub!: Subscription;
 
@@ -130,13 +134,66 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     this.music.mainPlayer.load(this.featured.track, this.featured.pathId).then(() => this.music.mainPlayer.play());
   }
 
-  playArtist(artist: ArtistCard) {
-    this.music.setQueue(artist.pathId, [artist.track], 0);
+  openArtist(artist: ArtistCard) {
+    this.selectedArtist = artist;
+    this.selectedArtistTracks = [];
+    this.artistError = '';
+    this.artistLoading = true;
+
+    this.music.search(artist.pathId, undefined, artist.artist, 500).subscribe({
+      next: tracks => {
+        const artistKey = this.key(artist.artist);
+        this.selectedArtistTracks = tracks.filter(t => this.artistParts(t.artist || '').includes(artistKey));
+        if (!this.selectedArtistTracks.length) this.selectedArtistTracks = [artist.track];
+        this.artistLoading = false;
+      },
+      error: () => {
+        this.selectedArtistTracks = [artist.track];
+        this.artistError = 'No se pudieron cargar todas las canciones.';
+        this.artistLoading = false;
+      }
+    });
+  }
+
+  closeArtist() {
+    this.selectedArtist = null;
+    this.selectedArtistTracks = [];
+    this.artistError = '';
+  }
+
+  playArtistAll() {
+    if (!this.selectedArtist || !this.selectedArtistTracks.length) return;
+    this.music.setQueue(this.selectedArtist.pathId, this.selectedArtistTracks, 0);
+  }
+
+  playArtistTrack(index: number) {
+    if (!this.selectedArtist || !this.selectedArtistTracks[index]) return;
+    this.music.setQueue(this.selectedArtist.pathId, this.selectedArtistTracks, index);
   }
 
   toggleFavFeatured() {
     if (!this.featured) return;
     const t = this.featured.track;
     this.music.toggleFavorite(t.path, t.title, t.artist, t.album, this.featured.pathId).subscribe();
+  }
+
+  private artistParts(value: string): string[] {
+    const full = this.key(value);
+    const parts = value
+      .split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b|\bcon\b|\band\b| y )\s*/i)
+      .map(part => this.key(part))
+      .filter(Boolean);
+    return Array.from(new Set([full, ...parts].filter(Boolean)));
+  }
+
+  private key(value: string): string {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }

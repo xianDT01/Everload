@@ -50,7 +50,7 @@
       </div>
     </div>
     <div class="mh-artists-row">
-      <div class="mh-artist" *ngFor="let a of topArtists" (click)="playArtist(a)" title="Reproducir artista">
+      <div class="mh-artist" *ngFor="let a of topArtists" (click)="openArtist(a)" title="Ver canciones del artista">
         <div class="mh-artist-circle">
           <img [src]="coverFor(a.track, a.pathId)"
                (error)="$any($event.target).style.display='none'" />
@@ -62,6 +62,42 @@
       </div>
     </div>
   </section>
+
+  <div class="mh-artist-modal" *ngIf="selectedArtist" (click)="closeArtist()">
+    <div class="mh-artist-panel" (click)="$event.stopPropagation()">
+      <div class="mh-artist-panel-head">
+        <div>
+          <span class="mh-artist-panel-label">Artist</span>
+          <h2>{{ selectedArtist.artist }}</h2>
+          <p>{{ selectedArtistTracks.length }} canciones</p>
+        </div>
+        <button type="button" class="mh-artist-close" (click)="closeArtist()">×</button>
+      </div>
+
+      <div class="mh-artist-panel-actions">
+        <button type="button" (click)="playArtistAll()" [disabled]="artistLoading || !selectedArtistTracks.length">
+          Reproducir todo
+        </button>
+      </div>
+
+      <div class="mh-artist-loading" *ngIf="artistLoading">Cargando canciones…</div>
+      <div class="mh-artist-error" *ngIf="artistError">{{ artistError }}</div>
+
+      <div class="mh-artist-track-list" *ngIf="!artistLoading">
+        <button type="button"
+                class="mh-artist-track"
+                *ngFor="let t of selectedArtistTracks; let i = index"
+                (click)="playArtistTrack(i)">
+          <span class="mh-artist-track-num">{{ i + 1 }}</span>
+          <span class="mh-artist-track-copy">
+            <strong>{{ t.title || t.name }}</strong>
+            <small>{{ t.album || t.artist || '—' }}</small>
+          </span>
+          <span class="mh-artist-track-play">▶</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- New releases / random albums -->
   <section class="mh-section" *ngIf="newReleases.length">
