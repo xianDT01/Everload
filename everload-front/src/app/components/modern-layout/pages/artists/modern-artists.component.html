@@ -1,8 +1,14 @@
 <div class="mart-page">
   <div class="mart-header">
     <h1 class="mart-title">Artistas</h1>
-    <button class="mart-create" type="button" (click)="openCreate()">+</button>
+    <div class="mart-header-actions">
+      <button class="mart-bulk" type="button" (click)="fillMissingMetadata()" [disabled]="bulkLoading || pathId == null">
+        {{ bulkLoading ? 'Actualizando…' : 'Actualizar metadatos' }}
+      </button>
+      <button class="mart-create" type="button" (click)="openCreate()">+</button>
+    </div>
   </div>
+  <div class="mart-bulk-status" *ngIf="bulkStatus">{{ bulkStatus }}</div>
   <div class="mart-loading" *ngIf="loading">Cargando…</div>
   <div class="mart-grid" *ngIf="!loading">
     <div class="mart-card" *ngFor="let g of artists" (dblclick)="play(g)">

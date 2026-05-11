@@ -1,6 +1,7 @@
 .mart-page { padding: 32px; }
 .mart-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 24px; }
 .mart-title { font-size: 32px; font-weight: 900; color: var(--color-white); margin: 0; }
+.mart-header-actions { display: flex; align-items: center; gap: 10px; }
 .mart-create {
   width: 38px;
   height: 38px;
@@ -10,6 +11,23 @@
   color: var(--color-white);
   font: 900 22px/1 inherit;
   cursor: pointer;
+}
+.mart-bulk {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+  color: var(--color-white);
+  padding: 0 14px;
+  font: 800 12px/1 inherit;
+  cursor: pointer;
+}
+.mart-bulk:disabled { opacity: 0.5; cursor: not-allowed; }
+.mart-bulk-status {
+  margin: -12px 0 22px;
+  color: var(--color-slate-300);
+  font-size: 12px;
+  font-weight: 700;
 }
 .mart-loading { color: var(--color-slate-400); text-align: center; padding: 48px; }
 
@@ -80,6 +98,7 @@
 }
 .mart-edit:hover,
 .mart-create:hover,
+.mart-bulk:hover,
 .mart-empty-btn:hover { background: color-mix(in srgb, var(--color-white) 13%, transparent); }
 .mart-empty { color: var(--color-slate-500); text-align: center; padding: 48px; font-size: 14px; grid-column: 1/-1; }
 .mart-empty p { margin: 0 0 16px; }

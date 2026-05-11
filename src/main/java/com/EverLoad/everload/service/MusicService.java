@@ -693,10 +693,213 @@ public class MusicService {
             if (year   != null) tag.setField(FieldKey.YEAR,   year);
             af.setTag(tag);
             AudioFileIO.write(af);
+            updateMetadataCache(pathId, relativePath, file, title, artist, album, year, af);
         } catch (Exception e) {
             throw new RuntimeException("No se pudieron actualizar los metadatos: " + e.getMessage());
         }
     }
+
+    public Map<String, Object> fillYoutubeMetadataBulk(Long pathId, String subPath, int limit, boolean onlyMissing) {
+        Path base = nasService.getBasePath(pathId);
+        Path startPath = (subPath != null && !subPath.isBlank())
+                ? nasService.resolveValidatedPath(pathId, subPath)
+                : nasService.resolveValidatedPath(pathId, "");
+
+        File startDir = startPath.toFile();
+        if (!startDir.exists() || !startDir.isDirectory()) {
+            return Map.of("processed", 0, "updated", 0, "skipped", 0, "failed", 0);
+        }
+
+        int safeLimit = Math.max(1, Math.min(limit, 200));
+        List<File> audioFiles = new ArrayList<>();
+        collectAudioFilesForSearch(startDir, audioFiles, SEARCH_SCAN_LIMIT);
+
+        int processed = 0;
+        int updated = 0;
+        int skipped = 0;
+        int failed = 0;
+        List<Map<String, String>> items = new ArrayList<>();
+
+        for (File file : audioFiles) {
+            if (processed >= safeLimit) break;
+            processed++;
+            String relPath = relativePath(base, file);
+            try {
+                AudioFile af = AudioFileIO.read(file);
+                Tag tag = af.getTagOrCreateDefault();
+                String existingTitle = Optional.ofNullable(tag.getFirst(FieldKey.TITLE)).orElse("");
+                String existingArtist = Optional.ofNullable(tag.getFirst(FieldKey.ARTIST)).orElse("");
+                String existingAlbum = Optional.ofNullable(tag.getFirst(FieldKey.ALBUM)).orElse("");
+
+                if (onlyMissing && !existingTitle.isBlank() && !existingArtist.isBlank() && !existingAlbum.isBlank()) {
+                    skipped++;
+                    continue;
+                }
+
+                String query = !existingTitle.isBlank()
+                        ? (existingArtist.isBlank() ? existingTitle : existingArtist + " " + existingTitle)
+                        : stripExtension(file.getName());
+                YoutubeMetadata metadata = lookupYoutubeMetadata(query);
+                if (metadata == null || metadata.title().isBlank()) {
+                    skipped++;
+                    continue;
+                }
+
+                boolean changed = false;
+                if (!onlyMissing || existingTitle.isBlank()) {
+                    tag.setField(FieldKey.TITLE, metadata.title());
+                    changed = true;
+                }
+                if (!onlyMissing || existingArtist.isBlank()) {
+                    tag.setField(FieldKey.ARTIST, metadata.artist());
+                    changed = true;
+                }
+                if (!onlyMissing || existingAlbum.isBlank()) {
+                    tag.setField(FieldKey.ALBUM, metadata.album());
+                    changed = true;
+                }
+
+                if (changed) {
+                    af.setTag(tag);
+                    AudioFileIO.write(af);
+                    updateMetadataCache(pathId, relPath, file,
+                            tag.getFirst(FieldKey.TITLE),
+                            tag.getFirst(FieldKey.ARTIST),
+                            tag.getFirst(FieldKey.ALBUM),
+                            tag.getFirst(FieldKey.YEAR),
+                            af);
+                    updated++;
+                    items.add(Map.of(
+                            "path", relPath,
+                            "title", tag.getFirst(FieldKey.TITLE),
+                            "artist", tag.getFirst(FieldKey.ARTIST),
+                            "album", tag.getFirst(FieldKey.ALBUM)
+                    ));
+                } else {
+                    skipped++;
+                }
+            } catch (Exception e) {
+                failed++;
+            }
+        }
+
+        return Map.of(
+                "processed", processed,
+                "updated", updated,
+                "skipped", skipped,
+                "failed", failed,
+                "items", items
+        );
+    }
+
+    public Map<String, Object> lookupYoutubeMetadataMap(String query) {
+        YoutubeMetadata metadata = lookupYoutubeMetadata(query);
+        if (metadata == null) return Map.of("found", false);
+        return Map.of(
+                "found", true,
+                "title", metadata.title(),
+                "artist", metadata.artist(),
+                "album", metadata.album(),
+                "videoId", metadata.videoId(),
+                "channelName", metadata.channelName(),
+                "rawTitle", metadata.rawTitle()
+        );
+    }
+
+    private YoutubeMetadata lookupYoutubeMetadata(String query) {
+        if (query == null || query.isBlank() || query.length() > 300) return null;
+        try {
+            String cleanQuery = query
+                    .replaceAll("\\.(mp3|flac|m4a|wav|ogg|aac|opus|wma|alac)$", "")
+                    .replaceAll("[_\\[\\]{}()]", " ")
+                    .replaceAll("\\s+", " ")
+                    .trim();
+
+            ProcessBuilder pb = new ProcessBuilder(
+                    "yt-dlp",
+                    "--flat-playlist",
+                    "--print", "%(title)s\t%(uploader)s\t%(id)s",
+                    "--no-warnings",
+                    "ytsearch1:" + cleanQuery
+            );
+            pb.redirectErrorStream(false);
+            Process process = pb.start();
+
+            String resultLine;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                resultLine = reader.readLine();
+            }
+            try (InputStream errStream = process.getErrorStream()) {
+                errStream.readAllBytes();
+            }
+            int exit = process.waitFor();
+            if (exit != 0 || resultLine == null || resultLine.isBlank()) return null;
+
+            String[] parts = resultLine.split("\t", 3);
+            String rawTitle = parts[0].trim();
+            String channelName = parts.length > 1 ? parts[1].trim() : "";
+            String videoId = parts.length > 2 ? parts[2].trim() : "";
+
+            String parsedTitle = rawTitle;
+            String parsedArtist = cleanYoutubeArtist(channelName);
+            int dashIdx = rawTitle.indexOf(" - ");
+            if (dashIdx > 0) {
+                parsedArtist = rawTitle.substring(0, dashIdx).trim();
+                parsedTitle = rawTitle.substring(dashIdx + 3).trim();
+            }
+
+            parsedTitle = cleanYoutubeTitle(parsedTitle);
+            parsedArtist = cleanYoutubeArtist(parsedArtist);
+            String album = parsedArtist.isBlank() ? "YouTube" : parsedArtist;
+            return new YoutubeMetadata(parsedTitle, parsedArtist, album, videoId, channelName, rawTitle);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String cleanYoutubeTitle(String title) {
+        if (title == null) return "";
+        return title
+                .replaceAll("(?i)\\s*\\(?(official\\s*(music\\s*)?video|lyric\\s*video|official\\s*audio|audio\\s*oficial|video\\s*oficial|visualizer|hd|hq|4k)\\)?", "")
+                .replaceAll("\\s*[\\[({].*?[\\])}]\\s*$", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private String cleanYoutubeArtist(String artist) {
+        if (artist == null) return "";
+        return artist
+                .replaceAll("(?i)\\s*-?\\s*(topic|official|vevo|music)$", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private void updateMetadataCache(Long pathId, String relativePath, File file, String title, String artist, String album, String year, AudioFile af) {
+        try {
+            TrackMetadataCache entry = metadataCacheRepo.findByNasPathIdAndRelativePath(pathId, relativePath)
+                    .orElseGet(() -> TrackMetadataCache.builder().nasPathId(pathId).relativePath(relativePath).build());
+            entry.setLastModified(file.lastModified());
+            entry.setTitle(title != null && !title.isBlank() ? title : stripExtension(file.getName()));
+            entry.setArtist(artist != null ? artist : "");
+            entry.setAlbum(album != null ? album : "");
+            entry.setYear(year != null ? year : "");
+            entry.setFormat(af.getExt() != null ? af.getExt().toLowerCase() : extension(file.getName()));
+            entry.setDuration(af.getAudioHeader() != null ? af.getAudioHeader().getTrackLength() : 0);
+            Tag tag = af.getTag();
+            entry.setHasCover(tag != null && tag.getFirstArtwork() != null);
+            if (tag != null) {
+                String bpmStr = tag.getFirst(FieldKey.BPM);
+                int bpm = 0;
+                if (bpmStr != null && !bpmStr.isBlank()) {
+                    try { bpm = Integer.parseInt(bpmStr.trim()); } catch (NumberFormatException ignored) {}
+                }
+                entry.setBpm(bpm);
+            }
+            metadataCacheRepo.save(entry);
+        } catch (Exception ignored) {}
+    }
+
+    private record YoutubeMetadata(String title, String artist, String album, String videoId, String channelName, String rawTitle) {}
 
     // Escribe title/artist solo si faltan — usado tras descargas de YouTube
     public void ensureMetadata(File file, String fallbackTitle, String fallbackArtist) {
