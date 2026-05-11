@@ -1293,6 +1293,16 @@ export class MusicService {
     return this.http.get<any>(`${this.api}/youtube-metadata?query=${encodeURIComponent(query)}`);
   }
 
+  fillYoutubeMetadataBulk(pathId: number, subPath = '', limit = 50, onlyMissing = true): Observable<any> {
+    const params = new URLSearchParams({
+      pathId: String(pathId),
+      subPath,
+      limit: String(limit),
+      onlyMissing: String(onlyMissing)
+    });
+    return this.http.post<any>(`${this.api}/youtube-metadata/bulk?${params}`, {});
+  }
+
   // ── NAS yt-dlp async jobs ─────────────────────────────────────────────────
 
   search(pathId: number, subPath: string | undefined, query: string, limit = 200): Observable<MusicMetadataDto[]> {

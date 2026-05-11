@@ -31,6 +31,8 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   selectedImage: File | null = null;
   saving = false;
   error = '';
+  bulkLoading = false;
+  bulkStatus = '';
   private sub!: Subscription;
 
   constructor(public music: MusicService, private state: ModernStateService) {}
@@ -60,7 +62,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
 
         tracks.forEach(t => {
           const rawArtist = (t.artist || '').trim() || 'Desconocido';
-          const profile = profileByKey.get(this.key(rawArtist));
+          const profile = this.findProfileForArtist(rawArtist, profileByKey);
           const displayName = profile?.name || rawArtist;
           const key = this.key(displayName);
           if (!map.has(key)) {
@@ -197,6 +199,25 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     });
   }
 
+  fillMissingMetadata() {
+    if (this.pathId == null || this.bulkLoading) return;
+    if (!confirm('Esto buscará metadatos en YouTube para canciones sin artista/álbum/título. Puede tardar. ¿Continuar?')) return;
+
+    this.bulkLoading = true;
+    this.bulkStatus = 'Buscando metadatos...';
+    this.music.fillYoutubeMetadataBulk(this.pathId, '', 75, true).subscribe({
+      next: result => {
+        this.bulkLoading = false;
+        this.bulkStatus = `Actualizadas ${result.updated || 0} de ${result.processed || 0}. Omitidas ${result.skipped || 0}. Errores ${result.failed || 0}.`;
+        this.load(this.pathId!);
+      },
+      error: err => {
+        this.bulkLoading = false;
+        this.bulkStatus = err?.error?.error || 'No se pudieron actualizar los metadatos.';
+      }
+    });
+  }
+
   private profileImage(profile?: ArtistProfileDto): string {
     if (!profile?.imageUrl) return '';
     return profile.imageUrl.startsWith('http') ? profile.imageUrl : `${this.music.BASE}${profile.imageUrl}`;
@@ -207,7 +228,31 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     return [profile.name, ...aliases].map(v => this.key(v)).filter(Boolean);
   }
 
+  private findProfileForArtist(rawArtist: string, profileByKey: Map<string, ArtistProfileDto>): ArtistProfileDto | undefined {
+    const exact = profileByKey.get(this.key(rawArtist));
+    if (exact) return exact;
+
+    const parts = rawArtist
+      .split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b|\bcon\b|\band\b| y )\s*/i)
+      .map(part => this.key(part))
+      .filter(Boolean);
+
+    for (const part of parts) {
+      const profile = profileByKey.get(part);
+      if (profile) return profile;
+    }
+
+    return undefined;
+  }
+
   private key(value: string): string {
-    return (value || '').trim().toLowerCase();
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }

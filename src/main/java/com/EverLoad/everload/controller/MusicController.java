@@ -105,69 +105,26 @@ public class MusicController {
             return ResponseEntity.badRequest().body(Map.of("error", "Consulta inválida"));
         }
         try {
-            // Clean common file-extension noise from the query
-            String cleanQuery = query
-                    .replaceAll("\\.(mp3|flac|m4a|wav|ogg|aac|opus|wma|alac)$", "")
-                    .replaceAll("[_\\[\\]{}()]", " ")
-                    .replaceAll("\\s+", " ")
-                    .trim();
-
-            ProcessBuilder pb = new ProcessBuilder(
-                    "yt-dlp",
-                    "--flat-playlist",
-                    "--print", "%(title)s\t%(uploader)s\t%(id)s",
-                    "--no-warnings",
-                    "ytsearch1:" + cleanQuery
-            );
-            pb.redirectErrorStream(false);
-            Process process = pb.start();
-
-            String resultLine;
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(process.getInputStream()))) {
-                resultLine = reader.readLine();
-            }
-            // Drain stderr to prevent blocking
-            try (java.io.InputStream errStream = process.getErrorStream()) {
-                errStream.readAllBytes();
-            }
-            process.waitFor();
-
-            if (resultLine == null || resultLine.isBlank()) {
-                return ResponseEntity.ok(Map.of("found", false));
-            }
-
-            String[] parts = resultLine.split("\t", 3);
-            String rawTitle = parts[0].trim();
-            String channelName = parts.length > 1 ? parts[1].trim() : "";
-            String videoId = parts.length > 2 ? parts[2].trim() : "";
-
-            // Heuristic: split "Artist - Title" pattern
-            String parsedTitle = rawTitle;
-            String parsedArtist = channelName;
-            int dashIdx = rawTitle.indexOf(" - ");
-            if (dashIdx > 0) {
-                parsedArtist = rawTitle.substring(0, dashIdx).trim();
-                parsedTitle = rawTitle.substring(dashIdx + 3).trim();
-            }
-
-            // Clean common noise from parsed title
-            parsedTitle = parsedTitle
-                    .replaceAll("(?i)\\s*\\(?(official\\s*(music\\s*)?video|lyric\\s*video|official\\s*audio|audio\\s*oficial|video\\s*oficial|visualizer|hd|hq|4k)\\)?", "")
-                    .replaceAll("\\s*[\\[({].*?[\\])}]\\s*$", "")
-                    .trim();
-
-            return ResponseEntity.ok(Map.of(
-                    "found", true,
-                    "title", parsedTitle,
-                    "artist", parsedArtist,
-                    "videoId", videoId,
-                    "channelName", channelName,
-                    "rawTitle", rawTitle
-            ));
+            return ResponseEntity.ok(musicService.lookupYoutubeMetadataMap(query));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Error al buscar en YouTube: " + e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Rellenar metadatos masivamente desde YouTube via yt-dlp")
+    @PostMapping("/youtube-metadata/bulk")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> fillYoutubeMetadataBulk(@RequestParam Long pathId,
+                                                     @RequestParam(required = false) String subPath,
+                                                     @RequestParam(defaultValue = "50") int limit,
+                                                     @RequestParam(defaultValue = "true") boolean onlyMissing) {
+        try {
+            return ResponseEntity.ok(musicService.fillYoutubeMetadataBulk(pathId, subPath, limit, onlyMissing));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
