@@ -109,8 +109,6 @@ public class MusicService {
     }
 
     public Map<String, Object> getLibraryOverview(Long pathId, int limit) {
-        startLibraryIndex(pathId);
-
         List<MusicMetadataDto> tracks = metadataCacheRepo.findByNasPathId(pathId).stream()
                 .sorted(Comparator
                         .comparing((TrackMetadataCache c) -> safeLower(c.getArtist()))
@@ -119,6 +117,10 @@ public class MusicService {
                 .limit(Math.max(1, limit))
                 .map(this::dtoFromCache)
                 .collect(Collectors.toList());
+
+        if (tracks.isEmpty()) {
+            startLibraryIndex(pathId);
+        }
 
         return Map.of(
                 "tracks", tracks,
