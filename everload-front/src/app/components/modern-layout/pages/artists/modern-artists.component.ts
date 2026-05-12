@@ -58,7 +58,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
       next: ({ overview, profiles }) => {
         const tracks = overview.tracks || [];
         if (this.indexPoll) clearTimeout(this.indexPoll);
-        if (overview.indexing) {
+        if (overview.indexing && tracks.length === 0) {
           this.indexPoll = setTimeout(() => this.load(pathId), 6000);
         }
         const map = new Map<string, ArtistGroup>();
