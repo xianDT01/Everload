@@ -11,6 +11,7 @@ interface ArtistGroup {
   albumCount: number;
   profile?: ArtistProfileDto;
   imageUrl?: string;
+  autoImageUrl?: string;
 }
 
 @Component({
@@ -119,6 +120,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
       group.albumCount = new Set(group.tracks.map(t => t.album).filter(Boolean)).size;
     });
     this.artists = Array.from(map.values()).sort((a, b) => a.artist.localeCompare(b.artist));
+    this.resolveAutoArtistImages();
     this.loading = false;
   }
 
@@ -186,7 +188,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   cover(g: ArtistGroup): string {
-    return g.imageUrl || '';
+    return g.imageUrl || g.autoImageUrl || '';
   }
 
   play(g: ArtistGroup) {
@@ -301,6 +303,22 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   private profileImage(profile?: ArtistProfileDto): string {
     if (!profile?.imageUrl) return '';
     return profile.imageUrl.startsWith('http') ? profile.imageUrl : `${this.music.BASE}${profile.imageUrl}`;
+  }
+
+  private resolveAutoArtistImages() {
+    this.artists
+      .filter(artist => !artist.imageUrl && artist.tracks.length > 0)
+      .slice(0, 120)
+      .forEach(artist => {
+        this.music.getArtistImage(artist.artist).subscribe({
+          next: result => {
+            if (result.found && result.imageUrl && !artist.imageUrl) {
+              artist.autoImageUrl = result.imageUrl;
+            }
+          },
+          error: () => {}
+        });
+      });
   }
 
   private profileKeys(profile: ArtistProfileDto): string[] {

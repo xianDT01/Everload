@@ -42,6 +42,11 @@ export interface LibraryOverviewDto {
   indexing: boolean;
 }
 
+export interface ArtistImageLookupDto {
+  found: boolean;
+  imageUrl?: string;
+}
+
 export interface PlayerState {
   playing: boolean;
   currentTime: number;
@@ -839,6 +844,7 @@ export class MusicService {
   globalPlayerHidden = false;
 
   coverOverrideMap = new Map<string, string>();
+  private artistImageCache = new Map<string, string | null>();
   /** Emite el trackPath cada vez que se guarda una portada nueva (iTunes o manual) */
   readonly coverReady$ = new Subject<string>();
   /** Términos ya buscados esta sesión (evita duplicados en memoria) */
@@ -848,6 +854,7 @@ export class MusicService {
   private folderCoverBust = new Map<string, number>();
   private static readonly COVER_CACHE_KEY = 'ev_covers_v2';
   private static readonly COVER_NOT_FOUND_KEY = 'ev_covers_nf_v1';
+  private static readonly ARTIST_IMAGE_CACHE_KEY = 'ev_artist_images_v1';
 
   crossfadeDuration = 0; // seconds, 0 = disabled
   private crossfadeTriggeredForPath: string | null = null;
@@ -875,6 +882,12 @@ export class MusicService {
     try {
       const nf = JSON.parse(localStorage.getItem(MusicService.COVER_NOT_FOUND_KEY) || '[]');
       (nf as string[]).forEach(p => this.itunesNotFoundPaths.add(p));
+    } catch {}
+    try {
+      const artistImages = JSON.parse(localStorage.getItem(MusicService.ARTIST_IMAGE_CACHE_KEY) || '{}');
+      Object.entries(artistImages).forEach(([artist, url]) => {
+        this.artistImageCache.set(artist, typeof url === 'string' && url ? url : null);
+      });
     } catch {}
 
     // Auto-advance queue when main player track ends naturally
@@ -1328,6 +1341,42 @@ export class MusicService {
     const params = new URLSearchParams({ pathId: String(pathId), artist, limit: String(limit) });
     aliases.filter(Boolean).forEach(alias => params.append('aliases', alias));
     return this.http.get<MusicMetadataDto[]>(`${this.api}/artist-tracks?${params}`);
+  }
+
+  getArtistImage(artist: string): Observable<ArtistImageLookupDto> {
+    const key = this.artistImageKey(artist);
+    if (!key) return of({ found: false });
+    if (this.artistImageCache.has(key)) {
+      const imageUrl = this.artistImageCache.get(key);
+      return of(imageUrl ? { found: true, imageUrl } : { found: false });
+    }
+    return this.http.get<ArtistImageLookupDto>(`${this.api}/artist-image?artist=${encodeURIComponent(artist)}`).pipe(
+      tap(result => {
+        this.artistImageCache.set(key, result.found && result.imageUrl ? result.imageUrl : null);
+        this.persistArtistImageCache();
+      })
+    );
+  }
+
+  private artistImageKey(value: string): string {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private persistArtistImageCache(): void {
+    try {
+      const obj: Record<string, string> = {};
+      this.artistImageCache.forEach((url, artist) => {
+        obj[artist] = url || '';
+      });
+      localStorage.setItem(MusicService.ARTIST_IMAGE_CACHE_KEY, JSON.stringify(obj));
+    } catch {}
   }
 
   searchYouTube(query: string, maxResults = 8): Observable<any> {

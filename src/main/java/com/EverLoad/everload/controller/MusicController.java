@@ -97,6 +97,20 @@ public class MusicController {
         }
     }
 
+    @Operation(summary = "Buscar imagen automática de artista")
+    @GetMapping("/artist-image")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> artistImage(@RequestParam String artist) {
+        if (artist == null || artist.isBlank() || artist.length() > 160) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Artista inválido"));
+        }
+        try {
+            return ResponseEntity.ok(musicService.lookupArtistImage(artist));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("found", false));
+        }
+    }
+
     @Operation(summary = "Listar archivos de audio con metadatos ID3 (paginado)")
     @GetMapping("/metadata")
     @PreAuthorize("isAuthenticated()")

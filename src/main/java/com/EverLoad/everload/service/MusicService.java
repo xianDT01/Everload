@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
 import java.net.URLEncoder;
@@ -44,6 +45,7 @@ public class MusicService {
     private final NasService nasService;
     private final NasPathRepository nasPathRepository;
     private final TrackMetadataCacheRepository metadataCacheRepo;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     private static final List<String> AUDIO_EXTENSIONS =
             Arrays.asList("mp3", "flac", "m4a", "wav", "ogg", "aac", "opus", "wma", "alac");
@@ -70,6 +72,7 @@ public class MusicService {
 
     private final Map<String, HlsCacheJob> hlsJobs = new ConcurrentHashMap<>();
     private final Map<String, CachedDirectoryListing> directoryListingCache = new ConcurrentHashMap<>();
+    private final Map<String, Optional<String>> artistImageLookupCache = new ConcurrentHashMap<>();
     private final Set<String> metadataWarmupInFlight = ConcurrentHashMap.newKeySet();
     private final Set<Long> libraryIndexInFlight = ConcurrentHashMap.newKeySet();
     private final ExecutorService hlsExecutor = Executors.newSingleThreadExecutor(r -> {
@@ -172,6 +175,40 @@ public class MusicService {
                 .limit(Math.max(1, limit))
                 .map(this::dtoFromCache)
                 .collect(Collectors.toList());
+    }
+
+    public Map<String, Object> lookupArtistImage(String artist) {
+        String normalized = normalizeSearchText(artist);
+        if (normalized.isBlank() || normalized.length() < 2) {
+            return Map.of("found", false);
+        }
+
+        Optional<String> cached = artistImageLookupCache.computeIfAbsent(normalized, cacheKey -> {
+            try {
+                String url = "https://api.deezer.com/search/artist?q=" + encodeUrl(artist) + "&limit=8";
+                Map<?, ?> response = restTemplate.getForObject(url, Map.class);
+                Object data = response != null ? response.get("data") : null;
+                if (!(data instanceof List<?> artists)) return Optional.empty();
+
+                for (Object item : artists) {
+                    if (!(item instanceof Map<?, ?> artistMap)) continue;
+                    String name = stringValue(artistMap.get("name"));
+                    if (!normalizeSearchText(name).equals(normalized)) continue;
+
+                    String image = firstNonBlank(
+                            stringValue(artistMap.get("picture_xl")),
+                            stringValue(artistMap.get("picture_big")),
+                            stringValue(artistMap.get("picture_medium"))
+                    );
+                    return image.isBlank() ? Optional.empty() : Optional.of(image);
+                }
+            } catch (Exception e) {}
+            return Optional.empty();
+        });
+
+        return cached
+                .<Map<String, Object>>map(url -> Map.of("found", true, "imageUrl", url))
+                .orElseGet(() -> Map.of("found", false));
     }
 
     private void indexLibrary(Long pathId, Path base) {
@@ -1192,6 +1229,17 @@ public class MusicService {
                 .filter(part -> !part.isBlank())
                 .forEach(parts::add);
         return parts.stream().distinct().collect(Collectors.toList());
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) return value;
+        }
+        return "";
     }
 
     private MusicMetadataDto dtoFromCache(TrackMetadataCache cache) {
