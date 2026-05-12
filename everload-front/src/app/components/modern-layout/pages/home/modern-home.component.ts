@@ -110,24 +110,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         // Top Artists = indexed artists + manual profiles
         const artistMap = new Map<string, ArtistCard>();
         tracks.forEach(t => {
-          const rawArtist = (t.artist || '').trim();
-          if (!rawArtist) return;
-          const profile = this.findProfileForArtist(rawArtist, profileByKey);
-          const displayName = profile?.name || rawArtist;
-          const key = this.key(displayName);
-          if (!artistMap.has(key)) {
-            artistMap.set(key, {
-              artist: displayName,
-              track: t,
-              pathId: t.nasPathId ?? pathId,
-              tracks: [t],
-              profile,
-              imageUrl: this.profileImage(profile)
-            });
-          } else {
-            const card = artistMap.get(key)!;
-            if (!card.tracks.some(existing => existing.path === t.path)) card.tracks.push(t);
-          }
+          this.artistDisplayParts(t.artist || '').forEach(artistName => {
+            const profile = this.findProfileForArtist(artistName, profileByKey);
+            this.addArtistTrack(artistMap, t.nasPathId ?? pathId, profile?.name || artistName, t, profile);
+          });
         });
         profiles.forEach(profile => {
           const key = this.key(profile.name);
@@ -227,6 +213,51 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     }
 
     return undefined;
+  }
+
+  private addArtistTrack(
+    map: Map<string, ArtistCard>,
+    pathId: number,
+    artist: string,
+    track: MusicMetadataDto,
+    profile?: ArtistProfileDto
+  ) {
+    const displayName = artist.trim();
+    if (!displayName) return;
+    const key = this.key(displayName);
+    if (!map.has(key)) {
+      map.set(key, {
+        artist: displayName,
+        track,
+        pathId,
+        tracks: [track],
+        profile,
+        imageUrl: this.profileImage(profile)
+      });
+      return;
+    }
+
+    const card = map.get(key)!;
+    if (!card.tracks.some(existing => existing.path === track.path)) card.tracks.push(track);
+    if (profile && !card.profile) {
+      card.profile = profile;
+      card.imageUrl = this.profileImage(profile);
+    }
+  }
+
+  private artistDisplayParts(value: string): string[] {
+    const raw = (value || '').trim();
+    if (!raw) return [];
+    const parts = raw
+      .split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b|\bcon\b|\band\b| y )\s*/i)
+      .map(part => part.trim())
+      .filter(Boolean);
+    const unique = new Map<string, string>();
+    (parts.length ? parts : [raw]).forEach(part => {
+      const key = this.key(part);
+      if (key && !unique.has(key)) unique.set(key, part);
+    });
+    return Array.from(unique.values());
   }
 
   coverFor(t: MusicMetadataDto, pid: number): string {

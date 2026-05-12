@@ -69,25 +69,10 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
         });
 
         tracks.forEach(t => {
-          const rawArtist = (t.artist || '').trim() || 'Desconocido';
-          const profile = this.findProfileForArtist(rawArtist, profileByKey);
-          const displayName = profile?.name || rawArtist;
-          const key = this.key(displayName);
-          if (!map.has(key)) {
-            map.set(key, {
-              artist: displayName,
-              tracks: [t],
-              cover: t,
-              pathId,
-              albumCount: t.album ? 1 : 0,
-              profile,
-              imageUrl: this.profileImage(profile)
-            });
-          } else {
-            const g = map.get(key)!;
-            g.tracks.push(t);
-            if (t.album && !g.tracks.some(x => x.album === t.album)) g.albumCount++;
-          }
+          this.artistDisplayParts(t.artist || '').forEach(artistName => {
+            const profile = this.findProfileForArtist(artistName, profileByKey);
+            this.addTrackToGroup(map, pathId, profile?.name || artistName, t, profile);
+          });
         });
 
         profiles.forEach(profile => {
@@ -135,6 +120,38 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     });
     this.artists = Array.from(map.values()).sort((a, b) => a.artist.localeCompare(b.artist));
     this.loading = false;
+  }
+
+  private addTrackToGroup(
+    map: Map<string, ArtistGroup>,
+    pathId: number,
+    artist: string,
+    track: MusicMetadataDto,
+    profile?: ArtistProfileDto
+  ) {
+    const displayName = artist.trim() || 'Desconocido';
+    const key = this.key(displayName);
+    if (!map.has(key)) {
+      map.set(key, {
+        artist: displayName,
+        tracks: [track],
+        cover: track,
+        pathId,
+        albumCount: track.album ? 1 : 0,
+        profile,
+        imageUrl: this.profileImage(profile)
+      });
+      return;
+    }
+
+    const group = map.get(key)!;
+    if (group.tracks.some(existing => existing.path === track.path)) return;
+    group.tracks.push(track);
+    if (!group.cover) group.cover = track;
+    if (profile && !group.profile) {
+      group.profile = profile;
+      group.imageUrl = this.profileImage(profile);
+    }
   }
 
   private searchProfileTracks(pathId: number, profile: ArtistProfileDto) {
@@ -307,6 +324,21 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     }
 
     return undefined;
+  }
+
+  private artistDisplayParts(value: string): string[] {
+    const raw = (value || '').trim();
+    if (!raw) return ['Desconocido'];
+    const parts = raw
+      .split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b|\bcon\b|\band\b| y )\s*/i)
+      .map(part => part.trim())
+      .filter(Boolean);
+    const unique = new Map<string, string>();
+    (parts.length ? parts : [raw]).forEach(part => {
+      const key = this.key(part);
+      if (key && !unique.has(key)) unique.set(key, part);
+    });
+    return Array.from(unique.values());
   }
 
   private key(value: string): string {
