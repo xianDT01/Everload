@@ -45,14 +45,17 @@
   height: 140px;
   border-radius: 50%;
   overflow: hidden;
-  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+  background:
+    radial-gradient(circle at 35% 24%, color-mix(in srgb, var(--ml-accent, var(--color-indigo-500)) 24%, transparent), transparent 32%),
+    color-mix(in srgb, var(--color-white) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ml-accent, var(--color-indigo-500)) 14%, transparent);
   margin: 0 auto 12px;
   transition: transform 0.2s;
 }
 
 .mart-card:hover .mart-circle { transform: scale(1.04); }
 
-.mart-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mart-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
 .mart-fallback {
   position: absolute;
   inset: 0;

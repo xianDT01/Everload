@@ -294,7 +294,10 @@
   height: 126px;
   border-radius: 50%;
   overflow: hidden;
-  background: var(--ml-card);
+  background:
+    radial-gradient(circle at 35% 24%, color-mix(in srgb, var(--ml-accent) 24%, transparent), transparent 32%),
+    color-mix(in srgb, var(--ml-card) 92%, var(--ml-accent) 8%);
+  border: 1px solid color-mix(in srgb, var(--ml-accent) 14%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -309,6 +312,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  z-index: 1;
 }
 
 .mh-artist-fallback {
