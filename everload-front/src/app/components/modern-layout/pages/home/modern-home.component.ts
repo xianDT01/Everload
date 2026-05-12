@@ -18,6 +18,7 @@ interface ArtistCard {
   tracks: MusicMetadataDto[];
   profile?: ArtistProfileDto;
   imageUrl?: string;
+  autoImageUrl?: string;
 }
 
 @Component({
@@ -136,6 +137,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         this.topArtists = Array.from(artistMap.values())
           .sort((a, b) => b.tracks.length - a.tracks.length || a.artist.localeCompare(b.artist))
           .slice(0, 14);
+        this.resolveAutoArtistImages();
         this.loading = false;
 
         const exploreMap = new Map<string, AlbumCard>();
@@ -196,6 +198,21 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   private profileImage(profile?: ArtistProfileDto): string {
     if (!profile?.imageUrl) return '';
     return profile.imageUrl.startsWith('http') ? profile.imageUrl : `${this.music.BASE}${profile.imageUrl}`;
+  }
+
+  private resolveAutoArtistImages() {
+    this.topArtists
+      .filter(artist => !artist.imageUrl && artist.tracks.length > 0)
+      .forEach(artist => {
+        this.music.getArtistImage(artist.artist).subscribe({
+          next: result => {
+            if (result.found && result.imageUrl && !artist.imageUrl) {
+              artist.autoImageUrl = result.imageUrl;
+            }
+          },
+          error: () => {}
+        });
+      });
   }
 
   private profileKeys(profile: ArtistProfileDto): string[] {
