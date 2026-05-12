@@ -186,8 +186,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   cover(g: ArtistGroup): string {
-    if (g.imageUrl) return g.imageUrl;
-    return g.cover ? this.music.getCoverUrlWithCache(g.pathId, g.cover.path, g.cover.source) : '';
+    return g.imageUrl || '';
   }
 
   play(g: ArtistGroup) {
