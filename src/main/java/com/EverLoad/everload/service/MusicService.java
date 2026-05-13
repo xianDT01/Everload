@@ -179,7 +179,7 @@ public class MusicService {
 
     public Map<String, Object> lookupArtistImage(String artist) {
         String normalized = normalizeSearchText(artist);
-        if (normalized.isBlank() || normalized.length() < 2) {
+        if (normalized.isBlank() || normalized.length() < 2 || isSuspiciousArtistName(normalized)) {
             return Map.of("found", false);
         }
 
@@ -858,13 +858,14 @@ public class MusicService {
                 String existingArtist = Optional.ofNullable(tag.getFirst(FieldKey.ARTIST)).orElse("");
                 String existingAlbum = Optional.ofNullable(tag.getFirst(FieldKey.ALBUM)).orElse("");
 
-                if (onlyMissing && !existingTitle.isBlank() && !existingArtist.isBlank() && !existingAlbum.isBlank()) {
+                boolean suspiciousArtist = isSuspiciousArtistName(existingArtist);
+                if (onlyMissing && !existingTitle.isBlank() && !existingArtist.isBlank() && !suspiciousArtist && !existingAlbum.isBlank()) {
                     skipped++;
                     continue;
                 }
 
                 String query = !existingTitle.isBlank()
-                        ? (existingArtist.isBlank() ? existingTitle : existingArtist + " " + existingTitle)
+                        ? ((existingArtist.isBlank() || suspiciousArtist) ? existingTitle : existingArtist + " " + existingTitle)
                         : stripExtension(file.getName());
                 YoutubeMetadata metadata = lookupYoutubeMetadata(query);
                 if (metadata == null || metadata.title().isBlank()) {
@@ -877,7 +878,7 @@ public class MusicService {
                     tag.setField(FieldKey.TITLE, metadata.title());
                     changed = true;
                 }
-                if (!onlyMissing || existingArtist.isBlank()) {
+                if (!onlyMissing || existingArtist.isBlank() || suspiciousArtist) {
                     tag.setField(FieldKey.ARTIST, metadata.artist());
                     changed = true;
                 }
@@ -995,10 +996,22 @@ public class MusicService {
 
     private String cleanYoutubeArtist(String artist) {
         if (artist == null) return "";
-        return artist
+        String cleaned = artist
                 .replaceAll("(?i)\\s*-?\\s*(topic|official|vevo|music)$", "")
+                .replaceAll("(?i)\\s*(official\\s*)?(youtube\\s*)?channel$", "")
                 .replaceAll("\\s+", " ")
                 .trim();
+        return isSuspiciousArtistName(cleaned) ? "" : cleaned;
+    }
+
+    private boolean isSuspiciousArtistName(String artist) {
+        String normalized = normalizeSearchText(artist);
+        if (normalized.isBlank()) return true;
+        return normalized.matches(".*\\b(clean edit|audio edit|extended edit|radio edit|lyrics?|lyric video)\\b.*")
+                || normalized.matches(".*\\b(vevo|official|topic|records|recordings|music tv|musictv|entertainment|official channel)\\b.*")
+                || normalized.equals("dj clean edit")
+                || normalized.equals("unknown")
+                || normalized.equals("desconocido");
     }
 
     private void updateMetadataCache(Long pathId, String relativePath, File file, String title, String artist, String album, String year, AudioFile af) {
