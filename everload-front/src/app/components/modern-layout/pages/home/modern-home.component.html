@@ -45,11 +45,11 @@
     <div class="mh-section-head">
       <h2 class="mh-h2">Top Artists</h2>
       <div class="mh-section-arrows">
-        <button type="button" title="Previous"><svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg></button>
-        <button type="button" title="Next"><svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg></button>
+        <button type="button" title="Previous" (click)="scrollArtists(-1)"><svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg></button>
+        <button type="button" title="Next" (click)="scrollArtists(1)"><svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg></button>
       </div>
     </div>
-    <div class="mh-artists-row">
+    <div class="mh-artists-row" #artistsRow>
       <div class="mh-artist" *ngFor="let a of topArtists" (click)="openArtist(a)" title="Ver canciones del artista">
         <div class="mh-artist-circle">
           <img *ngIf="a.imageUrl || a.autoImageUrl"

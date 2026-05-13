@@ -258,5 +258,50 @@
       </section>
 
     </div>
+
+    <!-- ── Listen Now ── -->
+    <div class="home-music-sections" *ngIf="hasNasAccess && !musicLoading && (listenNow.length || topArtists.length)">
+
+      <section class="hm-section" *ngIf="listenNow.length">
+        <h2 class="hm-h2">Listen now</h2>
+        <div class="hm-listen-grid">
+          <div class="hm-listen-card" *ngFor="let card of listenNow" (click)="playAlbum(card)">
+            <div class="hm-listen-cover">
+              <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" />
+            </div>
+            <div class="hm-listen-meta">
+              <span class="hm-listen-title">{{ card.album }}</span>
+              <span class="hm-listen-artist">{{ card.artist }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Top Artists ── -->
+      <section class="hm-section" *ngIf="topArtists.length">
+        <div class="hm-section-head">
+          <h2 class="hm-h2">Top Artists</h2>
+          <div class="hm-arrows">
+            <button type="button" (click)="scrollArtists(-1)"><svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg></button>
+            <button type="button" (click)="scrollArtists(1)"><svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg></button>
+          </div>
+        </div>
+        <div class="hm-artists-row" #artistsRow>
+          <div class="hm-artist" *ngFor="let a of topArtists" (click)="openArtistTracks(a)" title="{{ a.artist }}">
+            <div class="hm-artist-circle">
+              <img *ngIf="a.imageUrl || a.autoImageUrl"
+                   [src]="a.imageUrl || a.autoImageUrl"
+                   (error)="$any($event.target).style.display='none'" />
+              <span class="hm-artist-fallback">
+                <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
+              </span>
+            </div>
+            <span class="hm-artist-name">{{ a.artist }}</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
   </main>
 </div>

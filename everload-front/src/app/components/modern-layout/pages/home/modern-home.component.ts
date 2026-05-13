@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { forkJoin, Subscription } from 'rxjs';
 import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
@@ -38,6 +38,8 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   loading = true;
   private sub!: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
+
+  @ViewChild('artistsRow') artistsRowRef?: ElementRef<HTMLElement>;
 
   constructor(public music: MusicService, private state: ModernStateService) {}
 
@@ -352,6 +354,11 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       .map(part => this.key(part))
       .filter(Boolean);
     return Array.from(new Set([full, ...parts].filter(Boolean)));
+  }
+
+  scrollArtists(dir: 1 | -1) {
+    const el = this.artistsRowRef?.nativeElement;
+    if (el) el.scrollBy({ left: dir * 220, behavior: 'smooth' });
   }
 
   private key(value: string): string {
