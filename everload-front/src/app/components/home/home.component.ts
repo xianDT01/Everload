@@ -1,11 +1,10 @@
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
-import { forkJoin, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { AuthService, AuthResponse } from '../../services/auth.service';
 import { ChatService } from '../../services/chat.service';
-import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../services/music.service';
-import { NasService } from '../../services/nas.service';
+import { MusicService, MusicMetadataDto } from '../../services/music.service';
 
 @Component({
   selector: 'app-home',
@@ -15,7 +14,6 @@ import { NasService } from '../../services/nas.service';
 export class HomeComponent implements OnInit, OnDestroy {
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
-  @ViewChild('artistsRow') artistsRowRef?: ElementRef<HTMLElement>;
 
   menuOpen = false;
   currentUser: AuthResponse | null = null;
@@ -26,11 +24,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   unreadCount = 0;
   randomTracks: MusicMetadataDto[] = [];
 
-  // Music sections
-  listenNow: { album: string; artist: string; track: MusicMetadataDto; pathId: number }[] = [];
-  topArtists: { artist: string; pathId: number; imageUrl?: string; autoImageUrl?: string; profile?: ArtistProfileDto; tracks: MusicMetadataDto[] }[] = [];
-  musicLoading = false;
-
   private subs: Subscription[] = [];
 
   constructor(
@@ -38,8 +31,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     public authService: AuthService,
     private router: Router,
     public chatService: ChatService,
-    public musicService: MusicService,
-    private nasService: NasService,
+    public musicService: MusicService
   ) {
     // Language is configured by APP_INITIALIZER in app.module.ts.
     // Do NOT call setDefaultLang() here — it would override the initializer
@@ -60,108 +52,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.hasNasAccess) {
       this.musicService.getRandomTracks(3).subscribe({
         next: tracks => this.randomTracks = tracks,
-        error: () => {}
+        error: () => {} // silent — home page shows fine without it
       });
-      this.loadMusicSections();
     }
   }
 
   ngOnDestroy(): void {
     this.subs.forEach(s => s.unsubscribe());
-  }
-
-  private loadMusicSections() {
-    this.musicLoading = true;
-    this.nasService.getPaths().subscribe({
-      next: paths => {
-        const path = paths.find(p => p.readable);
-        if (!path) { this.musicLoading = false; return; }
-        const pathId = path.id;
-        forkJoin({
-          history: this.musicService.getHistory(24),
-          overview: this.musicService.getLibraryOverview(pathId, 3000),
-          profiles: this.musicService.getArtistProfiles(),
-        }).subscribe({
-          next: ({ history, overview, profiles }) => {
-            const tracks = overview.tracks || [];
-            // Listen Now — unique albums from history
-            const albumMap = new Map<string, any>();
-            (history || []).forEach((h: any) => {
-              const key = (h.album || h.title || '').trim();
-              if (key && !albumMap.has(key)) {
-                const t: MusicMetadataDto = { name: h.title, path: h.trackPath, directory: false, size: 0, lastModified: '', title: h.title, artist: h.artist, album: h.album, duration: 0, format: '', hasCover: false, bpm: 0, source: 'nas', nasPathId: h.nasPathId ?? pathId };
-                albumMap.set(key, { album: h.album || h.title, artist: h.artist, track: t, pathId: h.nasPathId ?? pathId });
-              }
-            });
-            tracks.forEach(t => {
-              const key = (t.album || t.title || '').trim();
-              if (key && !albumMap.has(key)) albumMap.set(key, { album: t.album || t.title, artist: t.artist, track: t, pathId: t.nasPathId ?? pathId });
-            });
-            this.listenNow = Array.from(albumMap.values()).slice(0, 8);
-            // Top Artists
-            const profileByKey = new Map<string, ArtistProfileDto>();
-            profiles.forEach(p => {
-              [p.name, ...(p.aliases || '').split(/[\n,]+/).map((a: string) => a.trim()).filter(Boolean)]
-                .forEach(n => profileByKey.set(this.normalizeKey(n), p));
-            });
-            const artistMap = new Map<string, any>();
-            tracks.forEach(t => {
-              const parts = (t.artist || '').split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b)\s*/i).map((s: string) => s.trim()).filter(Boolean);
-              (parts.length ? parts : [t.artist || '']).forEach(name => {
-                if (!name) return;
-                const key = this.normalizeKey(name);
-                const profile = profileByKey.get(key);
-                if (!artistMap.has(key)) {
-                  artistMap.set(key, { artist: profile?.name || name, pathId: t.nasPathId ?? pathId, tracks: [t], profile, imageUrl: profile?.imageUrl ? (profile.imageUrl.startsWith('http') ? profile.imageUrl : `${this.musicService.BASE}${profile.imageUrl}`) : undefined });
-                } else {
-                  artistMap.get(key).tracks.push(t);
-                }
-              });
-            });
-            profiles.forEach(p => {
-              const key = this.normalizeKey(p.name);
-              if (!artistMap.has(key)) artistMap.set(key, { artist: p.name, pathId, tracks: [], profile: p, imageUrl: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${this.musicService.BASE}${p.imageUrl}`) : undefined });
-            });
-            this.topArtists = Array.from(artistMap.values()).sort((a, b) => b.tracks.length - a.tracks.length).slice(0, 14);
-            this.resolveAutoImages();
-            this.musicLoading = false;
-          },
-          error: () => { this.musicLoading = false; }
-        });
-      },
-      error: () => { this.musicLoading = false; }
-    });
-  }
-
-  private resolveAutoImages() {
-    this.topArtists.filter(a => !a.imageUrl && a.tracks.length).forEach(a => {
-      this.musicService.getArtistImage(a.artist).subscribe({
-        next: (r: any) => { if (r.found && r.imageUrl && !a.imageUrl) a.autoImageUrl = r.imageUrl; },
-        error: () => {}
-      });
-    });
-  }
-
-  private normalizeKey(v: string): string {
-    return (v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  }
-
-  coverFor(t: MusicMetadataDto, pathId: number): string {
-    return this.musicService.getCoverUrlWithCache(pathId, t.path, t.source);
-  }
-
-  playAlbum(card: any) {
-    this.musicService.mainPlayer.load(card.track, card.pathId).then(() => this.musicService.mainPlayer.play());
-  }
-
-  openArtistTracks(artist: any) {
-    const aliases = (artist.profile?.aliases || '').split(/[\n,]+/).map((a: string) => a.trim()).filter(Boolean);
-    this.musicService.setQueue(artist.pathId, artist.tracks.length ? artist.tracks : [], 0);
-  }
-
-  scrollArtists(dir: 1 | -1) {
-    const el = this.artistsRowRef?.nativeElement;
-    if (el) el.scrollBy({ left: dir * 220, behavior: 'smooth' });
   }
 
   get isAdmin(): boolean { return this.authService.isAdmin(); }
