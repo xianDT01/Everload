@@ -43,9 +43,9 @@ RUN ./mvnw clean package -DskipTests || mvn clean package -DskipTests
 FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
-# Instala yt-dlp + ffmpeg + python3 + chromaprint (fpcalc para AcoustID)
+# Instala yt-dlp + ffmpeg + python3 + node.js (runtime JS para yt-dlp) + chromaprint
 RUN apt-get update && \
-    apt-get install -y wget ffmpeg python3 libchromaprint-tools && \
+    apt-get install -y wget ffmpeg python3 nodejs libchromaprint-tools && \
     wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp && \
