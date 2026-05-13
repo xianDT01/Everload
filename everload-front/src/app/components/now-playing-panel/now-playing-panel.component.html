@@ -253,6 +253,7 @@
       <button [class.active]="musicManagerTab === 'history'" (click)="musicManagerTab = 'history'; loadMusicHistory()">{{ 'WINDOWS.MANAGER_HISTORY' | translate }}</button>
       <button [class.active]="musicManagerTab === 'stats'" (click)="musicManagerTab = 'stats'; loadStats()">{{ 'WINDOWS.MANAGER_STATS' | translate }}</button>
       <button [class.active]="musicManagerTab === 'playlists'" (click)="musicManagerTab = 'playlists'; loadPlaylists()">{{ 'MUSIC.PLAYLISTS' | translate }}</button>
+      <button [class.active]="musicManagerTab === 'review'" (click)="musicManagerTab = 'review'; loadMetadataReview()">Revisión</button>
     </div>
     <div class="np-music-manager-body">
       <section class="np-manager-pane" *ngIf="musicManagerTab === 'properties'">
@@ -439,6 +440,35 @@
         <ng-container *ngIf="!statsLoading && !statsData">
           <div class="np-manager-empty">{{ 'WINDOWS.MANAGER_EMPTY_HISTORY' | translate }}</div>
         </ng-container>
+      </section>
+
+      <section class="np-manager-pane" *ngIf="musicManagerTab === 'review'">
+        <div class="np-manager-toolbar">
+          <strong>Revisión de metadatos</strong>
+          <button (click)="loadMetadataReview()" [disabled]="metadataReviewLoading">{{ metadataReviewLoading ? '...' : ('ADMIN.REFRESH' | translate) }}</button>
+        </div>
+        <div class="np-manager-empty" *ngIf="metadataReviewStatus">{{ metadataReviewStatus }}</div>
+        <div class="np-review-list" *ngIf="metadataReviewItems.length">
+          <div class="np-review-row" *ngFor="let item of metadataReviewItems" [class.saved]="item.status === 'saved'" [class.rejected]="item.status === 'rejected'">
+            <div class="np-review-main">
+              <strong>{{ item.track.title || item.track.name }}</strong>
+              <small>{{ item.track.artist || 'Sin artista' }} · {{ item.track.album || 'Sin álbum' }}</small>
+              <em>{{ item.reason || (item.status === 'saved' ? 'Guardado' : item.status === 'rejected' ? 'Omitido' : '') }}</em>
+            </div>
+            <div class="np-review-suggestion" *ngIf="item.suggestion">
+              <span>{{ item.suggestion.title || '-' }}</span>
+              <span>{{ item.suggestion.artist || '-' }}</span>
+              <span>{{ item.suggestion.album || '-' }}</span>
+            </div>
+            <div class="np-review-actions">
+              <button (click)="previewReviewMetadata(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">
+                {{ item.status === 'loading' ? '...' : item.suggestion ? 'Buscar otra vez' : 'Previsualizar' }}
+              </button>
+              <button class="accept" (click)="acceptReviewMetadata(item)" [disabled]="!item.suggestion || item.status === 'loading' || item.status === 'saved'">Sí, guardar</button>
+              <button class="reject" (click)="rejectReviewMetadata(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">No</button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- ── Playlists tab ── -->

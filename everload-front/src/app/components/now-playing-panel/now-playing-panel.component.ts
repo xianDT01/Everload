@@ -43,6 +43,14 @@ interface BrowserFavorite {
   url: string;
 }
 
+interface MetadataReviewItem {
+  track: MusicMetadataDto;
+  pathId: number;
+  reason: string;
+  status: 'idle' | 'loading' | 'suggested' | 'saved' | 'rejected' | 'error';
+  suggestion?: { title: string; artist: string; album: string; rawTitle?: string; channelName?: string };
+}
+
 @Component({
   selector: 'app-now-playing-panel',
   templateUrl: './now-playing-panel.component.html',
@@ -110,11 +118,14 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   explorerWindowSize = { width: 560, height: 420 };
   musicManagerWindowPosition = { x: 190, y: 96 };
   musicManagerWindowSize = { width: 760, height: 500 };
-  musicManagerTab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' = 'properties';
+  musicManagerTab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' | 'review' = 'properties';
   musicManagerStatus = '';
   historyItems: any[] = [];
   statsData: { totalPlays: number; topTracks: any[] } | null = null;
   statsLoading = false;
+  metadataReviewItems: MetadataReviewItem[] = [];
+  metadataReviewLoading = false;
+  metadataReviewStatus = '';
 
   // ── Playlists ─────────────────────────────────────────────────────────────
   playlists: any[] = [];
@@ -850,7 +861,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     });
   }
 
-  openMusicManager(tab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' = this.musicManagerTab): void {
+  openMusicManager(tab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' | 'review' = this.musicManagerTab): void {
     this.musicManagerOpen = true;
     this.musicManagerMinimized = false;
     this.musicManagerTab = tab;
@@ -859,6 +870,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (tab === 'history') this.loadMusicHistory();
     if (tab === 'stats') this.loadStats();
     if (tab === 'playlists') this.loadPlaylists();
+    if (tab === 'review') this.loadMetadataReview();
   }
 
   closeMusicManager(): void {
@@ -889,6 +901,116 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       next: pl => { this.playlists = pl; this.playlistsLoading = false; },
       error: () => { this.playlistsLoading = false; }
     });
+  }
+
+  loadMetadataReview(): void {
+    const pathId = this.state?.pathId ?? this.winampQueue.pathId;
+    if (!pathId) {
+      this.metadataReviewItems = [];
+      this.metadataReviewStatus = 'Selecciona una biblioteca o reproduce una canción del NAS.';
+      return;
+    }
+
+    this.metadataReviewLoading = true;
+    this.metadataReviewStatus = '';
+    this.musicService.getLibraryOverview(pathId, 5000).subscribe({
+      next: overview => {
+        const tracks = overview.tracks || [];
+        this.metadataReviewItems = tracks
+          .map(track => ({ track, pathId, reason: this.metadataReviewReason(track), status: 'idle' as const }))
+          .filter(item => !!item.reason)
+          .slice(0, 120);
+        this.metadataReviewStatus = this.metadataReviewItems.length
+          ? `${this.metadataReviewItems.length} canciones para revisar`
+          : 'No hay metadatos pendientes de revisar.';
+        this.metadataReviewLoading = false;
+      },
+      error: () => {
+        this.metadataReviewItems = [];
+        this.metadataReviewStatus = 'No se pudo cargar la revisión.';
+        this.metadataReviewLoading = false;
+      }
+    });
+  }
+
+  previewReviewMetadata(item: MetadataReviewItem): void {
+    const query = item.track.title || item.track.name || item.track.path;
+    if (!query || item.status === 'loading') return;
+    item.status = 'loading';
+    item.suggestion = undefined;
+    this.musicService.fetchYoutubeMetadata(query).subscribe({
+      next: res => {
+        if (res.found && res.title) {
+          item.suggestion = {
+            title: res.title || '',
+            artist: res.artist || '',
+            album: res.album || '',
+            rawTitle: res.rawTitle,
+            channelName: res.channelName
+          };
+          item.status = 'suggested';
+        } else {
+          item.status = 'error';
+        }
+      },
+      error: () => { item.status = 'error'; }
+    });
+  }
+
+  acceptReviewMetadata(item: MetadataReviewItem): void {
+    if (!item.suggestion || item.status === 'loading') return;
+    item.status = 'loading';
+    const title = item.suggestion.title || item.track.title || item.track.name || '';
+    const artist = item.suggestion.artist || item.track.artist || '';
+    const album = item.suggestion.album || item.track.album || '';
+    this.nasService.updateMetadata(item.pathId, item.track.path, title, artist, album, (item.track as any).year || '').subscribe({
+      next: () => {
+        item.track.title = title;
+        item.track.artist = artist;
+        item.track.album = album;
+        item.reason = '';
+        item.status = 'saved';
+        this.metadataReviewStatus = 'Metadatos guardados.';
+      },
+      error: () => {
+        item.status = 'error';
+        this.metadataReviewStatus = 'No se pudieron guardar esos metadatos.';
+      }
+    });
+  }
+
+  rejectReviewMetadata(item: MetadataReviewItem): void {
+    item.status = 'rejected';
+    item.suggestion = undefined;
+  }
+
+  private metadataReviewReason(track: MusicMetadataDto): string {
+    const reasons: string[] = [];
+    if (!this.cleanMeta(track.title) || this.cleanMeta(track.title) === this.cleanMeta(track.name)) reasons.push('título');
+    if (!this.cleanMeta(track.artist) || this.isSuspiciousMetadataArtist(track.artist)) reasons.push('artista');
+    if (!this.cleanMeta(track.album)) reasons.push('álbum');
+    return reasons.length ? `Falta o revisar: ${reasons.join(', ')}` : '';
+  }
+
+  private isSuspiciousMetadataArtist(value: string): boolean {
+    const key = this.cleanMeta(value);
+    if (!key) return true;
+    return /\b(clean edit|audio edit|extended edit|radio edit|lyrics?|lyric video)\b/.test(key)
+      || /\b(vevo|official|topic|records|recordings|music tv|musictv|entertainment|official channel)\b/.test(key)
+      || key === 'dj clean edit'
+      || key === 'unknown'
+      || key === 'desconocido';
+  }
+
+  private cleanMeta(value: string): string {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   createPlaylist(): void {
