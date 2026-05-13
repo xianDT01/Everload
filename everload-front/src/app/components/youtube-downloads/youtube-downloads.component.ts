@@ -290,23 +290,15 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         });
         fileSub = this.http.get(`${this.backendUrl}/downloadMusic/jobs/${job.jobId}/file`, {
           responseType: 'blob',
-          observe: 'events',
-          reportProgress: true
+          observe: 'response'
         }).subscribe({
-          next: (event: HttpEvent<any>) => {
-            if (event.type === HttpEventType.DownloadProgress) {
-              this.ngZone.run(() => {
-                const transferProgress = event.total ? Math.round((event.loaded / event.total) * 5) : 1;
-                item.progress = Math.min(99, 95 + transferProgress);
-              });
-            } else if (event.type === HttpEventType.Response) {
-              const contentDisposition = event.headers?.get('content-disposition');
-              const match = contentDisposition?.match(/filename="(.+)"/);
-              const filename = match ? match[1] : (job.filename || `${item.videoId}.mp3`);
-              completeWithBlob(event.body, filename);
-            }
+          next: (response) => {
+            const contentDisposition = response.headers?.get('content-disposition');
+            const match = contentDisposition?.match(/filename\*?=(?:UTF-8'')?["']?([^"';\n]+)/i);
+            const filename = match ? decodeURIComponent(match[1].trim()) : (job.filename || `${item.videoId}.mp3`);
+            completeWithBlob(response.body!, filename);
           },
-          error: () => fail('El archivo se preparó, pero no se pudo descargar al navegador')
+          error: (err) => fail(`El archivo se preparó, pero no se pudo descargar (${err?.status ?? 'red'})`)
         });
       };
 
