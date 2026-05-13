@@ -286,6 +286,54 @@
         </button>
       </div>
 
+      <!-- ── Listen Now / Top Artists (home + folder root) ─────────────────── -->
+      <div class="lm-music-sections"
+           *ngIf="(currentView === 'home' || (currentView === 'folder' && !currentSubPath)) && !lmMusicLoading && (lmListenNow.length || lmTopArtists.length)">
+
+        <section class="lm-section" *ngIf="lmListenNow.length">
+          <h2 class="lm-section-title">Listen now</h2>
+          <div class="lm-listen-grid">
+            <div class="lm-listen-card" *ngFor="let card of lmListenNow" (click)="lmPlayAlbum(card)">
+              <div class="lm-listen-cover">
+                <img [src]="lmCoverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" />
+              </div>
+              <div class="lm-listen-meta">
+                <span class="lm-listen-title">{{ card.album }}</span>
+                <span class="lm-listen-artist">{{ card.artist }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="lm-section" *ngIf="lmTopArtists.length">
+          <div class="lm-section-head">
+            <h2 class="lm-section-title">Top Artists</h2>
+            <div class="lm-section-arrows">
+              <button type="button" (click)="lmScrollArtists(-1)">
+                <svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg>
+              </button>
+              <button type="button" (click)="lmScrollArtists(1)">
+                <svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="lm-artists-row" #lmArtistsRow>
+            <div class="lm-artist" *ngFor="let a of lmTopArtists" (click)="lmOpenArtist(a)" [title]="a.artist">
+              <div class="lm-artist-circle">
+                <img *ngIf="a.imageUrl || a.autoImageUrl"
+                     [src]="a.imageUrl || a.autoImageUrl"
+                     (error)="$any($event.target).style.display='none'" />
+                <span class="lm-artist-fallback">
+                  <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
+                </span>
+              </div>
+              <span class="lm-artist-name">{{ a.artist }}</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
       <!-- Gradient header (hidden at folder root where banners are shown) -->
       <div class="content-header" *ngIf="currentView === 'liked' || currentView === 'history' || (currentView === 'folder' && currentSubPath)" [style.background]="headerGradient">
         <div class="content-header-bg"></div>

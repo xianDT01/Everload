@@ -1,8 +1,8 @@
 import { ChangeDetectorRef, Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { HttpEventType } from '@angular/common/http';
-import { Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import { NasPath, NasService } from '../../../services/nas.service';
-import { MusicMetadataDto, MusicService, PagedMusicResult, PlayerState } from '../../../services/music.service';
+import { ArtistProfileDto, MusicMetadataDto, MusicService, PagedMusicResult, PlayerState } from '../../../services/music.service';
 import { AuthService } from '../../../services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -837,6 +837,12 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadingAllPages = false;
   private intersectionObserver?: IntersectionObserver;
   @ViewChild('tracksEndSentinel') tracksEndSentinel?: ElementRef;
+  @ViewChild('lmArtistsRow') lmArtistsRowRef?: ElementRef<HTMLElement>;
+
+  // ── Listen Now / Top Artists ──────────────────────────────────────────────
+  lmListenNow: { album: string; artist: string; track: MusicMetadataDto; pathId: number }[] = [];
+  lmTopArtists: { artist: string; pathId: number; imageUrl?: string; autoImageUrl?: string; profile?: ArtistProfileDto; tracks: MusicMetadataDto[] }[] = [];
+  lmMusicLoading = false;
 
   private uploadSub?: Subscription;
   private subs: Subscription[] = [];
@@ -863,6 +869,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.paths = paths;
       if (paths.length > 0) this.selectPath(paths[0].id);
       else this.setView('home');
+      this.lmLoadMusicSections(paths);
     });
     this.loadRandomBanners();
 
@@ -2048,5 +2055,94 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Listen Now / Top Artists ──────────────────────────────────────────────
+
+  lmLoadMusicSections(paths: NasPath[]) {
+    const path = paths.find(p => p.readable);
+    if (!path) return;
+    const pathId = path.id;
+    this.lmMusicLoading = true;
+    forkJoin({
+      history: this.musicService.getHistory(24),
+      overview: this.musicService.getLibraryOverview(pathId, 3000),
+      profiles: this.musicService.getArtistProfiles(),
+    }).subscribe({
+      next: ({ history, overview, profiles }) => {
+        const tracks = overview.tracks || [];
+        const albumMap = new Map<string, any>();
+        (history || []).forEach((h: any) => {
+          const key = (h.album || h.title || '').trim();
+          if (key && !albumMap.has(key)) {
+            const t: MusicMetadataDto = { name: h.title, path: h.trackPath, directory: false, size: 0, lastModified: '', title: h.title, artist: h.artist, album: h.album, duration: 0, format: '', hasCover: false, bpm: 0, source: 'nas', nasPathId: h.nasPathId ?? pathId };
+            albumMap.set(key, { album: h.album || h.title, artist: h.artist, track: t, pathId: h.nasPathId ?? pathId });
+          }
+        });
+        tracks.forEach(t => {
+          const key = (t.album || t.title || '').trim();
+          if (key && !albumMap.has(key)) albumMap.set(key, { album: t.album || t.title, artist: t.artist, track: t, pathId: t.nasPathId ?? pathId });
+        });
+        this.lmListenNow = Array.from(albumMap.values()).slice(0, 8);
+
+        const profileByKey = new Map<string, ArtistProfileDto>();
+        profiles.forEach(p => {
+          [p.name, ...(p.aliases || '').split(/[\n,]+/).map((a: string) => a.trim()).filter(Boolean)]
+            .forEach(n => profileByKey.set(this.lmNormalizeKey(n), p));
+        });
+        const artistMap = new Map<string, any>();
+        tracks.forEach(t => {
+          const parts = (t.artist || '').split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b)\s*/i).map((s: string) => s.trim()).filter(Boolean);
+          (parts.length ? parts : [t.artist || '']).forEach(name => {
+            if (!name) return;
+            const key = this.lmNormalizeKey(name);
+            const profile = profileByKey.get(key);
+            if (!artistMap.has(key)) {
+              artistMap.set(key, { artist: profile?.name || name, pathId: t.nasPathId ?? pathId, tracks: [t], profile, imageUrl: profile?.imageUrl ? (profile.imageUrl.startsWith('http') ? profile.imageUrl : `${this.musicService.BASE}${profile.imageUrl}`) : undefined });
+            } else {
+              artistMap.get(key).tracks.push(t);
+            }
+          });
+        });
+        profiles.forEach(p => {
+          const key = this.lmNormalizeKey(p.name);
+          if (!artistMap.has(key)) artistMap.set(key, { artist: p.name, pathId, tracks: [], profile: p, imageUrl: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${this.musicService.BASE}${p.imageUrl}`) : undefined });
+        });
+        this.lmTopArtists = Array.from(artistMap.values()).sort((a, b) => b.tracks.length - a.tracks.length).slice(0, 14);
+        this.lmMusicLoading = false;
+        this.lmResolveAutoImages();
+      },
+      error: () => { this.lmMusicLoading = false; }
+    });
+  }
+
+  private lmResolveAutoImages() {
+    this.lmTopArtists.filter(a => !a.imageUrl && a.tracks.length).forEach(a => {
+      this.musicService.getArtistImage(a.artist).subscribe({
+        next: (r: any) => { if (r.found && r.imageUrl && !a.imageUrl) a.autoImageUrl = r.imageUrl; },
+        error: () => {}
+      });
+    });
+  }
+
+  private lmNormalizeKey(v: string): string {
+    return (v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+
+  lmCoverFor(t: MusicMetadataDto, pathId: number): string {
+    return this.musicService.getCoverUrlWithCache(pathId, t.path, t.source);
+  }
+
+  lmPlayAlbum(card: { track: MusicMetadataDto; pathId: number }) {
+    this.musicService.mainPlayer.load(card.track, card.pathId).then(() => this.musicService.mainPlayer.play());
+  }
+
+  lmOpenArtist(artist: { artist: string; pathId: number; tracks: MusicMetadataDto[] }) {
+    this.musicService.setQueue(artist.pathId, artist.tracks.length ? artist.tracks : [], 0);
+  }
+
+  lmScrollArtists(dir: 1 | -1) {
+    const el = this.lmArtistsRowRef?.nativeElement;
+    if (el) el.scrollBy({ left: dir * 220, behavior: 'smooth' });
   }
 }
