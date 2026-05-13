@@ -5929,3 +5929,76 @@
   0%, 70% { opacity: 1; }
   100%     { opacity: 0; }
 }
+
+/* ── Listen Now / Top Artists sections ─────────────────────────────────────── */
+.lm-music-sections { padding: 0 24px 8px; }
+.lm-section { margin-bottom: 28px; }
+
+.lm-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.lm-section-title { font-size: 22px; font-weight: 700; color: var(--sp-text); margin: 0 0 14px; letter-spacing: -.3px; }
+.lm-section-head .lm-section-title { margin: 0; }
+
+.lm-section-arrows { display: flex; gap: 6px; }
+.lm-section-arrows button {
+  width: 32px; height: 32px; border-radius: 50%; border: none;
+  background: var(--sp-surface-2); color: var(--sp-text);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.lm-section-arrows button svg { width: 18px; height: 18px; fill: currentColor; }
+.lm-section-arrows button:hover { background: var(--sp-faint); }
+
+/* Listen Now grid */
+.lm-listen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.lm-listen-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--sp-surface-2); border-radius: 4px;
+  padding: 8px; cursor: pointer; transition: background .15s; overflow: hidden;
+}
+.lm-listen-card:hover { background: #3e3e3e; }
+.lm-listen-cover {
+  width: 56px; height: 56px; border-radius: 4px;
+  overflow: hidden; flex-shrink: 0; background: var(--sp-surface);
+}
+.lm-listen-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lm-listen-meta { display: flex; flex-direction: column; min-width: 0; }
+.lm-listen-title { font-size: 13px; font-weight: 600; color: var(--sp-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lm-listen-artist { font-size: 11px; color: var(--sp-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+/* Top Artists row */
+.lm-artists-row {
+  display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;
+  scrollbar-width: thin; scrollbar-color: var(--sp-faint) transparent;
+}
+.lm-artists-row::-webkit-scrollbar { height: 4px; }
+.lm-artists-row::-webkit-scrollbar-thumb { background: var(--sp-faint); border-radius: 2px; }
+
+.lm-artist {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  cursor: pointer; min-width: 120px; max-width: 140px;
+  padding: 12px 8px; border-radius: 8px; transition: background .15s; flex-shrink: 0;
+}
+.lm-artist:hover { background: var(--sp-surface-2); }
+
+.lm-artist-circle {
+  width: 100px; height: 100px; border-radius: 50%;
+  overflow: hidden; position: relative; background: var(--sp-surface-2); flex-shrink: 0;
+}
+.lm-artist-circle img {
+  width: 100%; height: 100%; object-fit: cover;
+  position: absolute; inset: 0; border-radius: 50%;
+}
+.lm-artist-fallback {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+}
+.lm-artist-fallback svg { width: 48px; height: 48px; fill: var(--sp-faint); }
+
+.lm-artist-name {
+  font-size: 13px; font-weight: 600; color: var(--sp-text);
+  text-align: center; max-width: 120px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
