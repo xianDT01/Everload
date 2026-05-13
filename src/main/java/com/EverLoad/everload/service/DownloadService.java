@@ -43,7 +43,7 @@ public class DownloadService {
     }
 
     @PostConstruct
-    private void init() {
+    public void init() {
         downloadSemaphore = new Semaphore(maxConcurrent, true);
         directDownloadExecutor = Executors.newFixedThreadPool(maxConcurrent);
     }
@@ -152,6 +152,9 @@ public class DownloadService {
         String safeFormat = (format == null || format.isBlank()) ? "mp3" : format;
         if (!ALLOWED_AUDIO_FORMATS.contains(safeFormat)) {
             throw new IllegalArgumentException("Formato no permitido");
+        }
+        if (directDownloadExecutor == null || downloadSemaphore == null) {
+            throw new IllegalStateException("El servicio de descargas no está listo aún");
         }
 
         String jobId = UUID.randomUUID().toString();

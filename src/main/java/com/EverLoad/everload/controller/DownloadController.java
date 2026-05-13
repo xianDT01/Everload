@@ -49,6 +49,8 @@ public class DownloadController {
             return ResponseEntity.ok(downloadService.queueMusicDownload(videoId, format));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al iniciar la descarga: " + e.getMessage()));
         }
     }
 

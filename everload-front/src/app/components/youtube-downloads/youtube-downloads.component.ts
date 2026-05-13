@@ -241,6 +241,10 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       let statusSub: any = null;
       let fileSub: any = null;
       let settled = false;
+      let pollErrors = 0;
+      let pollCount = 0;
+      const MAX_POLL_ERRORS = 3;
+      const MAX_POLL_ATTEMPTS = 120; // 5 min at 2.5s intervals
 
       const cleanup = () => {
         if (pollTimer) clearInterval(pollTimer);
@@ -308,8 +312,14 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
 
       const pollJob = () => {
         if (!item.downloadJobId || settled) return;
+        pollCount++;
+        if (pollCount > MAX_POLL_ATTEMPTS) {
+          fail('La descarga tardó demasiado tiempo');
+          return;
+        }
         statusSub = this.http.get<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs/${item.downloadJobId}`).subscribe({
           next: job => {
+            pollErrors = 0;
             this.ngZone.run(() => {
               item.progress = Math.max(item.progress, Math.min(job.progress || 0, 94));
               item.filename = job.filename || item.filename;
@@ -320,7 +330,17 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
               fail(job.error || 'yt-dlp no pudo preparar la canción');
             }
           },
-          error: () => fail('No se pudo consultar el progreso de la descarga')
+          error: (err) => {
+            pollErrors++;
+            if (pollErrors >= MAX_POLL_ERRORS) {
+              const status = err?.status;
+              if (status === 404) {
+                fail('La descarga fue interrumpida (el servidor se reinició)');
+              } else {
+                fail('No se pudo consultar el progreso de la descarga');
+              }
+            }
+          }
         });
       };
 
