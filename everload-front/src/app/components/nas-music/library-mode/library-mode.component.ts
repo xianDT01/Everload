@@ -18,6 +18,12 @@ interface NasBanner {
   pathId?: number;
 }
 
+interface NavEntry {
+  view: 'home' | 'liked' | 'history' | 'folder';
+  pathId: number | null;
+  subPath: string;
+}
+
 type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify' | 'midnight' | 'aurora' | 'ruby' | 'mono';
 type LayoutDensity = 'comfortable' | 'cozy' | 'compact';
 type RightbarSize = 'wide' | 'normal' | 'narrow';
@@ -72,6 +78,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private brokenCoverPaths = new Set<string>();
 
   currentView: 'home' | 'liked' | 'history' | 'folder' = 'folder';
+
+  private navHistory: NavEntry[] = [];
+  private navFuture:  NavEntry[] = [];
+  get canGoBack()    { return this.navHistory.length > 0; }
+  get canGoForward() { return this.navFuture.length > 0; }
 
   items: MusicMetadataDto[] = [];
   historyItems: any[] = [];
@@ -943,6 +954,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (banner.view) {
       this.setView(banner.view);
     } else if (banner.pathIndex !== undefined && this.paths.length > banner.pathIndex) {
+      this.pushNav();
       this.currentView = 'folder';
       this.selectedPathId = this.paths[banner.pathIndex].id;
       this.currentSubPath = banner.subPath || '';
@@ -1038,7 +1050,36 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Navigation ────────────────────────────────────────────────────────────
 
+  private pushNav() {
+    this.navHistory.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath });
+    this.navFuture = [];
+  }
+
+  private restoreNav(entry: NavEntry) {
+    this.currentView    = entry.view;
+    this.selectedPathId = entry.pathId;
+    this.currentSubPath = entry.subPath;
+    this.searchQuery    = '';
+    this.searchResults  = null;
+    this.applyUiPrefsForCurrentContext();
+    this.items = [];
+    this.load();
+  }
+
+  navBack() {
+    if (!this.canGoBack) return;
+    this.navFuture.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath });
+    this.restoreNav(this.navHistory.pop()!);
+  }
+
+  navForward() {
+    if (!this.canGoForward) return;
+    this.navHistory.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath });
+    this.restoreNav(this.navFuture.pop()!);
+  }
+
   setView(view: 'home' | 'liked' | 'history') {
+    this.pushNav();
     this.currentView = view;
     this.selectedPathId = null;
     this.currentSubPath = '';
@@ -1060,6 +1101,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   selectPath(id: number) {
+    this.pushNav();
     this.currentView = 'folder';
     this.selectedPathId = id;
     this.currentSubPath = '';
@@ -1210,6 +1252,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   navigate(item: MusicMetadataDto) {
     if (!item.directory) return;
+    this.pushNav();
     this.currentSubPath = item.path;
     this.searchQuery = '';
     this.searchResults = null;
@@ -1219,6 +1262,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   goUp() {
     if (!this.currentSubPath || this.currentView !== 'folder') return;
+    this.pushNav();
     const parts = this.currentSubPath.split(/[/\\]/).filter(Boolean);
     parts.pop();
     this.currentSubPath = parts.join('/');
@@ -1731,6 +1775,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   navigateToFavFolder(fav: { pathId: number; subPath: string; name: string }): void {
+    this.pushNav();
     this.currentView = 'folder';
     this.selectedPathId = fav.pathId;
     this.currentSubPath = fav.subPath;
