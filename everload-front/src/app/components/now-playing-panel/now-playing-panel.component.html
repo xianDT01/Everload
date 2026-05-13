@@ -304,6 +304,17 @@
               {{ 'WINDOWS.MANAGER_CANCEL_EDIT' | translate }}
             </button>
           </div>
+          <div class="np-meta-suggestion" *ngIf="metadataSuggestion">
+            <div class="np-meta-suggestion-head">Sugerencia encontrada</div>
+            <div><span>Título</span><strong>{{ metadataSuggestion.title || '-' }}</strong></div>
+            <div><span>Artista</span><strong>{{ metadataSuggestion.artist || '-' }}</strong></div>
+            <div><span>Álbum</span><strong>{{ metadataSuggestion.album || '-' }}</strong></div>
+            <small *ngIf="metadataSuggestion.rawTitle">YouTube: {{ metadataSuggestion.rawTitle }}</small>
+            <div class="np-meta-suggestion-actions">
+              <button type="button" class="accept" (click)="applyMetadataSuggestion()">Sí, usar</button>
+              <button type="button" class="reject" (click)="rejectMetadataSuggestion()">No</button>
+            </div>
+          </div>
         </div>
 
         <!-- Read-only details (when not editing) -->
