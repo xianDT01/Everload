@@ -307,7 +307,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
 
   private resolveAutoArtistImages() {
     this.artists
-      .filter(artist => !artist.imageUrl && artist.tracks.length > 0)
+      .filter(artist => !artist.imageUrl && artist.tracks.length > 0 && !this.isSuspiciousArtistName(artist.artist))
       .slice(0, 120)
       .forEach(artist => {
         this.music.getArtistImage(artist.artist).subscribe({
@@ -353,9 +353,20 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     const unique = new Map<string, string>();
     (parts.length ? parts : [raw]).forEach(part => {
       const key = this.key(part);
-      if (key && !unique.has(key)) unique.set(key, part);
+      if (key && !this.isSuspiciousArtistName(part) && !unique.has(key)) unique.set(key, part);
     });
-    return Array.from(unique.values());
+    const values = Array.from(unique.values());
+    return values.length ? values : ['Desconocido'];
+  }
+
+  private isSuspiciousArtistName(value: string): boolean {
+    const key = this.key(value);
+    if (!key) return true;
+    return /\b(clean edit|audio edit|extended edit|radio edit|lyrics?|lyric video)\b/.test(key)
+      || /\b(vevo|official|topic|records|recordings|music tv|musictv|entertainment|official channel)\b/.test(key)
+      || key === 'dj clean edit'
+      || key === 'unknown'
+      || key === 'desconocido';
   }
 
   private key(value: string): string {
