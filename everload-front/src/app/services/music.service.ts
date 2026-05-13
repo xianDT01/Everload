@@ -1307,7 +1307,7 @@ export class MusicService {
 
   // ── YouTube metadata lookup ───────────────────────────────────────────────
 
-  fetchYoutubeMetadata(query: string): Observable<{ found: boolean; title?: string; artist?: string; videoId?: string; channelName?: string; rawTitle?: string }> {
+  fetchYoutubeMetadata(query: string): Observable<{ found: boolean; title?: string; artist?: string; album?: string; videoId?: string; channelName?: string; rawTitle?: string }> {
     return this.http.get<any>(`${this.api}/youtube-metadata?query=${encodeURIComponent(query)}`);
   }
 

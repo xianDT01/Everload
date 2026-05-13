@@ -1069,6 +1069,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   metaYear = '';
   metadataLoading = false;
   metadataYtLoading = false;
+  metadataSuggestion: { title: string; artist: string; album: string; rawTitle?: string; channelName?: string } | null = null;
 
   openMetadataEdit(): void {
     if (!this.state?.currentTrack) return;
@@ -1077,12 +1078,14 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.metaArtist = t.artist || '';
     this.metaAlbum = t.album || '';
     this.metaYear = (t as any).year || '';
+    this.metadataSuggestion = null;
     this.metadataEditing = true;
     this.musicManagerStatus = '';
   }
 
   cancelMetadataEdit(): void {
     this.metadataEditing = false;
+    this.metadataSuggestion = null;
     this.musicManagerStatus = '';
   }
 
@@ -1103,6 +1106,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         (track as any).year = this.metaYear;
         this.metadataLoading = false;
         this.metadataEditing = false;
+        this.metadataSuggestion = null;
         this.musicManagerStatus = 'WINDOWS.MANAGER_METADATA_SAVED';
         // Also update the MediaSession if available
         if (navigator.mediaSession?.metadata) {
@@ -1127,13 +1131,19 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (!query) return;
 
     this.metadataYtLoading = true;
+    this.metadataSuggestion = null;
     this.musicManagerStatus = 'WINDOWS.MANAGER_FETCHING_YT';
     this.musicService.fetchYoutubeMetadata(query).subscribe({
       next: (res) => {
         this.metadataYtLoading = false;
         if (res.found && res.title) {
-          this.metaTitle = res.title;
-          if (res.artist) this.metaArtist = res.artist;
+          this.metadataSuggestion = {
+            title: res.title || '',
+            artist: res.artist || '',
+            album: res.album || '',
+            rawTitle: res.rawTitle,
+            channelName: res.channelName
+          };
           this.musicManagerStatus = 'WINDOWS.MANAGER_YT_FOUND';
         } else {
           this.musicManagerStatus = 'WINDOWS.MANAGER_YT_NOT_FOUND';
@@ -1144,6 +1154,20 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.musicManagerStatus = 'WINDOWS.MANAGER_YT_NOT_FOUND';
       }
     });
+  }
+
+  applyMetadataSuggestion(): void {
+    if (!this.metadataSuggestion) return;
+    this.metaTitle = this.metadataSuggestion.title || this.metaTitle;
+    this.metaArtist = this.metadataSuggestion.artist || this.metaArtist;
+    this.metaAlbum = this.metadataSuggestion.album || this.metaAlbum;
+    this.metadataSuggestion = null;
+    this.musicManagerStatus = 'WINDOWS.MANAGER_YT_FOUND';
+  }
+
+  rejectMetadataSuggestion(): void {
+    this.metadataSuggestion = null;
+    this.musicManagerStatus = '';
   }
 
   private downloadMetadata(items: any[], filename: string, format: 'json' | 'csv'): void {

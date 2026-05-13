@@ -4367,6 +4367,66 @@
   cursor: default;
 }
 
+.np-meta-suggestion {
+  border: 1px solid #b9b27d;
+  background: #fffbe5;
+  color: #2a250f;
+  padding: 7px;
+  display: grid;
+  gap: 5px;
+  font-size: 11px;
+}
+
+.np-meta-suggestion-head {
+  font-weight: 800;
+  color: #4b4200;
+}
+
+.np-meta-suggestion div:not(.np-meta-suggestion-head):not(.np-meta-suggestion-actions) {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 6px;
+}
+
+.np-meta-suggestion span {
+  color: #6b6430;
+  text-align: right;
+}
+
+.np-meta-suggestion strong,
+.np-meta-suggestion small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.np-meta-suggestion-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 3px;
+}
+
+.np-meta-suggestion-actions button {
+  border: 1px solid #8b8b8b;
+  border-radius: 2px;
+  padding: 4px 10px;
+  font: 700 11px/1 inherit;
+  cursor: pointer;
+}
+
+.np-meta-suggestion-actions .accept {
+  background: linear-gradient(180deg, #d9f6d9 0%, #88c888 100%);
+  color: #063806;
+  border-color: #589058;
+}
+
+.np-meta-suggestion-actions .reject {
+  background: linear-gradient(180deg, #fff 0%, #ddd 100%);
+  color: #333;
+}
+
 .np-manager-list {
   flex: 1;
   min-height: 0;
