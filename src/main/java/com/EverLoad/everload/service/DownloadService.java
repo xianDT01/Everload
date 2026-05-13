@@ -170,12 +170,20 @@ public class DownloadService {
 
     public ResponseEntity<FileSystemResource> downloadQueuedFile(String jobId) {
         DirectDownloadJob job = directDownloadJobs.get(jobId);
-        if (job == null) return ResponseEntity.notFound().build();
+        if (job == null) {
+            logger.warn("downloadQueuedFile: job {} not found", jobId);
+            return ResponseEntity.notFound().build();
+        }
         if (job.status != DirectDownloadStatus.DONE || job.filePath == null || job.filePath.isBlank()) {
+            logger.warn("downloadQueuedFile: job {} not ready — status={} filePath={}", jobId, job.status, job.filePath);
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
         File file = new File(job.filePath);
-        if (!file.exists()) return ResponseEntity.notFound().build();
+        if (!file.exists()) {
+            logger.warn("downloadQueuedFile: file not found at path '{}' for job {}", job.filePath, jobId);
+            return ResponseEntity.notFound().build();
+        }
+        logger.info("downloadQueuedFile: serving {} ({} bytes) for job {}", file.getName(), file.length(), jobId);
         ResponseEntity<FileSystemResource> response = sendFile(file);
         directDownloadJobs.remove(jobId);
         return response;
@@ -407,6 +415,7 @@ public class DownloadService {
 
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + safeName + "\"");
         headers.add(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
+        headers.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(file.length()));
 
         System.out.println("📤 Enviando archivo: " + file.getAbsolutePath() + " con header: " + safeName);
         logger.info("📤 Enviando archivo: {} con header: {}", file.getAbsolutePath(), safeName);
