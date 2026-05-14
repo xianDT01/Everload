@@ -1120,6 +1120,8 @@
   "MUSIC.UI_SKIN_RUBY_HINT": "Deep red",
   "MUSIC.UI_SKIN_MONO": "Mono",
   "MUSIC.UI_SKIN_MONO_HINT": "Clean grayscale",
+  "MUSIC.UI_SKIN_VISTA": "Vista Aero",
+  "MUSIC.UI_SKIN_VISTA_HINT": "Glass & sky",
 
   "ADMIN.CLEANUP_TITLE": "🧹 Database Cleanup",
   "ADMIN.CLEANUP_DESC": "Tools to keep the database lean over time. Run these cleanups occasionally so the app does not slow down.",
