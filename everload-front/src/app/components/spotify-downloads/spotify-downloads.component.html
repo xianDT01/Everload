@@ -91,7 +91,7 @@
         </ul>
       </div>
 
-      <p *ngIf="!cargando && tracks.length === 0 && !error" class="error-text">
+      <p *ngIf="buscado && !cargando && tracks.length === 0 && !error" class="error-text">
         ❌ {{ 'NO_RESULTS' | translate }}
       </p>
     </div>

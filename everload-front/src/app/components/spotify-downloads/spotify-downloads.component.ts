@@ -33,6 +33,7 @@ export class SpotifyDownloadsComponent {
   cargando: boolean = false;
   error: string | null = null;
   tracks: SpotifyTrackItem[] = [];
+  buscado: boolean = false;
   showNasBrowser = false;
 
   get hasNasAccess(): boolean { return this.authService.hasNasAccess(); }
@@ -65,6 +66,7 @@ export class SpotifyDownloadsComponent {
     this.cargando = true;
     this.error = null;
     this.tracks = [];
+    this.buscado = false;
 
     this.http.post<any[]>('/api/spotify/playlist', { url: this.playlistUrl })
       .subscribe({
@@ -75,11 +77,13 @@ export class SpotifyDownloadsComponent {
             status: 'idle' as const,
             progress: 0,
           }));
+          this.buscado = true;
           this.cargando = false;
         },
         error: (err) => {
           const serverMsg = err?.error?.error;
           this.error = serverMsg || this.translate.instant('DOWNLOAD_Spotify_FAILED');
+          this.buscado = true;
           this.cargando = false;
         }
       });
