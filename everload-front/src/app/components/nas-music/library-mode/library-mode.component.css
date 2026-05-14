@@ -6004,306 +6004,509 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   VISTA AERO SKIN — Full-UI glassmorphism theme
-   Activated when [attr.data-skin="vista"] is on .lib-root
+   VISTA AERO SKIN v2 — Physically-rendered acrylic glass UI
+   Illuminated translucent panels · cinematic depth · volumetric bloom
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Root: sky + grass gradient background ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   ROOT — cinematic sky/atmosphere/grass world backdrop
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] {
-  --sp-bg:        rgba(5, 14, 34, 0.52);
-  --sp-surface:   rgba(8, 20, 52, 0.50);
-  --sp-surface-2: rgba(10, 30, 70, 0.62);
-  --sp-border:    rgba(64, 196, 255, 0.22);
+  --sp-bg:        rgba(4, 11, 28, 0.48);
+  --sp-surface:   rgba(6, 16, 42, 0.46);
+  --sp-surface-2: rgba(8, 24, 60, 0.58);
+  --sp-border:    rgba(80, 210, 255, 0.24);
   --sp-green:     #00e5ff;
   --sp-green-h:   #40f4ff;
-  --sp-muted:     rgba(190, 225, 255, 0.72);
-  --sp-faint:     rgba(80, 160, 255, 0.45);
+  --sp-muted:     rgba(200, 235, 255, 0.75);
+  --sp-faint:     rgba(100, 185, 255, 0.48);
   position: relative;
   background:
-    /* Sun lens flare */
-    radial-gradient(ellipse 380px 280px at 79% 11%, rgba(255,248,140,0.20) 0%, transparent 100%),
-    /* Left sky shimmer */
-    radial-gradient(ellipse 500px 350px at 15% 8%,  rgba(80,170,255,0.22) 0%, transparent 100%),
-    /* Mid-sky glow */
-    radial-gradient(ellipse at 55% 40%, rgba(20,120,255,0.07) 0%, transparent 65%),
-    /* Main sky → grass gradient */
+    /* ① Primary sun corona — warm halo above horizon */
+    radial-gradient(ellipse 55% 35% at 76% 76%, rgba(255,240,120,0.28) 0%, rgba(255,200,60,0.10) 50%, transparent 100%),
+    /* ② Atmospheric scatter left of sun */
+    radial-gradient(ellipse 40% 28% at 62% 78%, rgba(255,160,40,0.16) 0%, transparent 100%),
+    /* ③ Upper atmosphere cyan bloom */
+    radial-gradient(ellipse 90% 45% at 50% 2%, rgba(40,130,255,0.32) 0%, transparent 65%),
+    /* ④ Volumetric god-ray from top-right */
+    conic-gradient(from 210deg at 80% 0%, rgba(255,240,100,0.08) 0deg, transparent 18deg, transparent 342deg, rgba(255,240,100,0.04) 360deg),
+    /* ⑤ Horizon atmospheric haze */
+    radial-gradient(ellipse 100% 12% at 50% 79%, rgba(160,210,255,0.35) 0%, transparent 100%),
+    /* ⑥ Cloud layer near horizon */
+    radial-gradient(ellipse 60% 8% at 30% 77%, rgba(220,235,255,0.18) 0%, transparent 100%),
+    radial-gradient(ellipse 40% 6% at 72% 78%, rgba(200,225,255,0.14) 0%, transparent 100%),
+    /* ⑦ Main cinematic sky → grass */
     linear-gradient(180deg,
-      #03091b 0%,
-      #060f2e 8%,
-      #0b2060 20%,
-      #1048b8 38%,
-      #1565c0 50%,
-      #1e88e5 60%,
-      #42a5f5 68%,
-      #90caf9 74%,
-      #bbdefb 78%,
-      #c8e6c9 80%,
-      #a5d6a7 81%,
-      #66bb6a 83%,
-      #43a047 87%,
-      #2e7d32 92%,
-      #1b5e20 100%
+      #010409  0%,
+      #020917  5%,
+      #051840  14%,
+      #0c2e78  26%,
+      #1350c0  40%,
+      #1769d0  50%,
+      #1e8be8  60%,
+      #3aa8f8  68%,
+      #7fc5fa  73%,
+      #b8dcfc  76%,
+      #d4ecff  78%,        /* bright horizon */
+      #c8e6c9  79.5%,      /* grass start */
+      #a5d6a7  80.5%,
+      #6abf69  82%,
+      #4caf50  84%,
+      #388e3c  88%,
+      #2e7d32  92%,
+      #1b5e20  100%
     ) !important;
 }
 
-/* Animated lens-flare overlay */
+/* Animated sun corona pulse */
 .lib-root[data-skin="vista"]::before {
   content: '';
   position: absolute;
-  top: 3%;
-  right: 16%;
-  width: 320px;
-  height: 320px;
+  bottom: 21%;
+  right: 22%;
+  width: 380px;
+  height: 200px;
   border-radius: 50%;
-  background: radial-gradient(circle,
-    rgba(255,252,180,0.18) 0%,
-    rgba(255,230,80,0.07)  45%,
+  background: radial-gradient(ellipse at center,
+    rgba(255,245,160,0.22) 0%,
+    rgba(255,210,60,0.10)  40%,
     transparent            70%
   );
-  filter: blur(18px);
+  filter: blur(22px);
   pointer-events: none;
   z-index: 0;
-  animation: vistaFlare 9s ease-in-out infinite alternate;
+  animation: vistaCorona 10s ease-in-out infinite alternate;
 }
 
-/* Subtle water-drop shimmer ring */
+/* Water-droplet shimmer bubble */
 .lib-root[data-skin="vista"]::after {
   content: '';
   position: absolute;
-  top: 6%;
-  right: 18%;
-  width: 120px;
-  height: 120px;
+  bottom: 24%;
+  right: 19%;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.14), transparent 70%);
-  filter: blur(2px);
+  border: 1px solid rgba(255,255,255,0.28);
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255,255,255,0.22) 0%, transparent 55%),
+    radial-gradient(circle at 68% 72%, rgba(0,200,255,0.10) 0%, transparent 50%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.30),
+    0 0 12px rgba(255,255,255,0.10);
+  filter: blur(0.5px);
   pointer-events: none;
   z-index: 0;
-  animation: vistaFlare 9s ease-in-out infinite alternate;
+  animation: vistaCorona 10s ease-in-out infinite alternate;
 }
 
-@keyframes vistaFlare {
-  from { opacity: 0.55; transform: scale(1) translate(0, 0); }
-  to   { opacity: 1;    transform: scale(1.10) translate(-6px, 4px); }
+@keyframes vistaCorona {
+  from { opacity: 0.6;  transform: scale(1) translateY(0); }
+  to   { opacity: 1.0;  transform: scale(1.08) translateY(-5px); }
 }
 
-/* ── Sidebar ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   SHARED TRANSITION — smooth lighting interactions on all interactive elements
+   ───────────────────────────────────────────────────────────────────────── */
+.lib-root[data-skin="vista"] .track-row,
+.lib-root[data-skin="vista"] .collection-item,
+.lib-root[data-skin="vista"] .folder-card,
+.lib-root[data-skin="vista"] .track-card,
+.lib-root[data-skin="vista"] .search-input,
+.lib-root[data-skin="vista"] .lm-listen-card,
+.lib-root[data-skin="vista"] .lm-artist-circle {
+  transition:
+    background 0.22s ease,
+    box-shadow  0.22s ease,
+    border-color 0.22s ease,
+    transform   0.18s ease;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SIDEBAR — deep navy acrylic with dual-edge specular
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .lib-sidebar {
-  background: rgba(3, 10, 30, 0.62) !important;
-  backdrop-filter: blur(26px) saturate(180%);
-  -webkit-backdrop-filter: blur(26px) saturate(180%);
-  border: 1px solid rgba(60, 190, 255, 0.20);
+  background:
+    /* Top specular band — glass surface reflection */
+    linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 30%, transparent 55%),
+    /* Diagonal internal light streak */
+    linear-gradient(128deg, rgba(255,255,255,0.06) 0%, transparent 48%),
+    /* Volumetric blue-white light from top */
+    radial-gradient(ellipse 140% 50% at 50% -20%, rgba(60,170,255,0.20) 0%, transparent 65%),
+    /* Bottom warmth from grass reflection */
+    radial-gradient(ellipse 100% 30% at 50% 110%, rgba(100,200,100,0.06) 0%, transparent 60%),
+    /* Base dark acrylic */
+    rgba(3, 8, 24, 0.72) !important;
+  backdrop-filter: blur(32px) saturate(210%) brightness(1.05);
+  -webkit-backdrop-filter: blur(32px) saturate(210%) brightness(1.05);
+  border: 1px solid rgba(100,210,255,0.26);
   border-radius: 16px;
   box-shadow:
-    0 8px 36px rgba(0, 50, 160, 0.40),
-    inset 0 1px 0 rgba(255,255,255,0.09),
-    inset 0 0 0 0.5px rgba(100,200,255,0.08);
+    /* Outer edge ring — Fresnel glow */
+    0 0 0 0.5px rgba(140,220,255,0.18),
+    /* Outer bloom */
+    0 0 28px rgba(0,100,255,0.12),
+    /* Depth lift shadow */
+    0 24px 70px rgba(0, 15, 60, 0.75),
+    0 8px 28px rgba(0, 30, 110, 0.55),
+    /* ═ Inset specular highlights ═ */
+    /* Top bright edge — strongest specular */
+    inset 0 1.5px 0 rgba(255,255,255,0.42),
+    /* Left edge secondary specular */
+    inset 1px 0 0 rgba(255,255,255,0.10),
+    /* Right edge faint */
+    inset -1px 0 0 rgba(255,255,255,0.04),
+    /* Bottom cyan edge glow */
+    inset 0 -1px 0 rgba(0,220,255,0.16),
+    /* Internal volumetric light from top */
+    inset 0 44px 70px rgba(0,130,255,0.12),
+    /* Internal depth shadow at bottom */
+    inset 0 -44px 60px rgba(0,0,22,0.22);
 }
 
-/* Sidebar scrollbar */
-.lib-root[data-skin="vista"] .lib-sidebar::-webkit-scrollbar { width: 4px; }
+/* Cyan neon scrollbar */
+.lib-root[data-skin="vista"] .lib-sidebar::-webkit-scrollbar { width: 3px; }
 .lib-root[data-skin="vista"] .lib-sidebar::-webkit-scrollbar-track { background: transparent; }
 .lib-root[data-skin="vista"] .lib-sidebar::-webkit-scrollbar-thumb {
-  background: rgba(0, 200, 255, 0.40);
+  background: linear-gradient(180deg, rgba(0,229,255,0.60), rgba(0,150,200,0.30));
   border-radius: 999px;
 }
 
-/* ── Main panel ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   MAIN PANEL — slightly lighter acrylic for content legibility
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .lib-main {
-  background: rgba(4, 14, 38, 0.52) !important;
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid rgba(64, 196, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.01) 28%, transparent 50%),
+    linear-gradient(125deg, rgba(255,255,255,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 130% 45% at 55% -15%, rgba(40,160,255,0.18) 0%, transparent 65%),
+    rgba(4, 12, 34, 0.58) !important;
+  backdrop-filter: blur(28px) saturate(190%) brightness(1.04);
+  -webkit-backdrop-filter: blur(28px) saturate(190%) brightness(1.04);
+  border: 1px solid rgba(100,210,255,0.24);
   border-radius: 16px;
   box-shadow:
-    0 8px 42px rgba(0, 60, 180, 0.30),
-    inset 0 1px 0 rgba(255,255,255,0.06);
+    0 0 0 0.5px rgba(120,215,255,0.15),
+    0 0 32px rgba(0,80,220,0.10),
+    0 22px 65px rgba(0, 12, 55, 0.72),
+    0 7px 24px rgba(0, 25, 100, 0.50),
+    inset 0 1.5px 0 rgba(255,255,255,0.36),
+    inset 1px 0 0 rgba(255,255,255,0.08),
+    inset 0 -1px 0 rgba(0,210,255,0.14),
+    inset 0 40px 65px rgba(0,120,255,0.10),
+    inset 0 -40px 55px rgba(0,0,20,0.20);
 }
 
-/* Main content scrollbar */
-.lib-root[data-skin="vista"] .content-scroll::-webkit-scrollbar { width: 4px; }
+/* Content scrollbar */
+.lib-root[data-skin="vista"] .content-scroll::-webkit-scrollbar { width: 3px; }
 .lib-root[data-skin="vista"] .content-scroll::-webkit-scrollbar-track { background: transparent; }
 .lib-root[data-skin="vista"] .content-scroll::-webkit-scrollbar-thumb {
-  background: rgba(0, 180, 255, 0.35);
+  background: linear-gradient(180deg, rgba(0,210,255,0.55), rgba(0,130,200,0.25));
   border-radius: 999px;
 }
 
-/* ── Rightbar cards ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   RIGHTBAR CARDS — floating acrylic cards with premium depth
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .rightbar-card {
-  background: rgba(4, 12, 34, 0.64) !important;
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
-  border: 1px solid rgba(64, 196, 255, 0.18) !important;
-  border-radius: 18px;
-  box-shadow: 0 6px 24px rgba(0, 50, 160, 0.30) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.01) 26%, transparent 48%),
+    linear-gradient(122deg, rgba(255,255,255,0.05) 0%, transparent 52%),
+    radial-gradient(ellipse 120% 50% at 60% -18%, rgba(40,155,255,0.18) 0%, transparent 65%),
+    rgba(3, 9, 26, 0.74) !important;
+  backdrop-filter: blur(30px) saturate(200%) brightness(1.06);
+  -webkit-backdrop-filter: blur(30px) saturate(200%) brightness(1.06);
+  border: 1px solid rgba(100,210,255,0.26) !important;
+  border-radius: 20px;
+  box-shadow:
+    0 0 0 0.5px rgba(130,220,255,0.16),
+    0 0 24px rgba(0,80,200,0.12),
+    0 18px 55px rgba(0, 10, 50, 0.72),
+    0 5px 20px rgba(0, 20, 90, 0.52),
+    inset 0 1.5px 0 rgba(255,255,255,0.40),
+    inset 1px 0 0 rgba(255,255,255,0.09),
+    inset 0 -1px 0 rgba(0,215,255,0.14),
+    inset 0 36px 60px rgba(0,110,255,0.11),
+    inset 0 -36px 52px rgba(0,0,18,0.22) !important;
 }
 
-/* ── Topbar ── */
+/* Rightbar scrollbar */
+.lib-root[data-skin="vista"] .rightbar-sticky::-webkit-scrollbar { width: 3px; }
+.lib-root[data-skin="vista"] .rightbar-sticky::-webkit-scrollbar-track { background: transparent; }
+.lib-root[data-skin="vista"] .rightbar-sticky::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(0,220,255,0.55), rgba(0,130,200,0.25));
+  border-radius: 999px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TOPBAR — darkest glass panel, strong blur, horizontal specular
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .topbar {
-  background: rgba(2, 8, 24, 0.74) !important;
-  backdrop-filter: blur(30px) saturate(200%);
-  -webkit-backdrop-filter: blur(30px) saturate(200%);
-  border-bottom: 1px solid rgba(60, 190, 255, 0.16);
-  box-shadow: 0 4px 26px rgba(0, 50, 180, 0.22);
+  background:
+    /* Top specular — bright horizon streak */
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.01) 40%, transparent 70%),
+    /* Diagonal streak from left */
+    linear-gradient(95deg, rgba(255,255,255,0.06) 0%, transparent 55%),
+    /* Internal cyan bloom from top */
+    radial-gradient(ellipse 100% 80% at 50% -30%, rgba(30,140,255,0.22) 0%, transparent 70%),
+    rgba(2, 6, 18, 0.82) !important;
+  backdrop-filter: blur(36px) saturate(240%) brightness(0.95);
+  -webkit-backdrop-filter: blur(36px) saturate(240%) brightness(0.95);
+  border-bottom: 1px solid rgba(100,210,255,0.22);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.12),        /* top edge specular */
+    0 4px 28px rgba(0, 30, 100, 0.35),
+    inset 0 1px 0 rgba(255,255,255,0.16),  /* inner top line */
+    inset 0 -1px 0 rgba(0,200,255,0.12),   /* inner bottom cyan */
+    inset 0 20px 40px rgba(0,100,255,0.08);
 }
 
-/* ── Search bar ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   SEARCH BAR — premium acrylic pill with bloom
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .search-input {
-  background: rgba(255,255,255,0.09) !important;
-  border: 1px solid rgba(100, 200, 255, 0.30) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 50%, transparent 100%),
+    rgba(10, 28, 70, 0.58) !important;
+  border: 1px solid rgba(100,210,255,0.35) !important;
   border-radius: 999px;
   color: #fff;
   box-shadow:
-    0 0 14px rgba(0, 180, 255, 0.14),
-    inset 0 1px 0 rgba(255,255,255,0.12);
+    0 0 0 0.5px rgba(100,210,255,0.15),
+    0 0 16px rgba(0,170,255,0.18),
+    inset 0 1.5px 0 rgba(255,255,255,0.28),
+    inset 0 -1px 0 rgba(0,200,255,0.12),
+    inset 0 8px 20px rgba(0,120,255,0.10);
 }
 .lib-root[data-skin="vista"] .search-input:focus {
-  border-color: rgba(0, 229, 255, 0.65) !important;
+  border-color: rgba(0,229,255,0.70) !important;
   box-shadow:
-    0 0 0 3px rgba(0, 200, 255, 0.18),
-    0 0 22px rgba(0, 200, 255, 0.24),
-    inset 0 1px 0 rgba(255,255,255,0.14) !important;
+    0 0 0 2.5px rgba(0,200,255,0.22),
+    0 0 28px rgba(0,200,255,0.30),
+    0 0 60px rgba(0,180,255,0.12),
+    inset 0 1.5px 0 rgba(255,255,255,0.32),
+    inset 0 -1px 0 rgba(0,229,255,0.16),
+    inset 0 8px 22px rgba(0,140,255,0.12) !important;
   width: 280px;
 }
-.lib-root[data-skin="vista"] .search-icon { color: rgba(0, 229, 255, 0.65); }
+.lib-root[data-skin="vista"] .search-icon { color: rgba(0,229,255,0.70); }
 
-/* ── Track rows ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   TRACK ROWS — illuminated hover, cinematic playing state
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .track-row:hover {
-  background: rgba(0, 180, 255, 0.08) !important;
-  box-shadow: inset 0 0 0 1px rgba(0, 200, 255, 0.15);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 55%),
+    rgba(0, 165, 255, 0.09) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -1px 0 rgba(0,200,255,0.10),
+    inset 0 0 0 1px rgba(0,200,255,0.18),
+    0 0 22px rgba(0,160,255,0.07);
+  border-radius: 8px;
 }
+
 .lib-root[data-skin="vista"] .track-row.is-playing {
-  background: rgba(0, 229, 255, 0.10) !important;
-  box-shadow: inset 0 0 0 1px rgba(0, 229, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(0,229,255,0.10) 0%, rgba(0,180,255,0.06) 100%),
+    rgba(0,200,255,0.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(0,229,255,0.35),
+    inset 0 -1px 0 rgba(0,229,255,0.18),
+    inset 0 0 0 1px rgba(0,229,255,0.26),
+    0 0 30px rgba(0,200,255,0.12);
+  border-radius: 8px;
 }
+
 .lib-root[data-skin="vista"] .track-row.is-playing .tr-index,
 .lib-root[data-skin="vista"] .track-row.is-playing .tr-title-text {
   color: #00e5ff;
-  text-shadow: 0 0 10px rgba(0, 229, 255, 0.50);
+  text-shadow: 0 0 12px rgba(0,229,255,0.60), 0 0 24px rgba(0,200,255,0.25);
 }
+
+/* Equalizer bars with cyan bloom */
 .lib-root[data-skin="vista"] .tr-equalizer span {
   background: #00e5ff;
-  box-shadow: 0 0 6px rgba(0, 229, 255, 0.60);
+  box-shadow: 0 0 8px rgba(0,229,255,0.80), 0 0 16px rgba(0,200,255,0.35);
 }
 
-/* ── Sidebar nav items ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   SIDEBAR NAV — lit hover state, glowing active icon
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .collection-item:hover {
-  background: rgba(0, 160, 255, 0.12) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 60%),
+    rgba(0,150,255,0.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
 }
-.lib-root[data-skin="vista"] .collection-item.active {
-  color: #fff;
-}
+
+.lib-root[data-skin="vista"] .collection-item.active { color: #fff; }
+
 .lib-root[data-skin="vista"] .collection-item.active .collection-icon {
-  background: linear-gradient(135deg, #0ea5e9 0%, #00e5ff 100%) !important;
-  color: #04091c !important;
-  box-shadow: 0 0 18px rgba(0, 229, 255, 0.55);
+  background:
+    linear-gradient(135deg,
+      rgba(60,200,255,0.95) 0%,
+      rgba(0,229,255,0.85) 50%,
+      rgba(100,240,255,0.70) 100%
+    ) !important;
+  color: #021018 !important;
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,0.40),
+    0 0 20px rgba(0,229,255,0.65),
+    0 0 40px rgba(0,200,255,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(0,120,160,0.25);
 }
 
-/* Sidebar divider */
 .lib-root[data-skin="vista"] .sidebar-divider {
-  border-color: rgba(64, 196, 255, 0.14);
+  border-color: rgba(80,200,255,0.14);
 }
 
-/* ── Content header ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   CONTENT HEADER — cinematic gradient overlay
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .content-header-bg {
   background: linear-gradient(180deg,
-    rgba(0, 70, 180, 0.14) 0%,
-    rgba(4, 14, 38, 0.54) 100%
+    rgba(0,60,180,0.18) 0%,
+    rgba(0,80,200,0.10) 30%,
+    rgba(4,12,34,0.56) 100%
   ) !important;
 }
 
-/* ── Folder/track cards in the grid ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   FOLDER / TRACK CARDS — acrylic tile with hover bloom
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .folder-card,
 .lib-root[data-skin="vista"] .track-card {
-  background: rgba(8, 24, 60, 0.58) !important;
-  border: 1px solid rgba(64, 196, 255, 0.16) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 40%),
+    rgba(6, 18, 52, 0.62) !important;
+  border: 1px solid rgba(80,200,255,0.18) !important;
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    0 6px 22px rgba(0,10,50,0.40);
 }
 .lib-root[data-skin="vista"] .folder-card:hover,
 .lib-root[data-skin="vista"] .track-card:hover {
-  background: rgba(0, 160, 255, 0.14) !important;
-  border-color: rgba(0, 229, 255, 0.30) !important;
-  box-shadow: 0 0 18px rgba(0, 200, 255, 0.20);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(0,160,255,0.06) 100%),
+    rgba(0,130,255,0.14) !important;
+  border-color: rgba(0,229,255,0.36) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.24),
+    0 0 28px rgba(0,200,255,0.22),
+    0 8px 28px rgba(0,20,80,0.45);
 }
 
-/* ── Player skin — Vista Aero XP panel ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   PLAYER SKIN — Vista Aero color scheme for xp-player-shell
+   ───────────────────────────────────────────────────────────────────────── */
 .xp-player-shell[data-skin="vista"] {
-  --np-title-start:       #0ea5e9;
-  --np-title-end:         #0c2a6b;
-  --np-title-border:      rgba(0, 229, 255, 0.30);
-  --np-body-overlay:      rgba(0, 229, 255, 0.10);
-  --np-body-grad-start:   rgba(4, 14, 38, 0.88);
-  --np-body-grad-end:     rgba(2, 8, 22, 0.96);
-  --np-stage-aura:        rgba(0, 200, 255, 0.22);
-  --np-cover-frame-start: #b3e5fc;
-  --np-cover-frame-mid:   #4fc3f7;
-  --np-cover-frame-end:   #0288d1;
-  --np-cover-shadow:      rgba(0, 229, 255, 0.38);
-  --np-fallback-start:    #0c2a6b;
-  --np-fallback-end:      #00bcd4;
+  --np-title-start:       #0d9ae8;
+  --np-title-end:         #081e55;
+  --np-title-border:      rgba(0,229,255,0.35);
+  --np-body-overlay:      rgba(0,220,255,0.12);
+  --np-body-grad-start:   rgba(3, 10, 30, 0.90);
+  --np-body-grad-end:     rgba(1, 5, 16, 0.97);
+  --np-stage-aura:        rgba(0,200,255,0.28);
+  --np-cover-frame-start: #c2e8ff;
+  --np-cover-frame-mid:   #52c5f8;
+  --np-cover-frame-end:   #0280cc;
+  --np-cover-shadow:      rgba(0,229,255,0.45);
+  --np-fallback-start:    #091c50;
+  --np-fallback-end:      #00bdd4;
   --np-kicker:            #00e5ff;
   --np-accent:            #00e5ff;
-  --np-accent-2:          #40f4ff;
-  --np-visual-top:        #b3e5fc;
+  --np-accent-2:          #44f5ff;
+  --np-visual-top:        #b6e9ff;
   --np-visual-mid:        #00e5ff;
-  --np-progress-start:    #01579b;
-  --np-progress-end:      #002244;
-  --np-particle:          rgba(0, 229, 255, 0.30);
+  --np-progress-start:    #01527a;
+  --np-progress-end:      #001e36;
+  --np-particle:          rgba(0,229,255,0.35);
 }
 
-/* Focus panel glass effect */
+/* Focus panel */
 .lib-root[data-skin="vista"] .focus-panel {
-  background: rgba(3, 10, 28, 0.60) !important;
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(64, 196, 255, 0.18) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.09) 0%, transparent 30%),
+    rgba(2, 8, 24, 0.68) !important;
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(90,205,255,0.24) !important;
   border-radius: 16px;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.28),
+    inset 0 -1px 0 rgba(0,200,255,0.14),
+    0 16px 50px rgba(0,10,50,0.60);
 }
 
-/* ── Skin button in rightbar ── */
-.rightbar-skin-btn[data-skin="vista"].active {
-  background: rgba(0, 229, 255, 0.16) !important;
-  border-color: rgba(0, 229, 255, 0.55) !important;
-  box-shadow: 0 0 18px rgba(0, 229, 255, 0.32) !important;
-}
-
-/* ── Neon scrollbar (rightbar) ── */
-.lib-root[data-skin="vista"] .rightbar-sticky::-webkit-scrollbar { width: 4px; }
-.lib-root[data-skin="vista"] .rightbar-sticky::-webkit-scrollbar-track { background: transparent; }
-.lib-root[data-skin="vista"] .rightbar-sticky::-webkit-scrollbar-thumb {
-  background: rgba(0, 200, 255, 0.38);
-  border-radius: 999px;
-}
-
-/* ── Resize handle glow ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   RESIZE HANDLE — neon cyan line with bloom
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .sidebar-resizer::before {
-  background: rgba(0, 200, 255, 0.20);
+  background: rgba(0,200,255,0.22);
 }
 .lib-root[data-skin="vista"] .sidebar-resizer:hover::before {
-  background: rgba(0, 229, 255, 0.50);
+  background: rgba(0,229,255,0.60);
+  box-shadow: 0 0 8px rgba(0,229,255,0.55);
 }
 
-/* ── glassmorphism audio sections (Listen Now / Top Artists in home) ── */
+/* ─────────────────────────────────────────────────────────────────────────
+   HOME SECTIONS — glassmorphic Listen Now cards & Artist circles
+   ───────────────────────────────────────────────────────────────────────── */
 .lib-root[data-skin="vista"] .lm-listen-card {
-  background: rgba(8, 22, 58, 0.58) !important;
-  border: 1px solid rgba(64, 196, 255, 0.18) !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 45%),
+    rgba(6, 18, 52, 0.62) !important;
+  border: 1px solid rgba(80,200,255,0.20) !important;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.20),
+    0 5px 18px rgba(0,10,50,0.38);
 }
 .lib-root[data-skin="vista"] .lm-listen-card:hover {
-  background: rgba(0, 160, 255, 0.15) !important;
-  border-color: rgba(0, 229, 255, 0.32) !important;
-  box-shadow: 0 0 20px rgba(0, 200, 255, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(0,170,255,0.07) 100%),
+    rgba(0,130,255,0.14) !important;
+  border-color: rgba(0,229,255,0.38) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.26),
+    0 0 28px rgba(0,200,255,0.24),
+    0 6px 22px rgba(0,20,80,0.42);
 }
+
 .lib-root[data-skin="vista"] .lm-artist-circle {
   background:
-    radial-gradient(circle at 35% 24%, rgba(0, 229, 255, 0.28), transparent 40%),
-    rgba(4, 14, 40, 0.70) !important;
-  border: 1px solid rgba(0, 229, 255, 0.22) !important;
-  box-shadow: 0 0 14px rgba(0, 200, 255, 0.16);
+    radial-gradient(circle at 33% 22%, rgba(255,255,255,0.16) 0%, transparent 40%),
+    radial-gradient(circle at 68% 72%, rgba(0,200,255,0.12) 0%, transparent 45%),
+    rgba(4, 12, 36, 0.74) !important;
+  border: 1px solid rgba(80,200,255,0.26) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.28),
+    inset 0 -1px 0 rgba(0,200,255,0.14),
+    0 0 18px rgba(0,180,255,0.18),
+    0 8px 24px rgba(0,5,30,0.45);
 }
 .lib-root[data-skin="vista"] .lm-artist:hover .lm-artist-circle {
-  box-shadow: 0 0 22px rgba(0, 229, 255, 0.35);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.36),
+    inset 0 -1px 0 rgba(0,229,255,0.22),
+    0 0 30px rgba(0,200,255,0.40),
+    0 10px 28px rgba(0,5,30,0.50);
+  border-color: rgba(0,229,255,0.44) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SKIN BUTTON — active Vista Aero glow
+   ───────────────────────────────────────────────────────────────────────── */
+.rightbar-skin-btn[data-skin="vista"].active {
+  background:
+    linear-gradient(180deg, rgba(0,229,255,0.18) 0%, rgba(0,180,255,0.10) 100%) !important;
+  border-color: rgba(0,229,255,0.60) !important;
+  box-shadow:
+    0 0 0 1px rgba(0,229,255,0.25),
+    0 0 22px rgba(0,229,255,0.38) !important;
 }
