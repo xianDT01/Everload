@@ -5282,6 +5282,7 @@
   min-height: 32px;
 }
 .np-playlist-row:hover { background: rgba(255,255,255,0.04); }
+.np-playlist-row.active { background: rgba(74,158,255,0.16); }
 .np-playlist-name { flex: 1; font-size: 12px; color: #ddf; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .np-playlist-count { font-size: 10px; color: #8ab; min-width: 20px; text-align: right; }
 .np-playlist-actions { display: flex; gap: 4px; }
@@ -5295,6 +5296,82 @@
   transition: color 0.15s, background 0.15s;
 }
 .np-playlist-actions i:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.np-playlist-workspace {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(190px, 0.35fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
+}
+.np-playlist-sidebar,
+.np-playlist-detail,
+.np-playlist-track-list,
+.np-playlist-results {
+  min-height: 0;
+  overflow: auto;
+}
+.np-playlist-sidebar,
+.np-playlist-detail {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.18);
+}
+.np-playlist-detail {
+  display: flex;
+  flex-direction: column;
+}
+.np-playlist-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.np-playlist-detail-head div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.np-playlist-detail-head strong { color: #eef; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.np-playlist-detail-head small { color: #8ab; font-size: 10px; }
+.np-playlist-track-list {
+  flex: 1;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.np-playlist-search {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+}
+.np-playlist-search input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(100,180,255,0.2);
+  color: #ddf;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  outline: none;
+}
+.np-playlist-detail button,
+.np-playlist-search button {
+  background: rgba(74,158,255,0.15);
+  border: 1px solid rgba(74,158,255,0.3);
+  color: #9cf;
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.np-playlist-detail button:disabled,
+.np-playlist-search button:disabled { opacity: 0.5; cursor: default; }
+.np-playlist-results {
+  max-height: 160px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
 
 /* ══════════════════════════════════════════════════════
    SNAKE

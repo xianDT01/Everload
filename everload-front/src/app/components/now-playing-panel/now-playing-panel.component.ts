@@ -146,6 +146,10 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   newPlaylistName = '';
   renamingPlaylistId: number | null = null;
   renamingPlaylistName = '';
+  selectedPlaylist: any | null = null;
+  playlistSearchQuery = '';
+  playlistLibraryTracks: MusicMetadataDto[] = [];
+  playlistLibraryLoading = false;
 
   // ── Lyrics ─────────────────────────────────────────────────────────────
   lyricsLines: { time: number; text: string }[] = [];
@@ -912,7 +916,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   loadPlaylists(): void {
     this.playlistsLoading = true;
     this.musicService.getPlaylists().subscribe({
-      next: pl => { this.playlists = pl; this.playlistsLoading = false; },
+      next: pl => {
+        this.playlists = pl || [];
+        if (this.selectedPlaylist) {
+          this.selectedPlaylist = this.playlists.find(p => p.id === this.selectedPlaylist.id) || this.playlists[0] || null;
+        } else {
+          this.selectedPlaylist = this.playlists[0] || null;
+        }
+        this.playlistsLoading = false;
+      },
       error: () => { this.playlistsLoading = false; }
     });
   }
@@ -1161,7 +1173,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const name = this.newPlaylistName.trim();
     if (!name) return;
     this.musicService.createPlaylist(name).subscribe({
-      next: pl => { this.playlists = [pl, ...this.playlists]; this.newPlaylistName = ''; }
+      next: pl => { this.playlists = [pl, ...this.playlists]; this.selectedPlaylist = pl; this.newPlaylistName = ''; }
     });
   }
 
@@ -1192,11 +1204,92 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   addCurrentTrackToPlaylist(playlistId: number): void {
     const track = this.state?.currentTrack;
-    const pathId = this.state?.pathId;
+    const pathId = track?.nasPathId ?? this.state?.pathId ?? this.winampQueue.pathId;
     if (!track || pathId == null) return;
     this.musicService.addTrackToPlaylist(playlistId, track, pathId).subscribe({
       next: () => this.loadPlaylists()
     });
+  }
+
+  selectPlaylist(pl: any): void {
+    this.selectedPlaylist = pl;
+    this.playlistLibraryTracks = [];
+    this.playlistSearchQuery = '';
+  }
+
+  playSelectedPlaylist(): void {
+    if (!this.selectedPlaylist?.tracks?.length) return;
+    const tracks = this.selectedPlaylist.tracks.map((t: any) => this.playlistTrackToMusic(t));
+    this.musicService.setQueue(tracks[0].nasPathId || this.state?.pathId || this.winampQueue.pathId, tracks, 0);
+  }
+
+  playPlaylistTrack(index: number): void {
+    if (!this.selectedPlaylist?.tracks?.[index]) return;
+    const tracks = this.selectedPlaylist.tracks.map((t: any) => this.playlistTrackToMusic(t));
+    this.musicService.setQueue(tracks[index].nasPathId || this.state?.pathId || this.winampQueue.pathId, tracks, index);
+  }
+
+  removeSelectedPlaylistTrack(trackId: number, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.selectedPlaylist?.id) return;
+    this.musicService.removeTrackFromPlaylist(this.selectedPlaylist.id, trackId).subscribe({
+      next: () => this.loadPlaylists()
+    });
+  }
+
+  searchTracksForPlaylist(): void {
+    const pathId = this.state?.pathId ?? this.winampQueue.pathId;
+    if (!pathId) return;
+    const query = this.playlistSearchQuery.trim();
+    this.playlistLibraryLoading = true;
+    if (query) {
+      this.musicService.search(pathId, undefined, query, 80).subscribe({
+        next: tracks => {
+          this.playlistLibraryTracks = tracks.filter(track => !track.directory).slice(0, 80);
+          this.playlistLibraryLoading = false;
+        },
+        error: () => { this.playlistLibraryTracks = []; this.playlistLibraryLoading = false; }
+      });
+      return;
+    }
+
+    this.musicService.getLibraryOverview(pathId, 5000).subscribe({
+      next: result => {
+        const tracks = result.tracks || [];
+        this.playlistLibraryTracks = tracks.filter((track: MusicMetadataDto) => !track.directory).slice(0, 80);
+        this.playlistLibraryLoading = false;
+      },
+      error: () => { this.playlistLibraryTracks = []; this.playlistLibraryLoading = false; }
+    });
+  }
+
+  addTrackToSelectedPlaylist(track: MusicMetadataDto, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.selectedPlaylist?.id) return;
+    const pathId = track.nasPathId ?? this.state?.pathId ?? this.winampQueue.pathId;
+    if (!pathId) return;
+    this.musicService.addTrackToPlaylist(this.selectedPlaylist.id, track, pathId).subscribe({
+      next: () => this.loadPlaylists()
+    });
+  }
+
+  private playlistTrackToMusic(t: any): MusicMetadataDto {
+    return {
+      name: t.title || t.trackPath,
+      path: t.trackPath,
+      directory: false,
+      size: 0,
+      lastModified: '',
+      title: t.title || '',
+      artist: t.artist || '',
+      album: t.album || '',
+      duration: t.durationSeconds || 0,
+      format: '',
+      bpm: 0,
+      hasCover: false,
+      source: 'nas',
+      nasPathId: t.nasPathId
+    };
   }
 
   playPlaylist(pl: any): void {

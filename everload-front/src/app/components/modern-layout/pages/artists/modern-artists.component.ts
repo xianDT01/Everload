@@ -33,6 +33,8 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   error = '';
   bulkLoading = false;
   bulkStatus = '';
+  selectedArtist: ArtistGroup | null = null;
+  selectedArtistTracks: MusicMetadataDto[] = [];
   private sub!: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
 
@@ -194,6 +196,23 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   play(g: ArtistGroup) {
     if (!g.tracks.length) return;
     this.music.setQueue(g.pathId, g.tracks, 0);
+  }
+
+  openArtistSongs(g: ArtistGroup) {
+    this.selectedArtist = g;
+    this.selectedArtistTracks = [...g.tracks].sort((a, b) =>
+      (a.album || '').localeCompare(b.album || '') || (a.title || a.name).localeCompare(b.title || b.name)
+    );
+  }
+
+  closeArtistSongs() {
+    this.selectedArtist = null;
+    this.selectedArtistTracks = [];
+  }
+
+  playSelectedArtist(index = 0) {
+    if (!this.selectedArtist || !this.selectedArtistTracks.length) return;
+    this.music.setQueue(this.selectedArtist.pathId, this.selectedArtistTracks, index);
   }
 
   openCreate() {

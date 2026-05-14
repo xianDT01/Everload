@@ -504,7 +504,11 @@
       <section class="np-manager-pane" *ngIf="musicManagerTab === 'playlists'">
         <div class="np-manager-toolbar">
           <strong>{{ 'MUSIC.PLAYLISTS' | translate }}</strong>
-          <button (click)="loadPlaylists()">{{ 'ADMIN.REFRESH' | translate }}</button>
+          <div>
+            <button (click)="selectedPlaylist && playSelectedPlaylist()" [disabled]="!selectedPlaylist?.tracks?.length">▶</button>
+            <button (click)="selectedPlaylist && addCurrentTrackToPlaylist(selectedPlaylist.id)" [disabled]="!selectedPlaylist || !state?.currentTrack">+ canción actual</button>
+            <button (click)="loadPlaylists()">{{ 'ADMIN.REFRESH' | translate }}</button>
+          </div>
         </div>
         <!-- New playlist input -->
         <div class="np-playlist-create">
@@ -515,29 +519,66 @@
           <button (click)="createPlaylist()" [disabled]="!newPlaylistName.trim()">+</button>
         </div>
         <div *ngIf="playlistsLoading" class="np-manager-empty">...</div>
-        <div class="np-manager-list" *ngIf="!playlistsLoading">
-          <div class="np-playlist-row" *ngFor="let pl of playlists">
-            <ng-container *ngIf="renamingPlaylistId !== pl.id; else renameMode">
-              <span class="np-playlist-name" (dblclick)="playPlaylist(pl)" [title]="'MUSIC.PLAYLIST_DBLCLICK' | translate">{{ pl.name }}</span>
-              <span class="np-playlist-count">{{ pl.tracks?.length || 0 }}</span>
-              <span class="np-playlist-actions">
-                <i (click)="playPlaylist(pl)" title="▶">▶</i>
-                <i (click)="addCurrentTrackToPlaylist(pl.id)" [title]="'MUSIC.PLAYLIST_ADD_CURRENT' | translate">+♪</i>
-                <i (click)="startRenamePlaylist(pl, $event)" title="✎">✎</i>
-                <i (click)="deletePlaylist(pl.id, $event)" title="×">×</i>
-              </span>
-            </ng-container>
-            <ng-template #renameMode>
-              <input type="text" [(ngModel)]="renamingPlaylistName"
-                     class="np-playlist-input" style="flex:1"
-                     (keydown.enter)="confirmRenamePlaylist(pl)"
-                     (keydown.escape)="renamingPlaylistId = null"
-                     (mousedown)="$event.stopPropagation()" />
-              <button (click)="confirmRenamePlaylist(pl)">✓</button>
-              <button (click)="renamingPlaylistId = null">✕</button>
-            </ng-template>
+        <div class="np-playlist-workspace" *ngIf="!playlistsLoading">
+          <div class="np-playlist-sidebar">
+            <div class="np-playlist-row" *ngFor="let pl of playlists" [class.active]="selectedPlaylist?.id === pl.id" (click)="selectPlaylist(pl)">
+              <ng-container *ngIf="renamingPlaylistId !== pl.id; else renameMode">
+                <span class="np-playlist-name" (dblclick)="playPlaylist(pl)" [title]="'MUSIC.PLAYLIST_DBLCLICK' | translate">{{ pl.name }}</span>
+                <span class="np-playlist-count">{{ pl.tracks?.length || 0 }}</span>
+                <span class="np-playlist-actions">
+                  <i (click)="playPlaylist(pl); $event.stopPropagation()" title="▶">▶</i>
+                  <i (click)="addCurrentTrackToPlaylist(pl.id); $event.stopPropagation()" [title]="'MUSIC.PLAYLIST_ADD_CURRENT' | translate">+♪</i>
+                  <i (click)="startRenamePlaylist(pl, $event)" title="✎">✎</i>
+                  <i (click)="deletePlaylist(pl.id, $event)" title="×">×</i>
+                </span>
+              </ng-container>
+              <ng-template #renameMode>
+                <input type="text" [(ngModel)]="renamingPlaylistName"
+                       class="np-playlist-input" style="flex:1"
+                       (keydown.enter)="confirmRenamePlaylist(pl)"
+                       (keydown.escape)="renamingPlaylistId = null"
+                       (mousedown)="$event.stopPropagation()" />
+                <button (click)="confirmRenamePlaylist(pl)">✓</button>
+                <button (click)="renamingPlaylistId = null">✕</button>
+              </ng-template>
+            </div>
+            <div *ngIf="!playlists.length" class="np-manager-empty">{{ 'MUSIC.PLAYLIST_EMPTY' | translate }}</div>
           </div>
-          <div *ngIf="!playlists.length" class="np-manager-empty">{{ 'MUSIC.PLAYLIST_EMPTY' | translate }}</div>
+
+          <div class="np-playlist-detail" *ngIf="selectedPlaylist; else noPlaylistSelected">
+            <div class="np-playlist-detail-head">
+              <div>
+                <strong>{{ selectedPlaylist.name }}</strong>
+                <small>{{ selectedPlaylist.tracks?.length || 0 }} canciones</small>
+              </div>
+              <button (click)="playSelectedPlaylist()" [disabled]="!selectedPlaylist.tracks?.length">Reproducir</button>
+            </div>
+
+            <div class="np-playlist-track-list">
+              <button class="np-manager-track" *ngFor="let t of selectedPlaylist.tracks || []; let i = index" (dblclick)="playPlaylistTrack(i)">
+                <span class="num">{{ i + 1 }}</span>
+                <span class="copy"><strong>{{ t.title || t.trackPath }}</strong><small>{{ t.artist || 'Sin artista' }} · {{ t.album || 'Sin álbum' }}</small></span>
+                <span class="np-manager-row-actions">
+                  <i (click)="playPlaylistTrack(i); $event.stopPropagation()">▶</i>
+                  <i (click)="removeSelectedPlaylistTrack(t.id, $event)">×</i>
+                </span>
+              </button>
+              <div *ngIf="!selectedPlaylist.tracks?.length" class="np-manager-empty">Playlist vacía</div>
+            </div>
+
+            <div class="np-playlist-search">
+              <input type="text" [(ngModel)]="playlistSearchQuery" placeholder="Buscar canciones para añadir" (keydown.enter)="searchTracksForPlaylist()" (mousedown)="$event.stopPropagation()" />
+              <button (click)="searchTracksForPlaylist()" [disabled]="playlistLibraryLoading">{{ playlistLibraryLoading ? '...' : 'Buscar' }}</button>
+            </div>
+            <div class="np-playlist-results" *ngIf="playlistLibraryTracks.length">
+              <button class="np-manager-track" *ngFor="let t of playlistLibraryTracks" (dblclick)="addTrackToSelectedPlaylist(t)">
+                <span class="num">+</span>
+                <span class="copy"><strong>{{ t.title || t.name }}</strong><small>{{ t.artist || 'Sin artista' }} · {{ t.album || 'Sin álbum' }}</small></span>
+                <span class="np-manager-row-actions"><i (click)="addTrackToSelectedPlaylist(t, $event)">+♪</i></span>
+              </button>
+            </div>
+          </div>
+          <ng-template #noPlaylistSelected><div class="np-manager-empty">Selecciona una playlist.</div></ng-template>
         </div>
       </section>
     </div>
