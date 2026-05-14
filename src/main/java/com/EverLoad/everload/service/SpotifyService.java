@@ -132,6 +132,20 @@ public class SpotifyService {
         return null;
     }
 
+    public void testConnection() throws Exception {
+        String url = "https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M";
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("User-Agent", USER_AGENT)
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build();
+        HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Spotify embed devolvió HTTP " + response.statusCode());
+        }
+    }
+
     public String extractPlaylistId(String url) {
         try {
             if (url.contains("playlist/")) {

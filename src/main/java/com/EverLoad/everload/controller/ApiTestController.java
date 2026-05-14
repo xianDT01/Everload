@@ -56,7 +56,7 @@ public class ApiTestController {
         response.put("platform", "Spotify");
 
         try {
-            spotifyService.getAccessToken();
+            spotifyService.testConnection();
             response.put("status", "ok");
         } catch (Exception e) {
             response.put("status", "error");
