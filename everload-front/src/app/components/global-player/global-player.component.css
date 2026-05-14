@@ -812,3 +812,40 @@
     border-radius: 18px;
   }
 }
+
+/* Extra-transparent Spotify Aqua pass. */
+:host-context(.nas-library-skin-aqua) .player-bar {
+  background:
+    radial-gradient(circle at 48% -16%, rgba(255,255,255,0.78), transparent 25%),
+    radial-gradient(circle at 75% 30%, rgba(255,255,255,0.26), transparent 8%),
+    radial-gradient(circle at 83% 68%, rgba(255,255,255,0.22), transparent 7%),
+    linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 48%, rgba(0,69,126,0.16) 100%),
+    rgba(0, 92, 164, 0.12);
+  border-color: rgba(240, 255, 255, 0.82);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.94),
+    inset 0 -1px 0 rgba(0,64,113,0.18),
+    0 -1px 0 rgba(255,255,255,0.28),
+    0 18px 48px rgba(0, 55, 100, 0.30),
+    0 0 28px rgba(193, 244, 255, 0.16);
+  backdrop-filter: blur(34px) saturate(215%) brightness(1.04);
+  -webkit-backdrop-filter: blur(34px) saturate(215%) brightness(1.04);
+}
+
+:host-context(.nas-library-skin-aqua) .pb-ctrl,
+:host-context(.nas-library-skin-aqua) .pb-like {
+  background:
+    radial-gradient(circle at 30% 18%, rgba(255,255,255,0.92), transparent 43%),
+    linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.07)),
+    rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+:host-context(.nas-library-skin-aqua) .pb-track,
+:host-context(.nas-library-skin-aqua) .vol-track {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.20), rgba(0,57,103,0.18)),
+    rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.46);
+}
