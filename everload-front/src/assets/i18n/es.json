@@ -1121,6 +1121,8 @@
   "MUSIC.UI_SKIN_RUBY_HINT": "Rojo intenso",
   "MUSIC.UI_SKIN_MONO": "Mono",
   "MUSIC.UI_SKIN_MONO_HINT": "Gris elegante",
+  "MUSIC.UI_SKIN_VISTA": "Vista Aero",
+  "MUSIC.UI_SKIN_VISTA_HINT": "Cristal y cielo",
 
   "ADMIN.CLEANUP_TITLE": "🧹 Limpieza de base de datos",
   "ADMIN.CLEANUP_DESC": "Herramientas para mantener la base de datos ligera con el tiempo. Ejecuta estas limpiezas de forma ocasional para que la app no se vuelva lenta.",
