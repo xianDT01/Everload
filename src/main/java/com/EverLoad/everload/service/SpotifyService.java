@@ -2,112 +2,100 @@ package com.EverLoad.everload.service;
 
 import com.EverLoad.everload.config.AdminConfigService;
 import com.EverLoad.everload.model.SpotifyResult;
-import org.springframework.http.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class SpotifyService {
 
+    private static final String USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+    private static final Pattern NEXT_DATA_PATTERN =
+            Pattern.compile("<script id=\"__NEXT_DATA__\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL);
+
     private final RestTemplate restTemplate;
     private final AdminConfigService configService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .followRedirects(HttpClient.Redirect.NORMAL)
+            .build();
 
     public SpotifyService(RestTemplate restTemplate, AdminConfigService configService) {
         this.restTemplate = restTemplate;
         this.configService = configService;
     }
 
-    public String getAccessToken() {
+    public List<SpotifyResult> getPlaylistTracks(String playlistId) {
         try {
-            String clientId = configService.getClientId();
-            String clientSecret = configService.getClientSecret();
-
-            if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
-                throw new RuntimeException("Las credenciales de Spotify no están configuradas. " +
-                        "Ve al Panel Admin → Configuración y añade el Client ID y Client Secret.");
-            }
-
-            String url = "https://accounts.spotify.com/api/token";
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            String auth = clientId + ":" + clientSecret;
-            headers.setBasicAuth(Base64.getEncoder().encodeToString(auth.getBytes()));
-
-            HttpEntity<String> request = new HttpEntity<>("grant_type=client_credentials", headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-
-            if (response.getStatusCode().is2xxSuccessful()) {
-                return (String) response.getBody().get("access_token");
-            }
-
-            throw new RuntimeException("No se pudo obtener el token de Spotify (credenciales incorrectas)");
-
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (IOException e) {
-            throw new RuntimeException("Error al leer el archivo de configuración: " + e.getMessage(), e);
+            return getPlaylistTracksFromEmbed(playlistId);
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudieron obtener las canciones de Spotify: " + e.getMessage(), e);
         }
     }
 
+    private List<SpotifyResult> getPlaylistTracksFromEmbed(String playlistId) throws Exception {
+        String url = "https://open.spotify.com/embed/playlist/" + playlistId;
 
-    public List<SpotifyResult> getPlaylistTracks(String playlistId) {
-        String token = getAccessToken();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("User-Agent", USER_AGENT)
+                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+                .header("Accept-Language", "en-US,en;q=0.5")
+                .timeout(Duration.ofSeconds(15))
+                .GET()
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Spotify embed devolvió HTTP " + response.statusCode());
+        }
+
+        String html = response.body();
+        Matcher matcher = NEXT_DATA_PATTERN.matcher(html);
+        if (!matcher.find()) {
+            throw new RuntimeException("No se encontraron datos en el embed de Spotify. Comprueba que la playlist sea pública.");
+        }
+
+        JsonNode data = objectMapper.readTree(matcher.group(1));
+        JsonNode trackList = data
+                .path("props").path("pageProps").path("state")
+                .path("data").path("entity").path("trackList");
+
+        if (!trackList.isArray() || trackList.size() == 0) {
+            return Collections.emptyList();
+        }
 
         List<SpotifyResult> results = new ArrayList<>();
-        String url = "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks?limit=100";
+        for (JsonNode track : trackList) {
+            String title = track.path("title").asText("").trim();
+            String artist = track.path("subtitle").asText("").trim();
+            if (title.isEmpty()) continue;
 
-        while (url != null) {
-            ResponseEntity<Map> response;
-            try {
-                response = restTemplate.exchange(url, HttpMethod.GET, entity, Map.class);
-            } catch (org.springframework.web.client.HttpClientErrorException e) {
-                if (e.getStatusCode().value() == 403 || e.getStatusCode().value() == 404) {
-                    throw new RuntimeException("A lista de Spotify non é accesible. Comproba que a lista sexa pública (non privada).");
-                }
-                throw new RuntimeException("Erro ao acceder á lista de Spotify: " + e.getStatusCode());
-            }
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new RuntimeException("Error al obtener la playlist de Spotify");
-            }
-
-            Map<String, Object> body = response.getBody();
-            List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
-
-            if (items != null) {
-                for (Map<String, Object> item : items) {
-                    Map<String, Object> track = (Map<String, Object>) item.get("track");
-                    if (track == null || Boolean.TRUE.equals(track.get("is_local"))) continue;
-
-                    String name = (String) track.get("name");
-                    List<Map<String, String>> artists = (List<Map<String, String>>) track.get("artists");
-                    if (name == null || artists == null || artists.isEmpty()) continue;
-
-                    String artistNames = artists.stream()
-                            .map(a -> a.get("name"))
-                            .collect(Collectors.joining(", "));
-
-                    String query = artistNames + " - " + name;
-                    String youtubeUrl = searchYouTube(query);
-                    results.add(new SpotifyResult(query, youtubeUrl));
-                }
-            }
-
-            url = (String) body.get("next");
+            String query = artist.isEmpty() ? title : artist + " - " + title;
+            String youtubeUrl = searchYouTube(query);
+            results.add(new SpotifyResult(query, youtubeUrl));
         }
 
         return results;
     }
 
+    @SuppressWarnings("unchecked")
     private String searchYouTube(String rawTitle) {
         try {
             String apiKey = configService.getApiKey();
@@ -138,14 +126,11 @@ public class SpotifyService {
                     }
                 }
             }
-
         } catch (Exception e) {
             System.out.println("❌ Error buscando en YouTube: " + e.getMessage());
         }
-
         return null;
     }
-
 
     public String extractPlaylistId(String url) {
         try {
