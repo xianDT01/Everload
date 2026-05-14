@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, ViewChild
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { forkJoin, Subscription } from 'rxjs';
-import { MusicMetadataDto, MusicService, PlayerState } from '../../services/music.service';
+import { ArtistProfileDto, MusicMetadataDto, MusicService, PlayerState } from '../../services/music.service';
 import { NasPath, NasService } from '../../services/nas.service';
 import { ChatMessageDto, ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
@@ -49,6 +49,15 @@ interface MetadataReviewItem {
   reason: string;
   status: 'idle' | 'loading' | 'suggested' | 'saved' | 'rejected' | 'error';
   suggestion?: { title: string; artist: string; album: string; rawTitle?: string; channelName?: string };
+}
+
+interface ArtistReviewItem {
+  artist: string;
+  tracks: MusicMetadataDto[];
+  profile?: ArtistProfileDto;
+  imageUrl?: string;
+  suggestionUrl?: string;
+  status: 'idle' | 'loading' | 'suggested' | 'saved' | 'rejected' | 'error';
 }
 
 @Component({
@@ -118,7 +127,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   explorerWindowSize = { width: 560, height: 420 };
   musicManagerWindowPosition = { x: 190, y: 96 };
   musicManagerWindowSize = { width: 760, height: 500 };
-  musicManagerTab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' | 'review' = 'properties';
+  musicManagerTab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' | 'review' | 'artists' = 'properties';
   musicManagerStatus = '';
   historyItems: any[] = [];
   statsData: { totalPlays: number; topTracks: any[] } | null = null;
@@ -126,6 +135,10 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   metadataReviewItems: MetadataReviewItem[] = [];
   metadataReviewLoading = false;
   metadataReviewStatus = '';
+  artistReviewItems: ArtistReviewItem[] = [];
+  artistReviewLoading = false;
+  artistReviewStatus = '';
+  private rejectedArtistImageKeys = new Set<string>();
 
   // ── Playlists ─────────────────────────────────────────────────────────────
   playlists: any[] = [];
@@ -861,7 +874,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     });
   }
 
-  openMusicManager(tab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' | 'review' = this.musicManagerTab): void {
+  openMusicManager(tab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' | 'review' | 'artists' = this.musicManagerTab): void {
     this.musicManagerOpen = true;
     this.musicManagerMinimized = false;
     this.musicManagerTab = tab;
@@ -871,6 +884,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (tab === 'stats') this.loadStats();
     if (tab === 'playlists') this.loadPlaylists();
     if (tab === 'review') this.loadMetadataReview();
+    if (tab === 'artists') this.loadArtistReview();
   }
 
   closeMusicManager(): void {
@@ -982,6 +996,136 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   rejectReviewMetadata(item: MetadataReviewItem): void {
     item.status = 'rejected';
     item.suggestion = undefined;
+  }
+
+  loadArtistReview(): void {
+    const pathId = this.state?.pathId ?? this.winampQueue.pathId;
+    if (!pathId) {
+      this.artistReviewItems = [];
+      this.artistReviewStatus = 'Selecciona una biblioteca o reproduce una canción del NAS.';
+      return;
+    }
+
+    this.artistReviewLoading = true;
+    this.artistReviewStatus = '';
+    forkJoin({
+      overview: this.musicService.getLibraryOverview(pathId, 5000),
+      profiles: this.musicService.getArtistProfiles()
+    }).subscribe({
+      next: ({ overview, profiles }) => {
+        const profileByKey = new Map<string, ArtistProfileDto>();
+        profiles.forEach(profile => {
+          [profile.name, ...(profile.aliases || '').split(/[\n,]+/)]
+            .map(value => value.trim())
+            .filter(Boolean)
+            .forEach(value => this.artistNameParts(value).forEach(key => profileByKey.set(this.cleanMeta(key), profile)));
+        });
+        const groups = new Map<string, ArtistReviewItem>();
+
+        (overview.tracks || []).forEach(track => {
+          this.artistNameParts(track.artist || '').forEach(name => {
+            const key = this.cleanMeta(name);
+            if (!key || this.isSuspiciousMetadataArtist(name) || this.rejectedArtistImageKeys.has(key)) return;
+            const profile = profileByKey.get(key);
+            const imageUrl = this.profileImage(profile);
+            if (imageUrl) return;
+            if (!groups.has(key)) {
+              groups.set(key, { artist: profile?.name || name, tracks: [track], profile, imageUrl, status: 'idle' });
+            } else {
+              const item = groups.get(key)!;
+              if (!item.tracks.some(existing => existing.path === track.path)) item.tracks.push(track);
+            }
+          });
+        });
+
+        this.artistReviewItems = Array.from(groups.values())
+          .sort((a, b) => b.tracks.length - a.tracks.length || a.artist.localeCompare(b.artist))
+          .slice(0, 120);
+        this.artistReviewStatus = this.artistReviewItems.length
+          ? `${this.artistReviewItems.length} artistas sin foto revisada`
+          : 'No hay artistas pendientes de foto.';
+        this.artistReviewLoading = false;
+      },
+      error: () => {
+        this.artistReviewItems = [];
+        this.artistReviewStatus = 'No se pudo cargar la revisión de artistas.';
+        this.artistReviewLoading = false;
+      }
+    });
+  }
+
+  previewArtistImage(item: ArtistReviewItem): void {
+    if (item.status === 'loading') return;
+    item.status = 'loading';
+    item.suggestionUrl = undefined;
+    this.musicService.getArtistImage(item.artist).subscribe({
+      next: result => {
+        if (result.found && result.imageUrl) {
+          item.suggestionUrl = result.imageUrl;
+          item.status = 'suggested';
+        } else {
+          item.status = 'error';
+        }
+      },
+      error: () => { item.status = 'error'; }
+    });
+  }
+
+  acceptArtistImage(item: ArtistReviewItem): void {
+    if (!item.suggestionUrl || item.status === 'loading') return;
+    item.status = 'loading';
+    const saveImage = (profile: ArtistProfileDto) => {
+      this.musicService.uploadArtistImageFromUrl(profile.id, item.suggestionUrl!).subscribe({
+        next: updated => {
+          item.profile = updated;
+          item.imageUrl = this.profileImage(updated);
+          item.status = 'saved';
+          this.artistReviewStatus = 'Imagen de artista guardada.';
+        },
+        error: () => {
+          item.status = 'error';
+          this.artistReviewStatus = 'No se pudo guardar la imagen.';
+        }
+      });
+    };
+
+    if (item.profile) {
+      saveImage(item.profile);
+    } else {
+      this.musicService.createArtistProfile(item.artist).subscribe({
+        next: profile => saveImage(profile),
+        error: () => {
+          item.status = 'error';
+          this.artistReviewStatus = 'No se pudo crear el perfil de artista.';
+        }
+      });
+    }
+  }
+
+  rejectArtistImage(item: ArtistReviewItem): void {
+    this.rejectedArtistImageKeys.add(this.cleanMeta(item.artist));
+    item.status = 'rejected';
+    item.suggestionUrl = undefined;
+  }
+
+  private artistNameParts(value: string): string[] {
+    const raw = (value || '').trim();
+    if (!raw) return [];
+    const parts = raw
+      .split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b|\bcon\b|\band\b| y )\s*/i)
+      .map(part => part.trim())
+      .filter(Boolean);
+    const unique = new Map<string, string>();
+    (parts.length ? parts : [raw]).forEach(part => {
+      const key = this.cleanMeta(part);
+      if (key && !unique.has(key)) unique.set(key, part);
+    });
+    return Array.from(unique.values());
+  }
+
+  private profileImage(profile?: ArtistProfileDto): string {
+    if (!profile?.imageUrl) return '';
+    return profile.imageUrl.startsWith('http') ? profile.imageUrl : `${this.musicService.BASE}${profile.imageUrl}`;
   }
 
   private metadataReviewReason(track: MusicMetadataDto): string {

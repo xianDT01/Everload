@@ -254,6 +254,7 @@
       <button [class.active]="musicManagerTab === 'stats'" (click)="musicManagerTab = 'stats'; loadStats()">{{ 'WINDOWS.MANAGER_STATS' | translate }}</button>
       <button [class.active]="musicManagerTab === 'playlists'" (click)="musicManagerTab = 'playlists'; loadPlaylists()">{{ 'MUSIC.PLAYLISTS' | translate }}</button>
       <button [class.active]="musicManagerTab === 'review'" (click)="musicManagerTab = 'review'; loadMetadataReview()">Revisión</button>
+      <button [class.active]="musicManagerTab === 'artists'" (click)="musicManagerTab = 'artists'; loadArtistReview()">Artistas</button>
     </div>
     <div class="np-music-manager-body">
       <section class="np-manager-pane" *ngIf="musicManagerTab === 'properties'">
@@ -466,6 +467,34 @@
               </button>
               <button class="accept" (click)="acceptReviewMetadata(item)" [disabled]="!item.suggestion || item.status === 'loading' || item.status === 'saved'">Sí, guardar</button>
               <button class="reject" (click)="rejectReviewMetadata(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">No</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="np-manager-pane" *ngIf="musicManagerTab === 'artists'">
+        <div class="np-manager-toolbar">
+          <strong>Revisión de artistas</strong>
+          <button (click)="loadArtistReview()" [disabled]="artistReviewLoading">{{ artistReviewLoading ? '...' : ('ADMIN.REFRESH' | translate) }}</button>
+        </div>
+        <div class="np-manager-empty" *ngIf="artistReviewStatus">{{ artistReviewStatus }}</div>
+        <div class="np-review-list" *ngIf="artistReviewItems.length">
+          <div class="np-artist-review-row" *ngFor="let item of artistReviewItems" [class.saved]="item.status === 'saved'" [class.rejected]="item.status === 'rejected'">
+            <div class="np-artist-review-avatar">
+              <img *ngIf="item.suggestionUrl || item.imageUrl" [src]="item.suggestionUrl || item.imageUrl" (error)="$any($event.target).style.display='none'" />
+              <span *ngIf="!item.suggestionUrl && !item.imageUrl">♪</span>
+            </div>
+            <div class="np-review-main">
+              <strong>{{ item.artist }}</strong>
+              <small>{{ item.tracks.length }} canciones</small>
+              <em>{{ item.status === 'saved' ? 'Imagen guardada' : item.status === 'rejected' ? 'Rechazado' : item.status === 'error' ? 'Sin sugerencia fiable' : 'Sin foto revisada' }}</em>
+            </div>
+            <div class="np-review-actions">
+              <button (click)="previewArtistImage(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">
+                {{ item.status === 'loading' ? '...' : item.suggestionUrl ? 'Buscar otra vez' : 'Previsualizar' }}
+              </button>
+              <button class="accept" (click)="acceptArtistImage(item)" [disabled]="!item.suggestionUrl || item.status === 'loading' || item.status === 'saved'">Sí, guardar</button>
+              <button class="reject" (click)="rejectArtistImage(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">No</button>
             </div>
           </div>
         </div>

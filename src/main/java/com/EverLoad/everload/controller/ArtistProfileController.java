@@ -20,6 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -123,6 +126,26 @@ public class ArtistProfileController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Guardar imagen de artista desde URL revisada")
+    @PostMapping("/{id}/image-url")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> uploadImageFromUrl(@AuthenticationPrincipal UserDetails ud,
+                                                @PathVariable Long id,
+                                                @RequestBody ArtistImageUrlDto dto) {
+        return artistRepository.findByIdAndUser(id, getUser(ud))
+                .map(profile -> {
+                    try {
+                        deleteImage(profile.getImageFilename());
+                        String filename = saveImageFromUrl(profile.getId(), dto.getImageUrl());
+                        profile.setImageFilename(filename);
+                        return ResponseEntity.ok(toDto(artistRepository.save(profile)));
+                    } catch (Exception e) {
+                        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @Operation(summary = "Quitar imagen manual de artista")
     @DeleteMapping("/{id}/image")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
@@ -189,6 +212,35 @@ public class ArtistProfileController {
         return filename;
     }
 
+    private String saveImageFromUrl(Long artistId, String imageUrl) throws IOException {
+        if (imageUrl == null || imageUrl.isBlank()) throw new IllegalArgumentException("URL de imagen vacía");
+        URI uri = URI.create(imageUrl);
+        String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase();
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || !host.endsWith("dzcdn.net")) {
+            throw new IllegalArgumentException("Origen de imagen no permitido");
+        }
+
+        Files.createDirectories(artistImageDir());
+        URLConnection connection = uri.toURL().openConnection();
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(10000);
+        String contentType = connection.getContentType();
+        if (contentType == null || !ALLOWED_TYPES.contains(contentType.split(";", 2)[0].trim())) {
+            throw new IllegalArgumentException("Tipo de imagen no permitido");
+        }
+
+        String filename = "artist_" + artistId + "_" + UUID.randomUUID().toString().substring(0, 8) + extensionFromContentType(contentType);
+        Path target = artistImageDir().resolve(filename);
+        try (InputStream in = connection.getInputStream()) {
+            long copied = Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+            if (copied > maxSizeMb * 1024 * 1024) {
+                Files.deleteIfExists(target);
+                throw new IllegalArgumentException("La imagen supera " + maxSizeMb + " MB");
+            }
+        }
+        return filename;
+    }
+
     private void deleteImage(String filename) {
         if (filename == null || filename.isBlank()) return;
         try {
@@ -206,6 +258,16 @@ public class ArtistProfileController {
         return dot >= 0 ? filename.substring(dot).toLowerCase() : ".jpg";
     }
 
+    private String extensionFromContentType(String contentType) {
+        String type = contentType == null ? "" : contentType.split(";", 2)[0].trim().toLowerCase();
+        return switch (type) {
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            case "image/gif" -> ".gif";
+            default -> ".jpg";
+        };
+    }
+
     private String guessContentType(Path path) {
         try {
             String type = Files.probeContentType(path);
@@ -220,5 +282,10 @@ public class ArtistProfileController {
         private String name;
         private String aliases;
         private String description;
+    }
+
+    @Data
+    static class ArtistImageUrlDto {
+        private String imageUrl;
     }
 }

@@ -4507,6 +4507,40 @@
   cursor: default;
 }
 
+.np-artist-review-row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  border: 1px solid #d2ccb0;
+  background: #fff;
+  color: #222;
+  padding: 7px;
+  font-size: 11px;
+}
+
+.np-artist-review-row.saved { opacity: 0.65; background: #eff9ef; }
+.np-artist-review-row.rejected { opacity: 0.5; }
+
+.np-artist-review-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e7e7df;
+  border: 1px solid #c7c0a2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777;
+}
+
+.np-artist-review-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .np-manager-list {
   flex: 1;
   min-height: 0;
