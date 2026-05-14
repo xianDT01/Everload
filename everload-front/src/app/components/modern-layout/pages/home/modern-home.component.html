@@ -1,69 +1,163 @@
 <div class="mh-page" *ngIf="!loading; else spinner">
-  <h1 class="mh-h1">Home</h1>
 
-  <!-- Featured banner -->
-  <div class="mh-featured" *ngIf="featured"
-       [style.background-image]="'url(' + coverFor(featured.track, featured.pathId) + ')'">
-    <div class="mh-feat-overlay">
-      <div class="mh-feat-label">FEATURED ALBUM</div>
-      <div class="mh-feat-title">{{ featured.track.album || featured.track.title }}</div>
-      <div class="mh-feat-artist">By {{ featured.track.artist }}</div>
-      <div class="mh-feat-btns">
-        <button class="mh-btn-play" (click)="playFeatured()">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
-          Start listening
+  <!-- Header row -->
+  <div class="mh-header-row">
+    <h1 class="mh-h1">Home</h1>
+    <div class="mh-header-actions" *ngIf="!editMode">
+      <button class="mh-customize-btn" (click)="editMode = true" title="Customize Home">
+        <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        Customize
+      </button>
+    </div>
+    <div class="mh-edit-actions" *ngIf="editMode">
+      <button class="mh-reset-btn" (click)="resetSections()">Reset</button>
+      <button class="mh-done-btn" (click)="editMode = false">Done</button>
+    </div>
+  </div>
+
+  <!-- Edit mode panel -->
+  <div class="mh-edit-panel" *ngIf="editMode">
+    <div class="mh-edit-section" *ngFor="let section of homeSections; let i = index" [class.mh-edit-section--hidden]="!section.enabled">
+      <span class="mh-edit-label">{{ sectionLabel(section.key) }}</span>
+      <div class="mh-edit-controls">
+        <button type="button" title="Move up" (click)="moveSection(section.key, -1)" [disabled]="i === 0">
+          <svg viewBox="0 0 24 24"><path d="M7.41 15.41 12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
         </button>
-        <button class="mh-btn-heart" (click)="toggleFavFeatured()" title="Favorito">
-          <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/></svg>
+        <button type="button" title="Move down" (click)="moveSection(section.key, 1)" [disabled]="i === homeSections.length - 1">
+          <svg viewBox="0 0 24 24"><path d="M7.41 8.59 12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+        </button>
+        <button type="button" class="mh-edit-toggle" (click)="toggleSection(section.key)">
+          {{ section.enabled ? 'Hide' : 'Show' }}
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Listen Now (horizontal cards: cover-left, text-right) -->
-  <section class="mh-section" *ngIf="listenNow.length">
-    <h2 class="mh-h2">Listen now</h2>
-    <div class="mh-listen-grid">
-      <div class="mh-listen-card" *ngFor="let card of listenNow" (dblclick)="playAlbum(card)">
-        <div class="mh-listen-cover">
-          <img [src]="coverFor(card.track, card.pathId)"
-               (error)="$any($event.target).style.display='none'" />
+  <!-- Sections container (ordered via CSS) -->
+  <div class="mh-sections-container">
+
+    <!-- Featured banner -->
+    <div *ngIf="isEnabled('featured') && featured" [style.order]="sectionOrder('featured')">
+      <div class="mh-featured"
+           [style.background-image]="'url(' + coverFor(featured.track, featured.pathId) + ')'">
+        <div class="mh-feat-overlay">
+          <div class="mh-feat-label">FEATURED ALBUM</div>
+          <div class="mh-feat-title">{{ featured.track.album || featured.track.title }}</div>
+          <div class="mh-feat-artist">By {{ featured.track.artist }}</div>
+          <div class="mh-feat-btns">
+            <button class="mh-btn-play" (click)="playFeatured()">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+              Start listening
+            </button>
+            <button class="mh-btn-heart" (click)="toggleFavFeatured()" title="Favorito">
+              <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/></svg>
+            </button>
+          </div>
         </div>
-        <div class="mh-listen-meta">
-          <span class="mh-listen-title">{{ card.album }}</span>
-          <span class="mh-listen-artist">{{ card.artist }}</span>
-        </div>
-        <button class="mh-listen-play" (click)="playAlbum(card); $event.stopPropagation()" title="Reproducir">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+      </div>
+    </div>
+
+    <!-- Listen Now -->
+    <section class="mh-section" *ngIf="isEnabled('listen_now') && listenNow.length" [style.order]="sectionOrder('listen_now')">
+      <div class="mh-section-head">
+        <h2 class="mh-h2">Listen Now</h2>
+        <button type="button" class="mh-layout-btn" (click)="toggleListenNowStyle()" [title]="listenNowStyle === 'cards' ? 'Switch to list' : 'Switch to cards'">
+          <svg *ngIf="listenNowStyle === 'cards'" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+          <svg *ngIf="listenNowStyle === 'list'" viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zM10 11h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>
+          {{ listenNowStyle === 'cards' ? 'List' : 'Cards' }}
         </button>
       </div>
-    </div>
-  </section>
 
-  <!-- Top Artists (horizontal scroll, circles) -->
-  <section class="mh-section" *ngIf="topArtists.length">
-    <div class="mh-section-head">
-      <h2 class="mh-h2">Top Artists</h2>
-      <div class="mh-section-arrows">
-        <button type="button" title="Previous" (click)="scrollArtists(-1)"><svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg></button>
-        <button type="button" title="Next" (click)="scrollArtists(1)"><svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg></button>
-      </div>
-    </div>
-    <div class="mh-artists-row" #artistsRow>
-      <div class="mh-artist" *ngFor="let a of topArtists" (click)="openArtist(a)" title="Ver canciones del artista">
-        <div class="mh-artist-circle">
-          <img *ngIf="a.imageUrl || a.autoImageUrl"
-               [src]="a.imageUrl || a.autoImageUrl"
-               (error)="$any($event.target).style.display='none'" />
-          <span class="mh-artist-fallback">
-            <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
-          </span>
+      <!-- Cards layout -->
+      <div class="mh-listen-grid" *ngIf="listenNowStyle === 'cards'">
+        <div class="mh-listen-card" *ngFor="let card of listenNow" (dblclick)="playAlbum(card)">
+          <div class="mh-listen-cover">
+            <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" />
+          </div>
+          <div class="mh-listen-meta">
+            <span class="mh-listen-title">{{ card.album }}</span>
+            <span class="mh-listen-artist">{{ card.artist }}</span>
+          </div>
+          <button class="mh-listen-play" (click)="playAlbum(card); $event.stopPropagation()" title="Reproducir">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+          </button>
         </div>
-        <span class="mh-artist-name">{{ a.artist }}</span>
       </div>
-    </div>
-  </section>
 
+      <!-- List layout -->
+      <div class="mh-listen-list" *ngIf="listenNowStyle === 'list'">
+        <button type="button" class="mh-listen-list-item" *ngFor="let card of listenNow" (click)="playAlbum(card)">
+          <div class="mh-listen-list-cover">
+            <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" />
+          </div>
+          <div class="mh-listen-list-meta">
+            <span class="mh-listen-title">{{ card.album }}</span>
+            <span class="mh-listen-artist">{{ card.artist }}</span>
+          </div>
+          <svg class="mh-listen-list-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Top Artists -->
+    <section class="mh-section" *ngIf="isEnabled('top_artists') && topArtists.length" [style.order]="sectionOrder('top_artists')">
+      <div class="mh-section-head">
+        <h2 class="mh-h2">Top Artists</h2>
+        <div class="mh-section-arrows">
+          <button type="button" title="Previous" (click)="scrollArtists(-1)"><svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg></button>
+          <button type="button" title="Next" (click)="scrollArtists(1)"><svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg></button>
+        </div>
+      </div>
+      <div class="mh-artists-row" #artistsRow>
+        <div class="mh-artist" *ngFor="let a of topArtists" (click)="openArtist(a)" title="Ver canciones del artista">
+          <div class="mh-artist-circle">
+            <img *ngIf="a.imageUrl || a.autoImageUrl" [src]="a.imageUrl || a.autoImageUrl" (error)="$any($event.target).style.display='none'" />
+            <span class="mh-artist-fallback">
+              <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
+            </span>
+          </div>
+          <span class="mh-artist-name">{{ a.artist }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recently Added -->
+    <section class="mh-section" *ngIf="isEnabled('recently_added') && recentlyAdded.length" [style.order]="sectionOrder('recently_added')">
+      <h2 class="mh-h2">Recently Added</h2>
+      <div class="mh-albums-row">
+        <div class="mh-album-card" *ngFor="let card of recentlyAdded" (dblclick)="playAlbum(card)">
+          <div class="mh-album-cover">
+            <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" class="mh-album-img" />
+            <button class="mh-album-play" (click)="playAlbum(card); $event.stopPropagation()" title="Reproducir">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+            </button>
+          </div>
+          <span class="mh-album-title">{{ card.album }}</span>
+          <span class="mh-album-artist">{{ card.artist }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Explore -->
+    <section class="mh-section" *ngIf="isEnabled('explore') && newReleases.length" [style.order]="sectionOrder('explore')">
+      <h2 class="mh-h2">Explore</h2>
+      <div class="mh-albums-row">
+        <div class="mh-album-card" *ngFor="let card of newReleases" (dblclick)="playAlbum(card)">
+          <div class="mh-album-cover">
+            <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" class="mh-album-img" />
+            <button class="mh-album-play" (click)="playAlbum(card); $event.stopPropagation()" title="Reproducir">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+            </button>
+          </div>
+          <span class="mh-album-title">{{ card.album }}</span>
+          <span class="mh-album-artist">{{ card.artist }}</span>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /mh-sections-container -->
+
+  <!-- Artist modal -->
   <div class="mh-artist-modal" *ngIf="selectedArtist" (click)="closeArtist()">
     <div class="mh-artist-panel" (click)="$event.stopPropagation()">
       <div class="mh-artist-panel-head">
@@ -74,21 +168,15 @@
         </div>
         <button type="button" class="mh-artist-close" (click)="closeArtist()">×</button>
       </div>
-
       <div class="mh-artist-panel-actions">
         <button type="button" (click)="playArtistAll()" [disabled]="artistLoading || !selectedArtistTracks.length">
           Reproducir todo
         </button>
       </div>
-
       <div class="mh-artist-loading" *ngIf="artistLoading">Cargando canciones…</div>
       <div class="mh-artist-error" *ngIf="artistError">{{ artistError }}</div>
-
       <div class="mh-artist-track-list" *ngIf="!artistLoading">
-        <button type="button"
-                class="mh-artist-track"
-                *ngFor="let t of selectedArtistTracks; let i = index"
-                (click)="playArtistTrack(i)">
+        <button type="button" class="mh-artist-track" *ngFor="let t of selectedArtistTracks; let i = index" (click)="playArtistTrack(i)">
           <span class="mh-artist-track-num">{{ i + 1 }}</span>
           <span class="mh-artist-track-copy">
             <strong>{{ t.title || t.name }}</strong>
@@ -99,24 +187,6 @@
       </div>
     </div>
   </div>
-
-  <!-- New releases / random albums -->
-  <section class="mh-section" *ngIf="newReleases.length">
-    <h2 class="mh-h2">Explore</h2>
-    <div class="mh-albums-row">
-      <div class="mh-album-card" *ngFor="let card of newReleases" (dblclick)="playAlbum(card)">
-        <div class="mh-album-cover">
-          <img [src]="coverFor(card.track, card.pathId)"
-               (error)="$any($event.target).style.display='none'" class="mh-album-img" />
-          <button class="mh-album-play" (click)="playAlbum(card); $event.stopPropagation()" title="Reproducir">
-            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
-          </button>
-        </div>
-        <span class="mh-album-title">{{ card.album }}</span>
-        <span class="mh-album-artist">{{ card.artist }}</span>
-      </div>
-    </div>
-  </section>
 
 </div>
 

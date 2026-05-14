@@ -4,6 +4,257 @@
   margin: 0;
 }
 
+/* ── Header row ── */
+.mh-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.mh-header-row .mh-h1 {
+  margin: 0;
+}
+
+.mh-header-actions,
+.mh-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mh-customize-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--ml-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ml-muted);
+  font: 700 11px/1 inherit;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.mh-customize-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.mh-customize-btn:hover {
+  color: var(--ml-text);
+  border-color: color-mix(in srgb, var(--ml-text) 40%, transparent);
+  background: color-mix(in srgb, var(--ml-text) 5%, transparent);
+}
+
+.mh-reset-btn {
+  border: 1px solid var(--ml-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ml-muted);
+  font: 700 11px/1 inherit;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.mh-reset-btn:hover {
+  color: var(--ml-text);
+  border-color: color-mix(in srgb, var(--ml-text) 40%, transparent);
+}
+
+.mh-done-btn {
+  border: none;
+  border-radius: 999px;
+  background: var(--ml-text);
+  color: var(--ml-bg);
+  font: 900 11px/1 inherit;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.mh-done-btn:hover { opacity: 0.85; }
+
+/* ── Edit panel ── */
+.mh-edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: color-mix(in srgb, var(--ml-panel) 90%, transparent);
+  border: 1px solid var(--ml-border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+
+.mh-edit-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ml-text) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ml-text) 8%, transparent);
+  transition: opacity 0.2s;
+}
+
+.mh-edit-section--hidden {
+  opacity: 0.45;
+}
+
+.mh-edit-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ml-text);
+}
+
+.mh-edit-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mh-edit-controls button {
+  border: 1px solid var(--ml-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ml-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 10px/1 inherit;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.mh-edit-controls button:hover:not(:disabled) {
+  color: var(--ml-text);
+  border-color: color-mix(in srgb, var(--ml-text) 30%, transparent);
+}
+
+.mh-edit-controls button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.mh-edit-controls button svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.mh-edit-toggle {
+  min-width: 46px;
+  text-align: center;
+}
+
+/* ── Sections container (ordered) ── */
+.mh-sections-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.mh-sections-container > * {
+  order: 0;
+}
+
+/* ── Layout toggle button ── */
+.mh-layout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--ml-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ml-muted);
+  font: 700 10px/1 inherit;
+  padding: 5px 11px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.mh-layout-btn svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+.mh-layout-btn:hover {
+  color: var(--ml-text);
+  border-color: color-mix(in srgb, var(--ml-text) 35%, transparent);
+}
+
+/* ── Listen List layout ── */
+.mh-listen-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mh-listen-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.mh-listen-list-item:hover {
+  background: var(--ml-card-hover);
+}
+
+.mh-listen-list-cover {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--ml-card);
+}
+
+.mh-listen-list-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mh-listen-list-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mh-listen-list-play {
+  width: 14px;
+  height: 14px;
+  fill: var(--ml-accent);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.mh-listen-list-item:hover .mh-listen-list-play {
+  opacity: 1;
+}
+
 .mh-loading {
   display: flex;
   align-items: center;
@@ -27,7 +278,7 @@
   font-size: 31px;
   font-weight: 900;
   color: var(--ml-text);
-  margin: 0 0 10px;
+  margin: 0;
   letter-spacing: 0;
 }
 

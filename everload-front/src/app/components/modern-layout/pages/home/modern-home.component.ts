@@ -21,6 +21,22 @@ interface ArtistCard {
   autoImageUrl?: string;
 }
 
+interface HomeSection {
+  key: string;
+  enabled: boolean;
+}
+
+const HOME_SECTION_DEFAULTS: HomeSection[] = [
+  { key: 'featured', enabled: true },
+  { key: 'listen_now', enabled: true },
+  { key: 'top_artists', enabled: true },
+  { key: 'recently_added', enabled: true },
+  { key: 'explore', enabled: true },
+];
+
+const LS_SECTIONS = 'modern_home_sections';
+const LS_LISTEN_STYLE = 'modern_home_listen_style';
+
 @Component({
   selector: 'app-modern-home',
   templateUrl: './modern-home.component.html',
@@ -30,12 +46,18 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   featured: { track: MusicMetadataDto; pathId: number } | null = null;
   listenNow: AlbumCard[] = [];
   topArtists: ArtistCard[] = [];
+  recentlyAdded: AlbumCard[] = [];
   newReleases: AlbumCard[] = [];
   selectedArtist: ArtistCard | null = null;
   selectedArtistTracks: MusicMetadataDto[] = [];
   artistLoading = false;
   artistError = '';
   loading = true;
+
+  editMode = false;
+  homeSections: HomeSection[] = [];
+  listenNowStyle: 'cards' | 'list' = 'cards';
+
   private sub!: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
 
@@ -44,6 +66,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   constructor(public music: MusicService, private state: ModernStateService) {}
 
   ngOnInit() {
+    this.loadHomeConfig();
     this.sub = this.state.pathId$.subscribe(pid => {
       if (pid != null) this.load(pid);
     });
@@ -54,10 +77,78 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     if (this.indexPoll) clearTimeout(this.indexPoll);
   }
 
+  // ── Home config (localStorage) ────────────────────────────────
+
+  private loadHomeConfig() {
+    try {
+      const raw = localStorage.getItem(LS_SECTIONS);
+      if (raw) {
+        const saved: HomeSection[] = JSON.parse(raw);
+        const validKeys = HOME_SECTION_DEFAULTS.map(s => s.key);
+        const merged = saved.filter(s => validKeys.includes(s.key));
+        const missing = HOME_SECTION_DEFAULTS.filter(d => !merged.some(m => m.key === d.key));
+        this.homeSections = [...merged, ...missing];
+      } else {
+        this.homeSections = HOME_SECTION_DEFAULTS.map(s => ({ ...s }));
+      }
+    } catch {
+      this.homeSections = HOME_SECTION_DEFAULTS.map(s => ({ ...s }));
+    }
+    this.listenNowStyle = (localStorage.getItem(LS_LISTEN_STYLE) as 'cards' | 'list') || 'cards';
+  }
+
+  private saveHomeConfig() {
+    localStorage.setItem(LS_SECTIONS, JSON.stringify(this.homeSections));
+  }
+
+  isEnabled(key: string): boolean {
+    return this.homeSections.find(s => s.key === key)?.enabled ?? true;
+  }
+
+  sectionOrder(key: string): number {
+    return this.homeSections.findIndex(s => s.key === key);
+  }
+
+  sectionLabel(key: string): string {
+    const labels: Record<string, string> = {
+      featured: 'Featured',
+      listen_now: 'Listen Now',
+      top_artists: 'Top Artists',
+      recently_added: 'Recently Added',
+      explore: 'Explore',
+    };
+    return labels[key] || key;
+  }
+
+  toggleSection(key: string) {
+    const s = this.homeSections.find(s => s.key === key);
+    if (s) { s.enabled = !s.enabled; this.saveHomeConfig(); }
+  }
+
+  moveSection(key: string, dir: 1 | -1) {
+    const i = this.homeSections.findIndex(s => s.key === key);
+    const j = i + dir;
+    if (j < 0 || j >= this.homeSections.length) return;
+    [this.homeSections[i], this.homeSections[j]] = [this.homeSections[j], this.homeSections[i]];
+    this.saveHomeConfig();
+  }
+
+  resetSections() {
+    this.homeSections = HOME_SECTION_DEFAULTS.map(s => ({ ...s }));
+    this.saveHomeConfig();
+  }
+
+  toggleListenNowStyle() {
+    this.listenNowStyle = this.listenNowStyle === 'cards' ? 'list' : 'cards';
+    localStorage.setItem(LS_LISTEN_STYLE, this.listenNowStyle);
+  }
+
+  // ── Data loading ──────────────────────────────────────────────
+
   private toTrack(i: any, pathId: number): MusicMetadataDto {
     return {
       name: i.title, path: i.trackPath, directory: false, size: 0,
-      lastModified: '', title: i.title, artist: i.artist, album: i.album,
+      lastModified: i.lastModified || '', title: i.title, artist: i.artist, album: i.album,
       duration: 0, format: '', hasCover: false, bpm: 0, source: 'nas' as const,
       nasPathId: i.nasPathId ?? pathId
     };
@@ -88,7 +179,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
           this.featured = { track: tracks[0], pathId: tracks[0].nasPathId ?? pathId };
         }
 
-        // Listen Now = unique albums from history (horizontal cards)
+        // Listen Now = unique albums from history + overview
         const albumMap = new Map<string, AlbumCard>();
         items.forEach((i: any) => {
           const key = (i.album || i.title || '').trim();
@@ -110,7 +201,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         });
         this.listenNow = Array.from(albumMap.values()).slice(0, 8);
 
-        // Top Artists = indexed artists + manual profiles
+        // Top Artists
         const artistMap = new Map<string, ArtistCard>();
         tracks.forEach(t => {
           this.artistDisplayParts(t.artist || '').forEach(artistName => {
@@ -122,14 +213,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
           const key = this.key(profile.name);
           if (!artistMap.has(key)) {
             const placeholder = this.placeholderTrack(profile.name);
-            artistMap.set(key, {
-              artist: profile.name,
-              track: placeholder,
-              pathId,
-              tracks: [],
-              profile,
-              imageUrl: this.profileImage(profile)
-            });
+            artistMap.set(key, { artist: profile.name, track: placeholder, pathId, tracks: [], profile, imageUrl: this.profileImage(profile) });
           } else {
             const card = artistMap.get(key)!;
             card.profile = profile;
@@ -140,8 +224,20 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
           .sort((a, b) => b.tracks.length - a.tracks.length || a.artist.localeCompare(b.artist))
           .slice(0, 14);
         this.resolveAutoArtistImages();
-        this.loading = false;
 
+        // Recently Added = latest albums by lastModified
+        const recentMap = new Map<string, AlbumCard>();
+        [...tracks]
+          .sort((a, b) => (b.lastModified || '').localeCompare(a.lastModified || ''))
+          .forEach(t => {
+            const key = (t.album || t.title || '').trim();
+            if (key && !recentMap.has(key)) {
+              recentMap.set(key, { album: t.album || t.title, artist: t.artist, track: t, pathId: t.nasPathId ?? pathId, tracks: [t] });
+            }
+          });
+        this.recentlyAdded = Array.from(recentMap.values()).slice(0, 10);
+
+        // Explore = random album selection
         const exploreMap = new Map<string, AlbumCard>();
         this.pickExploreTracks(tracks).forEach(t => {
           const key = (t.album || t.title || '').trim();
@@ -150,6 +246,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
           }
         });
         this.newReleases = Array.from(exploreMap.values()).slice(0, 10);
+        this.loading = false;
       },
       error: () => {
         forkJoin({
@@ -165,14 +262,11 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
               if (!m.has(k)) m.set(k, { album: t.album || t.title, artist: t.artist, track: t, pathId, tracks: [t] });
             });
             this.listenNow = Array.from(m.values()).slice(0, 8);
+            this.recentlyAdded = [];
             this.newReleases = Array.from(m.values()).slice(0, 10);
             this.topArtists = profiles.map(profile => ({
-              artist: profile.name,
-              track: this.placeholderTrack(profile.name),
-              pathId,
-              tracks: [],
-              profile,
-              imageUrl: this.profileImage(profile)
+              artist: profile.name, track: this.placeholderTrack(profile.name),
+              pathId, tracks: [], profile, imageUrl: this.profileImage(profile)
             })).slice(0, 14);
             this.loading = false;
           },
@@ -207,11 +301,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       .filter(artist => !artist.imageUrl && artist.tracks.length > 0 && !this.isSuspiciousArtistName(artist.artist))
       .forEach(artist => {
         this.music.getArtistImage(artist.artist).subscribe({
-          next: result => {
-            if (result.found && result.imageUrl && !artist.imageUrl) {
-              artist.autoImageUrl = result.imageUrl;
-            }
-          },
+          next: result => { if (result.found && result.imageUrl && !artist.imageUrl) artist.autoImageUrl = result.imageUrl; },
           error: () => {}
         });
       });
@@ -225,43 +315,24 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   private findProfileForArtist(rawArtist: string, profileByKey: Map<string, ArtistProfileDto>): ArtistProfileDto | undefined {
     const exact = profileByKey.get(this.key(rawArtist));
     if (exact) return exact;
-
     for (const part of this.artistParts(rawArtist)) {
       const profile = profileByKey.get(part);
       if (profile) return profile;
     }
-
     return undefined;
   }
 
-  private addArtistTrack(
-    map: Map<string, ArtistCard>,
-    pathId: number,
-    artist: string,
-    track: MusicMetadataDto,
-    profile?: ArtistProfileDto
-  ) {
+  private addArtistTrack(map: Map<string, ArtistCard>, pathId: number, artist: string, track: MusicMetadataDto, profile?: ArtistProfileDto) {
     const displayName = artist.trim();
     if (!displayName) return;
     const key = this.key(displayName);
     if (!map.has(key)) {
-      map.set(key, {
-        artist: displayName,
-        track,
-        pathId,
-        tracks: [track],
-        profile,
-        imageUrl: this.profileImage(profile)
-      });
+      map.set(key, { artist: displayName, track, pathId, tracks: [track], profile, imageUrl: this.profileImage(profile) });
       return;
     }
-
     const card = map.get(key)!;
     if (!card.tracks.some(existing => existing.path === track.path)) card.tracks.push(track);
-    if (profile && !card.profile) {
-      card.profile = profile;
-      card.imageUrl = this.profileImage(profile);
-    }
+    if (profile && !card.profile) { card.profile = profile; card.imageUrl = this.profileImage(profile); }
   }
 
   private artistDisplayParts(value: string): string[] {
@@ -284,9 +355,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     if (!key) return true;
     return /\b(clean edit|audio edit|extended edit|radio edit|lyrics?|lyric video)\b/.test(key)
       || /\b(vevo|official|topic|records|recordings|music tv|musictv|entertainment|official channel)\b/.test(key)
-      || key === 'dj clean edit'
-      || key === 'unknown'
-      || key === 'desconocido';
+      || key === 'dj clean edit' || key === 'unknown' || key === 'desconocido';
   }
 
   coverFor(t: MusicMetadataDto, pid: number): string {
@@ -307,7 +376,6 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     this.selectedArtistTracks = [];
     this.artistError = '';
     this.artistLoading = true;
-
     const aliases = (artist.profile?.aliases || '').split(/[\n,]+/).map(a => a.trim()).filter(Boolean);
     this.music.getArtistTracks(artist.pathId, artist.artist, aliases, 1000).subscribe({
       next: tracks => {
@@ -325,11 +393,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     });
   }
 
-  closeArtist() {
-    this.selectedArtist = null;
-    this.selectedArtistTracks = [];
-    this.artistError = '';
-  }
+  closeArtist() { this.selectedArtist = null; this.selectedArtistTracks = []; this.artistError = ''; }
 
   playArtistAll() {
     if (!this.selectedArtist || !this.selectedArtistTracks.length) return;
@@ -364,7 +428,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   private key(value: string): string {
     return (value || '')
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, ' ')
