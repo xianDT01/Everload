@@ -24,7 +24,7 @@ interface NavEntry {
   subPath: string;
 }
 
-type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify' | 'midnight' | 'aurora' | 'ruby' | 'mono' | 'vista';
+type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify' | 'aqua' | 'midnight' | 'aurora' | 'ruby' | 'mono' | 'vista';
 type LayoutDensity = 'comfortable' | 'cozy' | 'compact';
 type RightbarSize = 'wide' | 'normal' | 'narrow';
 type RightPanelMode = 'mini' | 'cards' | 'studio' | 'focus';
@@ -210,6 +210,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       neon: 'MUSIC.UI_SKIN_NEON',
       sunset: 'MUSIC.UI_SKIN_SUNSET',
       spotify: 'MUSIC.UI_SKIN_SPOTIFY',
+      aqua: 'MUSIC.UI_SKIN_AQUA',
       midnight: 'MUSIC.UI_SKIN_MIDNIGHT',
       aurora: 'MUSIC.UI_SKIN_AURORA',
       ruby: 'MUSIC.UI_SKIN_RUBY',
@@ -345,6 +346,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     { id: 'neon', label: 'MUSIC.UI_SKIN_NEON', hint: 'MUSIC.UI_SKIN_NEON_HINT' },
     { id: 'sunset', label: 'MUSIC.UI_SKIN_SUNSET', hint: 'MUSIC.UI_SKIN_SUNSET_HINT' },
     { id: 'spotify', label: 'MUSIC.UI_SKIN_SPOTIFY', hint: 'MUSIC.UI_SKIN_SPOTIFY_HINT' },
+    { id: 'aqua', label: 'MUSIC.UI_SKIN_AQUA', hint: 'MUSIC.UI_SKIN_AQUA_HINT' },
     { id: 'midnight', label: 'MUSIC.UI_SKIN_MIDNIGHT', hint: 'MUSIC.UI_SKIN_MIDNIGHT_HINT' },
     { id: 'aurora', label: 'MUSIC.UI_SKIN_AURORA', hint: 'MUSIC.UI_SKIN_AURORA_HINT' },
     { id: 'ruby', label: 'MUSIC.UI_SKIN_RUBY', hint: 'MUSIC.UI_SKIN_RUBY_HINT' },
