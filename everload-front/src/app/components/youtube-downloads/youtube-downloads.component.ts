@@ -244,7 +244,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       let pollErrors = 0;
       let pollCount = 0;
       const MAX_POLL_ERRORS = 3;
-      const MAX_POLL_ATTEMPTS = 120; // 5 min at 2.5s intervals
+      const MAX_POLL_ATTEMPTS = 480; // 20 min at 2.5s intervals
 
       const cleanup = () => {
         if (pollTimer) clearInterval(pollTimer);
@@ -306,7 +306,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         if (!item.downloadJobId || settled) return;
         pollCount++;
         if (pollCount > MAX_POLL_ATTEMPTS) {
-          fail('La descarga tardó demasiado tiempo');
+          fail('La descarga tardó demasiado (más de 20 min). Comprueba la conexión del servidor.');
           return;
         }
         statusSub = this.http.get<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs/${item.downloadJobId}`).subscribe({
