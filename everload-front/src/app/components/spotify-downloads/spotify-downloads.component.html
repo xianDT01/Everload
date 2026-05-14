@@ -16,49 +16,82 @@
         {{ cargando ? ('LOADING' | translate) : ('SEARCH_BUTTON' | translate) }}
       </button>
 
-      <!-- 🔙 Botón volver al inicio -->
+      <!-- Volver al inicio -->
       <a routerLink="/" class="forgot-link" aria-label="Volver al inicio">
         {{ 'HOME' | translate }}
       </a>
 
-      <!-- 🌐 Botones de idioma -->
+      <!-- Botones de idioma -->
       <div class="language-switcher">
         <button (click)="changeLanguage('es')" aria-label="Cambiar a español">
           <img src="https://flagcdn.com/w40/es.png" alt="Español" class="flag" />
         </button>
-
         <button (click)="changeLanguage('en')" aria-label="Switch to English">
           <img src="https://flagcdn.com/w40/gb.png" alt="English" class="flag" />
         </button>
-
         <button (click)="changeLanguage('gl')" aria-label="Cambiar a galego">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego"
-            class="flag" />
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Flag_of_Galicia.svg" alt="Galego" class="flag" />
         </button>
       </div>
-      <button class="spotify-button secondary" *ngIf="resultado?.length" (click)="descargarTodas()">
+
+      <button class="spotify-button secondary" *ngIf="tracks.length" (click)="descargarTodas()">
         ⬇️ {{ 'DOWNLOAD_ALL' | translate }}
       </button>
-      <button *ngIf="hasNasAccess && resultado?.length" class="spotify-button btn-nas" (click)="showNasBrowser = true">
+      <button *ngIf="hasNasAccess && tracks.length" class="spotify-button btn-nas" (click)="showNasBrowser = true">
         💾 {{ 'NAS.SAVE_ALL_TO_NAS' | translate }}
       </button>
       <app-nas-browser *ngIf="showNasBrowser" [mode]="'select'" [downloadFileName]="playlistUrl"
         (pathSelected)="showNasBrowser = false; descargarTodas()" (closed)="showNasBrowser = false">
       </app-nas-browser>
 
-      <div *ngIf="resultado?.length">
+      <div *ngIf="tracks.length">
         <h4>🎵 {{ 'FOUND_TRACKS' | translate }}</h4>
         <ul class="track-list">
-          <li *ngFor="let song of resultado">
-            {{ song.title }}
-            <button class="mini-button" (click)="descargarCancion(song.youtubeUrl)">
-              {{ 'DOWNLOAD' | translate }}
-            </button>
+          <li *ngFor="let track of tracks" class="track-item">
+            <div class="track-info">
+              <span class="track-title">{{ track.title }}</span>
+              <span *ngIf="!track.youtubeUrl" class="track-badge not-found">
+                ⚠️ No encontrado en YouTube
+              </span>
+            </div>
+
+            <div class="track-progress" *ngIf="track.status === 'downloading'">
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill" [style.width.%]="track.progress"></div>
+                <span class="progress-text">{{ track.progress }}%</span>
+              </div>
+            </div>
+
+            <div class="track-error" *ngIf="track.status === 'failed' && track.error">
+              {{ track.error }}
+            </div>
+
+            <div class="track-actions">
+              <span *ngIf="track.status === 'completed'" class="track-badge completed">✅ Descargado</span>
+
+              <button class="mini-button"
+                *ngIf="track.youtubeUrl && track.status === 'idle'"
+                (click)="descargarCancion(track)">
+                {{ 'DOWNLOAD' | translate }}
+              </button>
+
+              <button class="mini-button downloading"
+                *ngIf="track.status === 'downloading'"
+                disabled>
+                ⬇️ {{ track.progress }}%
+              </button>
+
+              <button class="mini-button retry"
+                *ngIf="track.status === 'failed'"
+                (click)="reintentarCancion(track)">
+                ↺ Reintentar
+              </button>
+            </div>
           </li>
         </ul>
       </div>
 
-      <p *ngIf="!cargando && resultado && resultado.length === 0" class="error-text">
+      <p *ngIf="!cargando && tracks.length === 0 && !error" class="error-text">
         ❌ {{ 'NO_RESULTS' | translate }}
       </p>
     </div>

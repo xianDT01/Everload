@@ -130,6 +130,88 @@
   border-radius: 5px;
 }
 
+.track-list li.track-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 10px 8px;
+}
+
+.track-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.track-title {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #e0e0e0;
+  text-align: left;
+}
+
+.track-progress {
+  width: 100%;
+}
+
+.progress-bar-container {
+  position: relative;
+  background: #333;
+  border-radius: 4px;
+  height: 18px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1db954, #1ed760);
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: white;
+  font-weight: 600;
+}
+
+.track-error {
+  font-size: 0.78rem;
+  color: #ff6b6b;
+  width: 100%;
+  text-align: left;
+}
+
+.track-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.track-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.track-badge.completed {
+  background: rgba(29, 185, 84, 0.2);
+  color: #1db954;
+}
+
+.track-badge.not-found {
+  background: rgba(255, 165, 0, 0.15);
+  color: #ffa500;
+}
+
 .mini-button {
   background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
   border: none;
@@ -143,9 +225,24 @@
   box-shadow: 0 2px 8px rgba(29, 185, 84, 0.3);
 }
 
-.mini-button:hover {
+.mini-button:hover:not(:disabled) {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(29, 185, 84, 0.5);
+}
+
+.mini-button.downloading {
+  background: linear-gradient(135deg, #444 0%, #555 100%);
+  cursor: default;
+  box-shadow: none;
+}
+
+.mini-button.retry {
+  background: linear-gradient(135deg, #e55 0%, #f77 100%);
+  box-shadow: 0 2px 8px rgba(220, 50, 50, 0.3);
+}
+
+.mini-button.retry:hover {
+  box-shadow: 0 4px 12px rgba(220, 50, 50, 0.5);
 }
 
 .error-text {
