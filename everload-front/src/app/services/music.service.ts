@@ -1480,6 +1480,10 @@ export class MusicService {
     return this.http.post<ArtistProfileDto>(`${this.artistApi}/${id}/image`, form);
   }
 
+  uploadArtistImageFromUrl(id: number, imageUrl: string): Observable<ArtistProfileDto> {
+    return this.http.post<ArtistProfileDto>(`${this.artistApi}/${id}/image-url`, { imageUrl });
+  }
+
   removeArtistImage(id: number): Observable<ArtistProfileDto> {
     return this.http.delete<ArtistProfileDto>(`${this.artistApi}/${id}/image`);
   }
