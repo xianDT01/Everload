@@ -147,8 +147,21 @@
   padding: 18px;
   box-shadow: 0 24px 80px color-mix(in srgb, #000 45%, transparent);
 }
+.mart-songs-dialog {
+  width: min(720px, 100%);
+  max-height: min(760px, 88vh);
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
+  background: var(--ml-panel, #252321);
+  color: var(--color-white);
+  padding: 18px;
+  box-shadow: 0 24px 80px color-mix(in srgb, #000 45%, transparent);
+}
 .mart-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .mart-dialog-head h2 { margin: 0; font-size: 20px; }
+.mart-dialog-head p { margin: 5px 0 0; color: var(--color-slate-400); font-size: 12px; }
 .mart-close {
   width: 30px;
   height: 30px;
@@ -175,3 +188,26 @@
 .mart-error { color: #fca5a5; font-size: 12px; margin: 8px 0; }
 .mart-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 16px; }
 .mart-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.mart-songs-actions { justify-content: flex-start; margin: 0 0 12px; }
+.mart-song-list { overflow: auto; display: grid; gap: 5px; padding-right: 4px; }
+.mart-song-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(110px, 0.45fr) 30px;
+  gap: 10px;
+  align-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
+  color: var(--color-white);
+  padding: 10px;
+  font: 700 12px/1.2 inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mart-song-row:hover { background: color-mix(in srgb, var(--color-white) 12%, transparent); }
+.mart-song-row span,
+.mart-song-row small,
+.mart-song-row em { color: var(--color-slate-400); font-style: normal; }
+.mart-song-row strong,
+.mart-song-row small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
