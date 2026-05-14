@@ -6896,3 +6896,81 @@
     0 0 0 1px rgba(255,255,255,0.38),
     0 0 22px rgba(140,255,66,0.32) !important;
 }
+
+/* Spotify Aqua refinement: closer to the airy glass mockup reference. */
+.lib-root[data-skin="aqua"] {
+  background:
+    radial-gradient(circle at 80% 17%, #ffffff 0 2.1%, rgba(255,255,255,0.74) 4.2%, rgba(255,255,255,0.16) 10%, transparent 17%),
+    radial-gradient(circle at 76% 43%, rgba(255,255,255,0.62) 0 0.55%, transparent 1.25%),
+    radial-gradient(circle at 83% 53%, rgba(255,255,255,0.44) 0 0.85%, transparent 1.8%),
+    radial-gradient(circle at 91% 29%, rgba(255,255,255,0.52) 0 0.75%, transparent 1.55%),
+    radial-gradient(circle at 94% 48%, rgba(255,255,255,0.50) 0 1.05%, transparent 2%),
+    linear-gradient(180deg, #047ed5 0%, #12a4ef 36%, #8bdaf7 64%, #75c74a 81%, #235f22 100%);
+}
+
+.lib-root[data-skin="aqua"] .lib-sidebar,
+.lib-root[data-skin="aqua"] .lib-main,
+.lib-root[data-skin="aqua"] .lib-rightbar,
+.lib-root[data-skin="aqua"] .rightbar-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.11) 44%, rgba(0,109,184,0.18) 100%),
+    rgba(0, 141, 217, 0.22) !important;
+  border-color: rgba(221, 249, 255, 0.72) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.78),
+    inset 0 -1px 0 rgba(0,67,120,0.12),
+    0 14px 34px rgba(0, 70, 126, 0.20);
+}
+
+.lib-root[data-skin="aqua"] .content-scroll {
+  background:
+    radial-gradient(circle at 78% 16%, rgba(255,255,255,0.34), transparent 18%),
+    linear-gradient(180deg, rgba(0,156,230,0.08), rgba(23,161,113,0.12));
+}
+
+.lib-root[data-skin="aqua"] .lib-sidebar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.12) 42%, rgba(0,105,178,0.20) 100%),
+    rgba(0, 139, 218, 0.28) !important;
+}
+
+.lib-root[data-skin="aqua"] .lib-rightbar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 46%, rgba(0,91,160,0.20) 100%),
+    rgba(0, 123, 198, 0.25) !important;
+}
+
+.lib-root[data-skin="aqua"] .banner-slide,
+.lib-root[data-skin="aqua"] .content-header-bg {
+  background:
+    radial-gradient(circle at 80% 13%, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.32) 12%, transparent 27%),
+    linear-gradient(90deg, rgba(0,111,195,0.50) 0%, rgba(0,172,241,0.24) 47%, rgba(255,255,255,0.18) 100%),
+    linear-gradient(180deg, rgba(39,177,242,0.46), rgba(58,167,70,0.20)) !important;
+}
+
+.lib-root[data-skin="aqua"] .collection-item,
+.lib-root[data-skin="aqua"] .track-row,
+.lib-root[data-skin="aqua"] .folder-card,
+.lib-root[data-skin="aqua"] .track-card,
+.lib-root[data-skin="aqua"] .lm-listen-card,
+.lib-root[data-skin="aqua"] .rightbar-action-btn,
+.lib-root[data-skin="aqua"] .rightbar-skin-btn {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.13) 55%, rgba(0,107,185,0.12) 100%),
+    rgba(0, 128, 210, 0.16) !important;
+  border-color: rgba(230, 252, 255, 0.50) !important;
+}
+
+.lib-root[data-skin="aqua"] .topbar,
+.lib-root[data-skin="aqua"] .search-input {
+  background:
+    radial-gradient(circle at 16% 4%, rgba(255,255,255,0.82) 0%, transparent 35%),
+    linear-gradient(180deg, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.15) 58%, rgba(0,91,168,0.18) 100%),
+    rgba(0, 136, 214, 0.28) !important;
+}
+
+.lib-root[data-skin="aqua"] .xp-player-shell[data-skin="aqua"] {
+  background:
+    radial-gradient(circle at 49% -20%, rgba(255,255,255,0.68), transparent 32%),
+    linear-gradient(180deg, rgba(41,181,244,0.50), rgba(0,100,178,0.54)) !important;
+}

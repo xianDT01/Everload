@@ -426,6 +426,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   setPlayerSkin(skin: PlayerSkin): void {
     this.playerSkin = skin;
+    this.applyGlobalSkinClass();
     try {
       localStorage.setItem(LibraryModeComponent.PLAYER_SKIN_KEY, skin);
     } catch {}
@@ -620,6 +621,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       cardOrder: [...preset.uiPrefs.cardOrder],
     };
     this.playerSkin = preset.playerSkin;
+    this.applyGlobalSkinClass();
 
     try {
       localStorage.setItem(LibraryModeComponent.PLAYER_SKIN_KEY, preset.playerSkin);
@@ -759,6 +761,17 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       cardOrder: [...preset.uiPrefs.cardOrder],
     };
     this.playerSkin = preset.playerSkin;
+    this.applyGlobalSkinClass();
+  }
+
+  private applyGlobalSkinClass(): void {
+    if (typeof document === 'undefined') return;
+    document.body.classList.toggle('nas-library-skin-aqua', this.playerSkin === 'aqua');
+  }
+
+  private clearGlobalSkinClass(): void {
+    if (typeof document === 'undefined') return;
+    document.body.classList.remove('nas-library-skin-aqua');
   }
 
   private currentUiContextKey(): string {
@@ -866,6 +879,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadUiPrefs();
     this.loadCustomPresets();
     this.applyDefaultCustomPreset();
+    this.applyGlobalSkinClass();
     this.loadFavoriteFolders();
     this.startBannerRotation();
     this.loadFavHistoryBanners();
@@ -906,6 +920,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.musicService.globalPlayerHidden = false;
+    this.clearGlobalSkinClass();
     this.subs.forEach(s => s.unsubscribe());
     this.searchSub?.unsubscribe();
     clearTimeout(this.searchDebounce);
