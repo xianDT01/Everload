@@ -34,33 +34,8 @@
   letter-spacing: 0;
 }
 
-.ms-source-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
-  padding: 0 0 11px;
-}
-
 .ms-section-top {
   padding: 0 0 9px;
-}
-
-.ms-source-btn {
-  height: 34px;
-  border: 0;
-  border-radius: 6px;
-  background: var(--ml-card);
-  color: var(--ml-faint);
-  font: inherit;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-}
-
-.ms-source-btn.active {
-  color: var(--ml-text);
-  background: color-mix(in srgb, var(--ml-accent) 16%, transparent);
 }
 
 .ms-path-select {
@@ -190,9 +165,41 @@
   background: color-mix(in srgb, var(--ml-accent) 14%, transparent);
 }
 
-.ms-back {
-  color: var(--ml-faint);
+.ms-exit-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.ms-exit-btn {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ml-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ml-card) 72%, transparent);
+  color: var(--ml-muted);
+  font: inherit;
   font-size: 12px;
-  margin: 0;
-  width: 100%;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.ms-exit-btn .ms-icon {
+  margin-left: 8px;
+}
+
+.ms-exit-btn:hover {
+  color: var(--ml-text);
+  background: var(--ml-card-hover);
+  border-color: color-mix(in srgb, var(--ml-accent) 25%, var(--ml-border));
+  transform: translateY(-1px);
+}
+
+.ms-exit-primary {
+  color: var(--ml-text);
+  background: color-mix(in srgb, var(--ml-accent) 14%, transparent);
 }
