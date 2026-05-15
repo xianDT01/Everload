@@ -6,12 +6,6 @@
     <span class="ms-logo-text">EverLoad</span>
   </div>
 
-  <!-- NAS path selector -->
-  <div class="ms-source-tabs">
-    <button class="ms-source-btn">LOCAL</button>
-    <button class="ms-source-btn active">SERVER</button>
-  </div>
-
   <div class="ms-section-top" *ngIf="paths.length > 0">
     <select class="ms-path-select" [value]="selectedPathId" (change)="onPathChange($any($event.target).value)">
       <option *ngFor="let p of paths" [value]="p.id">{{ p.name }}</option>
@@ -61,11 +55,16 @@
 
   <div class="ms-divider"></div>
 
-  <!-- Back to classic -->
-  <button class="ms-item ms-back" (click)="goClassic()">
-    <span class="ms-indicator"></span>
-    <span class="ms-icon"><svg viewBox="0 0 24 24"><path d="m10.8 5.4 1.4 1.4L8 11h12v2H8l4.2 4.2-1.4 1.4L4.2 12l6.6-6.6Z"/></svg></span>
-    <span class="ms-label">Vista clásica</span>
-  </button>
+  <!-- Exit destinations -->
+  <div class="ms-exit-actions">
+    <button class="ms-exit-btn" (click)="goHome($event)" title="Salir al Home">
+      <span class="ms-icon"><svg viewBox="0 0 24 24"><path d="M10.8 5.4 12.2 6.8 8 11h12v2H8l4.2 4.2-1.4 1.4L4.2 12l6.6-6.6Z"/></svg></span>
+      <span>Inicio</span>
+    </button>
+    <button class="ms-exit-btn ms-exit-primary" (click)="goLibrary($event)" title="Salir a NAS Library">
+      <span class="ms-icon"><svg viewBox="0 0 24 24"><path d="M5 4h14v2H5V4Zm0 5h14v2H5V9Zm0 5h9v2H5v-2Zm0 5h14v2H5v-2Z"/></svg></span>
+      <span>NAS Library</span>
+    </button>
+  </div>
 
 </nav>
