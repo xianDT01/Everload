@@ -37,7 +37,9 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   selectedArtist: ArtistGroup | null = null;
   selectedArtistTracks: MusicMetadataDto[] = [];
   private sub!: Subscription;
+  private artistRequestSub?: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
+  private pendingArtistName = '';
 
   constructor(public music: MusicService, private state: ModernStateService, private auth: AuthService) {}
 
@@ -50,10 +52,15 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
       this.pathId = pid;
       if (pid != null) this.load(pid);
     });
+    this.artistRequestSub = this.state.selectedArtistName$.subscribe(name => {
+      this.pendingArtistName = name || '';
+      this.openRequestedArtist();
+    });
   }
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
+    this.artistRequestSub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
   }
 
@@ -128,6 +135,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     });
     this.artists = Array.from(map.values()).sort((a, b) => a.artist.localeCompare(b.artist));
     this.resolveAutoArtistImages();
+    this.openRequestedArtist();
     this.loading = false;
   }
 
@@ -213,6 +221,19 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   closeArtistSongs() {
     this.selectedArtist = null;
     this.selectedArtistTracks = [];
+  }
+
+  private openRequestedArtist() {
+    const key = this.key(this.pendingArtistName);
+    if (!key || !this.artists.length) return;
+    const requested = this.artists.find(artist => {
+      const profileKeys = artist.profile ? this.profileKeys(artist.profile) : [];
+      return this.key(artist.artist) === key || profileKeys.includes(key);
+    });
+    if (requested) {
+      this.openArtistSongs(requested);
+      this.pendingArtistName = '';
+    }
   }
 
   playSelectedArtist(index = 0) {
