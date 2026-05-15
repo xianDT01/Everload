@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { forkJoin, Subscription } from 'rxjs';
 import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
+import { AuthService } from '../../../../services/auth.service';
 
 interface ArtistGroup {
   artist: string;
@@ -38,7 +39,11 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   private sub!: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
 
-  constructor(public music: MusicService, private state: ModernStateService) {}
+  constructor(public music: MusicService, private state: ModernStateService, private auth: AuthService) {}
+
+  get canManageNas(): boolean {
+    return this.auth.canManageNas();
+  }
 
   ngOnInit() {
     this.sub = this.state.pathId$.subscribe(pid => {
@@ -216,6 +221,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   openCreate() {
+    if (!this.canManageNas) return;
     this.editorOpen = true;
     this.editing = null;
     this.editName = '';
@@ -226,6 +232,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   openEdit(g: ArtistGroup) {
+    if (!this.canManageNas) return;
     this.editorOpen = true;
     this.editing = g;
     this.editName = g.profile?.name || g.artist;
@@ -251,7 +258,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   saveArtist() {
-    if (!this.editName.trim() || this.pathId == null) return;
+    if (!this.canManageNas || !this.editName.trim() || this.pathId == null) return;
     this.saving = true;
     this.error = '';
     const existingId = this.editing?.profile?.id;
@@ -286,12 +293,14 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   removeImage() {
+    if (!this.canManageNas) return;
     const id = this.editing?.profile?.id;
     if (!id || this.pathId == null) return;
     this.music.removeArtistImage(id).subscribe(() => this.load(this.pathId!));
   }
 
   deleteArtist() {
+    if (!this.canManageNas) return;
     const id = this.editing?.profile?.id;
     if (!id || this.pathId == null || !confirm('¿Eliminar artista manual?')) return;
     this.music.deleteArtistProfile(id).subscribe(() => {
@@ -301,7 +310,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   fillMissingMetadata() {
-    if (this.pathId == null || this.bulkLoading) return;
+    if (!this.canManageNas || this.pathId == null || this.bulkLoading) return;
     if (!confirm('Esto buscará metadatos en YouTube para canciones sin artista/álbum/título. Puede tardar. ¿Continuar?')) return;
 
     this.bulkLoading = true;

@@ -9,10 +9,9 @@ import { THEMES } from '../modern-layout.component';
 interface NavItem { label: string; icon: string; route: string; exact?: boolean; }
 
 @Component({
-    selector: 'app-modern-sidebar',
-    templateUrl: './modern-sidebar.component.html',
-    styleUrls: ['./modern-sidebar.component.css'],
-    standalone: false
+  selector: 'app-modern-sidebar',
+  templateUrl: './modern-sidebar.component.html',
+  styleUrls: ['./modern-sidebar.component.css']
 })
 export class ModernSidebarComponent implements OnInit, OnDestroy {
   @Input() currentTheme = 'default';

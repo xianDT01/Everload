@@ -1,7 +1,7 @@
 <div class="mart-page">
   <div class="mart-header">
     <h1 class="mart-title">Artistas</h1>
-    <div class="mart-header-actions">
+    <div class="mart-header-actions" *ngIf="canManageNas">
       <button class="mart-bulk" type="button" (click)="fillMissingMetadata()" [disabled]="bulkLoading || pathId == null">
         {{ bulkLoading ? 'Actualizando…' : 'Actualizar metadatos' }}
       </button>
@@ -22,11 +22,11 @@
         {{ g.tracks.length }} canciones · {{ g.albumCount }} álbumes
         <span *ngIf="g.profile"> · manual</span>
       </div>
-      <button class="mart-edit" type="button" (click)="openEdit(g); $event.stopPropagation()">Editar</button>
+      <button class="mart-edit" type="button" *ngIf="canManageNas" (click)="openEdit(g); $event.stopPropagation()">Editar</button>
     </div>
     <div class="mart-empty" *ngIf="artists.length === 0">
       <p>No hay artistas detectados.</p>
-      <button class="mart-empty-btn" type="button" (click)="openCreate()">Crear artista</button>
+      <button class="mart-empty-btn" type="button" *ngIf="canManageNas" (click)="openCreate()">Crear artista</button>
     </div>
   </div>
 
@@ -41,7 +41,7 @@
       </div>
       <div class="mart-actions mart-songs-actions">
         <button type="button" class="mart-primary" (click)="playSelectedArtist()" [disabled]="!selectedArtistTracks.length">Reproducir todo</button>
-        <button type="button" class="mart-secondary" (click)="openEdit(selectedArtist); $event.stopPropagation()">Editar artista</button>
+        <button type="button" class="mart-secondary" *ngIf="canManageNas" (click)="openEdit(selectedArtist); $event.stopPropagation()">Editar artista</button>
       </div>
       <div class="mart-song-list">
         <button type="button" class="mart-song-row" *ngFor="let t of selectedArtistTracks; let i = index" (click)="playSelectedArtist(i)">

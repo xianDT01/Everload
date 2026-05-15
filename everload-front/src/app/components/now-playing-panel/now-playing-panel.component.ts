@@ -930,6 +930,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   loadMetadataReview(): void {
+    if (!this.canManageNas) {
+      this.metadataReviewItems = [];
+      this.metadataReviewStatus = 'No tienes permisos para editar metadatos.';
+      return;
+    }
     const pathId = this.state?.pathId ?? this.winampQueue.pathId;
     if (!pathId) {
       this.metadataReviewItems = [];
@@ -960,6 +965,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   previewReviewMetadata(item: MetadataReviewItem): void {
+    if (!this.canManageNas) return;
     const query = item.track.title || item.track.name || item.track.path;
     if (!query || item.status === 'loading') return;
     item.status = 'loading';
@@ -984,6 +990,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   acceptReviewMetadata(item: MetadataReviewItem): void {
+    if (!this.canManageNas) return;
     if (!item.suggestion || item.status === 'loading') return;
     item.status = 'loading';
     const title = item.suggestion.title || item.track.title || item.track.name || '';
@@ -1011,6 +1018,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   loadArtistReview(): void {
+    if (!this.canManageNas) {
+      this.artistReviewItems = [];
+      this.artistReviewStatus = 'No tienes permisos para gestionar artistas.';
+      return;
+    }
     const pathId = this.state?.pathId ?? this.winampQueue.pathId;
     if (!pathId) {
       this.artistReviewItems = [];
@@ -1067,6 +1079,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   previewArtistImage(item: ArtistReviewItem): void {
+    if (!this.canManageNas) return;
     if (item.status === 'loading') return;
     item.status = 'loading';
     item.suggestionUrl = undefined;
@@ -1084,6 +1097,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   acceptArtistImage(item: ArtistReviewItem): void {
+    if (!this.canManageNas) return;
     if (!item.suggestionUrl || item.status === 'loading') return;
     item.status = 'loading';
     const saveImage = (profile: ArtistProfileDto) => {
@@ -1115,6 +1129,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   rejectArtistImage(item: ArtistReviewItem): void {
+    if (!this.canManageNas) return;
     this.rejectedArtistImageKeys.add(this.cleanMeta(item.artist));
     item.status = 'rejected';
     item.suggestionUrl = undefined;
