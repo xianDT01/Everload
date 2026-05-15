@@ -76,13 +76,23 @@
 }
 
 .mb-artist {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
   font-size: 10px;
   color: var(--ml-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
+  cursor: pointer;
+  font: inherit;
+  transition: color 0.15s;
 }
+
+.mb-artist:hover:not(:disabled) { color: var(--ml-text); text-decoration: underline; }
+.mb-artist:disabled { cursor: default; }
 
 .mb-heart {
   width: 28px;

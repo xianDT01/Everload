@@ -10,7 +10,9 @@
     </div>
     <div class="mb-meta" *ngIf="track">
       <span class="mb-title">{{ track.title || track.name }}</span>
-      <span class="mb-artist">{{ track.artist || '—' }}</span>
+      <button class="mb-artist" type="button" (click)="openCurrentArtist()" [disabled]="!track.artist" title="Ver artista">
+        {{ track.artist || '—' }}
+      </button>
     </div>
     <button class="mb-heart" [class.mb-heart-active]="isFav" (click)="toggleFav()" title="Favorito" *ngIf="track">
       <svg viewBox="0 0 24 24">

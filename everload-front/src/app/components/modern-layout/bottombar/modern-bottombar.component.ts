@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { MusicService, PlayerState, MusicMetadataDto } from '../../../services/music.service';
 import { ModernStateService } from '../modern-state.service';
@@ -39,7 +40,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   private subs: Subscription[] = [];
   private prevVolume = 1;
 
-  constructor(public music: MusicService, public modState: ModernStateService) {}
+  constructor(public music: MusicService, public modState: ModernStateService, private router: Router) {}
 
   ngOnInit() {
     this.crossfade = this.music.crossfadeDuration;
@@ -128,6 +129,13 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     const pathId = this.state?.pathId ?? t.nasPathId ?? 0;
     this.music.toggleFavorite(t.path, t.title || t.name, t.artist || '', t.album || '', pathId)
       .subscribe({ next: (res: any) => { this.isFav = !!res?.isFavorite; }, error: () => {} });
+  }
+
+  openCurrentArtist() {
+    const artist = (this.track?.artist || '').trim();
+    if (!artist) return;
+    this.modState.selectArtist(artist);
+    this.router.navigate(['/modern/artists']);
   }
 
   // ── EQ ───────────────────────────────────────────────────────────────────
