@@ -17,7 +17,9 @@
       "Read(//home/xideaProjects/Everload/everload-front/src/app/components/modern-layout/**)",
       "Bash(grep -n \"setEqBand\\\\|setEq\\\\|eqBands\\\\|eqGain\\\\|setCrossfade\\\\|crossfadeDuration\\\\|getLyrics\\\\|queue\\\\$\\\\|queue \" /home/xiandt/IdeaProjects/Everload/everload-front/src/app/services/music.service.ts)",
       "Bash(grep -n \"queue\\\\$\\\\|queue\\\\b\\\\|mainQueue\\\\|playQueue\\\\|getQueue\\\\|queueTracks\" /home/xiandt/IdeaProjects/Everload/everload-front/src/app/services/music.service.ts)",
-      "Bash(xargs -I {} basename {})"
+      "Bash(xargs -I {} basename {})",
+      "Bash(git -C /home/xiandt/IdeaProjects/Everload status)",
+      "Bash(git -C /home/xiandt/IdeaProjects/Everload log --oneline -3)"
     ]
   }
 }

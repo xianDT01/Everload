@@ -24,7 +24,7 @@ interface NavEntry {
   subPath: string;
 }
 
-type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify' | 'aqua' | 'midnight' | 'aurora' | 'ruby' | 'mono' | 'vista';
+type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify' | 'aqua' | 'midnight' | 'aurora' | 'ruby' | 'mono' | 'vista' | 'cider';
 type LayoutDensity = 'comfortable' | 'cozy' | 'compact';
 type RightbarSize = 'wide' | 'normal' | 'narrow';
 type RightPanelMode = 'mini' | 'cards' | 'studio' | 'focus';
@@ -216,6 +216,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       ruby: 'MUSIC.UI_SKIN_RUBY',
       mono: 'MUSIC.UI_SKIN_MONO',
       vista: 'MUSIC.UI_SKIN_VISTA',
+      cider: 'MUSIC.UI_SKIN_CIDER',
     };
     return this.translate.instant(keyMap[skin]);
   }
@@ -352,6 +353,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     { id: 'ruby', label: 'MUSIC.UI_SKIN_RUBY', hint: 'MUSIC.UI_SKIN_RUBY_HINT' },
     { id: 'mono', label: 'MUSIC.UI_SKIN_MONO', hint: 'MUSIC.UI_SKIN_MONO_HINT' },
     { id: 'vista', label: 'MUSIC.UI_SKIN_VISTA', hint: 'MUSIC.UI_SKIN_VISTA_HINT' },
+    { id: 'cider', label: 'MUSIC.UI_SKIN_CIDER', hint: 'MUSIC.UI_SKIN_CIDER_HINT' },
   ];
   @ViewChild('vizCanvas') vizCanvas?: ElementRef<HTMLCanvasElement>;
   private vizRaf?: number;

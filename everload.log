@@ -1,21 +1,5 @@
-2026-05-10 22:29:02 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
-2026-05-10 22:29:02 INFO  c.E.everload.EverloadApplication - Started EverloadApplication in 4.728 seconds (process running for 6206.622)
-2026-05-10 22:29:02 DEBUG o.s.b.a.ApplicationAvailabilityBean - Application availability state LivenessState changed to CORRECT
-2026-05-10 22:29:02 DEBUG org.hibernate.SQL - delete from revoked_tokens rt1_0 where rt1_0.expires_at<?
-2026-05-10 22:29:02 DEBUG org.hibernate.SQL - select u1_0.id from users u1_0 where u1_0.username=? fetch first ? rows only
-2026-05-10 22:29:02 DEBUG org.hibernate.SQL - select cg1_0.id,cg1_0.created_at,cg1_0.created_by,cg1_0.description,cg1_0.image_filename,cg1_0.name,cg1_0.type from chat_groups cg1_0 where cg1_0.type=?
-2026-05-10 22:29:02 DEBUG org.hibernate.SQL - select u1_0.id,u1_0.avatar_filename,u1_0.created_at,u1_0.email,u1_0.last_seen,u1_0.password,u1_0.role,u1_0.show_last_seen,u1_0.status,u1_0.updated_at,u1_0.username from users u1_0
-2026-05-10 22:29:02 DEBUG org.hibernate.SQL - select gm1_0.id from group_members gm1_0 where gm1_0.group_id=? and gm1_0.user_id=? fetch first ? rows only
-2026-05-10 22:29:02 DEBUG org.hibernate.SQL - select gm1_0.id from group_members gm1_0 where gm1_0.group_id=? and gm1_0.user_id=? fetch first ? rows only
-2026-05-10 22:29:02 DEBUG org.hibernate.SQL - select gm1_0.id from group_members gm1_0 where gm1_0.group_id=? and gm1_0.user_id=? fetch first ? rows only
-2026-05-10 22:29:02 DEBUG org.hibernate.SQL - select gm1_0.id from group_members gm1_0 where gm1_0.group_id=? and gm1_0.user_id=? fetch first ? rows only
-2026-05-10 22:29:02 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
-2026-05-10 22:29:02 INFO  o.s.b.d.a.ConditionEvaluationDeltaLoggingListener - Condition evaluation unchanged
-2026-05-10 22:29:02 DEBUG o.s.b.a.ApplicationAvailabilityBean - Application availability state ReadinessState changed to ACCEPTING_TRAFFIC
-2026-05-10 22:52:47 DEBUG o.s.b.a.ApplicationAvailabilityBean - Application availability state ReadinessState changed from ACCEPTING_TRAFFIC to REFUSING_TRAFFIC
-2026-05-10 22:52:47 DEBUG o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Closing org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@394e9ed0, started on Sun May 10 22:28:57 CEST 2026
-2026-05-10 22:52:47 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Commencing graceful shutdown. Waiting for active requests to complete
-2026-05-10 22:52:47 INFO  o.s.b.w.e.tomcat.GracefulShutdown - Graceful shutdown complete
-2026-05-10 22:52:47 INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-05-10 22:52:47 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-4 - Shutdown initiated...
-2026-05-10 22:52:47 INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-4 - Shutdown completed.
+2026-05-15 17:02:48 INFO  c.E.everload.config.LogScheduler - 🧹 Log automatically cleared by scheduler.
+2026-05-15 17:02:48 INFO  c.E.everload.config.DataInitializer - Canal de anuncios verificado/creado correctamente.
+2026-05-15 17:05:57 INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-05-15 17:05:57 INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-05-15 17:05:57 INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 3 ms
