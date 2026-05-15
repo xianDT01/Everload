@@ -10,6 +10,8 @@ import java.util.Optional;
 
 @Repository
 public interface ArtistProfileRepository extends JpaRepository<ArtistProfile, Long> {
+    List<ArtistProfile> findAllByOrderByNameAsc();
     List<ArtistProfile> findByUserOrderByNameAsc(User user);
     Optional<ArtistProfile> findByIdAndUser(Long id, User user);
+    Optional<ArtistProfile> findFirstByNameIgnoreCaseOrderByIdAsc(String name);
 }

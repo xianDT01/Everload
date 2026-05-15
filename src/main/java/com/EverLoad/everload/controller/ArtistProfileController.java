@@ -57,19 +57,25 @@ public class ArtistProfileController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<List<Map<String, Object>>> list(@AuthenticationPrincipal UserDetails ud) {
-        return ResponseEntity.ok(artistRepository.findByUserOrderByNameAsc(getUser(ud)).stream()
+        return ResponseEntity.ok(artistRepository.findAllByOrderByNameAsc().stream()
                 .map(this::toDto)
                 .toList());
     }
 
     @Operation(summary = "Crear artista manual")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<Map<String, Object>> create(@AuthenticationPrincipal UserDetails ud,
                                                       @RequestBody ArtistProfileDto dto) {
+        String name = cleanName(dto.getName());
+        var existing = artistRepository.findFirstByNameIgnoreCaseOrderByIdAsc(name);
+        if (existing.isPresent()) {
+            return ResponseEntity.ok(toDto(existing.get()));
+        }
+
         ArtistProfile profile = ArtistProfile.builder()
                 .user(getUser(ud))
-                .name(cleanName(dto.getName()))
+                .name(name)
                 .aliases(clean(dto.getAliases()))
                 .description(clean(dto.getDescription()))
                 .build();
@@ -78,11 +84,11 @@ public class ArtistProfileController {
 
     @Operation(summary = "Editar artista manual")
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<?> update(@AuthenticationPrincipal UserDetails ud,
                                     @PathVariable Long id,
                                     @RequestBody ArtistProfileDto dto) {
-        return artistRepository.findByIdAndUser(id, getUser(ud))
+        return artistRepository.findById(id)
                 .map(profile -> {
                     profile.setName(cleanName(dto.getName()));
                     profile.setAliases(clean(dto.getAliases()));
@@ -94,9 +100,9 @@ public class ArtistProfileController {
 
     @Operation(summary = "Eliminar artista manual")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<?> delete(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
-        return artistRepository.findByIdAndUser(id, getUser(ud))
+        return artistRepository.findById(id)
                 .map(profile -> {
                     deleteImage(profile.getImageFilename());
                     artistRepository.delete(profile);
@@ -107,11 +113,11 @@ public class ArtistProfileController {
 
     @Operation(summary = "Subir imagen manual de artista")
     @PostMapping("/{id}/image")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<?> uploadImage(@AuthenticationPrincipal UserDetails ud,
                                          @PathVariable Long id,
                                          @RequestParam("image") MultipartFile image) {
-        return artistRepository.findByIdAndUser(id, getUser(ud))
+        return artistRepository.findById(id)
                 .map(profile -> {
                     try {
                         validateImage(image);
@@ -128,11 +134,11 @@ public class ArtistProfileController {
 
     @Operation(summary = "Guardar imagen de artista desde URL revisada")
     @PostMapping("/{id}/image-url")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<?> uploadImageFromUrl(@AuthenticationPrincipal UserDetails ud,
                                                 @PathVariable Long id,
                                                 @RequestBody ArtistImageUrlDto dto) {
-        return artistRepository.findByIdAndUser(id, getUser(ud))
+        return artistRepository.findById(id)
                 .map(profile -> {
                     try {
                         deleteImage(profile.getImageFilename());
@@ -148,9 +154,9 @@ public class ArtistProfileController {
 
     @Operation(summary = "Quitar imagen manual de artista")
     @DeleteMapping("/{id}/image")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
     public ResponseEntity<?> removeImage(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
-        return artistRepository.findByIdAndUser(id, getUser(ud))
+        return artistRepository.findById(id)
                 .map(profile -> {
                     deleteImage(profile.getImageFilename());
                     profile.setImageFilename(null);
