@@ -782,11 +782,9 @@
           </div>
         </div>
 
-        <div class="mini-progress" *ngIf="state?.currentTrack">
+        <div class="mini-progress" *ngIf="state?.currentTrack"
+             #miniTrack (click)="seekFromClick($event, miniTrack)" title="Click para saltar">
           <div class="mini-progress-fill" [style.width.%]="progressPct"></div>
-          <input type="range" class="mini-seek-input" min="0" max="100" step="0.1"
-                 [value]="progressPct" (input)="onSeekInput($event)"
-                 (mousedown)="$event.stopPropagation()" />
         </div>
 
         <div class="mini-controls">
@@ -846,11 +844,8 @@
           </div>
 
           <div class="xp-progress-block" *ngIf="state?.currentTrack">
-            <div class="xp-progress-track">
+            <div class="xp-progress-track" #xpTrack (click)="seekFromClick($event, xpTrack)" title="Click para saltar">
               <div class="xp-progress-fill" [style.width.%]="progressPct"></div>
-              <input type="range" class="xp-seek-input" min="0" max="100" step="0.1"
-                     [value]="progressPct" (input)="onSeekInput($event)"
-                     (mousedown)="$event.stopPropagation()" />
             </div>
             <div class="xp-progress-times">
               <span>{{ fmt(state?.currentTime || 0) }}</span>
@@ -861,8 +856,7 @@
           <div class="xp-vol-row">
             <svg class="xp-vol-icon" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4V9Zm12.5-2.5a7 7 0 0 1 0 11l-1.4-1.4a5 5 0 0 0 0-8.2l1.4-1.4Z"/></svg>
             <input type="range" class="xp-vol-input" min="0" max="100" step="1"
-                   [value]="playerVolume * 100" (input)="setPlayerVolume($event)"
-                   (mousedown)="$event.stopPropagation()" />
+                   [value]="playerVolume * 100" (input)="setPlayerVolume($event)" />
           </div>
 
           <div class="xp-controls">
@@ -910,11 +904,8 @@
 
         <div class="studio-progress-wrap" *ngIf="state?.currentTrack">
           <span class="studio-time">{{ fmt(state?.currentTime || 0) }}</span>
-          <div class="studio-progress-track">
+          <div class="studio-progress-track" #studioTrack (click)="seekFromClick($event, studioTrack)" title="Click para saltar">
             <div class="studio-progress-fill" [style.width.%]="progressPct"></div>
-            <input type="range" class="studio-seek-input" min="0" max="100" step="0.1"
-                   [value]="progressPct" (input)="onSeekInput($event)"
-                   (mousedown)="$event.stopPropagation()" />
           </div>
           <span class="studio-time">{{ fmt(state?.duration || 0) }}</span>
         </div>
@@ -986,11 +977,9 @@
           <span>{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span>
         </div>
 
-        <div class="focus-progress" *ngIf="state?.currentTrack">
+        <div class="focus-progress" *ngIf="state?.currentTrack"
+             #focusTrack (click)="seekFromClick($event, focusTrack)" title="Click para saltar">
           <div class="focus-progress-fill" [style.width.%]="progressPct"></div>
-          <input type="range" class="focus-seek-input" min="0" max="100" step="0.1"
-                 [value]="progressPct" (input)="onSeekInput($event)"
-                 (mousedown)="$event.stopPropagation()" />
         </div>
 
         <div class="focus-controls">

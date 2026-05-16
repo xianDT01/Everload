@@ -3060,10 +3060,8 @@
   height: 4px;
   border-radius: 999px;
   background: rgba(255,255,255,0.08);
-  position: relative;
   overflow: hidden;
 }
-.mini-progress:hover { overflow: visible; }
 
 .mini-progress-fill {
   height: 100%;
@@ -3274,7 +3272,7 @@
   height: 5px;
   border-radius: 999px;
   background: rgba(255,255,255,0.08);
-  position: relative;
+  overflow: hidden;
 }
 
 .focus-progress-fill {
@@ -3554,7 +3552,7 @@
   height: 3px;
   border-radius: 999px;
   background: rgba(255,255,255,0.12);
-  position: relative;
+  overflow: hidden;
 }
 
 .studio-progress-fill {
@@ -7232,19 +7230,12 @@
     0 0 18px rgba(211,250,255,0.18);
 }
 
-/* ── Seek inputs (invisible range overlays) ─────────────────────────────── */
-.xp-seek-input,
-.studio-seek-input,
-.focus-seek-input,
-.mini-seek-input {
-  position: absolute;
-  inset: -8px 0;
-  width: 100%;
-  height: calc(100% + 16px);
-  opacity: 0;
+/* ── Click-to-seek: cursor pointer en barras de progreso ────────────────── */
+.xp-progress-track,
+.studio-progress-track,
+.focus-progress,
+.mini-progress {
   cursor: pointer;
-  margin: 0;
-  z-index: 2;
 }
 
 .studio-progress-fill,
