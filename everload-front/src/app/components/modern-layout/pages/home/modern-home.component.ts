@@ -160,9 +160,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     forkJoin({
       history: this.music.getHistory(24),
       overview: this.state.getOverview(pathId),
-      profiles: this.music.getArtistProfiles()
+      profiles: this.music.getArtistProfiles(),
+      topArtists: this.music.getTopArtists(50),
     }).subscribe({
-      next: ({ history, overview, profiles }) => {
+      next: ({ history, overview, profiles, topArtists }) => {
         const items = history || [];
         const tracks = overview.tracks || [];
         if (this.indexPoll) clearTimeout(this.indexPoll);
@@ -220,8 +221,17 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
             card.imageUrl = this.profileImage(profile);
           }
         });
+        const playCountMap = new Map<string, number>();
+        (topArtists as { artist: string; playCount: number }[]).forEach(entry => {
+          playCountMap.set(this.key(entry.artist), entry.playCount);
+        });
         this.topArtists = Array.from(artistMap.values())
-          .sort((a, b) => b.tracks.length - a.tracks.length || a.artist.localeCompare(b.artist))
+          .sort((a, b) => {
+            const pa = playCountMap.get(this.key(a.artist)) ?? 0;
+            const pb = playCountMap.get(this.key(b.artist)) ?? 0;
+            if (pa !== pb) return pb - pa;
+            return b.tracks.length - a.tracks.length || a.artist.localeCompare(b.artist);
+          })
           .slice(0, 14);
         this.resolveAutoArtistImages();
 

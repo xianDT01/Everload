@@ -131,4 +131,21 @@ public class UserLibraryController {
                 "topTracks",  topTracks
         ));
     }
+
+    @Operation(summary = "Artistas más escuchados del usuario")
+    @GetMapping("/top-artists")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> getTopArtists(@AuthenticationPrincipal UserDetails userDetails,
+                                           @RequestParam(defaultValue = "20") int limit) {
+        User user = getAuthenticatedUser(userDetails);
+        List<Object[]> raw = playbackHistoryRepository.findTopArtistsByUser(
+                user, PageRequest.of(0, limit));
+        List<Map<String, Object>> result = raw.stream().map(row -> {
+            Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("artist",    row[0]);
+            m.put("playCount", row[1]);
+            return m;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
 }

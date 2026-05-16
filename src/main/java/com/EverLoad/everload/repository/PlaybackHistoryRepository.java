@@ -25,6 +25,12 @@ public interface PlaybackHistoryRepository extends JpaRepository<PlaybackHistory
            "ORDER BY cnt DESC")
     List<Object[]> findTopPlayedByUser(@Param("user") User user, Pageable pageable);
 
+    @Query("SELECT h.artist, COUNT(h) as cnt " +
+           "FROM PlaybackHistory h WHERE h.user = :user AND h.artist IS NOT NULL AND h.artist <> '' " +
+           "GROUP BY h.artist " +
+           "ORDER BY cnt DESC")
+    List<Object[]> findTopArtistsByUser(@Param("user") User user, Pageable pageable);
+
     @Query("SELECT h.trackPath, h.title, h.artist, h.album, h.nasPathId, MAX(h.playedAt) as lastPlayed " +
            "FROM PlaybackHistory h WHERE h.user = :user " +
            "GROUP BY h.trackPath, h.title, h.artist, h.album, h.nasPathId " +
