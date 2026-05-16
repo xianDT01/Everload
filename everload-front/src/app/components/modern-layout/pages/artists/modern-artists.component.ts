@@ -374,19 +374,10 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   private resolveAutoArtistImages() {
-    this.artists
-      .filter(artist => !artist.imageUrl && artist.tracks.length > 0 && !this.isSuspiciousArtistName(artist.artist))
-      .slice(0, 120)
-      .forEach(artist => {
-        this.music.getArtistImage(artist.artist).subscribe({
-          next: result => {
-            if (result.found && result.imageUrl && !artist.imageUrl) {
-              artist.autoImageUrl = result.imageUrl;
-            }
-          },
-          error: () => {}
-        });
-      });
+    const candidates = this.artists
+      .filter(a => !a.imageUrl && a.tracks.length > 0 && !this.isSuspiciousArtistName(a.artist))
+      .slice(0, 120);
+    this.music.resolveArtistImages(candidates);
   }
 
   private profileKeys(profile: ArtistProfileDto): string[] {
