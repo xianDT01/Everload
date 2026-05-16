@@ -1010,6 +1010,7 @@
   background: linear-gradient(180deg, var(--np-progress-start) 0%, var(--np-progress-end) 100%);
   border: 1px solid rgba(138,186,255,0.18);
   box-shadow: inset 0 2px 4px rgba(0,0,0,0.45);
+  position: relative;
 }
 
 .xp-progress-fill {
@@ -3059,8 +3060,10 @@
   height: 4px;
   border-radius: 999px;
   background: rgba(255,255,255,0.08);
+  position: relative;
   overflow: hidden;
 }
+.mini-progress:hover { overflow: visible; }
 
 .mini-progress-fill {
   height: 100%;
@@ -3270,8 +3273,8 @@
 .focus-progress {
   height: 5px;
   border-radius: 999px;
-  overflow: hidden;
   background: rgba(255,255,255,0.08);
+  position: relative;
 }
 
 .focus-progress-fill {
@@ -3551,7 +3554,7 @@
   height: 3px;
   border-radius: 999px;
   background: rgba(255,255,255,0.12);
-  overflow: hidden;
+  position: relative;
 }
 
 .studio-progress-fill {
@@ -7227,4 +7230,69 @@
     inset 0 1px 0 rgba(255,255,255,0.48),
     0 10px 26px rgba(0, 60, 108, 0.28),
     0 0 18px rgba(211,250,255,0.18);
+}
+
+/* ── Seek inputs (invisible range overlays) ─────────────────────────────── */
+.xp-seek-input,
+.studio-seek-input,
+.focus-seek-input,
+.mini-seek-input {
+  position: absolute;
+  inset: -8px 0;
+  width: 100%;
+  height: calc(100% + 16px);
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+  z-index: 2;
+}
+
+.studio-progress-fill,
+.focus-progress-fill,
+.mini-progress-fill {
+  border-radius: 999px;
+}
+
+/* ── XP volume row ──────────────────────────────────────────────────────── */
+.xp-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.xp-vol-icon {
+  width: 15px;
+  height: 15px;
+  fill: var(--sp-muted, rgba(255,255,255,0.45));
+  flex-shrink: 0;
+}
+
+.xp-vol-input {
+  flex: 1;
+  cursor: pointer;
+  accent-color: var(--np-accent, #1db954);
+  height: 4px;
+}
+
+/* ── Studio volume row ──────────────────────────────────────────────────── */
+.studio-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+  margin-top: 4px;
+}
+
+.studio-vol-icon {
+  width: 13px;
+  height: 13px;
+  fill: rgba(255,255,255,0.38);
+  flex-shrink: 0;
+}
+
+.studio-vol-input {
+  flex: 1;
+  cursor: pointer;
+  accent-color: #1db954;
 }

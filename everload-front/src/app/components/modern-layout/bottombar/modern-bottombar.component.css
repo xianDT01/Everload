@@ -218,14 +218,14 @@
   position: absolute;
   top: 0; left: 0;
   height: 100%;
-  background: var(--ml-text);
+  background: var(--ml-accent);
   border-radius: 2px;
   pointer-events: none;
   transition: width 0.1s linear;
 }
 
 .mb-progress-wrap:hover .mb-progress-fill,
-.mb-vol-wrap:hover .mb-vol-fill { background: var(--ml-accent); }
+.mb-vol-wrap:hover .mb-vol-fill { filter: brightness(1.2); }
 
 .mb-progress-input, .mb-vol-input {
   position: absolute;
@@ -237,22 +237,6 @@
   margin: 0;
 }
 
-.mb-progress-wrap::after, .mb-vol-wrap::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  left: 50%;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--ml-text);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s;
-}
-
-.mb-progress-wrap:hover::after, .mb-vol-wrap:hover::after { opacity: 1; }
 
 /* ── Right: volume + EQ + queue ── */
 .mb-right {
@@ -277,8 +261,8 @@
   position: absolute;
   bottom: calc(100% + 8px);
   right: 12px;
-  background: color-mix(in srgb, var(--color-black) 92%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
+  background: color-mix(in srgb, var(--ml-bg) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ml-text) 10%, transparent);
   border-radius: 14px;
   padding: 16px;
   backdrop-filter: blur(16px);
@@ -293,12 +277,12 @@
   margin-bottom: 14px;
 }
 
-.mb-eq-title { font-size: 12px; font-weight: 700; color: var(--color-white); }
+.mb-eq-title { font-size: 12px; font-weight: 700; color: var(--ml-text); }
 
 .mb-eq-reset {
   background: none;
-  border: 1px solid color-mix(in srgb, var(--color-white) 15%, transparent);
-  color: var(--color-slate-400);
+  border: 1px solid color-mix(in srgb, var(--ml-text) 15%, transparent);
+  color: var(--ml-muted);
   font-size: 10px;
   padding: 2px 8px;
   border-radius: 6px;
@@ -306,7 +290,7 @@
   font-family: inherit;
 }
 
-.mb-eq-reset:hover { color: var(--color-white); }
+.mb-eq-reset:hover { color: var(--ml-text); }
 
 .mb-eq-bands {
   display: flex;
@@ -330,12 +314,12 @@
   width: 4px;
   height: 80px;
   cursor: pointer;
-  accent-color: var(--color-indigo-500);
+  accent-color: var(--ml-accent);
 }
 
 .mb-eq-val {
   font-size: 8px;
-  color: var(--color-slate-400);
+  color: var(--ml-muted);
   font-variant-numeric: tabular-nums;
   min-width: 24px;
   text-align: center;
@@ -343,7 +327,7 @@
 
 .mb-eq-label {
   font-size: 9px;
-  color: var(--color-slate-500);
+  color: var(--ml-faint);
 }
 
 .mb-eq-cf {
@@ -351,18 +335,18 @@
   align-items: center;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--ml-text) 8%, transparent);
 }
 
-.mb-eq-cf-label { font-size: 11px; color: var(--color-slate-400); white-space: nowrap; }
+.mb-eq-cf-label { font-size: 11px; color: var(--ml-muted); white-space: nowrap; }
 
 .mb-eq-cf-slider {
   flex: 1;
   cursor: pointer;
-  accent-color: var(--color-indigo-500);
+  accent-color: var(--ml-accent);
 }
 
-.mb-eq-cf-val { font-size: 11px; color: var(--color-white); min-width: 24px; text-align: right; }
+.mb-eq-cf-val { font-size: 11px; color: var(--ml-text); min-width: 24px; text-align: right; }
 
 /* EQ Presets */
 .mb-eq-presets {
@@ -373,9 +357,9 @@
 }
 
 .mb-eq-preset-btn {
-  background: color-mix(in srgb, var(--color-white) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
-  color: var(--color-slate-400);
+  background: color-mix(in srgb, var(--ml-text) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ml-text) 10%, transparent);
+  color: var(--ml-muted);
   font-size: 10px;
   padding: 3px 9px;
   border-radius: 6px;
@@ -385,22 +369,22 @@
 }
 
 .mb-eq-preset-btn:hover {
-  background: color-mix(in srgb, var(--color-indigo-500) 20%, transparent);
-  color: var(--color-white);
-  border-color: var(--color-indigo-500);
+  background: color-mix(in srgb, var(--ml-accent) 20%, transparent);
+  color: var(--ml-text);
+  border-color: var(--ml-accent);
 }
 
 /* Channel Mode */
-.mb-eq-section { padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent); }
-.mb-eq-section-label { font-size: 11px; color: var(--color-slate-400); display: block; margin-bottom: 7px; }
+.mb-eq-section { padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--ml-text) 8%, transparent); }
+.mb-eq-section-label { font-size: 11px; color: var(--ml-muted); display: block; margin-bottom: 7px; }
 
 .mb-eq-channels { display: flex; gap: 4px; }
 
 .mb-ch-btn {
   flex: 1;
-  background: color-mix(in srgb, var(--color-white) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
-  color: var(--color-slate-400);
+  background: color-mix(in srgb, var(--ml-text) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ml-text) 10%, transparent);
+  color: var(--ml-muted);
   font-size: 9px;
   padding: 4px 2px;
   border-radius: 5px;
@@ -410,12 +394,12 @@
   transition: background 0.12s, color 0.12s;
 }
 
-.mb-ch-btn:hover { color: var(--color-white); }
+.mb-ch-btn:hover { color: var(--ml-text); }
 
 .mb-ch-active {
-  background: color-mix(in srgb, var(--color-indigo-500) 25%, transparent) !important;
-  border-color: var(--color-indigo-500) !important;
-  color: var(--color-white) !important;
+  background: color-mix(in srgb, var(--ml-accent) 25%, transparent) !important;
+  border-color: var(--ml-accent) !important;
+  color: var(--ml-text) !important;
 }
 
 /* Reduce Animations toggle */
@@ -424,13 +408,13 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 10px;
-  border-top: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--ml-text) 8%, transparent);
 }
 
 .mb-eq-toggle {
-  background: color-mix(in srgb, var(--color-white) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
-  color: var(--color-slate-400);
+  background: color-mix(in srgb, var(--ml-text) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ml-text) 12%, transparent);
+  color: var(--ml-muted);
   font-size: 9px;
   font-weight: 700;
   padding: 3px 10px;
@@ -441,9 +425,9 @@
 }
 
 .mb-eq-toggle-on {
-  background: color-mix(in srgb, var(--color-indigo-500) 25%, transparent) !important;
-  border-color: var(--color-indigo-500) !important;
-  color: var(--color-white) !important;
+  background: color-mix(in srgb, var(--ml-accent) 25%, transparent) !important;
+  border-color: var(--ml-accent) !important;
+  color: var(--ml-text) !important;
 }
 
 /* Global: reduce animations when class is active */

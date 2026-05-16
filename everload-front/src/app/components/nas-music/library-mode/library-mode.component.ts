@@ -1839,6 +1839,26 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
+  get progressPct(): number {
+    const s = this.state;
+    return s && s.duration > 0 ? (s.currentTime / s.duration) * 100 : 0;
+  }
+
+  get playerVolume(): number {
+    return this.state?.volume ?? 1;
+  }
+
+  onSeekInput(e: Event) {
+    const pct = +(e.target as HTMLInputElement).value;
+    if (!this.state?.duration) return;
+    this.musicService.mainPlayer.seek((pct / 100) * this.state.duration);
+  }
+
+  setPlayerVolume(e: Event) {
+    const v = +(e.target as HTMLInputElement).value / 100;
+    this.musicService.mainPlayer.setVolume(v);
+  }
+
   fmt(seconds: number): string {
     if (!seconds || seconds <= 0) return '—';
     const m = Math.floor(seconds / 60);
