@@ -42,14 +42,37 @@
       <div class="mart-actions mart-songs-actions">
         <button type="button" class="mart-primary" (click)="playSelectedArtist()" [disabled]="!selectedArtistTracks.length">Reproducir todo</button>
         <button type="button" class="mart-secondary" *ngIf="canManageNas" (click)="openEdit(selectedArtist); $event.stopPropagation()">Editar artista</button>
+        <div class="mart-view-toggle">
+          <button type="button" [class.mart-view-active]="artistViewOrder === 'tracks'" (click)="setArtistViewOrder('tracks')">Canciones</button>
+          <button type="button" [class.mart-view-active]="artistViewOrder === 'albums'" (click)="setArtistViewOrder('albums')">Álbumes</button>
+        </div>
       </div>
-      <div class="mart-song-list">
+
+      <!-- Tracks view -->
+      <div class="mart-song-list" *ngIf="artistViewOrder === 'tracks'">
         <button type="button" class="mart-song-row" *ngFor="let t of selectedArtistTracks; let i = index" (click)="playSelectedArtist(i)">
           <span>{{ i + 1 }}</span>
           <strong>{{ t.title || t.name }}</strong>
           <small>{{ t.album || 'Sin álbum' }}</small>
           <em>▶</em>
         </button>
+      </div>
+
+      <!-- Albums view -->
+      <div class="mart-album-list" *ngIf="artistViewOrder === 'albums'">
+        <div class="mart-album-group" *ngFor="let grp of artistAlbums">
+          <div class="mart-album-header">
+            <strong>{{ grp.album }}</strong>
+            <span>{{ grp.tracks.length }} canciones</span>
+          </div>
+          <button type="button" class="mart-song-row" *ngFor="let t of grp.tracks; let i = index"
+                  (click)="playSelectedArtist(selectedArtistTracks.indexOf(t))">
+            <span>{{ i + 1 }}</span>
+            <strong>{{ t.title || t.name }}</strong>
+            <small>{{ t.duration ? (t.duration | number:'1.0-0') + 's' : '' }}</small>
+            <em>▶</em>
+          </button>
+        </div>
       </div>
     </div>
   </div>

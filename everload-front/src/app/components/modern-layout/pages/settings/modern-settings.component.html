@@ -4,6 +4,31 @@
     <p class="mst-subtitle">Personaliza tu experiencia de reproducción</p>
   </div>
 
+  <!-- Volume -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Volumen por defecto</h2>
+    <p class="mst-section-desc">Se restaura al abrir el reproductor.</p>
+    <div class="mst-slider-row">
+      <input class="mst-slider" type="range" min="0" max="100" step="1"
+             [value]="volume * 100" (input)="setVolume(+$any($event.target).value / 100)">
+      <span class="mst-slider-val">{{ (volume * 100) | number:'1.0-0' }}%</span>
+    </div>
+  </section>
+
+  <!-- Artist view order -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Vista del artista</h2>
+    <p class="mst-section-desc">Al abrir un artista, mostrar sus canciones ordenadas por...</p>
+    <div class="mst-chip-group">
+      <button class="mst-chip" [class.mst-chip-active]="artistView === 'tracks'" (click)="setArtistView('tracks')">
+        Lista de canciones
+      </button>
+      <button class="mst-chip" [class.mst-chip-active]="artistView === 'albums'" (click)="setArtistView('albums')">
+        Por álbumes
+      </button>
+    </div>
+  </section>
+
   <!-- Back behavior -->
   <section class="mst-section">
     <h2 class="mst-section-title">Botón atrás</h2>
@@ -63,6 +88,15 @@
             (click)="setReduceAnimations(!reduceAnimations)">
       {{ reduceAnimations ? 'ON' : 'OFF' }}
     </button>
+  </section>
+
+  <!-- Home sections -->
+  <section class="mst-section mst-section-row">
+    <div>
+      <h2 class="mst-section-title">Secciones del Home</h2>
+      <p class="mst-section-desc">Activa, desactiva y reordena las secciones de la pantalla principal.</p>
+    </div>
+    <a class="mst-link-btn" [routerLink]="['/modern']">Personalizar →</a>
   </section>
 
   <!-- Sidebar order -->

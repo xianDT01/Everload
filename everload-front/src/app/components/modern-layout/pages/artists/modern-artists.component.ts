@@ -36,6 +36,25 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   bulkStatus = '';
   selectedArtist: ArtistGroup | null = null;
   selectedArtistTracks: MusicMetadataDto[] = [];
+  artistViewOrder: 'tracks' | 'albums' = (localStorage.getItem('mpl_artist_view') as any) || 'tracks';
+
+  get artistAlbums(): { album: string; tracks: MusicMetadataDto[] }[] {
+    const map = new Map<string, MusicMetadataDto[]>();
+    for (const t of this.selectedArtistTracks) {
+      const key = t.album?.trim() || 'Sin álbum';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(t);
+    }
+    return Array.from(map.entries())
+      .map(([album, tracks]) => ({ album, tracks }))
+      .sort((a, b) => a.album.localeCompare(b.album));
+  }
+
+  setArtistViewOrder(v: 'tracks' | 'albums') {
+    this.artistViewOrder = v;
+    localStorage.setItem('mpl_artist_view', v);
+  }
+
   private sub!: Subscription;
   private artistRequestSub?: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
