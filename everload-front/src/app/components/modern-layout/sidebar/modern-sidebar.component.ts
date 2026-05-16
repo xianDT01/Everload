@@ -5,8 +5,29 @@ import anime from 'animejs/lib/anime.es.js';
 import { ModernStateService } from '../modern-state.service';
 import { NasPath } from '../../../services/nas.service';
 import { THEMES } from '../modern-layout.component';
+import { DEFAULT_SIDEBAR_ORDER } from '../pages/settings/modern-settings.component';
 
 interface NavItem { label: string; icon: string; route: string; exact?: boolean; }
+
+const ALL_NAV: NavItem[] = [
+  { label: 'Inicio',      icon: 'home',     route: '/modern',              exact: true },
+  { label: 'Búsqueda',    icon: 'search',   route: '/modern/search' },
+  { label: 'Biblioteca',  icon: 'library',  route: '/modern/library' },
+  { label: 'Álbumes',     icon: 'album',    route: '/modern/albums' },
+  { label: 'Artistas',    icon: 'artist',   route: '/modern/artists' },
+  { label: 'Playlists',   icon: 'playlist', route: '/modern/playlists' },
+  { label: 'Favoritos',   icon: 'heart',    route: '/modern/favorites' },
+  { label: 'Actividad',   icon: 'activity', route: '/modern/activity' },
+  { label: 'Descargas',   icon: 'download', route: '/modern/downloads' },
+  { label: 'Ajustes',     icon: 'settings', route: '/modern/settings' },
+];
+
+const KEY_MAP: Record<string, string> = {
+  home: '/modern', search: '/modern/search', library: '/modern/library',
+  albums: '/modern/albums', artists: '/modern/artists', playlists: '/modern/playlists',
+  favorites: '/modern/favorites', activity: '/modern/activity',
+  downloads: '/modern/downloads', settings: '/modern/settings',
+};
 
 @Component({
   selector: 'app-modern-sidebar',
@@ -17,23 +38,17 @@ export class ModernSidebarComponent implements OnInit, OnDestroy {
   @Input() currentTheme = 'default';
   @Output() themeChange = new EventEmitter<string>();
 
-  navItems: NavItem[] = [
-    { label: 'Home',      icon: 'home', route: '/modern',           exact: true },
-    { label: 'Search',    icon: 'search', route: '/modern/search' },
-    { label: 'Library',   icon: 'library', route: '/modern/library' },
-    { label: 'Albums',    icon: 'album', route: '/modern/albums' },
-    { label: 'Artists',   icon: 'artist', route: '/modern/artists' },
-    { label: 'Playlists', icon: 'playlist', route: '/modern/playlists' },
-    { label: 'Favorites', icon: 'heart', route: '/modern/favorites' },
-    { label: 'Activity',  icon: 'activity', route: '/modern/activity' },
-    { label: 'Downloads', icon: 'download', route: '/modern/downloads' },
-  ];
+  navItems: NavItem[] = this.buildOrder(DEFAULT_SIDEBAR_ORDER);
 
   themes = THEMES;
   showThemes = false;
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
   private sub!: Subscription;
+  private orderListener = (e: Event) => {
+    const order = (e as CustomEvent<string[]>).detail;
+    this.navItems = this.buildOrder(order);
+  };
 
   constructor(
     public state: ModernStateService,
@@ -46,9 +61,19 @@ export class ModernSidebarComponent implements OnInit, OnDestroy {
       this.selectedPathId = id;
       this.paths = this.state.paths;
     });
+    document.addEventListener('mpl-sidebar-order', this.orderListener);
   }
 
-  ngOnDestroy() { this.sub?.unsubscribe(); }
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
+    document.removeEventListener('mpl-sidebar-order', this.orderListener);
+  }
+
+  private buildOrder(keys: string[]): NavItem[] {
+    return keys
+      .map(k => ALL_NAV.find(n => n.route === KEY_MAP[k]))
+      .filter((n): n is NavItem => !!n);
+  }
 
   onPathChange(id: string) { this.state.selectPath(+id); }
   selectTheme(id: string) { this.themeChange.emit(id); this.showThemes = false; }

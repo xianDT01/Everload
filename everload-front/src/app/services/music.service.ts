@@ -856,7 +856,8 @@ export class MusicService {
   private static readonly COVER_NOT_FOUND_KEY = 'ev_covers_nf_v1';
   private static readonly ARTIST_IMAGE_CACHE_KEY = 'ev_artist_images_v1';
 
-  crossfadeDuration = 0; // seconds, 0 = disabled
+  crossfadeDuration = 0;
+  backBehavior: 'rewind-then-prev' | 'always-prev' = 'rewind-then-prev';
   private crossfadeTriggeredForPath: string | null = null;
 
   private preloadAudio: HTMLAudioElement | null = null;
@@ -1693,6 +1694,12 @@ export class MusicService {
   playPrevMain() {
     const q = this.queueSubj.value;
     const currentIndex = this.resolveQueueIndex();
+    const currentTime = this.mainPlayer.state.currentTime ?? 0;
+    const shouldRewind = this.backBehavior === 'rewind-then-prev' && currentTime > 3;
+    if (shouldRewind) {
+      this.mainPlayer.seek(0);
+      return;
+    }
     if (this._shuffle) {
       const pos = this.shuffleOrder.indexOf(currentIndex);
       if (pos > 0) this.advanceToTrack(q.pathId, q.tracks, this.shuffleOrder[pos - 1]);

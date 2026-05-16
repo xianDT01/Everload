@@ -6,19 +6,19 @@
 }
 
 .ml-shell {
-  --ml-bg: #0c0c0e;
-  --ml-panel: rgba(0, 0, 0, 0.28);
-  --ml-main: #0c0c0e;
-  --ml-card: rgba(255, 255, 255, 0.06);
-  --ml-card-hover: rgba(255, 255, 255, 0.11);
-  --ml-border: rgba(255, 255, 255, 0.05);
-  --ml-text: rgba(255, 255, 255, 0.92);
-  --ml-muted: rgba(255, 255, 255, 0.45);
-  --ml-faint: rgba(255, 255, 255, 0.28);
-  --ml-accent: #ff375f;
-  --ml-accent-strong: #ff2d55;
-  --ml-good: #32d74b;
-  --ml-danger: #ff375f;
+  --ml-bg: var(--color-black, #0c0c0e);
+  --ml-panel: color-mix(in srgb, var(--color-black, #0c0c0e) 72%, transparent);
+  --ml-main: var(--color-black, #0c0c0e);
+  --ml-card: color-mix(in srgb, var(--color-white, #f0f0f0) 7%, transparent);
+  --ml-card-hover: color-mix(in srgb, var(--color-white, #f0f0f0) 12%, transparent);
+  --ml-border: color-mix(in srgb, var(--color-white, #f0f0f0) 5%, transparent);
+  --ml-text: var(--color-white, #f0f0f0);
+  --ml-muted: var(--color-slate-400, rgba(255,255,255,0.45));
+  --ml-faint: var(--color-slate-500, rgba(255,255,255,0.28));
+  --ml-accent: var(--color-indigo-400, #ff375f);
+  --ml-accent-strong: var(--color-indigo-500, #ff2d55);
+  --ml-good: var(--color-green-500, #32d74b);
+  --ml-danger: var(--color-red-400, #ff375f);
   display: grid;
   grid-template:
     "sidebar main"   1fr
@@ -37,6 +37,26 @@
     "sidebar main queue"   1fr
     "player  player player" 68px
     / 220px 1fr 280px;
+}
+
+/* Bar at top */
+.ml-shell[data-bar="top"] {
+  grid-template:
+    "player  player" 68px
+    "sidebar main"   1fr
+    / 220px 1fr;
+}
+
+.ml-shell[data-bar="top"].ml-queue-open {
+  grid-template:
+    "player  player  player" 68px
+    "sidebar main    queue"  1fr
+    / 220px 1fr 280px;
+}
+
+.ml-shell[data-bar="top"] .ml-bottombar {
+  border-top: none;
+  border-bottom: 1px solid var(--ml-border);
 }
 
 .ml-sidebar {
@@ -66,7 +86,7 @@
   grid-area: player;
   border-top: 1px solid var(--ml-border);
   position: relative;
-  background: rgba(0, 0, 0, 0.65);
+  background: color-mix(in srgb, var(--color-black, #0c0c0e) 65%, transparent);
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
 }
