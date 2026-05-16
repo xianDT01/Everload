@@ -157,8 +157,8 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: var(--ml-card-hover);
+  color: var(--ml-text);
   border: none;
   font-size: 14px;
   display: flex;
@@ -170,7 +170,7 @@
   flex-shrink: 0;
 }
 
-.mb-play:hover { background: rgba(255, 255, 255, 0.22); }
+.mb-play:hover { filter: brightness(1.3); }
 
 .mb-play svg { width: 18px; height: 18px; fill: currentColor; }
 .mb-play:hover { transform: scale(1.06); }

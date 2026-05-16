@@ -81,13 +81,13 @@
 }
 
 .ms-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.90);
+  background: var(--ml-card);
+  color: var(--ml-text);
 }
 
 .ms-active {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: var(--ml-card-hover);
+  color: var(--ml-text);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.20);
 }
 

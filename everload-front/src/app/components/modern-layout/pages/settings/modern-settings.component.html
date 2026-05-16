@@ -1,0 +1,87 @@
+<div class="mst-page">
+  <div class="mst-header">
+    <h1 class="mst-title">Ajustes</h1>
+    <p class="mst-subtitle">Personaliza tu experiencia de reproducción</p>
+  </div>
+
+  <!-- Back behavior -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Botón atrás</h2>
+    <p class="mst-section-desc">¿Qué hace el botón anterior cuando la canción lleva unos segundos reproducida?</p>
+    <div class="mst-chip-group">
+      <button class="mst-chip" [class.mst-chip-active]="backBehavior === 'rewind-then-prev'" (click)="setBackBehavior('rewind-then-prev')">
+        Rebobinar y luego anterior
+      </button>
+      <button class="mst-chip" [class.mst-chip-active]="backBehavior === 'always-prev'" (click)="setBackBehavior('always-prev')">
+        Siempre anterior
+      </button>
+    </div>
+  </section>
+
+  <!-- Crossfade -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Crossfade</h2>
+    <p class="mst-section-desc">Transición suave entre canciones. 0 = desactivado.</p>
+    <div class="mst-slider-row">
+      <input class="mst-slider" type="range" min="0" max="12" step="0.5"
+             [value]="crossfade" (input)="setCrossfade(+$any($event.target).value)">
+      <span class="mst-slider-val">{{ crossfade === 0 ? 'Off' : crossfade + 's' }}</span>
+    </div>
+  </section>
+
+  <!-- Bar position -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Barra del reproductor</h2>
+    <p class="mst-section-desc">Posición de la barra de controles.</p>
+    <div class="mst-chip-group">
+      <button class="mst-chip" [class.mst-chip-active]="barPosition === 'bottom'" (click)="setBarPosition('bottom')">
+        Abajo
+      </button>
+      <button class="mst-chip" [class.mst-chip-active]="barPosition === 'top'" (click)="setBarPosition('top')">
+        Arriba
+      </button>
+    </div>
+  </section>
+
+  <!-- Sort order -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Ordenar biblioteca por</h2>
+    <div class="mst-chip-group">
+      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'title'"  (click)="setSortOrder('title')">Título</button>
+      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'artist'" (click)="setSortOrder('artist')">Artista</button>
+      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'album'"  (click)="setSortOrder('album')">Álbum</button>
+    </div>
+  </section>
+
+  <!-- Reduce animations -->
+  <section class="mst-section mst-section-row">
+    <div>
+      <h2 class="mst-section-title">Reducir animaciones</h2>
+      <p class="mst-section-desc">Desactiva transiciones para mejor rendimiento.</p>
+    </div>
+    <button class="mst-toggle" [class.mst-toggle-on]="reduceAnimations"
+            (click)="setReduceAnimations(!reduceAnimations)">
+      {{ reduceAnimations ? 'ON' : 'OFF' }}
+    </button>
+  </section>
+
+  <!-- Sidebar order -->
+  <section class="mst-section">
+    <div class="mst-section-header-row">
+      <div>
+        <h2 class="mst-section-title">Orden del menú lateral</h2>
+        <p class="mst-section-desc">Arrastra con los botones para reordenar.</p>
+      </div>
+      <button class="mst-reset-btn" (click)="resetSidebarOrder()">Restablecer</button>
+    </div>
+    <div class="mst-order-list">
+      <div *ngFor="let key of sidebarOrder; let i = index" class="mst-order-item">
+        <span class="mst-order-label">{{ SIDEBAR_LABELS[key] }}</span>
+        <div class="mst-order-arrows">
+          <button class="mst-arrow-btn" [disabled]="i === 0" (click)="moveItem(i, -1)">↑</button>
+          <button class="mst-arrow-btn" [disabled]="i === sidebarOrder.length - 1" (click)="moveItem(i, 1)">↓</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

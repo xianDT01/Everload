@@ -1,0 +1,209 @@
+.mst-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.mst-header {
+  margin-bottom: 32px;
+}
+
+.mst-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ml-text);
+  margin: 0 0 4px;
+}
+
+.mst-subtitle {
+  font-size: 13px;
+  color: var(--ml-muted);
+  margin: 0;
+}
+
+/* Section */
+.mst-section {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--ml-border);
+}
+
+.mst-section:last-child {
+  border-bottom: none;
+}
+
+.mst-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mst-section-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mst-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ml-text);
+  margin: 0 0 4px;
+}
+
+.mst-section-desc {
+  font-size: 12px;
+  color: var(--ml-muted);
+  margin: 0 0 12px;
+}
+
+.mst-section-row .mst-section-desc {
+  margin-bottom: 0;
+}
+
+/* Chip group */
+.mst-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mst-chip {
+  background: var(--ml-card);
+  border: 1px solid var(--ml-border);
+  color: var(--ml-muted);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.mst-chip:hover {
+  background: var(--ml-card-hover);
+  color: var(--ml-text);
+}
+
+.mst-chip-active {
+  background: color-mix(in srgb, var(--ml-accent) 18%, transparent) !important;
+  border-color: var(--ml-accent) !important;
+  color: var(--ml-text) !important;
+}
+
+/* Slider */
+.mst-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mst-slider {
+  flex: 1;
+  cursor: pointer;
+  accent-color: var(--ml-accent);
+}
+
+.mst-slider-val {
+  font-size: 12px;
+  color: var(--ml-text);
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Toggle */
+.mst-toggle {
+  background: var(--ml-card);
+  border: 1px solid var(--ml-border);
+  color: var(--ml-muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.mst-toggle-on {
+  background: color-mix(in srgb, var(--ml-accent) 18%, transparent) !important;
+  border-color: var(--ml-accent) !important;
+  color: var(--ml-text) !important;
+}
+
+/* Reset button */
+.mst-reset-btn {
+  background: none;
+  border: 1px solid var(--ml-border);
+  color: var(--ml-muted);
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.mst-reset-btn:hover {
+  color: var(--ml-text);
+  border-color: var(--ml-muted);
+}
+
+/* Sidebar order list */
+.mst-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mst-order-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--ml-card);
+  border-radius: 8px;
+  border: 1px solid var(--ml-border);
+}
+
+.mst-order-label {
+  font-size: 13px;
+  color: var(--ml-text);
+}
+
+.mst-order-arrows {
+  display: flex;
+  gap: 4px;
+}
+
+.mst-arrow-btn {
+  background: none;
+  border: 1px solid var(--ml-border);
+  color: var(--ml-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.12s, background 0.12s;
+  font-family: inherit;
+}
+
+.mst-arrow-btn:hover:not(:disabled) {
+  color: var(--ml-text);
+  background: var(--ml-card-hover);
+}
+
+.mst-arrow-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}

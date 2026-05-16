@@ -4,21 +4,21 @@
    Apply a theme class to .ml-shell to activate it.
 ═══════════════════════════════════════════════════════════ */
 
-/* ─── Default (pure dark) ─────────────────────────────── */
+/* ─── Cider / Apple Music (default) ───────────────────── */
 .theme-default {
-  --color-black:   #000000;
-  --color-white:   #ffffff;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-green-500: #22c55e;
-  --color-indigo-400: #818cf8;
-  --color-indigo-500: #6366f1;
-  --color-indigo-600: #4f46e5;
-  --color-indigo-900: #312e81;
-  --color-purple-600: #9333ea;
-  --color-purple-700: #7e22ce;
-  --color-red-400: #f87171;
-  --color-neutral-900: #171717;
+  --color-black:   #0c0c0e;
+  --color-white:   #f0f0f0;
+  --color-slate-400: rgba(255,255,255,0.45);
+  --color-slate-500: rgba(255,255,255,0.28);
+  --color-green-500: #32d74b;
+  --color-indigo-400: #ff375f;
+  --color-indigo-500: #ff2d55;
+  --color-indigo-600: #ff2d55;
+  --color-indigo-900: #1a0008;
+  --color-purple-600: #bf5af2;
+  --color-purple-700: #9b4dca;
+  --color-red-400: #ff375f;
+  --color-neutral-900: #1c1c1e;
 }
 
 /* ─── Gruvbox Classic ──────────────────────────────────── */
