@@ -159,7 +159,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
 
     forkJoin({
       history: this.music.getHistory(24),
-      overview: this.music.getLibraryOverview(pathId, 5000),
+      overview: this.state.getOverview(pathId),
       profiles: this.music.getArtistProfiles()
     }).subscribe({
       next: ({ history, overview, profiles }) => {

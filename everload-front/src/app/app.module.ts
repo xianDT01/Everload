@@ -31,6 +31,8 @@ import { AuthInterceptor } from './interceptors/auth.interceptor';
 import { MaintenanceInterceptor } from './interceptors/maintenance.interceptor';
 import { ApiUrlInterceptor } from './interceptors/api-url.interceptor';
 import { ApiBaseService } from './services/api-base.service';
+import { RouteReuseStrategy } from '@angular/router';
+import { ModernReuseStrategy } from './components/modern-layout/modern-reuse-strategy';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './assets/i18n/', '.json');
@@ -90,6 +92,7 @@ export function initRuntimeConfig(apiBase: ApiBaseService): () => Promise<void> 
   ],
   providers: [
     { provide: LOCALE_ID, useValue: 'es-ES' },
+    { provide: RouteReuseStrategy, useClass: ModernReuseStrategy },
     {
       provide: APP_INITIALIZER,
       useFactory: initRuntimeConfig,

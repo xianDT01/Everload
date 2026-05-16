@@ -86,7 +86,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   private load(pathId: number) {
     this.loading = true;
     forkJoin({
-      overview: this.music.getLibraryOverview(pathId, 5000),
+      overview: this.state.getOverview(pathId),
       profiles: this.music.getArtistProfiles()
     }).subscribe({
       next: ({ overview, profiles }) => {
