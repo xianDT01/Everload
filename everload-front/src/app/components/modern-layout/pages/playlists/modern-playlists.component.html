@@ -1,25 +1,134 @@
 <div class="mpl-page">
-  <div class="mpl-header">
-    <h1 class="mpl-title">Playlists</h1>
-    <div class="mpl-create">
-      <input class="mpl-input" type="text" placeholder="Nueva playlist..." [(ngModel)]="newName"
-             (keyup.enter)="create()" />
-      <button class="mpl-btn-create" (click)="create()" [disabled]="creating || !newName.trim()">+</button>
-    </div>
-  </div>
 
-  <div class="mpl-loading" *ngIf="loading">Cargando…</div>
-
-  <div class="mpl-grid" *ngIf="!loading">
-    <div class="mpl-card" *ngFor="let pl of playlists">
-      <div class="mpl-cover" (dblclick)="play(pl)">
-        <span class="mpl-cover-icon">📋</span>
-        <div class="mpl-play-btn" (click)="play(pl); $event.stopPropagation()">▶</div>
+  <!-- ══════════ LIST VIEW ══════════ -->
+  <ng-container *ngIf="view === 'list'">
+    <div class="mpl-header">
+      <h1 class="mpl-title">Playlists</h1>
+      <div class="mpl-create">
+        <input class="mpl-input" type="text" placeholder="Nueva playlist..." [(ngModel)]="newName"
+               (keyup.enter)="create()" />
+        <button class="mpl-btn-create" (click)="create()" [disabled]="creating || !newName.trim()">+</button>
       </div>
-      <div class="mpl-name">{{ pl.name }}</div>
-      <div class="mpl-count">{{ pl.tracks?.length ?? 0 }} canciones</div>
-      <button class="mpl-delete" (click)="delete(pl.id)">✕</button>
     </div>
-    <div class="mpl-empty" *ngIf="playlists.length === 0">No hay playlists. Crea una arriba.</div>
-  </div>
+
+    <div class="mpl-loading" *ngIf="loading">Cargando…</div>
+
+    <div class="mpl-grid" *ngIf="!loading">
+      <div class="mpl-card" *ngFor="let pl of playlists" (click)="openPlaylist(pl)">
+        <div class="mpl-cover">
+          <div class="mpl-auto-cover" *ngIf="pl.tracks?.length > 0"
+               [class.mpl-auto-cover-single]="coverTracks(pl).length === 1">
+            <img *ngFor="let t of coverTracks(pl)"
+                 [src]="trackCoverUrl(t)"
+                 (error)="$any($event.target).style.display='none'"
+                 class="mpl-auto-cover-cell" />
+          </div>
+          <span class="mpl-cover-icon" *ngIf="!pl.tracks?.length">📋</span>
+          <div class="mpl-play-btn" (click)="play(pl); $event.stopPropagation()">▶</div>
+        </div>
+        <div class="mpl-name">{{ pl.name }}</div>
+        <div class="mpl-count">{{ pl.tracks?.length ?? 0 }} canciones</div>
+        <button class="mpl-delete" (click)="delete(pl.id); $event.stopPropagation()">✕</button>
+      </div>
+      <div class="mpl-empty" *ngIf="playlists.length === 0">No hay playlists. Crea una arriba.</div>
+    </div>
+  </ng-container>
+
+  <!-- ══════════ DETAIL VIEW ══════════ -->
+  <ng-container *ngIf="view === 'detail' && selectedPlaylist">
+
+    <!-- Back -->
+    <button class="mpl-back-btn" (click)="back()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      Playlists
+    </button>
+
+    <!-- Hero -->
+    <div class="mpl-hero">
+      <div class="mpl-hero-cover">
+        <div class="mpl-auto-cover mpl-auto-cover-lg"
+             *ngIf="selectedPlaylist.tracks?.length > 0"
+             [class.mpl-auto-cover-single]="coverTracks(selectedPlaylist).length === 1">
+          <img *ngFor="let t of coverTracks(selectedPlaylist)"
+               [src]="trackCoverUrl(t)"
+               (error)="$any($event.target).style.display='none'"
+               class="mpl-auto-cover-cell" />
+        </div>
+        <span class="mpl-cover-icon mpl-cover-icon-lg" *ngIf="!selectedPlaylist.tracks?.length">📋</span>
+      </div>
+      <div class="mpl-hero-meta">
+        <p class="mpl-hero-type">Playlist</p>
+        <h2 class="mpl-hero-name">{{ selectedPlaylist.name }}</h2>
+        <p class="mpl-hero-count">{{ selectedPlaylist.tracks?.length ?? 0 }} canciones</p>
+        <button class="mpl-btn-play-hero" (click)="play(selectedPlaylist)"
+                [disabled]="!selectedPlaylist.tracks?.length">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+          Reproducir
+        </button>
+      </div>
+    </div>
+
+    <!-- Track list -->
+    <div class="mpl-track-list">
+      <div class="mpl-track-list-header">
+        <span class="mpl-col-num">#</span>
+        <span class="mpl-col-title">Título</span>
+        <span class="mpl-col-album">Álbum</span>
+        <span class="mpl-col-dur">Duración</span>
+        <span class="mpl-col-remove"></span>
+      </div>
+      <div class="mpl-track-row" *ngFor="let t of selectedPlaylist.tracks; let i = index">
+        <span class="mpl-col-num mpl-track-num">{{ i + 1 }}</span>
+        <div class="mpl-col-title mpl-track-main">
+          <img class="mpl-track-thumb"
+               [src]="trackCoverUrl(t)"
+               (error)="$any($event.target).style.display='none'" />
+          <div class="mpl-track-info">
+            <span class="mpl-track-title">{{ t.title }}</span>
+            <span class="mpl-track-artist">{{ t.artist }}</span>
+          </div>
+        </div>
+        <span class="mpl-col-album mpl-track-album">{{ t.album }}</span>
+        <span class="mpl-col-dur mpl-track-dur">{{ fmtDur(t.durationSeconds) }}</span>
+        <button class="mpl-col-remove mpl-track-remove" (click)="removeTrack(t.id)" title="Quitar de playlist">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="mpl-empty" *ngIf="!selectedPlaylist.tracks?.length">
+        La playlist está vacía. Añade canciones abajo.
+      </div>
+    </div>
+
+    <!-- Add songs -->
+    <div class="mpl-add-section">
+      <h3 class="mpl-add-title">Añadir canciones</h3>
+      <div class="mpl-search-wrap">
+        <svg class="mpl-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input class="mpl-input mpl-search-input" type="text" placeholder="Buscar en tu biblioteca…"
+               [(ngModel)]="searchQuery" (input)="onSearchInput()" />
+      </div>
+
+      <div class="mpl-search-spinner" *ngIf="searching">Buscando…</div>
+
+      <div class="mpl-search-results" *ngIf="searchResults.length > 0">
+        <div class="mpl-result-row" *ngFor="let t of searchResults"
+             [class.mpl-result-added]="isInPlaylist(t)">
+          <img class="mpl-track-thumb"
+               [src]="searchCoverUrl(t)"
+               (error)="$any($event.target).style.display='none'" />
+          <div class="mpl-track-info">
+            <span class="mpl-track-title">{{ t.title || t.name }}</span>
+            <span class="mpl-track-artist">{{ t.artist }}</span>
+          </div>
+          <button class="mpl-add-btn" (click)="addTrack(t)" [disabled]="isInPlaylist(t)">
+            <svg *ngIf="!isInPlaylist(t)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <svg *ngIf="isInPlaylist(t)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
 </div>

@@ -35,15 +35,18 @@ export class ModernAlbumsComponent implements OnInit, OnDestroy {
 
   private load(pathId: number) {
     this.loading = true;
-    this.music.search(pathId, undefined, ' ', 500).subscribe({
-      next: tracks => {
+    this.music.getLibraryOverview(pathId, 5000).subscribe({
+      next: ({ tracks }) => {
         const map = new Map<string, AlbumGroup>();
         tracks.forEach(t => {
-          const key = (t.album || t.title || '').trim();
+          const key = (t.album || '').trim();
+          if (!key) return;
           if (!map.has(key)) {
-            map.set(key, { album: t.album || t.title, artist: t.artist, tracks: [t], cover: t, pathId });
+            map.set(key, { album: t.album, artist: t.artist, tracks: [t], cover: t, pathId });
           } else {
-            map.get(key)!.tracks.push(t);
+            const g = map.get(key)!;
+            g.tracks.push(t);
+            if (!g.cover.hasCover && t.hasCover) g.cover = t;
           }
         });
         this.albums = Array.from(map.values()).sort((a, b) => a.album.localeCompare(b.album));

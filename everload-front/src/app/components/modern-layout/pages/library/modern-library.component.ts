@@ -29,10 +29,18 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   search(q: string) {
     if (this.pathId == null) return;
     this.loading = true;
-    this.music.search(this.pathId, undefined, q || ' ', 300).subscribe({
-      next: tracks => { this.tracks = tracks; this.loading = false; },
-      error: () => { this.loading = false; }
-    });
+    const pid = this.pathId;
+    if (!q.trim()) {
+      this.music.getLibraryOverview(pid, 3000).subscribe({
+        next: ({ tracks }) => { this.tracks = tracks; this.loading = false; },
+        error: () => { this.loading = false; }
+      });
+    } else {
+      this.music.search(pid, undefined, q, 300).subscribe({
+        next: tracks => { this.tracks = tracks; this.loading = false; },
+        error: () => { this.loading = false; }
+      });
+    }
   }
 
   onSearch() { this.search(this.query); }

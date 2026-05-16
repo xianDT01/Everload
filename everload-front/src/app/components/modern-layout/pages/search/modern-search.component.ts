@@ -14,6 +14,7 @@ export class ModernSearchComponent implements OnInit, OnDestroy {
   loading = false;
   pathId: number | null = null;
   private sub!: Subscription;
+  private searchSub?: Subscription;
   private debounce: any;
 
   constructor(public music: MusicService, private state: ModernStateService) {}
@@ -24,19 +25,21 @@ export class ModernSearchComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
+    this.searchSub?.unsubscribe();
     clearTimeout(this.debounce);
   }
 
   onInput() {
     clearTimeout(this.debounce);
-    if (!this.query.trim()) { this.results = []; return; }
-    this.debounce = setTimeout(() => this.doSearch(), 350);
+    if (!this.query.trim()) { this.results = []; this.loading = false; return; }
+    this.debounce = setTimeout(() => this.doSearch(), 200);
   }
 
   doSearch() {
     if (!this.query.trim() || this.pathId == null) return;
+    this.searchSub?.unsubscribe();
     this.loading = true;
-    this.music.search(this.pathId, undefined, this.query, 100).subscribe({
+    this.searchSub = this.music.search(this.pathId, undefined, this.query, 100).subscribe({
       next: r => { this.results = r; this.loading = false; },
       error: () => { this.loading = false; }
     });

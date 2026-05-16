@@ -1068,7 +1068,33 @@ public class MusicService {
     // ── Search ────────────────────────────────────────────────────────────────
 
     public List<MusicMetadataDto> searchMusic(Long pathId, String subPath, String query, int limit) {
-        Path base      = nasService.getBasePath(pathId);
+        List<String> tokens = searchTokens(query);
+        if (tokens.isEmpty()) return Collections.emptyList();
+
+        // ── Fast path: search the indexed metadata cache — no filesystem walk ──
+        List<TrackMetadataCache> dbCache = metadataCacheRepo.findByNasPathId(pathId);
+        if (!dbCache.isEmpty()) {
+            String subPathFilter = (subPath != null && !subPath.isBlank()) ? subPath : null;
+            List<Map.Entry<MusicMetadataDto, Integer>> scored = new ArrayList<>();
+            for (TrackMetadataCache c : dbCache) {
+                if (subPathFilter != null && !c.getRelativePath().startsWith(subPathFilter)) continue;
+                MusicMetadataDto dto = dtoFromCache(c);
+                dto.setNasPathId(pathId);
+                int score = scoreSearchDto(dto, tokens);
+                if (score > 0) scored.add(Map.entry(dto, score));
+            }
+            scored.sort((a, b) -> {
+                int cmp = Integer.compare(b.getValue(), a.getValue());
+                if (cmp != 0) return cmp;
+                String ta = normalizeSearchText(a.getKey().getTitle() != null ? a.getKey().getTitle() : "");
+                String tb = normalizeSearchText(b.getKey().getTitle() != null ? b.getKey().getTitle() : "");
+                return ta.compareTo(tb);
+            });
+            return scored.stream().limit(Math.max(1, limit)).map(Map.Entry::getKey).collect(Collectors.toList());
+        }
+
+        // ── Slow fallback: filesystem scan (library not yet indexed) ──
+        Path base = nasService.getBasePath(pathId);
         Path startPath = (subPath != null && !subPath.isBlank())
                 ? nasService.resolveValidatedPath(pathId, subPath)
                 : nasService.resolveValidatedPath(pathId, "");
@@ -1076,24 +1102,9 @@ public class MusicService {
         File startDir = startPath.toFile();
         if (!startDir.exists() || !startDir.isDirectory()) return Collections.emptyList();
 
-        List<String> tokens = searchTokens(query);
-        if (tokens.isEmpty()) return Collections.emptyList();
-
         List<File> audioFiles = new ArrayList<>();
         collectAudioFilesForSearch(startDir, audioFiles, SEARCH_SCAN_LIMIT);
         Map<String, TrackMetadataCache> cacheMap = batchFetchCacheChunked(pathId, audioFiles, base);
-
-        if (tokens.isEmpty()) {
-            return audioFiles.stream()
-                    .limit(Math.max(1, limit))
-                    .map(file -> {
-                        String relPath = relativePath(base, file);
-                        MusicMetadataDto dto = buildDto(file, base, pathId, Collections.singletonMap(relPath, cacheMap.get(relPath)));
-                        dto.setNasPathId(pathId);
-                        return dto;
-                    })
-                    .collect(Collectors.toList());
-        }
 
         List<SearchHit> hits = new ArrayList<>();
         Set<String> hitPaths = new HashSet<>();
@@ -1107,9 +1118,6 @@ public class MusicService {
             }
         }
 
-        // If cache is cold and filename/path did not find enough, inspect a small
-        // metadata slice. This keeps searches responsive while still improving
-        // artist/album searches in smaller folders.
         int deepReads = 0;
         if (hits.size() < limit) {
             for (File file : audioFiles) {
