@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
-import { BehaviorSubject, firstValueFrom, Observable, of, Subject, tap } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, from, mergeMap, Observable, of, Subject, tap } from 'rxjs';
 import { ApiBaseService } from './api-base.service';
 
 export interface PagedMusicResult {
@@ -1342,6 +1342,46 @@ export class MusicService {
     const params = new URLSearchParams({ pathId: String(pathId), artist, limit: String(limit) });
     aliases.filter(Boolean).forEach(alias => params.append('aliases', alias));
     return this.http.get<MusicMetadataDto[]>(`${this.api}/artist-tracks?${params}`);
+  }
+
+  /**
+   * Resolves auto images for a list of artist objects sequentially (3 concurrent).
+   * Skips artists that already have imageUrl or are in cache.
+   * Updates autoImageUrl on each object as results arrive.
+   */
+  resolveArtistImages<T extends { artist: string; imageUrl?: string; autoImageUrl?: string }>(
+    artists: T[]
+  ): void {
+    const pending = artists.filter(a => !a.imageUrl && !this.artistImageCache.has(this.artistImageKey(a.artist)));
+    if (!pending.length) {
+      // Still apply cached values for artists with null cached (already tried, not found)
+      artists.forEach(a => {
+        if (!a.imageUrl) {
+          const key = this.artistImageKey(a.artist);
+          const cached = this.artistImageCache.get(key);
+          if (cached) a.autoImageUrl = cached;
+        }
+      });
+      return;
+    }
+
+    // Apply already-cached values immediately
+    artists.forEach(a => {
+      if (!a.imageUrl) {
+        const key = this.artistImageKey(a.artist);
+        if (this.artistImageCache.has(key)) {
+          const cached = this.artistImageCache.get(key);
+          if (cached) a.autoImageUrl = cached;
+        }
+      }
+    });
+
+    // Fetch uncached artists 3 at a time
+    from(pending).pipe(
+      mergeMap(a => this.getArtistImage(a.artist).pipe(
+        tap(result => { if (result.found && result.imageUrl) a.autoImageUrl = result.imageUrl; })
+      ), 3)
+    ).subscribe({ error: () => {} });
   }
 
   getArtistImage(artist: string): Observable<ArtistImageLookupDto> {

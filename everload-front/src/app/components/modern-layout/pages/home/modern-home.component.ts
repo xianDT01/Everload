@@ -297,14 +297,8 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   }
 
   private resolveAutoArtistImages() {
-    this.topArtists
-      .filter(artist => !artist.imageUrl && artist.tracks.length > 0 && !this.isSuspiciousArtistName(artist.artist))
-      .forEach(artist => {
-        this.music.getArtistImage(artist.artist).subscribe({
-          next: result => { if (result.found && result.imageUrl && !artist.imageUrl) artist.autoImageUrl = result.imageUrl; },
-          error: () => {}
-        });
-      });
+    const candidates = this.topArtists.filter(a => !a.imageUrl && a.tracks.length > 0 && !this.isSuspiciousArtistName(a.artist));
+    this.music.resolveArtistImages(candidates);
   }
 
   private profileKeys(profile: ArtistProfileDto): string[] {
