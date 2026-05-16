@@ -1460,6 +1460,12 @@ export class MusicService {
     );
   }
 
+  getTopArtists(limit = 20): Observable<{ artist: string; playCount: number }[]> {
+    return this.http.get<{ artist: string; playCount: number }[]>(
+      `${this.api.replace('/music', '/library')}/top-artists?limit=${limit}`
+    );
+  }
+
   // ── Playlists ─────────────────────────────────────────────────────────────
 
   private get playlistApi(): string { return `${this.BASE}/api/playlists`; }
