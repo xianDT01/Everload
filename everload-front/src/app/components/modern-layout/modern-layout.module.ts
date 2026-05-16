@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { ModernLayoutComponent } from './modern-layout.component';
@@ -61,6 +62,7 @@ const routes: Routes = [
     CommonModule,
     FormsModule,
     TranslateModule,
+    ScrollingModule,
     RouterModule.forChild(routes),
   ]
 })

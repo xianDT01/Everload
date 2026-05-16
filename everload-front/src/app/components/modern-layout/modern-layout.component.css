@@ -74,6 +74,8 @@
   overflow-y: auto;
   min-width: 0;
   background: var(--ml-main);
+  display: flex;
+  flex-direction: column;
 }
 
 .ml-queue {
