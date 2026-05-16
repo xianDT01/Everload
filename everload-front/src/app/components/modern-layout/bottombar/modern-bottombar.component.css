@@ -218,14 +218,21 @@
   position: absolute;
   top: 0; left: 0;
   height: 100%;
-  background: var(--ml-accent);
   border-radius: 2px;
   pointer-events: none;
   transition: width 0.1s linear;
 }
 
-.mb-progress-wrap:hover .mb-progress-fill,
-.mb-vol-wrap:hover .mb-vol-fill { filter: brightness(1.2); }
+.mb-progress-fill {
+  background: var(--ml-accent);
+}
+
+.mb-vol-fill {
+  background: color-mix(in srgb, var(--ml-text) 60%, transparent);
+}
+
+.mb-progress-wrap:hover .mb-progress-fill { filter: brightness(1.2); }
+.mb-vol-wrap:hover .mb-vol-fill { background: var(--ml-text); }
 
 .mb-progress-input, .mb-vol-input {
   position: absolute;
