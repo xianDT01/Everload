@@ -64,11 +64,12 @@
   align-items: center;
   gap: 10px;
   padding: 0;
-  border-radius: 5px;
+  border-radius: 10px;
   color: var(--ml-muted);
   text-decoration: none;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 13px;
+  letter-spacing: -0.01em;
   transition: background 0.15s, color 0.15s;
   cursor: pointer;
   background: none;
@@ -80,28 +81,18 @@
 }
 
 .ms-item:hover {
-  background: var(--ml-card);
-  color: var(--ml-text);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.90);
 }
 
 .ms-active {
-  background: var(--ml-card-hover);
-  color: var(--ml-text);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.20);
 }
 
-/* Left indicator bar */
 .ms-indicator {
-  width: 0;
-  height: 34px;
-  border-radius: 0 2px 2px 0;
-  background: transparent;
-  flex-shrink: 0;
-  transition: background 0.15s, height 0.15s;
-  align-self: center;
-}
-
-.ms-active .ms-indicator {
-  background: transparent;
+  display: none;
 }
 
 .ms-icon {

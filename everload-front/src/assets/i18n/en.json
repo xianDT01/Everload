@@ -1124,8 +1124,6 @@
   "MUSIC.UI_SKIN_MONO_HINT": "Clean grayscale",
   "MUSIC.UI_SKIN_VISTA": "Vista Aero",
   "MUSIC.UI_SKIN_VISTA_HINT": "Glass & sky",
-  "MUSIC.UI_SKIN_CIDER": "Apple Music",
-  "MUSIC.UI_SKIN_CIDER_HINT": "Cider aesthetic",
 
   "ADMIN.CLEANUP_TITLE": "🧹 Database Cleanup",
   "ADMIN.CLEANUP_DESC": "Tools to keep the database lean over time. Run these cleanups occasionally so the app does not slow down.",
