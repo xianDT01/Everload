@@ -155,6 +155,25 @@
   border-color: var(--ml-muted);
 }
 
+/* Link button */
+.mst-link-btn {
+  display: inline-flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--ml-accent) 14%, transparent);
+  border: 1px solid var(--ml-accent);
+  color: var(--ml-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.mst-link-btn:hover {
+  background: color-mix(in srgb, var(--ml-accent) 25%, transparent);
+}
+
 /* Sidebar order list */
 .mst-order-list {
   display: flex;

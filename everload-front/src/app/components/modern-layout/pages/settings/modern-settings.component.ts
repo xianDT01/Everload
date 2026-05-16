@@ -8,6 +8,8 @@ const LS = {
   REDUCE_ANIMATIONS:  'mpl_reduce_animations',
   SORT_ORDER:         'mpl_sort_order',
   SIDEBAR_ORDER:      'mpl_sidebar_order',
+  VOLUME:             'mpl_volume',
+  ARTIST_VIEW:        'mpl_artist_view',
 };
 
 export type BackBehavior = 'rewind-then-prev' | 'always-prev';
@@ -32,6 +34,8 @@ export class ModernSettingsComponent implements OnInit {
   reduceAnimations = false;
   sortOrder: SortOrder = 'title';
   sidebarOrder: string[] = [...DEFAULT_SIDEBAR_ORDER];
+  volume = 1;
+  artistView: 'tracks' | 'albums' = 'tracks';
 
   readonly SIDEBAR_LABELS: Record<string, string> = {
     home: 'Home', search: 'Search', library: 'Library',
@@ -50,6 +54,9 @@ export class ModernSettingsComponent implements OnInit {
     this.barPosition   = (localStorage.getItem(LS.BAR_POSITION) as BarPosition) || 'bottom';
     this.reduceAnimations = localStorage.getItem(LS.REDUCE_ANIMATIONS) === 'true';
     this.sortOrder     = (localStorage.getItem(LS.SORT_ORDER) as SortOrder) || 'title';
+    this.volume        = parseFloat(localStorage.getItem(LS.VOLUME) ?? '1');
+    if (!isFinite(this.volume)) this.volume = 1;
+    this.artistView    = (localStorage.getItem(LS.ARTIST_VIEW) as any) || 'tracks';
     const savedOrder   = localStorage.getItem(LS.SIDEBAR_ORDER);
     if (savedOrder) {
       try {
@@ -113,6 +120,21 @@ export class ModernSettingsComponent implements OnInit {
   setSortOrder(v: SortOrder) {
     this.sortOrder = v;
     localStorage.setItem(LS.SORT_ORDER, v);
+  }
+
+  // ── Volume ────────────────────────────────────────────────────────────────
+
+  setVolume(v: number) {
+    this.volume = v;
+    localStorage.setItem(LS.VOLUME, String(v));
+    this.music.mainPlayer.setVolume(v);
+  }
+
+  // ── Artist view order ─────────────────────────────────────────────────────
+
+  setArtistView(v: 'tracks' | 'albums') {
+    this.artistView = v;
+    localStorage.setItem(LS.ARTIST_VIEW, v);
   }
 
   // ── Sidebar order ─────────────────────────────────────────────────────────

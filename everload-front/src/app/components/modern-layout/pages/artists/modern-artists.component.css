@@ -211,3 +211,49 @@
 .mart-song-row em { color: var(--color-slate-400); font-style: normal; }
 .mart-song-row strong,
 .mart-song-row small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* View toggle */
+.mart-view-toggle {
+  display: flex;
+  gap: 4px;
+  background: color-mix(in srgb, var(--color-white) 7%, transparent);
+  border-radius: 8px;
+  padding: 3px;
+  margin-left: auto;
+}
+.mart-view-toggle button {
+  background: none;
+  border: none;
+  color: var(--color-slate-400);
+  font: 600 11px/1 inherit;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mart-view-toggle button:hover { color: var(--color-white); }
+.mart-view-active {
+  background: color-mix(in srgb, var(--color-white) 14%, transparent) !important;
+  color: var(--color-white) !important;
+}
+
+/* Albums view */
+.mart-album-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.mart-album-group { display: flex; flex-direction: column; gap: 4px; }
+.mart-album-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-white) 8%, transparent);
+  margin-bottom: 4px;
+}
+.mart-album-header strong { color: var(--color-white); }
+.mart-album-header span { color: var(--color-slate-400); font-size: 11px; }

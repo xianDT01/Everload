@@ -47,6 +47,11 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     this.channelMode = (this.music.mainPlayer.channelMode as any) || 'stereo';
     this.reduceAnimations = localStorage.getItem('modern_reduce_animations') === '1';
     this.applyReduceAnimations();
+    const savedVol = parseFloat(localStorage.getItem('mpl_volume') ?? '1');
+    if (isFinite(savedVol)) {
+      this.music.mainPlayer.setVolume(Math.min(1, Math.max(0, savedVol)));
+      this.prevVolume = savedVol > 0 ? savedVol : 1;
+    }
     this.subs.push(
       this.music.mainPlayer.state$.subscribe(s => {
         this.state = s;
@@ -93,16 +98,20 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
 
   onVolume(e: Event) {
     const v = +(e.target as HTMLInputElement).value / 100;
-    this.prevVolume = v > 0 ? v : this.prevVolume;
+    if (v > 0) this.prevVolume = v;
     this.music.mainPlayer.setVolume(v);
+    localStorage.setItem('mpl_volume', String(v));
   }
 
   onMuteToggle() {
     if (this.volume > 0) {
       this.prevVolume = this.volume;
       this.music.mainPlayer.setVolume(0);
+      localStorage.setItem('mpl_volume', '0');
     } else {
-      this.music.mainPlayer.setVolume(this.prevVolume || 1);
+      const restore = this.prevVolume || 1;
+      this.music.mainPlayer.setVolume(restore);
+      localStorage.setItem('mpl_volume', String(restore));
     }
   }
 
