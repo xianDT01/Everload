@@ -35,7 +35,7 @@ export class ModernAlbumsComponent implements OnInit, OnDestroy {
 
   private load(pathId: number) {
     this.loading = true;
-    this.music.getLibraryOverview(pathId, 5000).subscribe({
+    this.state.getOverview(pathId).subscribe({
       next: ({ tracks }) => {
         const map = new Map<string, AlbumGroup>();
         tracks.forEach(t => {

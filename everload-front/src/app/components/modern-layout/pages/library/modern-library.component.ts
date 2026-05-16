@@ -31,7 +31,7 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
     this.loading = true;
     const pid = this.pathId;
     if (!q.trim()) {
-      this.music.getLibraryOverview(pid, 3000).subscribe({
+      this.state.getOverview(pid).subscribe({
         next: ({ tracks }) => { this.tracks = tracks; this.loading = false; },
         error: () => { this.loading = false; }
       });
