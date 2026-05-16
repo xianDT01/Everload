@@ -16,26 +16,29 @@
       <span class="ml-col-album">Álbum</span>
       <span class="ml-col-dur">⏱</span>
     </div>
-    <div class="ml-track-row"
-         *ngFor="let t of tracks; let i = index"
-         [class.playing]="isPlaying(t)"
-         (dblclick)="play(i)">
-      <span class="ml-col-num">
-        <span class="ml-row-num" *ngIf="!isPlaying(t)">{{ i + 1 }}</span>
-        <span class="ml-row-play" *ngIf="isPlaying(t)">♪</span>
-      </span>
-      <div class="ml-col-title ml-track-info">
-        <div class="ml-track-cover">
-          <img [src]="cover(t)" (error)="$any($event.target).style.display='none'" />
+
+    <cdk-virtual-scroll-viewport itemSize="60" class="ml-virtual-list">
+      <div class="ml-track-row"
+           *cdkVirtualFor="let t of tracks; let i = index; trackBy: trackByPath"
+           [class.playing]="isPlaying(t)"
+           (dblclick)="play(i)">
+        <span class="ml-col-num">
+          <span class="ml-row-num" *ngIf="!isPlaying(t)">{{ i + 1 }}</span>
+          <span class="ml-row-play" *ngIf="isPlaying(t)">♪</span>
+        </span>
+        <div class="ml-col-title ml-track-info">
+          <div class="ml-track-cover">
+            <img [src]="cover(t)" (error)="$any($event.target).style.display='none'" loading="lazy" />
+          </div>
+          <div class="ml-track-meta">
+            <span class="ml-track-name">{{ t.title || t.name }}</span>
+            <span class="ml-track-artist">{{ t.artist }}</span>
+          </div>
         </div>
-        <div class="ml-track-meta">
-          <span class="ml-track-name">{{ t.title || t.name }}</span>
-          <span class="ml-track-artist">{{ t.artist }}</span>
-        </div>
+        <span class="ml-col-album">{{ t.album }}</span>
+        <span class="ml-col-dur">{{ fmt(t.duration) }}</span>
       </div>
-      <span class="ml-col-album">{{ t.album }}</span>
-      <span class="ml-col-dur">{{ fmt(t.duration) }}</span>
-    </div>
-    <div class="ml-empty" *ngIf="tracks.length === 0">Sin resultados</div>
+      <div class="ml-empty" *ngIf="tracks.length === 0">Sin resultados</div>
+    </cdk-virtual-scroll-viewport>
   </div>
 </div>

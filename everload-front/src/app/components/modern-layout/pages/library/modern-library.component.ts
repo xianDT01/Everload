@@ -62,7 +62,11 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
     return this.music.getCoverUrlWithCache(this.pathId ?? 0, t.path, t.source);
   }
 
-  get isPlaying(): (t: MusicMetadataDto) => boolean {
-    return (t) => this.music.mainPlayer.state.currentTrack?.path === t.path;
+  isPlaying(t: MusicMetadataDto): boolean {
+    return this.music.mainPlayer.state.currentTrack?.path === t.path;
+  }
+
+  trackByPath(_: number, t: MusicMetadataDto): string {
+    return t.path;
   }
 }
