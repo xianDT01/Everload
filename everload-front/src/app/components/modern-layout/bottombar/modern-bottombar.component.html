@@ -13,6 +13,11 @@
       <button class="mb-artist" type="button" (click)="openCurrentArtist()" [disabled]="!track.artist" title="Ver artista">
         {{ track.artist || '—' }}
       </button>
+      <span class="mb-subtle" *ngIf="track.album || track.duration">
+        <ng-container *ngIf="track.album">{{ track.album }}</ng-container>
+        <ng-container *ngIf="track.album && track.duration"> · </ng-container>
+        <ng-container *ngIf="track.duration">{{ fmt(track.duration) }}</ng-container>
+      </span>
     </div>
     <button class="mb-heart" [class.mb-heart-active]="isFav" (click)="toggleFav()" title="Favorito" *ngIf="track">
       <svg viewBox="0 0 24 24">
@@ -88,14 +93,24 @@
 <div class="mb-eq-panel" *ngIf="showEq">
 
   <!-- EQ Presets -->
+  <div class="mb-eq-panel-top">
+    <div>
+      <span class="mb-eq-kicker">Audio</span>
+      <strong>{{ activeEqPreset }}</strong>
+    </div>
+    <button class="mb-eq-reset" (click)="resetEq()">Reset</button>
+  </div>
   <div class="mb-eq-presets">
-    <button class="mb-eq-preset-btn" *ngFor="let p of eqPresets" (click)="applyPreset(p)">{{ p.label }}</button>
+    <button class="mb-eq-preset-btn"
+            *ngFor="let p of eqPresets"
+            [class.mb-eq-preset-active]="activeEqPreset === p.label"
+            (click)="applyPreset(p)">{{ p.label }}</button>
   </div>
 
   <!-- EQ Bands -->
   <div class="mb-eq-header">
     <span class="mb-eq-title">EQ</span>
-    <button class="mb-eq-reset" (click)="resetEq()">Reset</button>
+    <span class="mb-eq-hint">-12 dB / +12 dB</span>
   </div>
   <div class="mb-eq-bands">
     <div class="mb-eq-band" *ngFor="let b of eqBands; let i = index">

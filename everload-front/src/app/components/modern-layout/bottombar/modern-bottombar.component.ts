@@ -30,12 +30,22 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
 
   readonly channelModes: ('stereo' | 'mono' | 'left' | 'right' | 'swap')[] = ['stereo', 'mono', 'left', 'right', 'swap'];
 
+  activeEqPreset = 'Flat';
+
   readonly eqPresets: { label: string; bands: number[] }[] = [
-    { label: 'Flat',         bands: [0, 0, 0, 0, 0] },
-    { label: 'Bass Boost',   bands: [6, 4, 0, 0, 0] },
-    { label: 'Treble Boost', bands: [0, 0, 0, 4, 6] },
-    { label: 'Vocal Boost',  bands: [-2, 0, 4, 3, -1] },
-    { label: 'Loudness',     bands: [5, 2, 0, 2, 5] },
+    { label: 'Flat',       bands: [0, 0, 0, 0, 0] },
+    { label: 'Bass',       bands: [6, 4, 1, -1, -2] },
+    { label: 'Treble',     bands: [-2, -1, 1, 4, 6] },
+    { label: 'Vocal',      bands: [-2, 0, 4, 3, -1] },
+    { label: 'Loudness',   bands: [5, 2, 0, 2, 5] },
+    { label: 'Pop',        bands: [-1, 2, 4, 2, -1] },
+    { label: 'Rock',       bands: [5, 3, -1, 3, 5] },
+    { label: 'Dance',      bands: [6, 4, 1, 3, 4] },
+    { label: 'Club',       bands: [3, 4, 2, 2, 1] },
+    { label: 'Live',       bands: [-1, 0, 3, 4, 2] },
+    { label: 'Soft',       bands: [2, 1, 0, 1, 3] },
+    { label: 'Techno',     bands: [5, 3, 0, 3, 6] },
+    { label: 'Headphones', bands: [3, 2, 1, 2, 4] },
   ];
 
   private subs: Subscription[] = [];
@@ -56,6 +66,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
         if (Array.isArray(bands) && bands.length === 5) {
           this.eqBands = bands;
           bands.forEach((dB: number, i: number) => this.music.mainPlayer.setEqBand(i, dB));
+          this.activeEqPreset = this.resolvePresetLabel(bands);
         }
       } catch {}
     }
@@ -184,6 +195,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     this.eqBands[index] = dB;
     this.music.mainPlayer.setEqBand(index, dB);
     localStorage.setItem('mpl_eq_bands', JSON.stringify(this.eqBands));
+    this.activeEqPreset = this.resolvePresetLabel(this.eqBands);
   }
 
   resetEq() {
@@ -194,6 +206,12 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     this.eqBands = [...preset.bands];
     preset.bands.forEach((dB, i) => this.music.mainPlayer.setEqBand(i, dB));
     localStorage.setItem('mpl_eq_bands', JSON.stringify(this.eqBands));
+    this.activeEqPreset = preset.label;
+  }
+
+  private resolvePresetLabel(bands: number[]): string {
+    const found = this.eqPresets.find(p => p.bands.every((v, i) => Math.abs(v - Number(bands[i] ?? 0)) < 0.01));
+    return found?.label ?? 'Custom';
   }
 
   onCrossfade(e: Event) {

@@ -127,34 +127,64 @@
 .ms-theme-list {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
   padding: 0 2px 4px;
-  max-height: 170px;
+  max-height: 210px;
   overflow-y: auto;
 }
 
 .ms-theme-btn {
-  background: none;
-  border: none;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  gap: 8px;
+  background: color-mix(in srgb, var(--color-neutral-900) 62%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-white) 7%, transparent);
   color: var(--ml-muted);
   font-size: 12px;
-  padding: 7px 11px;
-  border-radius: 5px;
+  padding: 6px 8px;
+  border-radius: 7px;
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.12s;
 }
 
 .ms-theme-btn:hover {
-  background: var(--ml-card);
+  background: color-mix(in srgb, var(--color-neutral-900) 86%, transparent);
   color: var(--ml-text);
+  border-color: color-mix(in srgb, var(--color-indigo-500) 32%, transparent);
+  transform: translateX(1px);
 }
 
 .ms-theme-active {
   color: var(--ml-text);
-  background: color-mix(in srgb, var(--ml-accent) 14%, transparent);
+  background: color-mix(in srgb, var(--color-indigo-500) 18%, var(--color-neutral-900)) !important;
+  border-color: color-mix(in srgb, var(--color-indigo-500) 62%, transparent) !important;
 }
+
+.ms-theme-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 30px;
+  height: 18px;
+  padding: 2px;
+  border-radius: 5px;
+  background: var(--color-black);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-white) 10%, transparent);
+}
+
+.ms-theme-swatch i {
+  display: block;
+  flex: 1;
+  height: 100%;
+  border-radius: 3px;
+}
+
+.ms-theme-swatch i:nth-child(1) { background: var(--color-indigo-500); }
+.ms-theme-swatch i:nth-child(2) { background: var(--color-green-500); }
+.ms-theme-swatch i:nth-child(3) { background: var(--color-purple-600); }
 
 .ms-exit-actions {
   display: grid;

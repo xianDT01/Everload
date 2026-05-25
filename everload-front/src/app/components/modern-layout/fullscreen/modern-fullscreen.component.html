@@ -105,7 +105,7 @@
         <div class="mfs-lrc" *ngIf="!lyricsLoading && lrcLines.length">
           <p class="mfs-lyric-line"
              *ngFor="let l of lrcLines; let i = index"
-             [class.mfs-lyric-active]="i === activeLyricIndex"
+             [ngClass]="lyricClass(i)"
              (click)="seekToLyric(l)">
             {{ l.text }}
           </p>

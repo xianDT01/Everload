@@ -48,8 +48,12 @@
   <div class="ms-theme-list" *ngIf="showThemes">
     <button *ngFor="let t of themes"
             class="ms-theme-btn"
+            [ngClass]="'theme-' + t.id"
             [class.ms-theme-active]="currentTheme === t.id"
             (click)="selectTheme(t.id)">
+      <span class="ms-theme-swatch" aria-hidden="true">
+        <i></i><i></i><i></i>
+      </span>
       {{ t.label }}
     </button>
   </div>

@@ -187,6 +187,15 @@ export class ModernFullscreenComponent implements OnInit, OnDestroy {
     this.music.mainPlayer.seek(line.time);
   }
 
+  lyricClass(index: number): string {
+    if (index === this.activeLyricIndex) return 'mfs-lyric-active';
+    if (this.activeLyricIndex < 0) return '';
+    const distance = Math.abs(index - this.activeLyricIndex);
+    if (distance === 1) return 'mfs-lyric-near';
+    if (distance === 2) return 'mfs-lyric-mid';
+    return '';
+  }
+
   // ── History ──────────────────────────────────────────────────────────────
 
   private loadHistory() {
