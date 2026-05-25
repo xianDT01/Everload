@@ -55,6 +55,7 @@ interface AdminConfig {
   apiKey: string;
   acoustidApiKey: string;
   githubToken: string;
+  authHeroImages: string;
 }
 
 interface DownloadHistoryDto {
@@ -120,14 +121,33 @@ interface AdminChatMember {
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
 
-  activeTab: 'config' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' | 'app' | 'sistema' = 'config';
+  activeTab: 'config' | 'authHero' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' | 'app' | 'sistema' = 'config';
 
   private get BASE(): string {
     return this.apiBase.backendUrl;
   }
 
-  config: AdminConfig = { clientId: '', clientSecret: '', apiKey: '', acoustidApiKey: '', githubToken: '' };
+  readonly defaultAuthHeroImages = [
+    '/api/music/artist-auto-image/david_guetta.jpg',
+    '/api/music/artist-auto-image/aitana.jpg',
+    '/api/music/artist-auto-image/maluma.jpg',
+    '/api/music/artist-auto-image/daddy_yankee.jpg',
+    '/api/music/artist-auto-image/inna.jpg',
+    '/api/music/artist-auto-image/sash.jpg'
+  ];
+
+  config: AdminConfig = {
+    clientId: '',
+    clientSecret: '',
+    apiKey: '',
+    acoustidApiKey: '',
+    githubToken: '',
+    authHeroImages: this.defaultAuthHeroImages.join('\n')
+  };
   showGithubToken = false;
+  availableAuthHeroImages: string[] = [];
+  authHeroImageLoading = false;
+  selectedAuthHeroSlot = 0;
   intervalId: any;
   mensaje = '';
   cargando = false;
@@ -204,9 +224,14 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.http.get<AdminConfig>(`${this.BASE}/api/admin/config`).subscribe({
-      next: data => this.config = data,
+      next: data => this.config = {
+        ...this.config,
+        ...data,
+        authHeroImages: data.authHeroImages || this.defaultAuthHeroImages.join('\n')
+      },
       error: () => this.mensaje = '❌ ' + this.translate.instant('ADMIN.FORM_LOAD_ERROR')
     });
+    this.loadAuthHeroImages();
     this.cargarLogs();
     this.cargarHistorial();
     this.loadPendingUsers();
@@ -244,6 +269,67 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       next: () => { this.mensaje = this.translate.instant('ADMIN.FORM_SAVE_SUCCESS'); this.cargando = false; },
       error: () => { this.mensaje = this.translate.instant('ADMIN.FORM_SAVE_ERROR'); this.cargando = false; }
     });
+  }
+
+  authHeroPreviewImages(): string[] {
+    return this.getAuthHeroSlots();
+  }
+
+  getAuthHeroSlots(): string[] {
+    const selected = this.getAuthHeroImageList();
+    const base = selected.length ? selected : this.defaultAuthHeroImages;
+    return Array.from({ length: 6 }, (_, index) => base[index] || this.defaultAuthHeroImages[index]);
+  }
+
+  resetAuthHeroImages(): void {
+    this.config.authHeroImages = this.defaultAuthHeroImages.join('\n');
+    this.selectedAuthHeroSlot = 0;
+  }
+
+  loadAuthHeroImages(): void {
+    this.authHeroImageLoading = true;
+    this.http.get<{ images: string[] }>(`${this.BASE}/api/admin/config/avatar-images`).subscribe({
+      next: response => {
+        this.availableAuthHeroImages = this.uniqueAuthHeroImages([
+          ...this.getAuthHeroSlots(),
+          ...this.defaultAuthHeroImages,
+          ...(response?.images || [])
+        ]);
+        this.authHeroImageLoading = false;
+      },
+      error: () => {
+        this.availableAuthHeroImages = this.uniqueAuthHeroImages([
+          ...this.getAuthHeroSlots(),
+          ...this.defaultAuthHeroImages
+        ]);
+        this.authHeroImageLoading = false;
+      }
+    });
+  }
+
+  getAuthHeroImageList(): string[] {
+    return (this.config.authHeroImages || '')
+      .split(/[\r\n,]+/)
+      .map(url => url.trim())
+      .filter(url => url.length > 0);
+  }
+
+  isAuthHeroImageSelected(image: string): boolean {
+    return this.getAuthHeroSlots()[this.selectedAuthHeroSlot] === image;
+  }
+
+  selectAuthHeroSlot(index: number): void {
+    this.selectedAuthHeroSlot = Math.max(0, Math.min(5, index));
+  }
+
+  setAuthHeroSlot(image: string): void {
+    const slots = this.getAuthHeroSlots();
+    slots[this.selectedAuthHeroSlot] = image;
+    this.config.authHeroImages = slots.join('\n');
+  }
+
+  private uniqueAuthHeroImages(images: string[]): string[] {
+    return Array.from(new Set(images.filter(Boolean)));
   }
 
   loadAndroidRelease(): void {

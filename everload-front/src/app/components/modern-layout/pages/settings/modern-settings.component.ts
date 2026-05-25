@@ -216,6 +216,14 @@ export class ModernSettingsComponent implements OnInit {
 
   // ── Sidebar order ─────────────────────────────────────────────────────────
 
+  channelModeLabelKey(mode: ChannelMode): string {
+    return `MUSIC.MODERN_CHANNEL_${mode.toUpperCase()}`;
+  }
+
+  sidebarLabelKey(key: string): string {
+    return `MUSIC.MODERN_SIDEBAR_${key.toUpperCase()}`;
+  }
+
   moveItem(index: number, dir: -1 | 1) {
     const target = index + dir;
     if (target < 0 || target >= this.sidebarOrder.length) return;

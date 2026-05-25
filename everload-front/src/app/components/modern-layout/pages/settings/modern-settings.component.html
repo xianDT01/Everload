@@ -1,13 +1,13 @@
 <div class="mst-page">
   <div class="mst-header">
-    <h1 class="mst-title">Ajustes</h1>
-    <p class="mst-subtitle">Personaliza tu experiencia de reproducción</p>
+    <h1 class="mst-title">{{ 'MUSIC.MODERN_SETTINGS_TITLE' | translate }}</h1>
+    <p class="mst-subtitle">{{ 'MUSIC.MODERN_SETTINGS_SUBTITLE' | translate }}</p>
   </div>
 
   <!-- Volume -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Volumen por defecto</h2>
-    <p class="mst-section-desc">Se restaura al abrir el reproductor.</p>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_DEFAULT_VOLUME' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_DEFAULT_VOLUME_DESC' | translate }}</p>
     <div class="mst-slider-row">
       <input class="mst-slider" type="range" min="0" max="100" step="1"
              [value]="volume * 100" (input)="setVolume(+$any($event.target).value / 100)">
@@ -17,28 +17,28 @@
 
   <!-- Artist view order -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Vista del artista</h2>
-    <p class="mst-section-desc">Al abrir un artista, mostrar sus canciones ordenadas por...</p>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_ARTIST_VIEW' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_ARTIST_VIEW_DESC' | translate }}</p>
     <div class="mst-chip-group">
       <button class="mst-chip" [class.mst-chip-active]="artistView === 'tracks'" (click)="setArtistView('tracks')">
-        Lista de canciones
+        {{ 'MUSIC.MODERN_SETTINGS_TRACK_LIST' | translate }}
       </button>
       <button class="mst-chip" [class.mst-chip-active]="artistView === 'albums'" (click)="setArtistView('albums')">
-        Por álbumes
+        {{ 'MUSIC.MODERN_SETTINGS_BY_ALBUMS' | translate }}
       </button>
     </div>
   </section>
 
   <!-- Back behavior -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Botón atrás</h2>
-    <p class="mst-section-desc">¿Qué hace el botón anterior cuando la canción lleva unos segundos reproducida?</p>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_BACK_BUTTON' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_BACK_BUTTON_DESC' | translate }}</p>
     <div class="mst-chip-group">
       <button class="mst-chip" [class.mst-chip-active]="backBehavior === 'rewind-then-prev'" (click)="setBackBehavior('rewind-then-prev')">
-        Rebobinar y luego anterior
+        {{ 'MUSIC.MODERN_SETTINGS_REWIND_THEN_PREV' | translate }}
       </button>
       <button class="mst-chip" [class.mst-chip-active]="backBehavior === 'always-prev'" (click)="setBackBehavior('always-prev')">
-        Siempre anterior
+        {{ 'MUSIC.MODERN_SETTINGS_ALWAYS_PREV' | translate }}
       </button>
     </div>
   </section>
@@ -46,54 +46,54 @@
   <!-- Crossfade -->
   <section class="mst-section">
     <h2 class="mst-section-title">Crossfade</h2>
-    <p class="mst-section-desc">Transición suave entre canciones. 0 = desactivado.</p>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_CROSSFADE_DESC' | translate }}</p>
     <div class="mst-slider-row">
       <input class="mst-slider" type="range" min="0" max="12" step="0.5"
              [value]="crossfade" (input)="setCrossfade(+$any($event.target).value)">
-      <span class="mst-slider-val">{{ crossfade === 0 ? 'Off' : crossfade + 's' }}</span>
+      <span class="mst-slider-val">{{ crossfade === 0 ? ('MUSIC.UI_OFF' | translate) : crossfade + 's' }}</span>
     </div>
   </section>
 
   <!-- Bar position -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Barra del reproductor</h2>
-    <p class="mst-section-desc">Posición de la barra de controles.</p>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_PLAYER_BAR' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_PLAYER_BAR_DESC' | translate }}</p>
     <div class="mst-chip-group">
       <button class="mst-chip" [class.mst-chip-active]="barPosition === 'bottom'" (click)="setBarPosition('bottom')">
-        Abajo
+        {{ 'MUSIC.MODERN_SETTINGS_BOTTOM' | translate }}
       </button>
       <button class="mst-chip" [class.mst-chip-active]="barPosition === 'top'" (click)="setBarPosition('top')">
-        Arriba
+        {{ 'MUSIC.MODERN_SETTINGS_TOP' | translate }}
       </button>
     </div>
   </section>
 
   <!-- Sort order -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Ordenar biblioteca por</h2>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_SORT_LIBRARY' | translate }}</h2>
     <div class="mst-chip-group">
-      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'title'"  (click)="setSortOrder('title')">Título</button>
-      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'artist'" (click)="setSortOrder('artist')">Artista</button>
-      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'album'"  (click)="setSortOrder('album')">Álbum</button>
+      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'title'"  (click)="setSortOrder('title')">{{ 'MUSIC.MODERN_SETTINGS_TITLE_SORT' | translate }}</button>
+      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'artist'" (click)="setSortOrder('artist')">{{ 'MUSIC.MODERN_SETTINGS_ARTIST_SORT' | translate }}</button>
+      <button class="mst-chip" [class.mst-chip-active]="sortOrder === 'album'"  (click)="setSortOrder('album')">{{ 'MUSIC.MODERN_SETTINGS_ALBUM_SORT' | translate }}</button>
     </div>
   </section>
 
   <!-- Reduce animations -->
   <section class="mst-section mst-section-row">
     <div>
-      <h2 class="mst-section-title">Reducir animaciones</h2>
-      <p class="mst-section-desc">Desactiva transiciones para mejor rendimiento.</p>
+      <h2 class="mst-section-title">{{ 'MUSIC.MODERN_REDUCE_ANIMATIONS' | translate }}</h2>
+      <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_REDUCE_ANIMATIONS_DESC' | translate }}</p>
     </div>
     <button class="mst-toggle" [class.mst-toggle-on]="reduceAnimations"
             (click)="setReduceAnimations(!reduceAnimations)">
-      {{ reduceAnimations ? 'ON' : 'OFF' }}
+      {{ reduceAnimations ? ('MUSIC.UI_ON' | translate) : ('MUSIC.UI_OFF' | translate) }}
     </button>
   </section>
 
   <!-- Language -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Idioma</h2>
-    <p class="mst-section-desc">Idioma de la interfaz.</p>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_LANGUAGE' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_LANGUAGE_DESC' | translate }}</p>
     <div class="mst-chip-group">
       <button class="mst-chip" *ngFor="let l of LANGUAGES"
               [class.mst-chip-active]="language === l.code"
@@ -105,8 +105,8 @@
 
   <!-- Volume scroll step -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Paso de volumen con rueda</h2>
-    <p class="mst-section-desc">Cuánto cambia el volumen al girar la rueda del ratón sobre el control de volumen.</p>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_VOLUME_STEP' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_VOLUME_STEP_DESC' | translate }}</p>
     <div class="mst-slider-row">
       <input class="mst-slider" type="range" min="1" max="20" step="1"
              [value]="volumeScrollStep"
@@ -118,37 +118,37 @@
   <!-- Home sections -->
   <section class="mst-section mst-section-row">
     <div>
-      <h2 class="mst-section-title">Secciones del Home</h2>
-      <p class="mst-section-desc">Activa, desactiva y reordena las secciones de la pantalla principal.</p>
+      <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_HOME_SECTIONS' | translate }}</h2>
+      <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_HOME_SECTIONS_DESC' | translate }}</p>
     </div>
-    <a class="mst-link-btn" [routerLink]="['/modern']">Personalizar →</a>
+    <a class="mst-link-btn" [routerLink]="['/modern']">{{ 'MUSIC.MODERN_SETTINGS_CUSTOMIZE' | translate }} -></a>
   </section>
 
   <!-- Artist photo source -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Foto de artista</h2>
-    <p class="mst-section-desc">Qué imagen se muestra en la cuadrícula de artistas cuando no hay imagen de perfil manual.</p>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_ARTIST_PHOTO' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_ARTIST_PHOTO_DESC' | translate }}</p>
     <div class="mst-chip-group">
       <button class="mst-chip" [class.mst-chip-active]="artistPhotoSource === 'deezer'"
               (click)="setArtistPhotoSource('deezer')">
-        Imagen automática (Deezer)
+        {{ 'MUSIC.MODERN_SETTINGS_AUTO_IMAGE' | translate }}
       </button>
       <button class="mst-chip" [class.mst-chip-active]="artistPhotoSource === 'album_cover'"
               (click)="setArtistPhotoSource('album_cover')">
-        Portada del álbum
+        {{ 'MUSIC.MODERN_SETTINGS_ALBUM_COVER' | translate }}
       </button>
     </div>
   </section>
 
   <!-- Channel mode -->
   <section class="mst-section">
-    <h2 class="mst-section-title">Canal de audio</h2>
-    <p class="mst-section-desc">Modo de salida de audio. Se aplica al reproductor principal.</p>
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_AUDIO_CHANNEL' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_AUDIO_CHANNEL_DESC' | translate }}</p>
     <div class="mst-chip-group">
       <button class="mst-chip" *ngFor="let m of channelModes"
               [class.mst-chip-active]="channelMode === m"
               (click)="setChannelMode(m)">
-        {{ m | titlecase }}
+        {{ channelModeLabelKey(m) | translate }}
       </button>
     </div>
   </section>
@@ -157,10 +157,10 @@
   <section class="mst-section">
     <div class="mst-section-header-row">
       <div>
-        <h2 class="mst-section-title">Ecualizador</h2>
-        <p class="mst-section-desc">Ajuste de frecuencias (-12 a +12 dB). Se guarda y aplica en cada sesión.</p>
+        <h2 class="mst-section-title">{{ 'MUSIC.MODERN_EQUALIZER' | translate }}</h2>
+        <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_EQ_DESC' | translate }}</p>
       </div>
-      <button class="mst-reset-btn" (click)="resetEq()">Reset</button>
+      <button class="mst-reset-btn" (click)="resetEq()">{{ 'MUSIC.MODERN_RESET' | translate }}</button>
     </div>
     <div class="mst-eq-bands">
       <div class="mst-eq-band" *ngFor="let b of eqBands; let i = index">
@@ -176,14 +176,14 @@
   <section class="mst-section">
     <div class="mst-section-header-row">
       <div>
-        <h2 class="mst-section-title">Orden del menú lateral</h2>
-        <p class="mst-section-desc">Arrastra con los botones para reordenar.</p>
+        <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_SIDEBAR_ORDER' | translate }}</h2>
+        <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_SIDEBAR_ORDER_DESC' | translate }}</p>
       </div>
-      <button class="mst-reset-btn" (click)="resetSidebarOrder()">Restablecer</button>
+      <button class="mst-reset-btn" (click)="resetSidebarOrder()">{{ 'MUSIC.MODERN_RESET' | translate }}</button>
     </div>
     <div class="mst-order-list">
       <div *ngFor="let key of sidebarOrder; let i = index" class="mst-order-item">
-        <span class="mst-order-label">{{ SIDEBAR_LABELS[key] }}</span>
+        <span class="mst-order-label">{{ sidebarLabelKey(key) | translate }}</span>
         <div class="mst-order-arrows">
           <button class="mst-arrow-btn" [disabled]="i === 0" (click)="moveItem(i, -1)">↑</button>
           <button class="mst-arrow-btn" [disabled]="i === sidebarOrder.length - 1" (click)="moveItem(i, 1)">↓</button>

@@ -7,12 +7,22 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -80,11 +90,75 @@ public class AvatarService {
     }
 
     public Path getAvatarPath(String filename) {
-        Path path = Path.of(storagePath).resolve(filename).normalize();
-        if (!path.startsWith(Path.of(storagePath).normalize())) {
+        String safeFilename = filename == null ? "" : filename.replaceFirst("^/+", "");
+        Path root = Path.of(storagePath).normalize();
+        Path path = root.resolve(safeFilename).normalize();
+        if (!path.startsWith(root)) {
             throw new SecurityException("Acceso denegado");
         }
         return path;
+    }
+
+    public List<String> listAvatarImageUrls() throws IOException {
+        Path root = Path.of(storagePath).normalize();
+        if (!Files.exists(root)) return List.of();
+
+        try (Stream<Path> paths = Files.walk(root, 3)) {
+            List<Path> sortedImages = paths
+                    .filter(Files::isRegularFile)
+                    .filter(this::isImageFile)
+                    .sorted(Comparator.comparing(this::lastModifiedMillis).reversed())
+                    .toList();
+
+            Map<String, Path> uniqueImages = new LinkedHashMap<>();
+            for (Path path : sortedImages) {
+                uniqueImages.putIfAbsent(imageFingerprint(path), path);
+            }
+
+            return uniqueImages.values().stream()
+                    .map(path -> root.relativize(path).toString().replace(File.separatorChar, '/'))
+                    .map(relative -> "/api/user/avatar/img/" + relative)
+                    .toList();
+        }
+    }
+
+    private boolean isImageFile(Path path) {
+        String filename = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        return filename.endsWith(".jpg") || filename.endsWith(".jpeg")
+                || filename.endsWith(".png") || filename.endsWith(".webp")
+                || filename.endsWith(".gif");
+    }
+
+    private long lastModifiedMillis(Path path) {
+        try {
+            return Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException e) {
+            return 0L;
+        }
+    }
+
+    private String imageFingerprint(Path path) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream input = Files.newInputStream(path)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    digest.update(buffer, 0, read);
+                }
+            }
+            return bytesToHex(digest.digest());
+        } catch (IOException | NoSuchAlgorithmException e) {
+            return path.toAbsolutePath().normalize().toString();
+        }
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder hex = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            hex.append(String.format("%02x", b));
+        }
+        return hex.toString();
     }
 
     private void validateFile(MultipartFile file) {

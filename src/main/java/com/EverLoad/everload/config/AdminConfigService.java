@@ -16,6 +16,15 @@ import java.util.Map;
 @Service
 public class AdminConfigService {
 
+    public static final String DEFAULT_AUTH_HERO_IMAGES = String.join("\n",
+            "/api/music/artist-auto-image/david_guetta.jpg",
+            "/api/music/artist-auto-image/aitana.jpg",
+            "/api/music/artist-auto-image/maluma.jpg",
+            "/api/music/artist-auto-image/daddy_yankee.jpg",
+            "/api/music/artist-auto-image/inna.jpg",
+            "/api/music/artist-auto-image/sash.jpg"
+    );
+
     @Value("${app.config.path:./config.json}")
     private String configPath;
 
@@ -28,7 +37,7 @@ public class AdminConfigService {
             try {
                 if (f.getParentFile() != null) f.getParentFile().mkdirs();
                 mapper.writerWithDefaultPrettyPrinter()
-                      .writeValue(f, Map.of("clientId", "", "clientSecret", "", "apiKey", "", "acoustidApiKey", "", "githubToken", ""));
+                      .writeValue(f, defaultConfig());
                 log.info("Created empty config.json at: {}", f.getAbsolutePath());
             } catch (IOException e) {
                 log.warn("Could not create config.json at '{}': {}", f.getAbsolutePath(), e.getMessage());
@@ -40,10 +49,22 @@ public class AdminConfigService {
 
     public Map<String, String> getConfig() throws IOException {
         File f = new File(configPath);
-        if (!f.exists()) return new HashMap<>(Map.of("clientId", "", "clientSecret", "", "apiKey", "", "acoustidApiKey", "", "githubToken", ""));
+        if (!f.exists()) return defaultConfig();
         Map<String, String> cfg = new HashMap<>(mapper.readValue(f, Map.class));
         cfg.putIfAbsent("acoustidApiKey", "");
         cfg.putIfAbsent("githubToken", "");
+        cfg.putIfAbsent("authHeroImages", DEFAULT_AUTH_HERO_IMAGES);
+        return cfg;
+    }
+
+    private Map<String, String> defaultConfig() {
+        Map<String, String> cfg = new HashMap<>();
+        cfg.put("clientId", "");
+        cfg.put("clientSecret", "");
+        cfg.put("apiKey", "");
+        cfg.put("acoustidApiKey", "");
+        cfg.put("githubToken", "");
+        cfg.put("authHeroImages", DEFAULT_AUTH_HERO_IMAGES);
         return cfg;
     }
 

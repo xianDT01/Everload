@@ -32,20 +32,20 @@
 
       <!-- Controls -->
       <div class="mfs-controls">
-        <button class="mfs-btn" [class.mfs-active]="shuffle" (click)="toggleShuffle()" title="Shuffle">
+        <button class="mfs-btn" [class.mfs-active]="shuffle" (click)="toggleShuffle()" [title]="'MUSIC.MODERN_SHUFFLE' | translate">
           <svg viewBox="0 0 24 24"><path d="M16 3h5v5h-2V6.4l-4.8 4.8-1.4-1.4L17.6 5H16V3ZM4 7h3.6l10 10H21v2h-4.2l-10-10H4V7Zm8.8 7.2 1.4 1.4L10.8 19H8v-2h2l2.8-2.8Z"/></svg>
         </button>
-        <button class="mfs-btn mfs-btn-lg" (click)="prev()">
+        <button class="mfs-btn mfs-btn-lg" (click)="prev()" [title]="'MUSIC.MODERN_PREVIOUS' | translate">
           <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6V5Zm3 7 10-7v14L9 12Z"/></svg>
         </button>
         <button class="mfs-play" (click)="toggle()">
           <svg *ngIf="!playing" viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
           <svg *ngIf="playing" viewBox="0 0 24 24"><path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z"/></svg>
         </button>
-        <button class="mfs-btn mfs-btn-lg" (click)="next()">
+        <button class="mfs-btn mfs-btn-lg" (click)="next()" [title]="'MUSIC.MODERN_NEXT' | translate">
           <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2V5ZM5 19V5l10 7-10 7Z"/></svg>
         </button>
-        <button class="mfs-btn" [class.mfs-active]="repeat !== 'none'" (click)="toggleRepeat()">
+        <button class="mfs-btn" [class.mfs-active]="repeat !== 'none'" (click)="toggleRepeat()" [title]="'MUSIC.MODERN_REPEAT' | translate">
           <svg *ngIf="repeat !== 'one'" viewBox="0 0 24 24"><path d="M7 7h9.2l-2.6-2.6L15 3l5 5-5 5-1.4-1.4L16.2 9H7a3 3 0 0 0 0 6h1v2H7A5 5 0 0 1 7 7Zm10 8a3 3 0 0 0 0-6h-1V7h1a5 5 0 0 1 0 10H7.8l2.6 2.6L9 21l-5-5 5-5 1.4 1.4L7.8 15H17Z"/></svg>
           <span *ngIf="repeat === 'one'" class="mfs-repeat1">1</span>
         </button>
@@ -69,9 +69,9 @@
     <!-- Right: tabs -->
     <div class="mfs-right">
       <div class="mfs-tabs">
-        <button class="mfs-tab" [class.mfs-tab-active]="tab === 'queue'" (click)="selectTab('queue')">Cola</button>
-        <button class="mfs-tab" [class.mfs-tab-active]="tab === 'lyrics'" (click)="selectTab('lyrics')">Letra</button>
-        <button class="mfs-tab" [class.mfs-tab-active]="tab === 'history'" (click)="selectTab('history')">Historial</button>
+        <button class="mfs-tab" [class.mfs-tab-active]="tab === 'queue'" (click)="selectTab('queue')">{{ 'MUSIC.MODERN_TAB_QUEUE' | translate }}</button>
+        <button class="mfs-tab" [class.mfs-tab-active]="tab === 'lyrics'" (click)="selectTab('lyrics')">{{ 'MUSIC.MODERN_TAB_LYRICS' | translate }}</button>
+        <button class="mfs-tab" [class.mfs-tab-active]="tab === 'history'" (click)="selectTab('history')">{{ 'MUSIC.MODERN_TAB_HISTORY' | translate }}</button>
       </div>
 
       <!-- Queue tab -->
@@ -93,13 +93,13 @@
           </div>
         </div>
         <ng-template #emptyQueue>
-          <div class="mfs-empty">♫ Cola vacía</div>
+          <div class="mfs-empty">♫ {{ 'MUSIC.MODERN_EMPTY_QUEUE' | translate }}</div>
         </ng-template>
       </div>
 
       <!-- Lyrics tab -->
       <div class="mfs-tab-content mfs-lyrics-content" *ngIf="tab === 'lyrics'" #lyricsScroll>
-        <div class="mfs-loading" *ngIf="lyricsLoading">Buscando letra…</div>
+        <div class="mfs-loading" *ngIf="lyricsLoading">{{ 'MUSIC.MODERN_SEARCHING_LYRICS' | translate }}</div>
 
         <!-- Synced LRC -->
         <div class="mfs-lrc" *ngIf="!lyricsLoading && lrcLines.length">
@@ -118,18 +118,18 @@
 
         <!-- No lyrics -->
         <div class="mfs-empty" *ngIf="!lyricsLoading && !lrcLines.length && !plainLyrics && track">
-          No se encontró la letra
+          {{ 'MUSIC.MODERN_NO_LYRICS' | translate }}
         </div>
         <div class="mfs-empty" *ngIf="!lyricsLoading && !track">
-          Reproduce una canción para ver la letra
+          {{ 'MUSIC.MODERN_PLAY_TO_SEE_LYRICS' | translate }}
         </div>
 
-        <div class="mfs-lyric-source" *ngIf="lyricsSource">Fuente: {{ lyricsSource }}</div>
+        <div class="mfs-lyric-source" *ngIf="lyricsSource">{{ 'MUSIC.MODERN_SOURCE' | translate }}: {{ lyricsSource }}</div>
       </div>
 
       <!-- History tab -->
       <div class="mfs-tab-content" *ngIf="tab === 'history'">
-        <div class="mfs-loading" *ngIf="historyLoading">Cargando historial…</div>
+        <div class="mfs-loading" *ngIf="historyLoading">{{ 'MUSIC.MODERN_LOADING_HISTORY' | translate }}</div>
         <div class="mfs-history-list" *ngIf="!historyLoading && history.length">
           <div class="mfs-history-item" *ngFor="let h of history">
             <div class="mfs-hi-meta">
@@ -138,7 +138,7 @@
             </div>
           </div>
         </div>
-        <div class="mfs-empty" *ngIf="!historyLoading && !history.length">Sin historial</div>
+        <div class="mfs-empty" *ngIf="!historyLoading && !history.length">{{ 'MUSIC.MODERN_EMPTY_HISTORY' | translate }}</div>
       </div>
     </div>
 

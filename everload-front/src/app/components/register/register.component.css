@@ -360,3 +360,319 @@
     border-radius: 18px;
   }
 }
+
+/* Experimental artist auth hero */
+.auth-container {
+  justify-content: flex-end;
+  background: #050506;
+  padding: 32px clamp(22px, 4vw, 72px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.auth-orb { display: none; }
+
+.auth-hero-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 24%, rgba(255, 160, 51, 0.12), transparent 28%),
+    linear-gradient(180deg, #050506 0%, #08080b 58%, #050506 100%);
+}
+
+.auth-brand {
+  position: absolute;
+  top: 28px;
+  left: clamp(24px, 4vw, 82px);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.auth-brand-mark {
+  width: 20px;
+  height: 14px;
+  border-radius: 4px 12px 4px 12px;
+  background: #ffa033;
+  transform: rotate(-10deg);
+  box-shadow: 0 0 24px rgba(255, 160, 51, 0.45);
+}
+
+.auth-stroke-word {
+  position: absolute;
+  left: clamp(70px, 11vw, 180px);
+  top: 50%;
+  transform: translateY(-50%);
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.22);
+  font-size: clamp(7rem, 16vw, 18rem);
+  font-weight: 950;
+  letter-spacing: -0.08em;
+  white-space: nowrap;
+  opacity: 0.72;
+}
+
+.auth-circle {
+  position: absolute;
+  top: 50%;
+  width: clamp(250px, 25vw, 450px);
+  height: clamp(250px, 25vw, 450px);
+  border-radius: 50%;
+  border: 8px solid #050506;
+  transform: translateY(-50%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
+}
+
+.auth-circle-copy {
+  left: clamp(70px, 16vw, 320px);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: clamp(34px, 4vw, 70px);
+  padding-right: clamp(90px, 9vw, 180px);
+  background: #ffa033;
+  color: #fff;
+}
+
+.auth-arrow {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.auth-circle-copy p {
+  margin: 0;
+  max-width: 260px;
+  font-size: clamp(1rem, 1.2vw, 1.25rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.auth-circle-artist {
+  z-index: 2;
+  overflow: hidden;
+  background: #09090b;
+  contain: paint;
+}
+
+.auth-circle-artist-a {
+  left: clamp(240px, 33vw, 620px);
+}
+
+.auth-circle-artist-b {
+  left: clamp(430px, 49vw, 900px);
+}
+
+.auth-artist-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-position: center;
+  background-size: cover;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  animation: authArtistFade 24s linear infinite;
+  will-change: opacity;
+}
+
+.auth-artist-layer-2 { animation-delay: 8s; }
+.auth-artist-layer-3 { animation-delay: 16s; }
+
+.auth-circle-artist-a .auth-artist-layer-1 { background-image: url('/api/music/artist-auto-image/david_guetta.jpg'); }
+.auth-circle-artist-a .auth-artist-layer-2 { background-image: url('/api/music/artist-auto-image/aitana.jpg'); }
+.auth-circle-artist-a .auth-artist-layer-3 { background-image: url('/api/music/artist-auto-image/maluma.jpg'); }
+.auth-circle-artist-b .auth-artist-layer-1 { background-image: url('/api/music/artist-auto-image/daddy_yankee.jpg'); }
+.auth-circle-artist-b .auth-artist-layer-2 { background-image: url('/api/music/artist-auto-image/inna.jpg'); }
+.auth-circle-artist-b .auth-artist-layer-3 { background-image: url('/api/music/artist-auto-image/sash.jpg'); }
+
+@keyframes authArtistFade {
+  0% { opacity: 0; }
+  7% { opacity: 1; }
+  31% { opacity: 1; }
+  40% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-artist-layer {
+    animation: none;
+  }
+
+  .auth-artist-layer-1 {
+    opacity: 1;
+  }
+}
+
+.auth-hero-title {
+  position: absolute;
+  z-index: 3;
+  left: clamp(380px, 45vw, 780px);
+  top: 50%;
+  transform: translate(-15%, -50%);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(3rem, 6.4vw, 7rem);
+  font-weight: 950;
+  letter-spacing: -0.08em;
+  pointer-events: none;
+}
+
+.auth-side-panel {
+  position: absolute;
+  top: 50%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transform: translateY(-50%);
+}
+
+.auth-side-panel-left { left: 16px; }
+.auth-side-panel-right { right: 16px; }
+
+.auth-side-panel span {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.13);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+.auth-card {
+  z-index: 5;
+  max-width: 420px;
+  margin-left: auto;
+  background: rgba(8, 8, 10, 0.72);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 40px 90px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255, 255, 255, 0.035) inset;
+}
+
+.logo-icon-wrap,
+.btn-primary {
+  background: linear-gradient(135deg, #ffa033 0%, #ff6f3c 100%);
+  box-shadow: 0 12px 34px rgba(255, 160, 51, 0.32), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.app-title {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffd49a 46%, #ffa033 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.input-wrapper:focus-within .input-icon,
+.auth-footer a {
+  color: #ffa033;
+}
+
+.input-wrapper input:focus {
+  border-color: rgba(255, 160, 51, 0.62);
+  background: rgba(255, 160, 51, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 160, 51, 0.14);
+}
+
+@keyframes authArtistA {
+  0%, 32% {
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.26)),
+      url("/api/music/artist-auto-image/david_guetta.jpg");
+  }
+  33%, 65% {
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.26)),
+      url("/api/music/artist-auto-image/aitana.jpg");
+  }
+  66%, 100% {
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.26)),
+      url("/api/music/artist-auto-image/maluma.jpg");
+  }
+}
+
+@keyframes authArtistB {
+  0%, 32% {
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.2)),
+      url("/api/music/artist-auto-image/daddy_yankee.jpg");
+  }
+  33%, 65% {
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.2)),
+      url("/api/music/artist-auto-image/inna.jpg");
+  }
+  66%, 100% {
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.2)),
+      url("/api/music/artist-auto-image/sash.jpg");
+  }
+}
+
+@media (max-width: 1180px) {
+  .auth-container {
+    justify-content: center;
+    padding-top: 220px;
+  }
+
+  .auth-circle {
+    top: 34%;
+  }
+
+  .auth-card {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .auth-container {
+    padding: 170px 18px 24px;
+    align-items: flex-start;
+  }
+
+  .auth-brand {
+    top: 20px;
+    left: 22px;
+    font-size: 20px;
+  }
+
+  .auth-stroke-word {
+    top: 120px;
+    left: 18px;
+    font-size: 5.2rem;
+  }
+
+  .auth-circle {
+    top: 112px;
+    width: 168px;
+    height: 168px;
+    border-width: 5px;
+  }
+
+  .auth-circle-copy {
+    left: -44px;
+    padding: 28px 64px 28px 32px;
+  }
+
+  .auth-circle-copy p,
+  .auth-arrow,
+  .auth-side-panel {
+    display: none;
+  }
+
+  .auth-circle-artist-a { left: 82px; }
+  .auth-circle-artist-b { left: 208px; }
+
+  .auth-hero-title {
+    top: 118px;
+    left: 170px;
+    font-size: 3.2rem;
+  }
+}

@@ -1,8 +1,36 @@
 <div class="auth-container">
-  <!-- Background orbs -->
-  <div class="auth-orb auth-orb-1"></div>
-  <div class="auth-orb auth-orb-2"></div>
-  <div class="auth-orb auth-orb-3"></div>
+  <div class="auth-hero-stage register-stage" aria-hidden="true">
+    <div class="auth-brand">
+      <span class="auth-brand-mark"></span>
+      <span>EverLoad</span>
+    </div>
+    <div class="auth-side-panel auth-side-panel-left">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div class="auth-side-panel auth-side-panel-right">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div class="auth-stroke-word">{{ 'AUTH.APP_NAME' | translate }}</div>
+    <div class="auth-circle auth-circle-copy">
+      <span class="auth-arrow">↗</span>
+      <p>{{ 'REGISTER.HERO_COPY' | translate }}</p>
+    </div>
+    <div class="auth-circle auth-circle-artist auth-circle-artist-a">
+      <span class="auth-artist-layer auth-artist-layer-1" [style.background-image]="artistHeroImages[0]"></span>
+      <span class="auth-artist-layer auth-artist-layer-2" [style.background-image]="artistHeroImages[1]"></span>
+      <span class="auth-artist-layer auth-artist-layer-3" [style.background-image]="artistHeroImages[2]"></span>
+    </div>
+    <div class="auth-circle auth-circle-artist auth-circle-artist-b">
+      <span class="auth-artist-layer auth-artist-layer-1" [style.background-image]="artistHeroImages[3]"></span>
+      <span class="auth-artist-layer auth-artist-layer-2" [style.background-image]="artistHeroImages[4]"></span>
+      <span class="auth-artist-layer auth-artist-layer-3" [style.background-image]="artistHeroImages[5]"></span>
+    </div>
+    <div class="auth-hero-title">{{ 'AUTH.APP_NAME' | translate }}</div>
+  </div>
 
   <div class="auth-card">
 

@@ -3,6 +3,7 @@ package com.EverLoad.everload.controller;
 import com.EverLoad.everload.service.AvatarService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -55,9 +58,13 @@ public class AvatarController {
     }
 
     @Operation(summary = "Obtener imagen de avatar por nombre de archivo")
-    @GetMapping("/img/{filename}")
-    public ResponseEntity<Resource> getAvatarImage(@PathVariable String filename) {
+    @GetMapping("/img/**")
+    public ResponseEntity<Resource> getAvatarImage(HttpServletRequest request) {
         try {
+            String prefix = request.getContextPath() + "/api/user/avatar/img/";
+            String uri = request.getRequestURI();
+            String filename = uri.startsWith(prefix) ? uri.substring(prefix.length()) : "";
+            filename = URLDecoder.decode(filename, StandardCharsets.UTF_8);
             Path path = avatarService.getAvatarPath(filename);
             if (!Files.exists(path)) {
                 return ResponseEntity.notFound().build();

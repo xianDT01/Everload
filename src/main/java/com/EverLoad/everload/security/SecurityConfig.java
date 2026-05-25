@@ -59,6 +59,7 @@ public class SecurityConfig {
                 auth
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/api/maintenance/status").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/public/auth-hero-images").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/app-release/android", "/api/app-release/android/download").permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     .requestMatchers("/api/user/avatar/img/**").permitAll()

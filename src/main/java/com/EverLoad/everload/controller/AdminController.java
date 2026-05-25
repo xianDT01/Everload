@@ -1,6 +1,7 @@
 package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.config.AdminConfigService;
+import com.EverLoad.everload.service.AvatarService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -12,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.List;
 
 @Tag(name = "Admin Config", description = "Gestión de la configuración interna de la aplicación (API Keys, Client IDs, etc.)")
 @RestController
@@ -20,9 +22,11 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminConfigService configService;
+    private final AvatarService avatarService;
 
-    public AdminController(AdminConfigService configService) {
+    public AdminController(AdminConfigService configService, AvatarService avatarService) {
         this.configService = configService;
+        this.avatarService = avatarService;
     }
 
     @Operation(
@@ -91,6 +95,15 @@ public class AdminController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/avatar-images")
+    public ResponseEntity<Map<String, List<String>>> getAvatarImages() {
+        try {
+            return ResponseEntity.ok(Map.of("images", avatarService.listAvatarImageUrls()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("images", List.of()));
         }
     }
 }

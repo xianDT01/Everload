@@ -31,6 +31,7 @@
   <!-- Tabs -->
   <div class="tabs">
     <button [class.active]="activeTab === 'config'" (click)="activeTab = 'config'">⚙️ {{ 'ADMIN.TAB_CONFIG' | translate }}</button>
+    <button [class.active]="activeTab === 'authHero'" (click)="activeTab = 'authHero'; loadAuthHeroImages()">Hero login</button>
     <button [class.active]="activeTab === 'users'" (click)="activeTab = 'users'; loadPendingUsers(); loadActiveUsers()">👥 {{ 'ADMIN.TAB_USERS' | translate }}</button>
     <button [class.active]="activeTab === 'nas'" (click)="activeTab = 'nas'; loadNasPaths()">💾 {{ 'ADMIN.TAB_NAS' | translate }}</button>
     <button [class.active]="activeTab === 'logs'" (click)="activeTab = 'logs'; cargarLogs()">📋 {{ 'ADMIN.TAB_LOGS' | translate }}</button>
@@ -83,6 +84,62 @@
         <li><strong>Instagram:</strong> {{ apiEstados['instagram'] }}</li>
       </ul>
     </div>
+  </div>
+
+  <div *ngIf="activeTab === 'authHero'" class="tab-content auth-hero-tab">
+    <section class="auth-hero-admin">
+      <div class="auth-hero-admin-head">
+        <div>
+          <h3>Imagenes de login y registro</h3>
+          <p>Elige una posicion del hero y despues pulsa una imagen para reemplazarla.</p>
+        </div>
+        <div class="auth-hero-admin-actions">
+          <span class="auth-hero-count">6 posiciones</span>
+          <button type="button" class="btn secondary small" (click)="loadAuthHeroImages()" [disabled]="authHeroImageLoading">Actualizar biblioteca</button>
+          <button type="button" class="btn secondary small" (click)="resetAuthHeroImages()">Restablecer</button>
+          <button type="button" class="btn primary small" (click)="guardarCambios()" [disabled]="cargando">Guardar hero</button>
+        </div>
+      </div>
+
+      <div class="auth-hero-layout">
+        <aside class="auth-hero-slots">
+          <span class="auth-hero-label">Posiciones del hero</span>
+          <button
+            type="button"
+            class="auth-hero-slot"
+            *ngFor="let image of getAuthHeroSlots(); let i = index"
+            [class.active]="selectedAuthHeroSlot === i"
+            (click)="selectAuthHeroSlot(i)">
+            <span class="auth-hero-slot-index">{{ i + 1 }}</span>
+            <span class="auth-hero-slot-image" [style.backgroundImage]="'url(' + image + ')'"></span>
+          </button>
+        </aside>
+
+        <div class="auth-hero-library">
+          <div class="auth-hero-source-head">
+            <div>
+              <span>Biblioteca visual</span>
+              <small>Pulsa una imagen para reemplazar la posicion {{ selectedAuthHeroSlot + 1 }}.</small>
+            </div>
+            <small>{{ availableAuthHeroImages.length }} imagenes sin duplicados exactos</small>
+          </div>
+          <div class="auth-hero-avatar-grid" *ngIf="availableAuthHeroImages.length; else noAuthHeroImages">
+            <button
+              type="button"
+              class="auth-hero-avatar-option"
+              *ngFor="let image of availableAuthHeroImages"
+              [class.selected]="isAuthHeroImageSelected(image)"
+              (click)="setAuthHeroSlot(image)">
+              <span class="auth-hero-avatar-thumb" [style.backgroundImage]="'url(' + image + ')'"></span>
+              <span class="auth-hero-check" *ngIf="isAuthHeroImageSelected(image)">Actual</span>
+            </button>
+          </div>
+          <ng-template #noAuthHeroImages>
+            <p class="auth-hero-empty">{{ authHeroImageLoading ? 'Cargando imagenes...' : 'No se encontraron imagenes.' }}</p>
+          </ng-template>
+        </div>
+      </div>
+    </section>
   </div>
 
   <!-- ══ TAB: USUARIOS ════════════════════════════════════════════════════════ -->
