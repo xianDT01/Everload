@@ -887,7 +887,8 @@ export class MusicService {
     try {
       const artistImages = JSON.parse(localStorage.getItem(MusicService.ARTIST_IMAGE_CACHE_KEY) || '{}');
       Object.entries(artistImages).forEach(([artist, url]) => {
-        this.artistImageCache.set(artist, typeof url === 'string' && url ? url : null);
+        // Only restore successful lookups — null entries are retried on next load
+        if (typeof url === 'string' && url) this.artistImageCache.set(artist, url);
       });
     } catch {}
 
@@ -1270,7 +1271,23 @@ export class MusicService {
       } catch {}
     };
 
-    // Cascada: artista+título → artista+álbum → solo título → solo artista
+    const tryMusicBrainz = (): Promise<void> => {
+      if (!album) { saveNotFound(); return Promise.resolve(); }
+      const params = new URLSearchParams({ album });
+      if (artist) params.set('artist', artist);
+      return fetch(`${this.api}/album-cover?${params}`)
+        .then(r => r.json())
+        .then((d: any) => {
+          if (d?.found && d?.imageUrl) {
+            save(d.imageUrl.startsWith('http') ? d.imageUrl : `${this.BASE}${d.imageUrl}`);
+          } else {
+            saveNotFound();
+          }
+        })
+        .catch(() => saveNotFound());
+    };
+
+    // Cascada: artista+título → artista+álbum → solo título → solo artista → MusicBrainz
     const cleanTitle = title.replace(/\b(session|live|set|mix|festival|dj\s*set|\d{4})\b/gi, '').trim();
     const term1 = artist && cleanTitle ? `${artist} ${cleanTitle}` : (cleanTitle || artist);
     itunesSearch(term1, 'song')
@@ -1287,7 +1304,7 @@ export class MusicService {
           )
           .then(u => {
             if (u) save(u);
-            else saveNotFound(); // toda la cascada agotada sin resultado
+            else tryMusicBrainz(); // cascada iTunes agotada → intentar MusicBrainz
           });
       })
       .catch(err => {
@@ -1376,7 +1393,7 @@ export class MusicService {
       }
     });
 
-    // Fetch uncached artists 3 at a time
+    // Fetch uncached artists 3 at a time to leave HTTP connections free for data requests
     from(pending).pipe(
       mergeMap(a => this.getArtistImage(a.artist).pipe(
         tap(result => { if (result.found && result.imageUrl) a.autoImageUrl = result.imageUrl; })
@@ -1393,8 +1410,11 @@ export class MusicService {
     }
     return this.http.get<ArtistImageLookupDto>(`${this.api}/artist-image?artist=${encodeURIComponent(artist)}`).pipe(
       tap(result => {
-        this.artistImageCache.set(key, result.found && result.imageUrl ? result.imageUrl : null);
-        this.persistArtistImageCache();
+        if (result.found && result.imageUrl) {
+          this.artistImageCache.set(key, result.imageUrl);
+          this.persistArtistImageCache();
+        }
+        // Don't cache failures — they'll be retried automatically
       })
     );
   }
@@ -1414,10 +1434,17 @@ export class MusicService {
     try {
       const obj: Record<string, string> = {};
       this.artistImageCache.forEach((url, artist) => {
-        obj[artist] = url || '';
+        if (url) obj[artist] = url;
       });
       localStorage.setItem(MusicService.ARTIST_IMAGE_CACHE_KEY, JSON.stringify(obj));
     } catch {}
+  }
+
+  /** Removes not-found entries from the in-session artist image cache so they can be retried. */
+  clearArtistImageCacheFailed(): void {
+    [...this.artistImageCache.entries()]
+      .filter(([, v]) => !v)
+      .forEach(([k]) => this.artistImageCache.delete(k));
   }
 
   searchYouTube(query: string, maxResults = 8): Observable<any> {

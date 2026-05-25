@@ -90,6 +90,31 @@
     </button>
   </section>
 
+  <!-- Language -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Idioma</h2>
+    <p class="mst-section-desc">Idioma de la interfaz.</p>
+    <div class="mst-chip-group">
+      <button class="mst-chip" *ngFor="let l of LANGUAGES"
+              [class.mst-chip-active]="language === l.code"
+              (click)="setLanguage(l.code)">
+        {{ l.label }}
+      </button>
+    </div>
+  </section>
+
+  <!-- Volume scroll step -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Paso de volumen con rueda</h2>
+    <p class="mst-section-desc">Cuánto cambia el volumen al girar la rueda del ratón sobre el control de volumen.</p>
+    <div class="mst-slider-row">
+      <input class="mst-slider" type="range" min="1" max="20" step="1"
+             [value]="volumeScrollStep"
+             (input)="setVolumeScrollStep(+$any($event.target).value)">
+      <span class="mst-slider-val">{{ volumeScrollStep }}%</span>
+    </div>
+  </section>
+
   <!-- Home sections -->
   <section class="mst-section mst-section-row">
     <div>
@@ -97,6 +122,54 @@
       <p class="mst-section-desc">Activa, desactiva y reordena las secciones de la pantalla principal.</p>
     </div>
     <a class="mst-link-btn" [routerLink]="['/modern']">Personalizar →</a>
+  </section>
+
+  <!-- Artist photo source -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Foto de artista</h2>
+    <p class="mst-section-desc">Qué imagen se muestra en la cuadrícula de artistas cuando no hay imagen de perfil manual.</p>
+    <div class="mst-chip-group">
+      <button class="mst-chip" [class.mst-chip-active]="artistPhotoSource === 'deezer'"
+              (click)="setArtistPhotoSource('deezer')">
+        Imagen automática (Deezer)
+      </button>
+      <button class="mst-chip" [class.mst-chip-active]="artistPhotoSource === 'album_cover'"
+              (click)="setArtistPhotoSource('album_cover')">
+        Portada del álbum
+      </button>
+    </div>
+  </section>
+
+  <!-- Channel mode -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">Canal de audio</h2>
+    <p class="mst-section-desc">Modo de salida de audio. Se aplica al reproductor principal.</p>
+    <div class="mst-chip-group">
+      <button class="mst-chip" *ngFor="let m of channelModes"
+              [class.mst-chip-active]="channelMode === m"
+              (click)="setChannelMode(m)">
+        {{ m | titlecase }}
+      </button>
+    </div>
+  </section>
+
+  <!-- Equalizer -->
+  <section class="mst-section">
+    <div class="mst-section-header-row">
+      <div>
+        <h2 class="mst-section-title">Ecualizador</h2>
+        <p class="mst-section-desc">Ajuste de frecuencias (-12 a +12 dB). Se guarda y aplica en cada sesión.</p>
+      </div>
+      <button class="mst-reset-btn" (click)="resetEq()">Reset</button>
+    </div>
+    <div class="mst-eq-bands">
+      <div class="mst-eq-band" *ngFor="let b of eqBands; let i = index">
+        <input type="range" class="mst-eq-slider" min="-12" max="12" step="0.5"
+               [value]="eqBands[i]" (input)="setEqBand(i, $event)" />
+        <span class="mst-eq-val">{{ eqBands[i] > 0 ? '+' : '' }}{{ eqBands[i] | number:'1.0-1' }}</span>
+        <span class="mst-eq-label">{{ eqLabels[i] }}</span>
+      </div>
+    </div>
   </section>
 
   <!-- Sidebar order -->

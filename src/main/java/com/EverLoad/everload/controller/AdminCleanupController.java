@@ -1,6 +1,7 @@
 package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.service.CleanupService;
+import com.EverLoad.everload.service.MusicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,10 +16,14 @@ import java.util.Map;
 public class AdminCleanupController {
 
     private final CleanupService cleanupService;
+    private final MusicService musicService;
 
     @PostMapping("/metadata-cache")
     public ResponseEntity<Map<String, Object>> purgeMetadataCache() {
-        return ResponseEntity.ok(cleanupService.purgeOrphanedMetadataCache());
+        Map<String, Object> result = new java.util.HashMap<>(cleanupService.purgeOrphanedMetadataCache());
+        int imagesRemoved = musicService.purgeOrphanedAutoImages();
+        result.put("imagesRemoved", imagesRemoved);
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/expired-tokens")
@@ -36,5 +41,10 @@ public class AdminCleanupController {
     public ResponseEntity<Map<String, Object>> trimAuditLogs(
             @RequestParam(defaultValue = "90") int days) {
         return ResponseEntity.ok(cleanupService.trimAuditLogs(days));
+    }
+
+    @PostMapping("/memory-caches")
+    public ResponseEntity<Map<String, Object>> clearMemoryCaches() {
+        return ResponseEntity.ok(musicService.clearMemoryCaches());
     }
 }

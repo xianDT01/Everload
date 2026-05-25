@@ -58,6 +58,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   private sub!: Subscription;
   private artistRequestSub?: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
+  private imageRetryTimer?: ReturnType<typeof setTimeout>;
   private pendingArtistName = '';
 
   constructor(public music: MusicService, private state: ModernStateService, private auth: AuthService) {}
@@ -81,6 +82,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     this.sub?.unsubscribe();
     this.artistRequestSub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
+    if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
   }
 
   private load(pathId: number) {
@@ -222,7 +224,11 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   }
 
   cover(g: ArtistGroup): string {
-    return g.imageUrl || g.autoImageUrl || '';
+    if (g.imageUrl) return g.imageUrl;
+    const source = localStorage.getItem('mpl_artist_photo_source') || 'deezer';
+    if (source === 'deezer' && g.autoImageUrl) return g.autoImageUrl;
+    if (g.cover) return this.music.getCoverUrlWithCache(g.pathId, g.cover.path, g.cover.source);
+    return g.autoImageUrl || '';
   }
 
   play(g: ArtistGroup) {
@@ -376,8 +382,21 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   private resolveAutoArtistImages() {
     const candidates = this.artists
       .filter(a => !a.imageUrl && a.tracks.length > 0 && !this.isSuspiciousArtistName(a.artist))
-      .slice(0, 120);
+      .sort((a, b) => b.tracks.length - a.tracks.length)
+      .slice(0, 250);
     this.music.resolveArtistImages(candidates);
+    this.scheduleImageRetry(candidates);
+  }
+
+  private scheduleImageRetry(candidates: ArtistGroup[]) {
+    if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
+    this.imageRetryTimer = setTimeout(() => {
+      const missing = candidates.filter(a => !a.imageUrl && !a.autoImageUrl);
+      if (missing.length > 0) {
+        this.music.clearArtistImageCacheFailed();
+        this.music.resolveArtistImages(missing);
+      }
+    }, 12000);
   }
 
   private profileKeys(profile: ArtistProfileDto): string[] {

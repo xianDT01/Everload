@@ -226,3 +226,41 @@
   opacity: 0.3;
   cursor: default;
 }
+
+/* EQ bands */
+.mst-eq-bands {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  padding: 8px 0;
+}
+
+.mst-eq-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.mst-eq-slider {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  height: 80px;
+  cursor: pointer;
+  accent-color: var(--ml-accent);
+}
+
+.mst-eq-val {
+  font-size: 10px;
+  color: var(--ml-text);
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+  text-align: center;
+}
+
+.mst-eq-label {
+  font-size: 10px;
+  color: var(--ml-muted);
+  text-align: center;
+}

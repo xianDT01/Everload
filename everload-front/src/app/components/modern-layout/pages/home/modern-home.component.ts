@@ -60,6 +60,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
 
   private sub!: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
+  private imageRetryTimer?: ReturnType<typeof setTimeout>;
 
   @ViewChild('artistsRow') artistsRowRef?: ElementRef<HTMLElement>;
 
@@ -75,6 +76,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.sub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
+    if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
   }
 
   // ── Home config (localStorage) ────────────────────────────────
@@ -309,6 +311,18 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   private resolveAutoArtistImages() {
     const candidates = this.topArtists.filter(a => !a.imageUrl && a.tracks.length > 0 && !this.isSuspiciousArtistName(a.artist));
     this.music.resolveArtistImages(candidates);
+    this.scheduleImageRetry();
+  }
+
+  private scheduleImageRetry() {
+    if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
+    this.imageRetryTimer = setTimeout(() => {
+      const missing = this.topArtists.filter(a => !a.imageUrl && !a.autoImageUrl && a.tracks.length > 0 && !this.isSuspiciousArtistName(a.artist));
+      if (missing.length > 0) {
+        this.music.clearArtistImageCacheFailed();
+        this.music.resolveArtistImages(missing);
+      }
+    }, 12000);
   }
 
   private profileKeys(profile: ArtistProfileDto): string[] {

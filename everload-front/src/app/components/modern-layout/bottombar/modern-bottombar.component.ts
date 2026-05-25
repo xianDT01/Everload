@@ -26,6 +26,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   crossfade = 0;
   channelMode: 'stereo' | 'mono' | 'left' | 'right' | 'swap' = 'stereo';
   reduceAnimations = false;
+  private volumeScrollStep = 0.05;
 
   readonly channelModes: ('stereo' | 'mono' | 'left' | 'right' | 'swap')[] = ['stereo', 'mono', 'left', 'right', 'swap'];
 
@@ -44,9 +45,27 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.crossfade = this.music.crossfadeDuration;
-    this.channelMode = (this.music.mainPlayer.channelMode as any) || 'stereo';
-    this.reduceAnimations = localStorage.getItem('modern_reduce_animations') === '1';
+    this.reduceAnimations = localStorage.getItem('mpl_reduce_animations') === 'true';
     this.applyReduceAnimations();
+    const step = parseFloat(localStorage.getItem('mpl_vol_scroll_step') ?? '5');
+    this.volumeScrollStep = (isFinite(step) && step >= 1 ? step : 5) / 100;
+    const savedEq = localStorage.getItem('mpl_eq_bands');
+    if (savedEq) {
+      try {
+        const bands = JSON.parse(savedEq);
+        if (Array.isArray(bands) && bands.length === 5) {
+          this.eqBands = bands;
+          bands.forEach((dB: number, i: number) => this.music.mainPlayer.setEqBand(i, dB));
+        }
+      } catch {}
+    }
+    const savedCh = localStorage.getItem('mpl_channel_mode') as any;
+    if (savedCh) {
+      this.channelMode = savedCh;
+      this.music.mainPlayer.setChannelMode(this.channelMode);
+    } else {
+      this.channelMode = (this.music.mainPlayer.channelMode as any) || 'stereo';
+    }
     const savedVol = parseFloat(localStorage.getItem('mpl_volume') ?? '1');
     if (isFinite(savedVol)) {
       this.music.mainPlayer.setVolume(Math.min(1, Math.max(0, savedVol)));
@@ -151,10 +170,20 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
 
   toggleEq() { this.showEq = !this.showEq; }
 
+  onVolumeWheel(e: WheelEvent) {
+    e.preventDefault();
+    const dir = e.deltaY < 0 ? 1 : -1;
+    const newVol = Math.min(1, Math.max(0, this.volume + dir * this.volumeScrollStep));
+    if (newVol > 0) this.prevVolume = newVol;
+    this.music.mainPlayer.setVolume(newVol);
+    localStorage.setItem('mpl_volume', String(newVol));
+  }
+
   onEqBand(index: number, e: Event) {
     const dB = +(e.target as HTMLInputElement).value;
     this.eqBands[index] = dB;
     this.music.mainPlayer.setEqBand(index, dB);
+    localStorage.setItem('mpl_eq_bands', JSON.stringify(this.eqBands));
   }
 
   resetEq() {
@@ -164,22 +193,25 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   applyPreset(preset: { label: string; bands: number[] }) {
     this.eqBands = [...preset.bands];
     preset.bands.forEach((dB, i) => this.music.mainPlayer.setEqBand(i, dB));
+    localStorage.setItem('mpl_eq_bands', JSON.stringify(this.eqBands));
   }
 
   onCrossfade(e: Event) {
     const v = +(e.target as HTMLInputElement).value;
     this.crossfade = v;
     this.music.crossfadeDuration = v;
+    localStorage.setItem('mpl_crossfade_seconds', String(v));
   }
 
   onChannelMode(mode: 'stereo' | 'mono' | 'left' | 'right' | 'swap') {
     this.channelMode = mode;
     this.music.mainPlayer.setChannelMode(mode);
+    localStorage.setItem('mpl_channel_mode', mode);
   }
 
   toggleReduceAnimations() {
     this.reduceAnimations = !this.reduceAnimations;
-    localStorage.setItem('modern_reduce_animations', this.reduceAnimations ? '1' : '0');
+    localStorage.setItem('mpl_reduce_animations', String(this.reduceAnimations));
     this.applyReduceAnimations();
   }
 

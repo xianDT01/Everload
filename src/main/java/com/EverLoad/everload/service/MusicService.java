@@ -70,9 +70,13 @@ public class MusicService {
     @Value("${music.hls.min-size-bytes:83886080}")
     private long hlsMinSizeBytes;
 
+    @Value("${avatar.storage.path:./avatars}")
+    private String avatarStoragePath;
+
     private final Map<String, HlsCacheJob> hlsJobs = new ConcurrentHashMap<>();
     private final Map<String, CachedDirectoryListing> directoryListingCache = new ConcurrentHashMap<>();
     private final Map<String, Optional<String>> artistImageLookupCache = new ConcurrentHashMap<>();
+    private final Map<String, Optional<String>> albumCoverLookupCache = new ConcurrentHashMap<>();
     private final Set<String> metadataWarmupInFlight = ConcurrentHashMap.newKeySet();
     private final Set<Long> libraryIndexInFlight = ConcurrentHashMap.newKeySet();
     private final ExecutorService hlsExecutor = Executors.newSingleThreadExecutor(r -> {
@@ -177,38 +181,185 @@ public class MusicService {
                 .collect(Collectors.toList());
     }
 
+    public Map<String, Object> clearMemoryCaches() {
+        int imgCount = artistImageLookupCache.size();
+        int dirCount = directoryListingCache.size();
+        int coverCount = albumCoverLookupCache.size();
+        artistImageLookupCache.clear();
+        directoryListingCache.clear();
+        albumCoverLookupCache.clear();
+        return Map.of(
+                "artistImageCacheCleared", imgCount,
+                "directoryListingCacheCleared", dirCount,
+                "albumCoverCacheCleared", coverCount
+        );
+    }
+
     public Map<String, Object> lookupArtistImage(String artist) {
         String normalized = normalizeSearchText(artist);
         if (normalized.isBlank() || normalized.length() < 2 || isSuspiciousArtistName(normalized)) {
             return Map.of("found", false);
         }
 
-        Optional<String> cached = artistImageLookupCache.computeIfAbsent(normalized, cacheKey -> {
-            try {
-                String url = "https://api.deezer.com/search/artist?q=" + encodeUrl(artist) + "&limit=8";
-                Map<?, ?> response = restTemplate.getForObject(url, Map.class);
-                Object data = response != null ? response.get("data") : null;
-                if (!(data instanceof List<?> artists)) return Optional.empty();
+        // Only successful lookups are cached — failures are always retried
+        Optional<String> inCache = artistImageLookupCache.get(normalized);
+        if (inCache != null) {
+            return inCache.<Map<String, Object>>map(url -> Map.of("found", true, "imageUrl", url))
+                    .orElseGet(() -> Map.of("found", false));
+        }
 
+        String safeFilename = normalized.replace(' ', '_') + ".jpg";
+        Path autoDir = getArtistAutoImageDir();
+        Path filePath = autoDir.resolve(safeFilename).normalize();
+        if (filePath.startsWith(autoDir) && Files.exists(filePath)) {
+            String localUrl = "/api/music/artist-auto-image/" + safeFilename;
+            artistImageLookupCache.put(normalized, Optional.of(localUrl));
+            return Map.of("found", true, "imageUrl", localUrl);
+        }
+
+        try {
+            String url = "https://api.deezer.com/search/artist?q=" + encodeUrl(artist) + "&limit=8";
+            Map<?, ?> response = restTemplate.getForObject(url, Map.class);
+            Object data = response != null ? response.get("data") : null;
+            if (data instanceof List<?> artists) {
+                String fallbackImage = "";
                 for (Object item : artists) {
                     if (!(item instanceof Map<?, ?> artistMap)) continue;
                     String name = stringValue(artistMap.get("name"));
-                    if (!normalizeSearchText(name).equals(normalized)) continue;
-
                     String image = firstNonBlank(
                             stringValue(artistMap.get("picture_xl")),
                             stringValue(artistMap.get("picture_big")),
                             stringValue(artistMap.get("picture_medium"))
                     );
-                    return image.isBlank() ? Optional.empty() : Optional.of(image);
+                    if (image.isBlank()) continue;
+                    if (normalizeSearchText(name).equals(normalized)) {
+                        String local = downloadAutoImage(image, safeFilename, autoDir);
+                        if (!local.isBlank()) {
+                            artistImageLookupCache.put(normalized, Optional.of(local));
+                            return Map.of("found", true, "imageUrl", local);
+                        }
+                    }
+                    if (fallbackImage.isBlank()) fallbackImage = image;
                 }
-            } catch (Exception e) {}
+                if (!fallbackImage.isBlank()) {
+                    String local = downloadAutoImage(fallbackImage, safeFilename, autoDir);
+                    if (!local.isBlank()) {
+                        artistImageLookupCache.put(normalized, Optional.of(local));
+                        return Map.of("found", true, "imageUrl", local);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // Don't cache failure — will be retried on next request
+        return Map.of("found", false);
+    }
+
+    private String downloadAutoImage(String deezorUrl, String filename, Path dir) {
+        try {
+            Files.createDirectories(dir);
+            byte[] bytes = restTemplate.getForObject(deezorUrl, byte[].class);
+            if (bytes == null || bytes.length == 0) return "";
+            Path target = dir.resolve(filename).normalize();
+            if (!target.startsWith(dir)) return "";
+            Files.write(target, bytes);
+            return "/api/music/artist-auto-image/" + filename;
+        } catch (Exception ignored) {}
+        return "";
+    }
+
+    public Path getArtistAutoImageDir() {
+        return Path.of(avatarStoragePath, "artists-auto").normalize();
+    }
+
+    public Path getAlbumCoverAutoDir() {
+        return Path.of(avatarStoragePath, "covers-auto").normalize();
+    }
+
+    public Map<String, Object> lookupAlbumCover(String artist, String album) {
+        String normArtist = normalizeSearchText(artist == null ? "" : artist);
+        String normAlbum = normalizeSearchText(album == null ? "" : album);
+        if (normAlbum.isBlank()) return Map.of("found", false);
+
+        String cacheKey = normArtist + "|" + normAlbum;
+        Optional<String> cached = albumCoverLookupCache.computeIfAbsent(cacheKey, k -> {
+            String namePart = (normArtist.isBlank() ? normAlbum : normArtist + "__" + normAlbum).replace(' ', '_');
+            if (namePart.length() > 180) namePart = namePart.substring(0, 180);
+            String safeFilename = namePart + ".jpg";
+
+            Path coverDir = getAlbumCoverAutoDir();
+            Path filePath = coverDir.resolve(safeFilename).normalize();
+            if (filePath.startsWith(coverDir) && Files.exists(filePath)) {
+                return Optional.of("/api/music/album-auto-cover/" + safeFilename);
+            }
+            try {
+                String mbQuery = "release:" + encodeUrl(normAlbum)
+                        + (normArtist.isBlank() ? "" : "+artist:" + encodeUrl(normArtist));
+                String mbUrl = "https://musicbrainz.org/ws/2/release/?query=" + mbQuery + "&fmt=json&limit=5";
+
+                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+                headers.set("User-Agent", "EverLoad/1.0 (music-player; contact@everload.app)");
+                var req = new org.springframework.http.HttpEntity<>(headers);
+                var resp = restTemplate.exchange(mbUrl, org.springframework.http.HttpMethod.GET, req, Map.class);
+                Map<?, ?> body = resp.getBody();
+                Object releases = body != null ? body.get("releases") : null;
+                if (!(releases instanceof List<?> list) || list.isEmpty()) return Optional.empty();
+
+                for (Object item : list) {
+                    if (!(item instanceof Map<?, ?> release)) continue;
+                    String mbid = stringValue(release.get("id"));
+                    if (mbid.isBlank()) continue;
+                    try {
+                        String coverUrl = "https://coverartarchive.org/release/" + mbid + "/front-250";
+                        byte[] bytes = restTemplate.getForObject(coverUrl, byte[].class);
+                        if (bytes != null && bytes.length > 5000) {
+                            String local = downloadAlbumCoverImage(bytes, safeFilename, coverDir);
+                            if (!local.isBlank()) return Optional.of(local);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            } catch (Exception ignored) {}
             return Optional.empty();
         });
 
         return cached
                 .<Map<String, Object>>map(url -> Map.of("found", true, "imageUrl", url))
                 .orElseGet(() -> Map.of("found", false));
+    }
+
+    private String downloadAlbumCoverImage(byte[] bytes, String filename, Path dir) {
+        try {
+            Files.createDirectories(dir);
+            Path target = dir.resolve(filename).normalize();
+            if (!target.startsWith(dir)) return "";
+            Files.write(target, bytes);
+            return "/api/music/album-auto-cover/" + filename;
+        } catch (Exception ignored) {}
+        return "";
+    }
+
+    public int purgeOrphanedAutoImages() {
+        Path autoDir = getArtistAutoImageDir();
+        if (!Files.exists(autoDir)) return 0;
+        // Build the set of filenames that correspond to artists still in the cache
+        Set<String> activeFilenames = metadataCacheRepo.findAll().stream()
+                .map(entry -> normalizeSearchText(entry.getArtist()))
+                .filter(n -> !n.isBlank())
+                .map(n -> n.replace(' ', '_') + ".jpg")
+                .collect(Collectors.toSet());
+        int removed = 0;
+        try (var stream = Files.list(autoDir)) {
+            for (Path file : stream.toList()) {
+                if (!Files.isRegularFile(file)) continue;
+                if (!activeFilenames.contains(file.getFileName().toString())) {
+                    Files.deleteIfExists(file);
+                    artistImageLookupCache.entrySet().removeIf(e ->
+                            e.getValue().map(u -> u.endsWith(file.getFileName().toString())).orElse(false));
+                    removed++;
+                }
+            }
+        } catch (Exception ignored) {}
+        return removed;
     }
 
     private void indexLibrary(Long pathId, Path base) {

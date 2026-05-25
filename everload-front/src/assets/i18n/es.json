@@ -1146,7 +1146,10 @@
   "ADMIN.CLEANUP_HISTORY_WHEN": "Mensualmente si hay varios usuarios activos. Con 90 días conservas suficiente historial para las estadísticas sin que la tabla crezca indefinidamente.",
   "ADMIN.CLEANUP_AUDIT_TITLE": "Registros de auditoría antiguos",
   "ADMIN.CLEANUP_AUDIT_WHAT": "Elimina los registros de auditoría (acciones de admin como aprobar usuarios, cambiar roles, borrar mensajes…) que tengan más de los días indicados. Los registros recientes quedan intactos para seguimiento.",
-  "ADMIN.CLEANUP_AUDIT_WHEN": "Mensualmente o cuando el apartado de auditoría acumule miles de entradas. 90 días suele ser más que suficiente para revisar cualquier incidencia reciente."
+  "ADMIN.CLEANUP_AUDIT_WHEN": "Mensualmente o cuando el apartado de auditoría acumule miles de entradas. 90 días suele ser más que suficiente para revisar cualquier incidencia reciente.",
+  "ADMIN.CLEANUP_MEMORYCACHE_TITLE": "Cachés en memoria del servidor",
+  "ADMIN.CLEANUP_MEMORYCACHE_WHAT": "Vacía las cachés en RAM del servidor: imágenes de artistas consultadas a Deezer y listados de directorios del NAS. Estas cachés se llenan mientras la app está en uso y se borran solas al reiniciar el servidor.",
+  "ADMIN.CLEANUP_MEMORYCACHE_WHEN": "Si añadiste o moviste muchas carpetas y los listados de directorios muestran contenido antiguo. O si quieres forzar que las imágenes de artistas se vuelvan a buscar en Deezer con datos frescos."
   ,
   "UPDATE.WEB_TITLE": "Nueva versión disponible",
   "UPDATE.WEB_MESSAGE": "Hay mejoras listas para cargar en la web.",

@@ -1145,7 +1145,10 @@
   "ADMIN.CLEANUP_HISTORY_WHEN": "Monthly if there are several active users. 90 days keeps enough history for statistics without the table growing indefinitely.",
   "ADMIN.CLEANUP_AUDIT_TITLE": "Old Audit Log Entries",
   "ADMIN.CLEANUP_AUDIT_WHAT": "Removes audit log records (admin actions such as approving users, changing roles, deleting messages…) older than the specified number of days. Recent records remain intact for review.",
-  "ADMIN.CLEANUP_AUDIT_WHEN": "Monthly or when the audit section accumulates thousands of entries. 90 days is usually more than enough to review any recent incident."
+  "ADMIN.CLEANUP_AUDIT_WHEN": "Monthly or when the audit section accumulates thousands of entries. 90 days is usually more than enough to review any recent incident.",
+  "ADMIN.CLEANUP_MEMORYCACHE_TITLE": "Server In-Memory Caches",
+  "ADMIN.CLEANUP_MEMORYCACHE_WHAT": "Clears the server's RAM caches: artist images fetched from Deezer and NAS directory listings. These caches fill up while the app is in use and clear themselves on server restart.",
+  "ADMIN.CLEANUP_MEMORYCACHE_WHEN": "If you added or moved many folders and directory listings show stale content. Or if you want to force artist images to be re-fetched from Deezer with fresh data."
   ,
   "UPDATE.WEB_TITLE": "New version available",
   "UPDATE.WEB_MESSAGE": "There are improvements ready for the web app.",

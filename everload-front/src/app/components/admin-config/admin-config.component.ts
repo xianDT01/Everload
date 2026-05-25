@@ -992,9 +992,15 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     this.http.post<any>(url, {}).subscribe({
       next: (res) => {
         this.cleanupLoading[key] = false;
-        if (res.removed !== undefined) {
-          this.cleanupMsg[key] = `✅ ${res.removed} registro${res.removed !== 1 ? 's' : ''} eliminado${res.removed !== 1 ? 's' : ''}` +
+        if (res.artistImageCacheCleared !== undefined) {
+          this.cleanupMsg[key] = `✅ Imágenes: ${res.artistImageCacheCleared} entradas, directorios: ${res.directoryListingCacheCleared} entradas vaciadas de memoria.`;
+        } else if (res.removed !== undefined) {
+          let msg = `✅ ${res.removed} registro${res.removed !== 1 ? 's' : ''} eliminado${res.removed !== 1 ? 's' : ''}` +
             (res.total !== undefined ? ` de ${res.total}` : '') + '.';
+          if (res.imagesRemoved !== undefined) {
+            msg += ` ${res.imagesRemoved} imagen${res.imagesRemoved !== 1 ? 'es' : ''} de artista borrada${res.imagesRemoved !== 1 ? 's' : ''} del servidor.`;
+          }
+          this.cleanupMsg[key] = msg;
         } else {
           this.cleanupMsg[key] = '✅ Completado.';
         }

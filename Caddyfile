@@ -85,3 +85,56 @@
         level INFO
     }
 }
+
+rentora.duckdns.org {
+    reverse_proxy host.docker.internal:3000 {
+        header_up X-Real-IP         {remote_host}
+        header_up X-Forwarded-For   {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host  {host}
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    encode zstd gzip
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+http://192.168.3.56, http://localhost, http://127.0.0.1 {
+    @no_cache_files {
+        path /ngsw-worker.js /ngsw.json /safety-worker.js /index.html /
+    }
+    header @no_cache_files Cache-Control "no-cache, no-store, must-revalidate"
+
+    reverse_proxy everload:8080 {
+        header_up X-Real-IP         {remote_host}
+        header_up X-Forwarded-For   {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host  {host}
+        flush_interval -1
+
+        transport http {
+            dial_timeout 10s
+            response_header_timeout 120s
+            keepalive 30s
+            keepalive_idle_conns 16
+        }
+    }
+
+    request_body {
+        max_size 510MB
+    }
+
+    encode zstd gzip
+}

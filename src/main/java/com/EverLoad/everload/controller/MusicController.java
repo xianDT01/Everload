@@ -14,6 +14,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import org.springframework.core.io.FileSystemResource;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -108,6 +112,55 @@ public class MusicController {
             return ResponseEntity.ok(musicService.lookupArtistImage(artist));
         } catch (Exception e) {
             return ResponseEntity.ok(Map.of("found", false));
+        }
+    }
+
+    @Operation(summary = "Servir imagen de artista guardada automáticamente en servidor")
+    @GetMapping("/artist-auto-image/{filename:.+}")
+    public ResponseEntity<?> artistAutoImage(@PathVariable String filename) {
+        try {
+            Path dir = musicService.getArtistAutoImageDir();
+            Path file = dir.resolve(filename).normalize();
+            if (!file.startsWith(dir) || !Files.exists(file)) {
+                return ResponseEntity.notFound().build();
+            }
+            String contentType = Files.probeContentType(file);
+            if (contentType == null) contentType = "image/jpeg";
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(new FileSystemResource(file));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Buscar portada de álbum via MusicBrainz + Cover Art Archive")
+    @GetMapping("/album-cover")
+    public ResponseEntity<?> albumCover(
+            @RequestParam(required = false, defaultValue = "") String artist,
+            @RequestParam String album) {
+        if (album == null || album.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Se requiere el álbum"));
+        }
+        return ResponseEntity.ok(musicService.lookupAlbumCover(artist, album));
+    }
+
+    @Operation(summary = "Servir portada de álbum guardada automáticamente en servidor")
+    @GetMapping("/album-auto-cover/{filename:.+}")
+    public ResponseEntity<?> albumAutoCover(@PathVariable String filename) {
+        try {
+            Path dir = musicService.getAlbumCoverAutoDir();
+            Path file = dir.resolve(filename).normalize();
+            if (!file.startsWith(dir) || !Files.exists(file)) {
+                return ResponseEntity.notFound().build();
+            }
+            String contentType = Files.probeContentType(file);
+            if (contentType == null) contentType = "image/jpeg";
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(new FileSystemResource(file));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
     }
 

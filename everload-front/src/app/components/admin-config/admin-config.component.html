@@ -923,6 +923,24 @@
         <p *ngIf="cleanupMsg['audit-logs']" class="cleanup-result" [class.error]="cleanupMsg['audit-logs'].includes('❌')">{{ cleanupMsg['audit-logs'] }}</p>
       </div>
 
+      <!-- Cachés en memoria del servidor -->
+      <div class="cleanup-item">
+        <div class="cleanup-header">
+          <span class="cleanup-title">{{ 'ADMIN.CLEANUP_MEMORYCACHE_TITLE' | translate }}</span>
+          <button class="btn-help" (click)="toggleCleanupInfo('memory-caches')" title="{{ 'ADMIN.CLEANUP_INFO_HINT' | translate }}">?</button>
+        </div>
+        <div *ngIf="cleanupInfo['memory-caches']" class="cleanup-info-box">
+          <p><strong>{{ 'ADMIN.CLEANUP_WHAT_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_MEMORYCACHE_WHAT' | translate }}</p>
+          <p><strong>{{ 'ADMIN.CLEANUP_WHEN_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_MEMORYCACHE_WHEN' | translate }}</p>
+        </div>
+        <div class="cleanup-action-row">
+          <button class="btn warning" [disabled]="cleanupLoading['memory-caches']" (click)="runCleanup('memory-caches')">
+            {{ cleanupLoading['memory-caches'] ? ('ADMIN.CLEANUP_RUNNING' | translate) : ('ADMIN.CLEANUP_BTN' | translate) }}
+          </button>
+        </div>
+        <p *ngIf="cleanupMsg['memory-caches']" class="cleanup-result" [class.error]="cleanupMsg['memory-caches'].includes('❌')">{{ cleanupMsg['memory-caches'] }}</p>
+      </div>
+
     </div>
 
   </div>
