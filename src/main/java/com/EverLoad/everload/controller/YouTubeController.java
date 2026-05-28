@@ -65,6 +65,7 @@ public class YouTubeController {
                             "channelTitle", uploader,
                             "thumbnails", Map.of(
                                 "default", Map.of("url", "https://img.youtube.com/vi/" + id + "/default.jpg"),
+                                "medium",  Map.of("url", "https://img.youtube.com/vi/" + id + "/mqdefault.jpg"),
                                 "high",    Map.of("url", "https://img.youtube.com/vi/" + id + "/hqdefault.jpg")
                             )
                         )

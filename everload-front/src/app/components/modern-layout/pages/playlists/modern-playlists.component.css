@@ -1,5 +1,28 @@
 .mpl-page { padding: 32px; }
 
+/* ── Tabs ── */
+.mpl-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--ml-card);
+  border-radius: 12px;
+  padding: 4px;
+}
+.mpl-tab {
+  background: none;
+  border: none;
+  color: var(--ml-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 18px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+.mpl-tab:hover { color: var(--ml-text); }
+.mpl-tab-active { background: var(--ml-accent) !important; color: #fff !important; }
+
 /* ── Header / create ── */
 .mpl-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; gap: 16px; }
 .mpl-title { font-size: 32px; font-weight: 900; color: var(--ml-text); margin: 0; }
@@ -114,6 +137,28 @@
 .mpl-name { font-size: 14px; font-weight: 700; color: var(--ml-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mpl-count { font-size: 12px; color: var(--ml-muted); margin-top: 3px; }
 
+/* ── Card footer: visibility badge / owner ── */
+.mpl-card-footer { display: flex; align-items: center; margin-top: 6px; }
+
+.mpl-visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  user-select: none;
+}
+.mpl-visibility-badge svg { width: 11px; height: 11px; flex-shrink: 0; }
+.mpl-visibility-badge:hover { opacity: 0.75; }
+.mpl-badge-private { background: rgba(255,255,255,0.07); color: var(--ml-muted); }
+.mpl-badge-public  { background: rgba(99,102,241,0.18); color: var(--ml-accent); }
+
+.mpl-owner-name { font-size: 11px; color: var(--ml-faint); }
+
 .mpl-delete {
   position: absolute;
   top: 20px;
@@ -178,8 +223,31 @@
 
 .mpl-hero-meta { flex: 1; min-width: 0; }
 .mpl-hero-type { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ml-muted); margin: 0 0 8px; }
+.mpl-hero-owner { font-size: 11px; font-weight: 600; color: var(--ml-accent); text-transform: none; letter-spacing: 0; }
 .mpl-hero-name { font-size: 36px; font-weight: 900; color: var(--ml-text); margin: 0 0 6px; letter-spacing: -0.02em; }
 .mpl-hero-count { font-size: 13px; color: var(--ml-muted); margin: 0 0 20px; }
+
+.mpl-hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.mpl-btn-visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ml-card);
+  border: 1px solid var(--ml-border);
+  color: var(--ml-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 24px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.mpl-btn-visibility svg { width: 14px; height: 14px; flex-shrink: 0; }
+.mpl-btn-visibility:hover { background: var(--ml-card-hover); color: var(--ml-text); }
+.mpl-vis-public { border-color: var(--ml-accent); color: var(--ml-accent); background: rgba(99,102,241,0.10); }
+.mpl-vis-public:hover { background: rgba(99,102,241,0.18); }
 
 .mpl-btn-play-hero {
   display: inline-flex;

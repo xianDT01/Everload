@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MusicService } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
+import { AuthService } from '../../../../services/auth.service';
+import { NasPath } from '../../../../services/nas.service';
 
 interface YtResult {
   videoId: string;
@@ -17,6 +19,7 @@ interface ActiveJob {
   status: string;
   progress: number;
   format: string;
+  error?: string;
 }
 
 @Component({
@@ -30,13 +33,28 @@ export class ModernDownloadsComponent implements OnInit, OnDestroy {
   searching = false;
   activeJobs: ActiveJob[] = [];
   queuedIds = new Set<string>();
-  format: 'bestaudio' | 'bestvideo+bestaudio' = 'bestaudio';
+  format: 'mp3' | 'm4a' | 'flac' | 'opus' = 'mp3';
+  selectedPathId: number | null = null;
+  subPath = '';
   private pollRef: any;
   private debounce: any;
 
-  constructor(private music: MusicService, public state: ModernStateService) {}
+  constructor(
+    private music: MusicService,
+    public state: ModernStateService,
+    private auth: AuthService
+  ) {}
 
-  ngOnInit() { this.pollJobs(); }
+  get isNasUser(): boolean { return this.auth.hasNasAccess(); }
+
+  get writablePaths(): NasPath[] {
+    return this.state.paths.filter(p => p.writable);
+  }
+
+  ngOnInit() {
+    this.selectedPathId = this.state.pathId;
+    if (this.isNasUser) this.pollJobs();
+  }
 
   ngOnDestroy() {
     clearInterval(this.pollRef);
@@ -67,10 +85,10 @@ export class ModernDownloadsComponent implements OnInit, OnDestroy {
   }
 
   download(r: YtResult) {
-    const pid = this.state.pathId;
+    const pid = this.selectedPathId ?? this.state.pathId;
     if (pid == null) return;
     this.queuedIds.add(r.videoId);
-    this.music.ytDlpQueue(r.videoId, r.title, pid, '', this.format).subscribe({
+    this.music.ytDlpQueue(r.videoId, r.title, pid, this.subPath.trim(), this.format).subscribe({
       next: () => this.pollJobs(),
       error: () => this.queuedIds.delete(r.videoId)
     });

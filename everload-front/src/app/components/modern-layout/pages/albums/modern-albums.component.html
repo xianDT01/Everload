@@ -1,7 +1,7 @@
-<div class="ma-page">
-  <h1 class="ma-title">Álbumes</h1>
+﻿<div class="ma-page">
+  <h1 class="ma-title">{{ 'MUSIC.MODERN_SIDEBAR_ALBUMS' | translate }}</h1>
 
-  <div class="ma-loading" *ngIf="loading">Cargando…</div>
+  <div class="ma-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
 
   <div class="ma-grid" *ngIf="!loading">
     <div class="ma-card" *ngFor="let g of albums" (dblclick)="play(g)">
@@ -11,8 +11,9 @@
       </div>
       <div class="ma-album">{{ g.album }}</div>
       <div class="ma-artist">{{ g.artist }}</div>
-      <div class="ma-count">{{ g.tracks.length }} pistas</div>
+      <div class="ma-count">{{ 'MUSIC.MODERN_TRACKS_COUNT_SHORT' | translate: { count: g.tracks.length } }}</div>
     </div>
-    <div class="ma-empty" *ngIf="albums.length === 0">No hay álbumes</div>
+    <div class="ma-empty" *ngIf="albums.length === 0">{{ 'MUSIC.MODERN_NO_ALBUMS' | translate }}</div>
   </div>
 </div>
+

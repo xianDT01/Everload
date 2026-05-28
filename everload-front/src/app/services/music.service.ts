@@ -1528,6 +1528,14 @@ export class MusicService {
     return this.http.delete<any>(`${this.playlistApi}/${playlistId}/tracks/${trackId}`);
   }
 
+  getPublicPlaylists(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.playlistApi}/public`);
+  }
+
+  setPlaylistVisibility(id: number, isPublic: boolean): Observable<any> {
+    return this.http.patch<any>(`${this.playlistApi}/${id}/visibility`, { isPublic });
+  }
+
   // ── Manual artist profiles ────────────────────────────────────────────────
 
   private get artistApi(): string { return `${this.BASE}/api/artists`; }

@@ -1,19 +1,19 @@
-<div class="ml-page">
+﻿<div class="ml-page">
   <div class="ml-header">
-    <h1 class="ml-title">Biblioteca</h1>
+    <h1 class="ml-title">{{ 'MUSIC.MODERN_SIDEBAR_LIBRARY' | translate }}</h1>
     <div class="ml-search-wrap">
-      <input class="ml-search" type="text" placeholder="Buscar..." [(ngModel)]="query"
+      <input class="ml-search" type="text" [placeholder]="'MUSIC.MODERN_SEARCH_PLACEHOLDER_SHORT' | translate" [(ngModel)]="query"
              (keyup.enter)="onSearch()" (input)="onSearch()" />
     </div>
   </div>
 
-  <div class="ml-loading" *ngIf="loading">Cargando…</div>
+  <div class="ml-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
 
   <div class="ml-track-list" *ngIf="!loading">
     <div class="ml-track-header">
       <span class="ml-col-num">#</span>
-      <span class="ml-col-title">Título</span>
-      <span class="ml-col-album">Álbum</span>
+      <span class="ml-col-title">{{ 'MUSIC.MODERN_COL_TITLE' | translate }}</span>
+      <span class="ml-col-album">{{ 'MUSIC.MODERN_COL_ALBUM' | translate }}</span>
       <span class="ml-col-dur">⏱</span>
     </div>
 
@@ -38,7 +38,8 @@
         <span class="ml-col-album">{{ t.album }}</span>
         <span class="ml-col-dur">{{ fmt(t.duration) }}</span>
       </div>
-      <div class="ml-empty" *ngIf="tracks.length === 0">Sin resultados</div>
+      <div class="ml-empty" *ngIf="tracks.length === 0">{{ 'MUSIC.MODERN_NO_RESULTS' | translate }}</div>
     </cdk-virtual-scroll-viewport>
   </div>
 </div>
+

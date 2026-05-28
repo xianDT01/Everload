@@ -1,11 +1,11 @@
-<div class="mq-panel">
+﻿<div class="mq-panel">
   <div class="mq-header">
-    <span class="mq-title">Cola de reproducción</span>
+    <span class="mq-title">{{ 'MUSIC.MODERN_QUEUE_TITLE' | translate }}</span>
     <button class="mq-close" (click)="state.closeQueue()">✕</button>
   </div>
 
   <div class="mq-count" *ngIf="tracks.length">
-    {{ tracks.length }} pistas · {{ currentIndex + 1 }} reproduciendo
+    {{ 'MUSIC.MODERN_QUEUE_COUNT' | translate: { count: tracks.length, current: currentIndex + 1 } }}
   </div>
 
   <div class="mq-list" *ngIf="tracks.length; else emptyTpl">
@@ -29,7 +29,8 @@
   <ng-template #emptyTpl>
     <div class="mq-empty">
       <span>♫</span>
-      <p>La cola está vacía</p>
+      <p>{{ 'MUSIC.MODERN_QUEUE_EMPTY_TEXT' | translate }}</p>
     </div>
   </ng-template>
 </div>
+

@@ -44,6 +44,24 @@ public class PlaylistController {
         return ResponseEntity.ok(playlistRepository.findByUserOrderByCreatedAtDesc(getUser(ud)));
     }
 
+    @Operation(summary = "Listar playlists públicas de todos los usuarios")
+    @GetMapping("/public")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<List<Playlist>> listPublic() {
+        return ResponseEntity.ok(playlistRepository.findByIsPublicTrueOrderByCreatedAtDesc());
+    }
+
+    @Operation(summary = "Cambiar visibilidad de la playlist (pública/privada)")
+    @PatchMapping("/{id}/visibility")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> setVisibility(@AuthenticationPrincipal UserDetails ud,
+                                           @PathVariable Long id,
+                                           @RequestBody VisibilityDto dto) {
+        return playlistRepository.findByIdAndUser(id, getUser(ud))
+                .map(pl -> { pl.setIsPublic(dto.getIsPublic()); return ResponseEntity.ok(playlistRepository.save(pl)); })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @Operation(summary = "Crear playlist")
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
@@ -119,6 +137,7 @@ public class PlaylistController {
     // ── DTOs ──────────────────────────────────────────────────────────────────
 
     @Data static class CreatePlaylistDto { private String name; }
+    @Data static class VisibilityDto { private Boolean isPublic; }
 
     @Data static class PlaylistTrackDto {
         private String trackPath, title, artist, album;

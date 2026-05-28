@@ -13,9 +13,11 @@ export class NasMusicComponent implements OnInit {
 
   ngOnInit(): void {
     const modeParam = this.route.snapshot.queryParamMap.get('mode');
-    if (modeParam === 'deck' || modeParam === 'library') {
-      this.mode = modeParam;
+    if (modeParam === 'deck') {
+      this.mode = 'deck';
+      return;
     }
+    this.mode = 'library';
   }
 
   goBack() {

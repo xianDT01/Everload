@@ -96,6 +96,7 @@ public class DownloadService {
             String tempDir = createTempDownloadDir();
             String[] cmd = {
                 "yt-dlp",
+                "--js-runtimes", "node",
                 "--print", "after_move:filepath",
                 "-f", "bestvideo[height=" + resolution + "]+bestaudio/best",
                 "-o", tempDir + "%(title)s.%(ext)s",
@@ -126,6 +127,7 @@ public class DownloadService {
             String tempDir = createTempDownloadDir();
             String[] cmd = {
                 "yt-dlp",
+                "--js-runtimes", "node",
                 "--ignore-errors",
                 "--print", "after_move:filepath",
                 "-x", "--audio-format", format, "--audio-quality", "0",
@@ -203,6 +205,7 @@ public class DownloadService {
             job.progress = 5;
             String[] cmd = {
                 "yt-dlp",
+                "--js-runtimes", "node",
                 "--ignore-errors",
                 "--print", "after_move:filepath",
                 "-x", "--audio-format", job.format, "--audio-quality", "0",
@@ -286,7 +289,7 @@ public class DownloadService {
         try {
             // ProcessBuilder with explicit args — URL is a single argument, no shell injection possible
             ProcessBuilder pb = new ProcessBuilder(
-                "yt-dlp", "--flat-playlist", "--print", "%(title)s|%(id)s", playlistUrl
+                "yt-dlp", "--js-runtimes", "node", "--flat-playlist", "--print", "%(title)s|%(id)s", playlistUrl
             );
             pb.redirectErrorStream(false);
             Process process = pb.start();
@@ -388,6 +391,7 @@ public class DownloadService {
             String tempDir = createTempDownloadDir();
             String[] cmd = {
                 "yt-dlp",
+                "--js-runtimes", "node",
                 "--print", "after_move:filepath",
                 "-o", tempDir + "%(title)s.%(ext)s",
                 url   // single argument — no shell, no injection
@@ -477,6 +481,7 @@ public class DownloadService {
         try {
             String[] cmd = {
                 "yt-dlp",
+                "--js-runtimes", "node",
                 "--ignore-errors",
                 "--print", "after_move:filepath",
                 "-x", "--audio-format", format, "--audio-quality", "0",

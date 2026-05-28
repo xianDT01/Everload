@@ -109,6 +109,24 @@
       </ul>
     </div>
 
+    <!-- Playlists -->
+    <hr class="sidebar-divider" *ngIf="playlists.length > 0">
+    <div class="sidebar-section scroll-section" *ngIf="playlists.length > 0">
+      <p class="sidebar-label">Playlists</p>
+      <ul class="collections-list">
+        <li *ngFor="let pl of playlists"
+            class="collection-item"
+            [class.active]="currentView === 'playlist' && selectedPlaylist?.id === pl.id"
+            (click)="openPlaylistView(pl)">
+          <div class="collection-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h12v2H3v-2z"/></svg>
+          </div>
+          <span class="collection-name-only">{{ pl.name }}</span>
+          <span class="pl-track-count">{{ pl.tracks?.length ?? 0 }}</span>
+        </li>
+      </ul>
+    </div>
+
     <!-- Now playing widget -->
     <div class="sidebar-now-playing" *ngIf="state?.currentTrack">
 
@@ -336,7 +354,7 @@
       </div>
 
       <!-- Gradient header (hidden at folder root where banners are shown) -->
-      <div class="content-header" *ngIf="currentView === 'liked' || currentView === 'history' || (currentView === 'folder' && currentSubPath)" [style.background]="headerGradient">
+      <div class="content-header" *ngIf="currentView === 'liked' || currentView === 'history' || currentView === 'playlist' || (currentView === 'folder' && currentSubPath)" [style.background]="headerGradient">
         <div class="content-header-bg"></div>
         <div class="header-art" [class.border-radius]="currentView === 'liked'">
           <img *ngIf="playerHasCover() && state?.currentTrack" [src]="playerCoverUrl()" class="header-cover-img" [class.playing]="state?.playing" />
@@ -588,6 +606,11 @@
                     <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z"/>
                   </svg>
                 </button>
+                <button *ngIf="playlists.length > 0" class="btn-add-folder-pl"
+                        (click)="openPlaylistPicker($event, null, folder)"
+                        title="Añadir carpeta a playlist">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
               </div>
             </div>
             <div class="folder-card-play-overlay" *ngIf="!editMode">
@@ -672,6 +695,10 @@
                 <svg *ngIf="isLiked(track)" width="16" height="16" viewBox="0 0 24 24" fill="#1db954" stroke="#1db954" stroke-width="1.5">
                   <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                 </svg>
+              </button>
+              <button class="btn-add-to-pl" (click)="openPlaylistPicker($event, track)"
+                      title="Añadir a playlist">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
               </button>
             </span>
 
@@ -1125,6 +1152,26 @@
       </li>
     </ul>
   </div>
+  <!-- ══ PLAYLIST PICKER ════════════════════════════════════════════════════ -->
+  <div class="pl-picker-backdrop" *ngIf="playlistPicker.open" (click)="closePlaylistPicker()">
+    <div class="pl-picker" (click)="$event.stopPropagation()">
+      <div class="pl-picker-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h12v2H3v-2z"/></svg>
+        <span>{{ playlistPicker.folder ? 'Añadir carpeta a playlist' : 'Añadir a playlist' }}</span>
+      </div>
+      <button class="pl-picker-new" (click)="createPlaylistAndAdd()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Nueva playlist
+      </button>
+      <div class="pl-picker-divider" *ngIf="playlists.length > 0"></div>
+      <button *ngFor="let pl of playlists" class="pl-picker-item" (click)="addToPlaylistQuick(pl)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h12v2H3v-2z"/></svg>
+        <span class="pl-picker-name">{{ pl.name }}</span>
+        <span class="pl-picker-count">{{ pl.tracks?.length ?? 0 }}</span>
+      </button>
+    </div>
+  </div>
+
 </div><!-- /lib-root -->
 
 <div *ngIf="settingsOpen" class="settings-modal-backdrop" (click)="toggleSettings($event)">

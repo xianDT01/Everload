@@ -19,7 +19,7 @@ interface NasBanner {
 }
 
 interface NavEntry {
-  view: 'home' | 'liked' | 'history' | 'folder';
+  view: 'home' | 'liked' | 'history' | 'folder' | 'playlist';
   pathId: number | null;
   subPath: string;
 }
@@ -77,7 +77,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   favoriteFolders: { pathId: number; subPath: string; name: string }[] = [];
   private brokenCoverPaths = new Set<string>();
 
-  currentView: 'home' | 'liked' | 'history' | 'folder' = 'folder';
+  playlists: any[] = [];
+  selectedPlaylist: any | null = null;
+  playlistPicker: { open: boolean; track: MusicMetadataDto | null; folder: MusicMetadataDto | null } = { open: false, track: null, folder: null };
+
+  currentView: 'home' | 'liked' | 'history' | 'folder' | 'playlist' = 'folder';
 
   private navHistory: NavEntry[] = [];
   private navFuture:  NavEntry[] = [];
@@ -912,6 +916,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.musicService.getFavorites().subscribe(favs => {
       this.likedItems = favs;
     });
+
+    this.loadPlaylists();
   }
 
   ngAfterViewInit(): void {
@@ -1214,6 +1220,16 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         this.fetchCoversForVisible();
         this.checkPendingAutoPlay();
       });
+    } else if (this.currentView === 'playlist' && this.selectedPlaylist) {
+      const tracks = (this.selectedPlaylist.tracks ?? []).map((t: any) => ({
+        name: t.title, path: t.trackPath, title: t.title, artist: t.artist,
+        album: t.album, hasCover: false, directory: false, nasPathId: t.nasPathId,
+        duration: t.durationSeconds ?? 0, size: 0, format: '', lastModified: '', bpm: 0,
+        source: 'nas' as const
+      } as MusicMetadataDto));
+      this.items = tracks;
+      this.totalTracks = tracks.length;
+      tracks.slice(0, 30).forEach((t: MusicMetadataDto) => this.musicService.fetchCoverIfNeeded(t));
     }
   }
 
@@ -1374,6 +1390,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.currentView === 'home') return this.translate.instant('MUSIC.VIEW_HOME');
     if (this.currentView === 'liked') return this.translate.instant('MUSIC.VIEW_LIKED');
     if (this.currentView === 'history') return this.translate.instant('MUSIC.VIEW_HISTORY');
+    if (this.currentView === 'playlist') return this.selectedPlaylist?.name ?? 'Playlist';
     
     if (!this.currentSubPath) {
       return this.paths.find(p => p.id === this.selectedPathId)?.name ?? this.translate.instant('MUSIC.SIDEBAR_LIBRARY');
@@ -1761,6 +1778,74 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         this.load();
       },
       error: (err: any) => { this.dialog.loading = false; this.dialog.error = err.error?.error || this.translate.instant('NAS.ERROR_UPLOAD'); }
+    });
+  }
+
+  // ── Playlists in library ─────────────────────────────────────────────────
+
+  loadPlaylists(): void {
+    this.musicService.getPlaylists().subscribe(pls => this.playlists = pls);
+  }
+
+  openPlaylistView(pl: any): void {
+    this.closeMobileMenu();
+    this.pushNav();
+    this.currentView = 'playlist';
+    this.selectedPlaylist = pl;
+    this.searchQuery = '';
+    this.searchResults = null;
+    this.applyUiPrefsForCurrentContext();
+    const tracks = (pl.tracks ?? []).map((t: any) => ({
+      name: t.title, path: t.trackPath, title: t.title, artist: t.artist,
+      album: t.album, hasCover: false, directory: false, nasPathId: t.nasPathId,
+      duration: t.durationSeconds ?? 0, size: 0, format: '', lastModified: '', bpm: 0,
+      source: 'nas' as const
+    } as MusicMetadataDto));
+    this.items = tracks;
+    this.totalTracks = tracks.length;
+    tracks.slice(0, 30).forEach((t: MusicMetadataDto) => this.musicService.fetchCoverIfNeeded(t));
+  }
+
+  openPlaylistPicker(e: Event, track: MusicMetadataDto | null, folder?: MusicMetadataDto): void {
+    e.stopPropagation();
+    this.playlistPicker = { open: true, track: track ?? null, folder: folder ?? null };
+  }
+
+  closePlaylistPicker(): void {
+    this.playlistPicker = { open: false, track: null, folder: null };
+  }
+
+  addToPlaylistQuick(pl: any): void {
+    if (this.playlistPicker.folder) {
+      this.addFolderToPlaylistQuick(pl, this.playlistPicker.folder);
+    } else if (this.playlistPicker.track) {
+      const track = this.playlistPicker.track;
+      const pid = track.nasPathId ?? this.selectedPathId;
+      if (pid == null) return;
+      this.musicService.addTrackToPlaylist(pl.id, track, pid).subscribe(() => this.loadPlaylists());
+      this.closePlaylistPicker();
+    }
+  }
+
+  createPlaylistAndAdd(): void {
+    const name = window.prompt('Nombre de la nueva playlist:')?.trim();
+    if (!name) return;
+    this.musicService.createPlaylist(name).subscribe((pl: any) => {
+      this.playlists = [...this.playlists, pl];
+      this.addToPlaylistQuick(pl);
+    });
+  }
+
+  private addFolderToPlaylistQuick(pl: any, folder: MusicMetadataDto): void {
+    const pid = this.selectedPathId;
+    if (pid == null) return;
+    this.closePlaylistPicker();
+    this.musicService.browse(pid, folder.path, 0, 200).subscribe(result => {
+      const tracksToAdd = result.items.filter((t: MusicMetadataDto) => !t.directory);
+      tracksToAdd.forEach((t: MusicMetadataDto) => {
+        this.musicService.addTrackToPlaylist(pl.id, t, t.nasPathId ?? pid).subscribe();
+      });
+      setTimeout(() => this.loadPlaylists(), 600);
     });
   }
 

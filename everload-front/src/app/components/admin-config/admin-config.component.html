@@ -1,4 +1,4 @@
-<div class="dashboard" [ngClass]="'theme-' + currentTheme">
+﻿<div class="dashboard" [ngClass]="'theme-' + currentTheme">
 
   <div class="dashboard-header">
     <h2 class="dashboard-title">{{ 'ADMIN.TITLE' | translate }}</h2>
@@ -15,7 +15,7 @@
       </button>
     </div>
     <div class="theme-picker-wrap">
-      <button class="theme-toggle-btn" (click)="toggleThemePicker()" title="Cambiar tema">🎨</button>
+      <button class="theme-toggle-btn" (click)="toggleThemePicker()" [title]="'ADMIN.THEME_TITLE' | translate">🎨</button>
       <div class="theme-picker-panel" *ngIf="showThemePicker">
         <div *ngFor="let t of themes" 
              class="theme-dot" 
@@ -31,7 +31,7 @@
   <!-- Tabs -->
   <div class="tabs">
     <button [class.active]="activeTab === 'config'" (click)="activeTab = 'config'">⚙️ {{ 'ADMIN.TAB_CONFIG' | translate }}</button>
-    <button [class.active]="activeTab === 'authHero'" (click)="activeTab = 'authHero'; loadAuthHeroImages()">Hero login</button>
+    <button [class.active]="activeTab === 'authHero'" (click)="activeTab = 'authHero'; loadAuthHeroImages()">{{ 'ADMIN.TAB_AUTH_HERO' | translate }}</button>
     <button [class.active]="activeTab === 'users'" (click)="activeTab = 'users'; loadPendingUsers(); loadActiveUsers()">👥 {{ 'ADMIN.TAB_USERS' | translate }}</button>
     <button [class.active]="activeTab === 'nas'" (click)="activeTab = 'nas'; loadNasPaths()">💾 {{ 'ADMIN.TAB_NAS' | translate }}</button>
     <button [class.active]="activeTab === 'logs'" (click)="activeTab = 'logs'; cargarLogs()">📋 {{ 'ADMIN.TAB_LOGS' | translate }}</button>
@@ -90,20 +90,20 @@
     <section class="auth-hero-admin">
       <div class="auth-hero-admin-head">
         <div>
-          <h3>Imagenes de login y registro</h3>
-          <p>Elige una posicion del hero y despues pulsa una imagen para reemplazarla.</p>
+          <h3>{{ 'ADMIN.AUTH_HERO_TITLE' | translate }}</h3>
+          <p>{{ 'ADMIN.AUTH_HERO_DESC' | translate }}</p>
         </div>
         <div class="auth-hero-admin-actions">
-          <span class="auth-hero-count">6 posiciones</span>
-          <button type="button" class="btn secondary small" (click)="loadAuthHeroImages()" [disabled]="authHeroImageLoading">Actualizar biblioteca</button>
-          <button type="button" class="btn secondary small" (click)="resetAuthHeroImages()">Restablecer</button>
-          <button type="button" class="btn primary small" (click)="guardarCambios()" [disabled]="cargando">Guardar hero</button>
+          <span class="auth-hero-count">{{ 'ADMIN.AUTH_HERO_POSITIONS_COUNT' | translate: { count: 6 } }}</span>
+          <button type="button" class="btn secondary small" (click)="loadAuthHeroImages()" [disabled]="authHeroImageLoading">{{ 'ADMIN.AUTH_HERO_REFRESH' | translate }}</button>
+          <button type="button" class="btn secondary small" (click)="resetAuthHeroImages()">{{ 'ADMIN.AUTH_HERO_RESET' | translate }}</button>
+          <button type="button" class="btn primary small" (click)="guardarCambios()" [disabled]="cargando">{{ 'ADMIN.AUTH_HERO_SAVE' | translate }}</button>
         </div>
       </div>
 
       <div class="auth-hero-layout">
         <aside class="auth-hero-slots">
-          <span class="auth-hero-label">Posiciones del hero</span>
+          <span class="auth-hero-label">{{ 'ADMIN.AUTH_HERO_POSITIONS' | translate }}</span>
           <button
             type="button"
             class="auth-hero-slot"
@@ -118,10 +118,10 @@
         <div class="auth-hero-library">
           <div class="auth-hero-source-head">
             <div>
-              <span>Biblioteca visual</span>
-              <small>Pulsa una imagen para reemplazar la posicion {{ selectedAuthHeroSlot + 1 }}.</small>
+              <span>{{ 'ADMIN.AUTH_HERO_LIBRARY' | translate }}</span>
+              <small>{{ 'ADMIN.AUTH_HERO_SELECT_HINT' | translate: { position: selectedAuthHeroSlot + 1 } }}</small>
             </div>
-            <small>{{ availableAuthHeroImages.length }} imagenes sin duplicados exactos</small>
+            <small>{{ 'ADMIN.AUTH_HERO_LIBRARY_COUNT' | translate: { count: availableAuthHeroImages.length } }}</small>
           </div>
           <div class="auth-hero-avatar-grid" *ngIf="availableAuthHeroImages.length; else noAuthHeroImages">
             <button
@@ -131,11 +131,11 @@
               [class.selected]="isAuthHeroImageSelected(image)"
               (click)="setAuthHeroSlot(image)">
               <span class="auth-hero-avatar-thumb" [style.backgroundImage]="'url(' + image + ')'"></span>
-              <span class="auth-hero-check" *ngIf="isAuthHeroImageSelected(image)">Actual</span>
+              <span class="auth-hero-check" *ngIf="isAuthHeroImageSelected(image)">{{ 'ADMIN.AUTH_HERO_CURRENT' | translate }}</span>
             </button>
           </div>
           <ng-template #noAuthHeroImages>
-            <p class="auth-hero-empty">{{ authHeroImageLoading ? 'Cargando imagenes...' : 'No se encontraron imagenes.' }}</p>
+            <p class="auth-hero-empty">{{ authHeroImageLoading ? ('ADMIN.AUTH_HERO_LOADING_IMAGES' | translate) : ('ADMIN.AUTH_HERO_NO_IMAGES' | translate) }}</p>
           </ng-template>
         </div>
       </div>
@@ -1033,3 +1033,4 @@
   </div>
 
 </div>
+

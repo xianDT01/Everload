@@ -1,32 +1,32 @@
-<div class="mart-page">
+﻿<div class="mart-page">
   <div class="mart-header">
-    <h1 class="mart-title">Artistas</h1>
+    <h1 class="mart-title">{{ 'MUSIC.MODERN_SIDEBAR_ARTISTS' | translate }}</h1>
     <div class="mart-header-actions" *ngIf="canManageNas">
       <button class="mart-bulk" type="button" (click)="fillMissingMetadata()" [disabled]="bulkLoading || pathId == null">
-        {{ bulkLoading ? 'Actualizando…' : 'Actualizar metadatos' }}
+        {{ bulkLoading ? ('MUSIC.MODERN_UPDATING' | translate) : ('MUSIC.MODERN_UPDATE_METADATA' | translate) }}
       </button>
       <button class="mart-create" type="button" (click)="openCreate()">+</button>
     </div>
   </div>
   <div class="mart-bulk-status" *ngIf="bulkStatus">{{ bulkStatus }}</div>
-  <div class="mart-loading" *ngIf="loading">Cargando…</div>
+  <div class="mart-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
   <div class="mart-grid" *ngIf="!loading">
     <div class="mart-card" *ngFor="let g of artists" (click)="openArtistSongs(g)">
-      <div class="mart-circle" title="Ver canciones del artista">
+      <div class="mart-circle" [title]="'MUSIC.MODERN_VIEW_ARTIST_SONGS' | translate">
         <img *ngIf="cover(g)" [src]="cover(g)" class="mart-img" (error)="$any($event.target).style.display='none'" />
         <div class="mart-fallback">🎤</div>
         <div class="mart-play-btn" *ngIf="g.tracks.length">▶</div>
       </div>
       <div class="mart-name">{{ g.artist }}</div>
       <div class="mart-sub">
-        {{ g.tracks.length }} canciones · {{ g.albumCount }} álbumes
-        <span *ngIf="g.profile"> · manual</span>
+        {{ 'MUSIC.MODERN_ARTIST_STATS' | translate: { songs: g.tracks.length, albums: g.albumCount } }}
+        <span *ngIf="g.profile"> · {{ 'MUSIC.MODERN_MANUAL' | translate }}</span>
       </div>
-      <button class="mart-edit" type="button" *ngIf="canManageNas" (click)="openEdit(g); $event.stopPropagation()">Editar</button>
+      <button class="mart-edit" type="button" *ngIf="canManageNas" (click)="openEdit(g); $event.stopPropagation()">{{ 'COMMON.EDIT' | translate }}</button>
     </div>
     <div class="mart-empty" *ngIf="artists.length === 0">
-      <p>No hay artistas detectados.</p>
-      <button class="mart-empty-btn" type="button" *ngIf="canManageNas" (click)="openCreate()">Crear artista</button>
+      <p>{{ 'MUSIC.MODERN_NO_ARTISTS' | translate }}</p>
+      <button class="mart-empty-btn" type="button" *ngIf="canManageNas" (click)="openCreate()">{{ 'MUSIC.MODERN_CREATE_ARTIST' | translate }}</button>
     </div>
   </div>
 
@@ -35,16 +35,16 @@
       <div class="mart-dialog-head">
         <div>
           <h2>{{ selectedArtist.artist }}</h2>
-          <p>{{ selectedArtistTracks.length }} canciones</p>
+          <p>{{ 'MUSIC.MODERN_TRACK_COUNT' | translate: { count: selectedArtistTracks.length } }}</p>
         </div>
         <button type="button" class="mart-close" (click)="closeArtistSongs()">×</button>
       </div>
       <div class="mart-actions mart-songs-actions">
-        <button type="button" class="mart-primary" (click)="playSelectedArtist()" [disabled]="!selectedArtistTracks.length">Reproducir todo</button>
-        <button type="button" class="mart-secondary" *ngIf="canManageNas" (click)="openEdit(selectedArtist); $event.stopPropagation()">Editar artista</button>
+        <button type="button" class="mart-primary" (click)="playSelectedArtist()" [disabled]="!selectedArtistTracks.length">{{ 'MUSIC.MODERN_PLAY_ALL' | translate }}</button>
+        <button type="button" class="mart-secondary" *ngIf="canManageNas" (click)="openEdit(selectedArtist); $event.stopPropagation()">{{ 'MUSIC.MODERN_EDIT_ARTIST' | translate }}</button>
         <div class="mart-view-toggle">
-          <button type="button" [class.mart-view-active]="artistViewOrder === 'tracks'" (click)="setArtistViewOrder('tracks')">Canciones</button>
-          <button type="button" [class.mart-view-active]="artistViewOrder === 'albums'" (click)="setArtistViewOrder('albums')">Álbumes</button>
+          <button type="button" [class.mart-view-active]="artistViewOrder === 'tracks'" (click)="setArtistViewOrder('tracks')">{{ 'MUSIC.MODERN_SONGS' | translate }}</button>
+          <button type="button" [class.mart-view-active]="artistViewOrder === 'albums'" (click)="setArtistViewOrder('albums')">{{ 'MUSIC.MODERN_SIDEBAR_ALBUMS' | translate }}</button>
         </div>
       </div>
 
@@ -53,7 +53,7 @@
         <button type="button" class="mart-song-row" *ngFor="let t of selectedArtistTracks; let i = index" (click)="playSelectedArtist(i)">
           <span>{{ i + 1 }}</span>
           <strong>{{ t.title || t.name }}</strong>
-          <small>{{ t.album || 'Sin álbum' }}</small>
+          <small>{{ t.album || ('MUSIC.MODERN_NO_ALBUM' | translate) }}</small>
           <em>▶</em>
         </button>
       </div>
@@ -63,7 +63,7 @@
         <div class="mart-album-group" *ngFor="let grp of artistAlbums">
           <div class="mart-album-header">
             <strong>{{ grp.album }}</strong>
-            <span>{{ grp.tracks.length }} canciones</span>
+            <span>{{ 'MUSIC.MODERN_TRACK_COUNT' | translate: { count: grp.tracks.length } }}</span>
           </div>
           <button type="button" class="mart-song-row" *ngFor="let t of grp.tracks; let i = index"
                   (click)="playSelectedArtist(selectedArtistTracks.indexOf(t))">
@@ -80,39 +80,40 @@
   <div class="mart-modal" *ngIf="editorOpen" (click)="closeEditor()">
     <div class="mart-dialog" (click)="$event.stopPropagation()">
       <div class="mart-dialog-head">
-        <h2>{{ editing?.profile ? 'Editar artista' : 'Crear artista' }}</h2>
+        <h2>{{ editing?.profile ? ('MUSIC.MODERN_EDIT_ARTIST' | translate) : ('MUSIC.MODERN_CREATE_ARTIST' | translate) }}</h2>
         <button type="button" class="mart-close" (click)="closeEditor()">×</button>
       </div>
 
       <label class="mart-field">
-        <span>Nombre</span>
-        <input type="text" [(ngModel)]="editName" placeholder="Nombre del artista" />
+        <span>{{ 'COMMON.NEW_NAME' | translate }}</span>
+        <input type="text" [(ngModel)]="editName" [placeholder]="'MUSIC.MODERN_ARTIST_NAME_PLACEHOLDER' | translate" />
       </label>
 
       <label class="mart-field">
-        <span>Alias</span>
-        <textarea [(ngModel)]="editAliases" placeholder="Un alias por línea o separado por comas"></textarea>
+        <span>{{ 'MUSIC.MODERN_ALIASES' | translate }}</span>
+        <textarea [(ngModel)]="editAliases" [placeholder]="'MUSIC.MODERN_ALIASES_PLACEHOLDER' | translate"></textarea>
       </label>
 
       <label class="mart-field">
-        <span>Descripción</span>
-        <textarea [(ngModel)]="editDescription" placeholder="Opcional"></textarea>
+        <span>{{ 'ADMIN.COL_DESCRIPTION' | translate }}</span>
+        <textarea [(ngModel)]="editDescription" [placeholder]="'MUSIC.MODERN_OPTIONAL' | translate"></textarea>
       </label>
 
       <label class="mart-field">
-        <span>Imagen</span>
+        <span>{{ 'MUSIC.MODERN_IMAGE' | translate }}</span>
         <input type="file" accept="image/*" (change)="onImageSelected($event)" />
       </label>
 
       <div class="mart-error" *ngIf="error">{{ error }}</div>
 
       <div class="mart-actions">
-        <button type="button" class="mart-danger" *ngIf="editing?.profile" (click)="deleteArtist()">Eliminar</button>
-        <button type="button" class="mart-secondary" *ngIf="editing?.profile?.imageUrl" (click)="removeImage()">Quitar imagen</button>
+        <button type="button" class="mart-danger" *ngIf="editing?.profile" (click)="deleteArtist()">{{ 'COMMON.DELETE' | translate }}</button>
+        <button type="button" class="mart-secondary" *ngIf="editing?.profile?.imageUrl" (click)="removeImage()">{{ 'MUSIC.MODERN_REMOVE_IMAGE' | translate }}</button>
         <button type="button" class="mart-primary" (click)="saveArtist()" [disabled]="saving || !editName.trim()">
-          {{ saving ? 'Guardando…' : 'Guardar' }}
+          {{ saving ? ('MUSIC.MODERN_SAVING' | translate) : ('COMMON.SAVE' | translate) }}
         </button>
       </div>
     </div>
   </div>
 </div>
+

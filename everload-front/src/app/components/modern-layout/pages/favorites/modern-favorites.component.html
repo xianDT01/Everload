@@ -1,6 +1,6 @@
-<div class="mfav-page">
-  <h1 class="mfav-title">❤️ Favoritos</h1>
-  <div class="mfav-loading" *ngIf="loading">Cargando…</div>
+﻿<div class="mfav-page">
+  <h1 class="mfav-title">❤️ {{ 'MUSIC.MODERN_SIDEBAR_FAVORITES' | translate }}</h1>
+  <div class="mfav-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
   <div class="mfav-list" *ngIf="!loading">
     <div class="mfav-row" *ngFor="let t of tracks; let i = index" (dblclick)="play(i)">
       <span class="mfav-num">{{ i + 1 }}</span>
@@ -14,6 +14,7 @@
       <span class="mfav-album">{{ t.album }}</span>
       <button class="mfav-heart" (click)="unfavorite(t); $event.stopPropagation()">❤️</button>
     </div>
-    <div class="mfav-empty" *ngIf="tracks.length === 0">No hay favoritos aún.</div>
+    <div class="mfav-empty" *ngIf="tracks.length === 0">{{ 'MUSIC.MODERN_NO_FAVORITES' | translate }}</div>
   </div>
 </div>
+

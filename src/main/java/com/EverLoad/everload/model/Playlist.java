@@ -1,6 +1,7 @@
 package com.EverLoad.everload.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,6 +32,10 @@ public class Playlist {
     @Column(nullable = false, length = 200)
     private String name;
 
+    @Column(name = "is_public", nullable = false)
+    @Builder.Default
+    private Boolean isPublic = false;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -38,6 +43,12 @@ public class Playlist {
     @OrderBy("position ASC")
     @Builder.Default
     private List<PlaylistTrack> tracks = new ArrayList<>();
+
+    @Transient
+    @JsonProperty("ownerUsername")
+    public String getOwnerUsername() {
+        return user != null ? user.getUsername() : null;
+    }
 
     @PrePersist
     protected void onCreate() { createdAt = LocalDateTime.now(); }

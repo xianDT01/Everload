@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
     List<Playlist> findByUserOrderByCreatedAtDesc(User user);
     Optional<Playlist> findByIdAndUser(Long id, User user);
+    List<Playlist> findByIsPublicTrueOrderByCreatedAtDesc();
 }

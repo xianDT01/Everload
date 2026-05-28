@@ -48,7 +48,8 @@ public class NasYtDlpService {
     public String queue(String videoId, String title, Long nasPathId, String subPath, String format) {
         String jobId = UUID.randomUUID().toString();
         String safeTitle = (title != null && !title.isBlank()) ? title : videoId;
-        String safeFormat = (format != null && !format.isBlank()) ? format : "mp3";
+        java.util.Set<String> VALID_FORMATS = java.util.Set.of("mp3","m4a","flac","opus","ogg","wav","aac");
+        String safeFormat = (format != null && VALID_FORMATS.contains(format.toLowerCase())) ? format.toLowerCase() : "mp3";
         String safeSub = (subPath != null) ? subPath : "";
         YtDlpJob job = new YtDlpJob(jobId, videoId, safeTitle, nasPathId, safeSub, safeFormat);
         jobs.put(jobId, job);
@@ -78,6 +79,7 @@ public class NasYtDlpService {
         try {
             String[] cmd = {
                 "yt-dlp",
+                "--js-runtimes", "node",
                 "--ignore-errors",
                 "--print", "after_move:filepath",
                 "-x", "--audio-format", job.format, "--audio-quality", "0",

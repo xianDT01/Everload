@@ -796,6 +796,7 @@ public class MusicService {
 
         String[] cmd = {
             "yt-dlp",
+            "--js-runtimes", "nodejs",
             "--ignore-errors",
             "-x", "--audio-format", "mp3", "--audio-quality", "0",
             "--embed-thumbnail",
@@ -1096,6 +1097,7 @@ public class MusicService {
 
             ProcessBuilder pb = new ProcessBuilder(
                     "yt-dlp",
+                    "--js-runtimes", "nodejs",
                     "--flat-playlist",
                     "--print", "%(title)s\t%(uploader)s\t%(id)s",
                     "--no-warnings",

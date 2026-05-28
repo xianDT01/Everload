@@ -10,10 +10,13 @@ import { ModernStateService } from '../../modern-state.service';
 })
 export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   playlists: any[] = [];
+  publicPlaylists: any[] = [];
   loading = false;
+  loadingPublic = false;
   newName = '';
   creating = false;
 
+  tab: 'mine' | 'community' = 'mine';
   view: 'list' | 'detail' = 'list';
   selectedPlaylist: any | null = null;
 
@@ -39,11 +42,27 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
         this.playlists = p;
         this.loading = false;
         if (this.selectedPlaylist) {
-          this.selectedPlaylist = p.find((pl: any) => pl.id === this.selectedPlaylist.id) ?? this.selectedPlaylist;
+          const updated = p.find((pl: any) => pl.id === this.selectedPlaylist.id);
+          if (updated) this.selectedPlaylist = updated;
         }
       },
       error: () => { this.loading = false; }
     });
+  }
+
+  loadPublic() {
+    this.loadingPublic = true;
+    this.music.getPublicPlaylists().subscribe({
+      next: p => { this.publicPlaylists = p; this.loadingPublic = false; },
+      error: () => { this.loadingPublic = false; }
+    });
+  }
+
+  switchTab(t: 'mine' | 'community') {
+    this.tab = t;
+    this.view = 'list';
+    this.selectedPlaylist = null;
+    if (t === 'community' && !this.publicPlaylists.length) this.loadPublic();
   }
 
   create() {
@@ -70,6 +89,18 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   back() {
     this.view = 'list';
     this.selectedPlaylist = null;
+  }
+
+  isOwned(pl: any): boolean {
+    return pl != null && this.playlists.some(p => p.id === pl.id);
+  }
+
+  toggleVisibility(pl: any, event: Event) {
+    event.stopPropagation();
+    this.music.setPlaylistVisibility(pl.id, !pl.isPublic).subscribe(() => {
+      this.load();
+      if (this.publicPlaylists.length) this.loadPublic();
+    });
   }
 
   play(pl: any) {

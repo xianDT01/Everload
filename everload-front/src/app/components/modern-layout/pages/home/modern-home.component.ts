@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
+﻿import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { forkJoin, Subscription } from 'rxjs';
 import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
@@ -111,13 +111,13 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     return this.homeSections.findIndex(s => s.key === key);
   }
 
-  sectionLabel(key: string): string {
+  sectionLabelKey(key: string): string {
     const labels: Record<string, string> = {
-      featured: 'Featured',
-      listen_now: 'Listen Now',
-      top_artists: 'Top Artists',
-      recently_added: 'Recently Added',
-      explore: 'Explore',
+      featured: 'MUSIC.MODERN_FEATURED_ALBUM',
+      listen_now: 'MUSIC.MODERN_LISTEN_NOW',
+      top_artists: 'MUSIC.MODERN_TOP_ARTISTS',
+      recently_added: 'MUSIC.MODERN_RECENTLY_ADDED',
+      explore: 'MUSIC.MODERN_EXPLORE',
     };
     return labels[key] || key;
   }
@@ -405,7 +405,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.selectedArtistTracks = artist.tracks.length ? artist.tracks : (artist.track.path ? [artist.track] : []);
-        this.artistError = 'No se pudieron cargar todas las canciones.';
+        this.artistError = 'MUSIC.MODERN_ARTIST_TRACKS_ERROR';
         this.artistLoading = false;
       }
     });
@@ -454,3 +454,4 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       .trim();
   }
 }
+

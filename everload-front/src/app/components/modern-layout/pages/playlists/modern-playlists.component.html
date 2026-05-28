@@ -1,37 +1,80 @@
 <div class="mpl-page">
 
-  <!-- ══════════ LIST VIEW ══════════ -->
+  <!-- ══════════ TABS ══════════ -->
   <ng-container *ngIf="view === 'list'">
     <div class="mpl-header">
-      <h1 class="mpl-title">Playlists</h1>
-      <div class="mpl-create">
-        <input class="mpl-input" type="text" placeholder="Nueva playlist..." [(ngModel)]="newName"
+      <div class="mpl-tabs">
+        <button class="mpl-tab" [class.mpl-tab-active]="tab === 'mine'" (click)="switchTab('mine')">
+          {{ 'MUSIC.MODERN_MY_PLAYLISTS' | translate }}
+        </button>
+        <button class="mpl-tab" [class.mpl-tab-active]="tab === 'community'" (click)="switchTab('community')">
+          {{ 'MUSIC.MODERN_COMMUNITY' | translate }}
+        </button>
+      </div>
+      <div class="mpl-create" *ngIf="tab === 'mine'">
+        <input class="mpl-input" type="text" [placeholder]="'MUSIC.MODERN_NEW_PLAYLIST_PLACEHOLDER' | translate" [(ngModel)]="newName"
                (keyup.enter)="create()" />
         <button class="mpl-btn-create" (click)="create()" [disabled]="creating || !newName.trim()">+</button>
       </div>
     </div>
 
-    <div class="mpl-loading" *ngIf="loading">Cargando…</div>
-
-    <div class="mpl-grid" *ngIf="!loading">
-      <div class="mpl-card" *ngFor="let pl of playlists" (click)="openPlaylist(pl)">
-        <div class="mpl-cover">
-          <div class="mpl-auto-cover" *ngIf="pl.tracks?.length > 0"
-               [class.mpl-auto-cover-single]="coverTracks(pl).length === 1">
-            <img *ngFor="let t of coverTracks(pl)"
-                 [src]="trackCoverUrl(t)"
-                 (error)="$any($event.target).style.display='none'"
-                 class="mpl-auto-cover-cell" />
+    <!-- ── {{ 'MUSIC.MODERN_MY_PLAYLISTS' | translate }} ── -->
+    <ng-container *ngIf="tab === 'mine'">
+      <div class="mpl-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
+      <div class="mpl-grid" *ngIf="!loading">
+        <div class="mpl-card" *ngFor="let pl of playlists" (click)="openPlaylist(pl)">
+          <div class="mpl-cover">
+            <div class="mpl-auto-cover" *ngIf="pl.tracks?.length > 0"
+                 [class.mpl-auto-cover-single]="coverTracks(pl).length === 1">
+              <img *ngFor="let t of coverTracks(pl)"
+                   [src]="trackCoverUrl(t)"
+                   (error)="$any($event.target).style.display='none'"
+                   class="mpl-auto-cover-cell" />
+            </div>
+            <span class="mpl-cover-icon" *ngIf="!pl.tracks?.length">📋</span>
+            <div class="mpl-play-btn" (click)="play(pl); $event.stopPropagation()">▶</div>
           </div>
-          <span class="mpl-cover-icon" *ngIf="!pl.tracks?.length">📋</span>
-          <div class="mpl-play-btn" (click)="play(pl); $event.stopPropagation()">▶</div>
+          <div class="mpl-name">{{ pl.name }}</div>
+          <div class="mpl-count">{{ 'MUSIC.MODERN_TRACK_COUNT' | translate: { count: pl.tracks?.length ?? 0 } }}</div>
+          <div class="mpl-card-footer">
+            <span class="mpl-visibility-badge" [class.mpl-badge-public]="pl.isPublic" [class.mpl-badge-private]="!pl.isPublic"
+                  (click)="toggleVisibility(pl, $event)" [title]="pl.isPublic ? ('MUSIC.MODERN_MAKE_PRIVATE_HINT' | translate) : ('MUSIC.MODERN_MAKE_PUBLIC_HINT' | translate)">
+              <svg *ngIf="!pl.isPublic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <svg *ngIf="pl.isPublic"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              {{ pl.isPublic ? ('MUSIC.MODERN_PUBLIC' | translate) : ('MUSIC.MODERN_PRIVATE' | translate) }}
+            </span>
+          </div>
+          <button class="mpl-delete" (click)="delete(pl.id); $event.stopPropagation()">✕</button>
         </div>
-        <div class="mpl-name">{{ pl.name }}</div>
-        <div class="mpl-count">{{ pl.tracks?.length ?? 0 }} canciones</div>
-        <button class="mpl-delete" (click)="delete(pl.id); $event.stopPropagation()">✕</button>
+        <div class="mpl-empty" *ngIf="playlists.length === 0">{{ 'MUSIC.MODERN_NO_PLAYLISTS' | translate }}</div>
       </div>
-      <div class="mpl-empty" *ngIf="playlists.length === 0">No hay playlists. Crea una arriba.</div>
-    </div>
+    </ng-container>
+
+    <!-- ── {{ 'MUSIC.MODERN_COMMUNITY' | translate }} ── -->
+    <ng-container *ngIf="tab === 'community'">
+      <div class="mpl-loading" *ngIf="loadingPublic">{{ 'MUSIC.MODERN_LOADING_PUBLIC_PLAYLISTS' | translate }}</div>
+      <div class="mpl-grid" *ngIf="!loadingPublic">
+        <div class="mpl-card" *ngFor="let pl of publicPlaylists" (click)="openPlaylist(pl)">
+          <div class="mpl-cover">
+            <div class="mpl-auto-cover" *ngIf="pl.tracks?.length > 0"
+                 [class.mpl-auto-cover-single]="coverTracks(pl).length === 1">
+              <img *ngFor="let t of coverTracks(pl)"
+                   [src]="trackCoverUrl(t)"
+                   (error)="$any($event.target).style.display='none'"
+                   class="mpl-auto-cover-cell" />
+            </div>
+            <span class="mpl-cover-icon" *ngIf="!pl.tracks?.length">📋</span>
+            <div class="mpl-play-btn" (click)="play(pl); $event.stopPropagation()">▶</div>
+          </div>
+          <div class="mpl-name">{{ pl.name }}</div>
+          <div class="mpl-count">{{ 'MUSIC.MODERN_TRACK_COUNT' | translate: { count: pl.tracks?.length ?? 0 } }}</div>
+          <div class="mpl-card-footer">
+            <span class="mpl-owner-name">{{ 'MUSIC.MODERN_BY_OWNER' | translate: { owner: pl.ownerUsername } }}</span>
+          </div>
+        </div>
+        <div class="mpl-empty" *ngIf="publicPlaylists.length === 0">{{ 'MUSIC.MODERN_NO_PUBLIC_PLAYLISTS' | translate }}</div>
+      </div>
+    </ng-container>
   </ng-container>
 
   <!-- ══════════ DETAIL VIEW ══════════ -->
@@ -40,7 +83,7 @@
     <!-- Back -->
     <button class="mpl-back-btn" (click)="back()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-      Playlists
+      {{ tab === 'community' ? ('MUSIC.MODERN_COMMUNITY' | translate) : ('MUSIC.MODERN_SIDEBAR_PLAYLISTS' | translate) }}
     </button>
 
     <!-- Hero -->
@@ -57,14 +100,28 @@
         <span class="mpl-cover-icon mpl-cover-icon-lg" *ngIf="!selectedPlaylist.tracks?.length">📋</span>
       </div>
       <div class="mpl-hero-meta">
-        <p class="mpl-hero-type">Playlist</p>
+        <p class="mpl-hero-type">
+          {{ 'MUSIC.MODERN_PLAYLIST' | translate }}
+          <span class="mpl-hero-owner" *ngIf="!isOwned(selectedPlaylist)"> · {{ 'MUSIC.MODERN_BY_OWNER' | translate: { owner: selectedPlaylist.ownerUsername } }}</span>
+        </p>
         <h2 class="mpl-hero-name">{{ selectedPlaylist.name }}</h2>
-        <p class="mpl-hero-count">{{ selectedPlaylist.tracks?.length ?? 0 }} canciones</p>
-        <button class="mpl-btn-play-hero" (click)="play(selectedPlaylist)"
-                [disabled]="!selectedPlaylist.tracks?.length">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
-          Reproducir
-        </button>
+        <p class="mpl-hero-count">{{ 'MUSIC.MODERN_TRACK_COUNT' | translate: { count: selectedPlaylist.tracks?.length ?? 0 } }}</p>
+        <div class="mpl-hero-actions">
+          <button class="mpl-btn-play-hero" (click)="play(selectedPlaylist)"
+                  [disabled]="!selectedPlaylist.tracks?.length">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+            {{ 'MUSIC.MODERN_PLAY' | translate }}
+          </button>
+          <!-- Visibilidad — solo el dueño puede cambiarla -->
+          <button *ngIf="isOwned(selectedPlaylist)" class="mpl-btn-visibility"
+                  (click)="toggleVisibility(selectedPlaylist, $event)"
+                  [class.mpl-vis-public]="selectedPlaylist.isPublic"
+                  [title]="selectedPlaylist.isPublic ? ('MUSIC.MODERN_MAKE_PRIVATE' | translate) : ('MUSIC.MODERN_MAKE_PUBLIC' | translate)">
+            <svg *ngIf="!selectedPlaylist.isPublic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg *ngIf="selectedPlaylist.isPublic"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            {{ selectedPlaylist.isPublic ? 'Pública' : 'Privada' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -72,10 +129,10 @@
     <div class="mpl-track-list">
       <div class="mpl-track-list-header">
         <span class="mpl-col-num">#</span>
-        <span class="mpl-col-title">Título</span>
-        <span class="mpl-col-album">Álbum</span>
-        <span class="mpl-col-dur">Duración</span>
-        <span class="mpl-col-remove"></span>
+        <span class="mpl-col-title">{{ 'MUSIC.MODERN_COL_TITLE' | translate }}</span>
+        <span class="mpl-col-album">{{ 'MUSIC.MODERN_COL_ALBUM' | translate }}</span>
+        <span class="mpl-col-dur">{{ 'MUSIC.MODERN_DURATION' | translate }}</span>
+        <span class="mpl-col-remove" *ngIf="isOwned(selectedPlaylist)"></span>
       </div>
       <div class="mpl-track-row" *ngFor="let t of selectedPlaylist.tracks; let i = index">
         <span class="mpl-col-num mpl-track-num">{{ i + 1 }}</span>
@@ -90,27 +147,28 @@
         </div>
         <span class="mpl-col-album mpl-track-album">{{ t.album }}</span>
         <span class="mpl-col-dur mpl-track-dur">{{ fmtDur(t.durationSeconds) }}</span>
-        <button class="mpl-col-remove mpl-track-remove" (click)="removeTrack(t.id)" title="Quitar de playlist">
+        <button *ngIf="isOwned(selectedPlaylist)" class="mpl-col-remove mpl-track-remove"
+                (click)="removeTrack(t.id)" [title]="'MUSIC.MODERN_REMOVE_FROM_PLAYLIST' | translate">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="mpl-empty" *ngIf="!selectedPlaylist.tracks?.length">
-        La playlist está vacía. Añade canciones abajo.
+        {{ 'MUSIC.MODERN_PLAYLIST_EMPTY' | translate }}<span *ngIf="isOwned(selectedPlaylist)"> {{ 'MUSIC.MODERN_ADD_SONGS_BELOW' | translate }}</span>
       </div>
     </div>
 
-    <!-- Add songs -->
-    <div class="mpl-add-section">
-      <h3 class="mpl-add-title">Añadir canciones</h3>
+    <!-- Add songs — solo el dueño puede añadir -->
+    <div class="mpl-add-section" *ngIf="isOwned(selectedPlaylist)">
+      <h3 class="mpl-add-title">{{ 'MUSIC.MODERN_ADD_SONGS' | translate }}</h3>
       <div class="mpl-search-wrap">
         <svg class="mpl-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
-        <input class="mpl-input mpl-search-input" type="text" placeholder="Buscar en tu biblioteca…"
+        <input class="mpl-input mpl-search-input" type="text" [placeholder]="'MUSIC.MODERN_SEARCH_LIBRARY_PLACEHOLDER' | translate"
                [(ngModel)]="searchQuery" (input)="onSearchInput()" />
       </div>
 
-      <div class="mpl-search-spinner" *ngIf="searching">Buscando…</div>
+      <div class="mpl-search-spinner" *ngIf="searching">{{ 'MUSIC.MODERN_SEARCHING' | translate }}</div>
 
       <div class="mpl-search-results" *ngIf="searchResults.length > 0">
         <div class="mpl-result-row" *ngFor="let t of searchResults"

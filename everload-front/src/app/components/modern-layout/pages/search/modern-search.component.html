@@ -1,12 +1,12 @@
-<div class="msrch-page">
-  <h1 class="msrch-title">Buscar</h1>
+﻿<div class="msrch-page">
+  <h1 class="msrch-title">{{ 'MUSIC.MODERN_SIDEBAR_SEARCH' | translate }}</h1>
   <div class="msrch-input-wrap">
     <span class="msrch-icon">🔍</span>
-    <input class="msrch-input" type="text" placeholder="Buscar canciones, artistas, álbumes..."
+    <input class="msrch-input" type="text" [placeholder]="'MUSIC.MODERN_SEARCH_PLACEHOLDER' | translate"
            [(ngModel)]="query" (input)="onInput()" autofocus />
   </div>
 
-  <div class="msrch-loading" *ngIf="loading">Buscando…</div>
+  <div class="msrch-loading" *ngIf="loading">{{ 'MUSIC.MODERN_SEARCHING' | translate }}</div>
 
   <div class="msrch-results" *ngIf="!loading && results.length">
     <div class="msrch-row" *ngFor="let t of results; let i = index" (dblclick)="play(i)">
@@ -23,11 +23,12 @@
   </div>
 
   <div class="msrch-empty" *ngIf="!loading && !results.length && query.trim()">
-    Sin resultados para "{{ query }}"
+    {{ 'MUSIC.MODERN_NO_RESULTS_FOR' | translate: { query: query } }}
   </div>
 
   <div class="msrch-hint" *ngIf="!query.trim()">
     <span class="msrch-hint-icon">🎵</span>
-    <p>Escribe para buscar en tu biblioteca</p>
+    <p>{{ 'MUSIC.MODERN_SEARCH_HINT' | translate }}</p>
   </div>
 </div>
+

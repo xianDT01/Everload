@@ -1,4 +1,4 @@
-<nav class="ms-nav">
+﻿<nav class="ms-nav">
 
   <!-- Logo -->
   <div class="ms-logo">
@@ -32,7 +32,7 @@
         <svg *ngSwitchCase="'download'" viewBox="0 0 24 24"><path d="M11 4h2v9l3.5-3.5 1.4 1.4-5.9 5.9-5.9-5.9 1.4-1.4L11 13V4ZM5 19h14v2H5v-2Z"/></svg>
         <svg *ngSwitchCase="'settings'" viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6Zm7.43-1.8a7.2 7.2 0 0 0 .07-1.2 7.2 7.2 0 0 0-.07-1.2l2.6-2.03-2.5-4.33-3.06 1.23a7.5 7.5 0 0 0-2.07-1.2L14 2h-4l-.4 2.47a7.5 7.5 0 0 0-2.07 1.2L4.47 4.44 1.97 8.77l2.6 2.03A7.2 7.2 0 0 0 4.5 12c0 .41.03.8.07 1.2L1.97 15.23l2.5 4.33 3.06-1.23a7.5 7.5 0 0 0 2.07 1.2L10 22h4l.4-2.47a7.5 7.5 0 0 0 2.07-1.2l3.06 1.23 2.5-4.33-2.6-2.03Z"/></svg>
       </span>
-      <span class="ms-label">{{ item.label }}</span>
+      <span class="ms-label">{{ item.labelKey | translate }}</span>
     </a>
   </div>
 
@@ -42,7 +42,7 @@
   <button class="ms-item" (click)="showThemes = !showThemes">
     <span class="ms-indicator"></span>
     <span class="ms-icon"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.2a1.8 1.8 0 0 0 1.25-3.1 1.2 1.2 0 0 1 .83-2.1H17a7 7 0 0 0 0-14h-5Zm-4 8a1.4 1.4 0 1 1 0-2.8A1.4 1.4 0 0 1 8 11Zm3-3a1.4 1.4 0 1 1 0-2.8A1.4 1.4 0 0 1 11 8Zm4 1a1.4 1.4 0 1 1 0-2.8A1.4 1.4 0 0 1 15 9Z"/></svg></span>
-    <span class="ms-label">Tema</span>
+    <span class="ms-label">{{ 'MUSIC.MODERN_THEME' | translate }}</span>
   </button>
 
   <div class="ms-theme-list" *ngIf="showThemes">
@@ -62,14 +62,15 @@
 
   <!-- Exit destinations -->
   <div class="ms-exit-actions">
-    <button class="ms-exit-btn" (click)="goHome($event)" title="Salir al Home">
+    <button class="ms-exit-btn" (click)="goHome($event)" [title]="'MUSIC.MODERN_EXIT_HOME' | translate">
       <span class="ms-icon"><svg viewBox="0 0 24 24"><path d="M10.8 5.4 12.2 6.8 8 11h12v2H8l4.2 4.2-1.4 1.4L4.2 12l6.6-6.6Z"/></svg></span>
-      <span>Inicio</span>
+      <span>{{ 'MUSIC.MODERN_SIDEBAR_HOME' | translate }}</span>
     </button>
-    <button class="ms-exit-btn ms-exit-primary" (click)="goLibrary($event)" title="Salir a EverWave">
+    <button class="ms-exit-btn ms-exit-primary" (click)="goLibrary($event)" [title]="'MUSIC.MODERN_EXIT_EVERWAVE' | translate">
       <span class="ms-icon"><svg viewBox="0 0 24 24"><path d="M5 4h14v2H5V4Zm0 5h14v2H5V9Zm0 5h9v2H5v-2Zm0 5h14v2H5v-2Z"/></svg></span>
       <span>EverWave</span>
     </button>
   </div>
 
 </nav>
+

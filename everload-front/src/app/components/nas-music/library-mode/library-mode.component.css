@@ -4431,6 +4431,126 @@
   color: var(--sp-green);
 }
 
+.btn-add-to-pl {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  color: var(--sp-muted);
+  transition: transform 150ms ease, color 150ms ease;
+  opacity: 0;
+}
+.track-row:hover .btn-add-to-pl { opacity: 1; }
+.btn-add-to-pl:hover { transform: scale(1.15); color: #fff; }
+
+.btn-add-folder-pl {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  color: var(--sp-muted);
+  transition: color 150ms ease, transform 150ms ease;
+  opacity: 0;
+}
+.folder-card:hover .btn-add-folder-pl { opacity: 1; }
+.btn-add-folder-pl:hover { color: #fff; transform: scale(1.15); }
+
+/* ── Playlist sidebar items ────────────────────────────────────────────────── */
+.pl-track-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--sp-faint);
+  flex-shrink: 0;
+}
+
+/* ── Playlist picker dropdown ────────────────────────────────────────────── */
+.pl-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+}
+
+.pl-picker {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #282828;
+  border: 1px solid #404040;
+  border-radius: 12px;
+  padding: 8px;
+  min-width: 240px;
+  max-width: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  z-index: 2001;
+}
+
+.pl-picker-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid #404040;
+  margin-bottom: 4px;
+}
+
+.pl-picker-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--sp-green);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.pl-picker-new:hover { background: rgba(255,255,255,0.07); }
+
+.pl-picker-divider {
+  height: 1px;
+  background: #404040;
+  margin: 4px 0;
+}
+
+.pl-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--sp-muted);
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.pl-picker-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+
+.pl-picker-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.pl-picker-count {
+  font-size: 11px;
+  color: var(--sp-faint);
+  flex-shrink: 0;
+}
+
 /* ── Sort buttons (liked view) ───────────────────────────────────────────── */
 
 .sort-buttons {

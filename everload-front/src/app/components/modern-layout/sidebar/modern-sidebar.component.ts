@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
+﻿import { Component, ElementRef, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import anime from 'animejs/lib/anime.es.js';
@@ -7,19 +7,19 @@ import { NasPath } from '../../../services/nas.service';
 import { THEMES } from '../modern-layout.component';
 import { DEFAULT_SIDEBAR_ORDER } from '../pages/settings/modern-settings.component';
 
-interface NavItem { label: string; icon: string; route: string; exact?: boolean; }
+interface NavItem { labelKey: string; icon: string; route: string; exact?: boolean; }
 
 const ALL_NAV: NavItem[] = [
-  { label: 'Inicio',      icon: 'home',     route: '/modern',              exact: true },
-  { label: 'Búsqueda',    icon: 'search',   route: '/modern/search' },
-  { label: 'Biblioteca',  icon: 'library',  route: '/modern/library' },
-  { label: 'Álbumes',     icon: 'album',    route: '/modern/albums' },
-  { label: 'Artistas',    icon: 'artist',   route: '/modern/artists' },
-  { label: 'Playlists',   icon: 'playlist', route: '/modern/playlists' },
-  { label: 'Favoritos',   icon: 'heart',    route: '/modern/favorites' },
-  { label: 'Actividad',   icon: 'activity', route: '/modern/activity' },
-  { label: 'Descargas',   icon: 'download', route: '/modern/downloads' },
-  { label: 'Ajustes',     icon: 'settings', route: '/modern/settings' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_HOME',      icon: 'home',     route: '/modern',              exact: true },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_SEARCH',    icon: 'search',   route: '/modern/search' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_LIBRARY',  icon: 'library',  route: '/modern/library' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_ALBUMS',     icon: 'album',    route: '/modern/albums' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_ARTISTS',    icon: 'artist',   route: '/modern/artists' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_PLAYLISTS',   icon: 'playlist', route: '/modern/playlists' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_FAVORITES',   icon: 'heart',    route: '/modern/favorites' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_ACTIVITY',   icon: 'activity', route: '/modern/activity' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_DOWNLOADS',   icon: 'download', route: '/modern/downloads' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_SETTINGS',     icon: 'settings', route: '/modern/settings' },
 ];
 
 const KEY_MAP: Record<string, string> = {
@@ -106,3 +106,4 @@ export class ModernSidebarComponent implements OnInit, OnDestroy {
     });
   }
 }
+
