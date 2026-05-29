@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
-import { BehaviorSubject, firstValueFrom, from, mergeMap, Observable, of, Subject, tap } from 'rxjs';
+import { BehaviorSubject, firstValueFrom, from, mergeMap, Observable, of, Subject, tap, shareReplay } from 'rxjs';
 import { ApiBaseService } from './api-base.service';
 
 export interface PagedMusicResult {
@@ -1461,6 +1461,15 @@ export class MusicService {
     return this.http.get<any[]>(`${this.BASE}/api/nas/ytdlp/active`);
   }
 
+  ytDlpQueueUrl(url: string, title: string, nasPathId: number, subPath: string): Observable<{jobId: string}> {
+    const p = new URLSearchParams({ url, title, nasPathId: String(nasPathId), subPath });
+    return this.http.post<{jobId: string}>(`${this.BASE}/api/nas/ytdlp/queue-url?${p}`, {});
+  }
+
+  ytDlpJobStatus(jobId: string): Observable<any> {
+    return this.http.get<any>(`${this.BASE}/api/nas/ytdlp/status/${jobId}`);
+  }
+
   // ── Favorites & History API ───────────────────────────────────────────────
 
   getFavorites(): Observable<any[]> {
@@ -1487,11 +1496,21 @@ export class MusicService {
     );
   }
 
+  private topArtistsCache$: Observable<{ artist: string; playCount: number }[]> | null = null;
+  private topArtistsCacheTs = 0;
+
   getTopArtists(limit = 20): Observable<{ artist: string; playCount: number }[]> {
-    return this.http.get<{ artist: string; playCount: number }[]>(
-      `${this.api.replace('/music', '/library')}/top-artists?limit=${limit}`
-    );
+    const now = Date.now();
+    if (!this.topArtistsCache$ || now - this.topArtistsCacheTs > 300_000) {
+      this.topArtistsCacheTs = now;
+      this.topArtistsCache$ = this.http.get<{ artist: string; playCount: number }[]>(
+        `${this.api.replace('/music', '/library')}/top-artists?limit=${limit}`
+      ).pipe(shareReplay(1));
+    }
+    return this.topArtistsCache$;
   }
+
+  invalidateTopArtistsCache() { this.topArtistsCache$ = null; }
 
   // ── Playlists ─────────────────────────────────────────────────────────────
 
@@ -1540,9 +1559,19 @@ export class MusicService {
 
   private get artistApi(): string { return `${this.BASE}/api/artists`; }
 
+  private artistProfilesCache$: Observable<ArtistProfileDto[]> | null = null;
+  private artistProfilesCacheTs = 0;
+
   getArtistProfiles(): Observable<ArtistProfileDto[]> {
-    return this.http.get<ArtistProfileDto[]>(this.artistApi);
+    const now = Date.now();
+    if (!this.artistProfilesCache$ || now - this.artistProfilesCacheTs > 300_000) {
+      this.artistProfilesCacheTs = now;
+      this.artistProfilesCache$ = this.http.get<ArtistProfileDto[]>(this.artistApi).pipe(shareReplay(1));
+    }
+    return this.artistProfilesCache$;
   }
+
+  invalidateArtistProfilesCache() { this.artistProfilesCache$ = null; }
 
   createArtistProfile(name: string, aliases = '', description = ''): Observable<ArtistProfileDto> {
     return this.http.post<ArtistProfileDto>(this.artistApi, { name, aliases, description });

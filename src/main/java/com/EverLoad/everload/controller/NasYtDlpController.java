@@ -35,6 +35,26 @@ public class NasYtDlpController {
         return ResponseEntity.ok(Map.of("jobId", jobId));
     }
 
+    @Operation(summary = "Encolar descarga de URL de red social al NAS (asíncrono)")
+    @PostMapping("/queue-url")
+    public ResponseEntity<?> queueUrl(
+            @RequestParam String url,
+            @RequestParam(required = false, defaultValue = "") String title,
+            @RequestParam Long nasPathId,
+            @RequestParam(required = false, defaultValue = "") String subPath) {
+        if (url == null || url.isBlank()) return ResponseEntity.badRequest().body("URL requerida");
+        java.util.List<String> allowed = java.util.List.of(
+            "facebook.com", "fb.watch", "fb.com",
+            "instagram.com", "instagr.am",
+            "tiktok.com", "vm.tiktok.com",
+            "twitter.com", "x.com", "t.co"
+        );
+        boolean valid = allowed.stream().anyMatch(url::contains);
+        if (!valid) return ResponseEntity.badRequest().body("Dominio no permitido");
+        String jobId = service.queueUrl(url, title, nasPathId, subPath);
+        return ResponseEntity.ok(java.util.Map.of("jobId", jobId));
+    }
+
     @Operation(summary = "Estado de un job")
     @GetMapping("/status/{jobId}")
     public ResponseEntity<YtDlpJob> getStatus(@PathVariable String jobId) {

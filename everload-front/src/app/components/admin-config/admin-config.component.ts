@@ -231,16 +231,10 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       },
       error: () => this.mensaje = '❌ ' + this.translate.instant('ADMIN.FORM_LOAD_ERROR')
     });
-    this.loadAuthHeroImages();
-    this.cargarLogs();
-    this.cargarHistorial();
-    this.loadPendingUsers();
-    this.loadActiveUsers();
-    this.loadNasPaths();
-
+    // Sólo carga config en init — el resto se carga al abrir cada tab
     this.intervalId = setInterval(() => {
-      this.cargarLogs();
-      this.cargarHistorial();
+      if (this.activeTab === 'logs') this.cargarLogs();
+      if (this.activeTab === 'history') this.cargarHistorial();
     }, 10_000);
   }
 

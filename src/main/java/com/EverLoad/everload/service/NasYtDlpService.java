@@ -58,6 +58,17 @@ public class NasYtDlpService {
         return jobId;
     }
 
+    public String queueUrl(String url, String title, Long nasPathId, String subPath) {
+        String jobId = UUID.randomUUID().toString();
+        String safeTitle = (title != null && !title.isBlank()) ? title : "video";
+        String safeSub = (subPath != null) ? subPath : "";
+        YtDlpJob job = new YtDlpJob(jobId, null, safeTitle, nasPathId, safeSub, "video");
+        jobs.put(jobId, job);
+        executor.submit(() -> executeVideoUrl(job, url));
+        log.info("Queued yt-dlp URL job {} url={} path={}/{}", jobId, url, nasPathId, safeSub);
+        return jobId;
+    }
+
     public YtDlpJob getJob(String jobId) {
         return jobs.get(jobId);
     }
@@ -151,6 +162,73 @@ public class NasYtDlpService {
         } catch (Exception e) {
             fail(job, e.getMessage());
             log.error("❌ job {} failed: {}", job.jobId, e.getMessage());
+        } finally {
+            cleanup(tempDir);
+        }
+    }
+
+    private void executeVideoUrl(YtDlpJob job, String url) {
+        job.status = YtDlpJob.Status.RUNNING;
+        String tempDir = TEMP_BASE + "tmp-" + job.jobId + "/";
+        new File(tempDir).mkdirs();
+        try {
+            String[] cmd = {
+                "yt-dlp",
+                "--js-runtimes", "node",
+                "--print", "after_move:filepath",
+                "-f", "bestvideo+bestaudio/best",
+                "--merge-output-format", "mp4",
+                "--embed-metadata",
+                "-o", tempDir + "%(title)s.%(ext)s",
+                url
+            };
+
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            Process process = pb.start();
+
+            Thread stderrThread = new Thread(() -> {
+                try (BufferedReader r = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                    String line;
+                    while ((line = r.readLine()) != null) {
+                        Matcher m = PCT.matcher(line);
+                        if (m.find()) {
+                            try { job.progress = Math.min((int) Double.parseDouble(m.group(1)), 94); }
+                            catch (NumberFormatException ignored) {}
+                        }
+                    }
+                } catch (IOException ignored) {}
+            });
+            stderrThread.start();
+
+            String finalPath;
+            try (BufferedReader out = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                finalPath = out.readLine();
+            }
+            int exit = process.waitFor();
+            stderrThread.join(5000);
+
+            if (exit != 0 || finalPath == null || finalPath.isBlank()) {
+                fail(job, "yt-dlp falló (código " + exit + "). ¿El vídeo está disponible?");
+                return;
+            }
+
+            File tmp = new File(finalPath.trim());
+            if (!tmp.exists()) { fail(job, "Archivo no encontrado: " + finalPath); return; }
+
+            job.progress = 97;
+            String saved = nasService.saveToNas(job.nasPathId, job.subPath, tmp.toPath(), tmp.getName());
+            downloadHistoryService.recordDownload(new Download(tmp.getName(), "video (NAS)", "Social"));
+
+            job.resultFilename = tmp.getName();
+            job.resultPath = saved;
+            job.progress = 100;
+            job.completedAt = System.currentTimeMillis();
+            job.status = YtDlpJob.Status.DONE;
+            log.info("✅ url job {} → {}", job.jobId, saved);
+
+        } catch (Exception e) {
+            fail(job, e.getMessage());
+            log.error("❌ url job {} failed: {}", job.jobId, e.getMessage());
         } finally {
             cleanup(tempDir);
         }

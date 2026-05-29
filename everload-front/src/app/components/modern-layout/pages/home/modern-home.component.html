@@ -72,7 +72,7 @@
       <div class="mh-listen-grid" *ngIf="listenNowStyle === 'cards'">
         <div class="mh-listen-card" *ngFor="let card of listenNow" (dblclick)="playAlbum(card)">
           <div class="mh-listen-cover">
-            <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" />
+            <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" loading="lazy" />
           </div>
           <div class="mh-listen-meta">
             <span class="mh-listen-title">{{ card.album }}</span>
@@ -88,7 +88,7 @@
       <div class="mh-listen-list" *ngIf="listenNowStyle === 'list'">
         <button type="button" class="mh-listen-list-item" *ngFor="let card of listenNow" (click)="playAlbum(card)">
           <div class="mh-listen-list-cover">
-            <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" />
+            <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" loading="lazy" />
           </div>
           <div class="mh-listen-list-meta">
             <span class="mh-listen-title">{{ card.album }}</span>
@@ -111,7 +111,7 @@
       <div class="mh-artists-row" #artistsRow>
         <div class="mh-artist" *ngFor="let a of topArtists" (click)="openArtist(a)" [title]="'MUSIC.MODERN_VIEW_ARTIST_SONGS' | translate">
           <div class="mh-artist-circle">
-            <img *ngIf="a.imageUrl || a.autoImageUrl" [src]="a.imageUrl || a.autoImageUrl" (error)="$any($event.target).style.display='none'" />
+            <img *ngIf="a.imageUrl || a.autoImageUrl" [src]="a.imageUrl || a.autoImageUrl" (error)="$any($event.target).style.display='none'" loading="lazy" />
             <span class="mh-artist-fallback">
               <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
             </span>

@@ -64,3 +64,54 @@ app-root {
   border-color: #6c63ff !important;
   color: #fff !important;
 }
+
+/* ── NAS picker inline (social downloads) ───────────────────────────────── */
+.nas-picker-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 14px;
+  background: rgba(108,99,255,0.08);
+  border: 1px solid rgba(108,99,255,0.25);
+  border-radius: 12px;
+}
+.nas-picker-select,
+.nas-picker-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.nas-picker-select option { background: #1e1e2e; color: #fff; }
+.nas-picker-input::placeholder { color: rgba(255,255,255,0.35); }
+.nas-picker-actions { display: flex; gap: 8px; }
+.nas-picker-actions .login-button { flex: 1; padding: 9px; font-size: 13px; margin: 0; }
+
+/* ── NAS job status bar ─────────────────────────────────────────────────── */
+.nas-job-status {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+.nas-job-label { font-size: 12px; color: rgba(255,255,255,0.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nas-job-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); align-self: flex-start; }
+.nas-job-badge.nas-done { color: #4ade80; background: rgba(74,222,128,0.1); }
+.nas-job-badge.nas-error { color: #f87171; background: rgba(248,113,113,0.1); }
+.nas-job-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.nas-job-fill { height: 100%; background: #6c63ff; border-radius: 2px; transition: width 0.3s; }
+.nas-job-error { font-size: 11px; color: #f87171; }
+.nas-job-close { position: absolute; top: 10px; right: 10px; background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+.nas-job-close:hover { color: #fff; }
