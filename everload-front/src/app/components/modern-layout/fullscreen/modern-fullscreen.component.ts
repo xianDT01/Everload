@@ -20,6 +20,11 @@ interface HistoryEntry {
 })
 export class ModernFullscreenComponent implements OnInit, OnDestroy {
   @ViewChild('lyricsScroll') lyricsScrollRef?: ElementRef<HTMLElement>;
+  @ViewChild('panel') panelRef?: ElementRef<HTMLElement>;
+
+  private touchStartY = 0;
+  private touchCurrentY = 0;
+  private backButtonListener: any;
 
   tab: 'queue' | 'lyrics' | 'history' = 'queue';
   state: PlayerState | null = null;
@@ -66,9 +71,55 @@ export class ModernFullscreenComponent implements OnInit, OnDestroy {
       }),
     );
     this.loadHistory();
+    this.setupAndroidBackButton();
   }
 
-  ngOnDestroy() { this.subs.forEach(s => s.unsubscribe()); }
+  ngOnDestroy() {
+    this.subs.forEach(s => s.unsubscribe());
+    this.backButtonListener?.remove?.();
+  }
+
+  // ── Touch / Swipe down to close ───────────────────────────────────────────
+
+  onTouchStart(e: TouchEvent): void {
+    this.touchStartY = e.touches[0]?.clientY ?? 0;
+    this.touchCurrentY = this.touchStartY;
+  }
+
+  onTouchMove(e: TouchEvent): void {
+    if (!e.touches.length) return;
+    this.touchCurrentY = e.touches[0].clientY;
+    const delta = this.touchCurrentY - this.touchStartY;
+    const panel = this.panelRef?.nativeElement;
+    if (panel && delta > 0 && panel.scrollTop === 0) {
+      panel.style.transform = `translateY(${Math.round(delta * 0.45)}px)`;
+    }
+  }
+
+  onTouchEnd(): void {
+    const delta = this.touchCurrentY - this.touchStartY;
+    const panel = this.panelRef?.nativeElement;
+    if (panel) {
+      panel.style.transform = '';
+    }
+    if (delta > 90) {
+      this.state$.closeFullscreen();
+    }
+    this.touchStartY = 0;
+    this.touchCurrentY = 0;
+  }
+
+  // ── Android back button via Capacitor ─────────────────────────────────────
+
+  private setupAndroidBackButton(): void {
+    const App = (window as any).Capacitor?.Plugins?.App;
+    if (!App) return;
+    App.addListener('backButton', () => {
+      this.state$.closeFullscreen();
+    }).then((handle: any) => {
+      this.backButtonListener = handle;
+    }).catch(() => {});
+  }
 
   get track(): MusicMetadataDto | null { return this.state?.currentTrack ?? null; }
   get playing(): boolean { return this.state?.playing ?? false; }

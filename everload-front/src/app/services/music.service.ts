@@ -1160,9 +1160,25 @@ export class MusicService {
       .forEach(key => this.browseCache.delete(key));
   }
 
+  static readonly QUALITY_OPTIONS = [
+    { value: 'low',      label: '96kbps  — Ahorro datos',   kbps: 96  },
+    { value: 'normal',   label: '128kbps — Normal',         kbps: 128 },
+    { value: 'high',     label: '192kbps — Alta calidad',   kbps: 192 },
+    { value: 'original', label: 'Original (sin cambios)',   kbps: 0   },
+  ];
+
+  getStreamQuality(): string {
+    return localStorage.getItem('streamQuality') || 'original';
+  }
+
+  setStreamQuality(q: string) {
+    localStorage.setItem('streamQuality', q);
+  }
+
   getStreamUrl(pathId: number, trackPath: string): string {
     const token = this.auth.getToken();
-    return `${this.api}/stream?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}`;
+    const quality = this.getStreamQuality();
+    return `${this.api}/stream?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}&quality=${quality}`;
   }
 
   shouldUseHls(track: MusicMetadataDto): boolean {

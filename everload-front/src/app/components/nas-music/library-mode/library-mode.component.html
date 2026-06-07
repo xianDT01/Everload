@@ -1383,6 +1383,28 @@
           </div>
         </div>
       </section>
+
+      <!-- Stream Quality -->
+      <section class="settings-section">
+        <div class="settings-section-head">
+          <h3>Calidad de streaming</h3>
+          <p>Reduce el consumo de datos convirtiendo al vuelo a Ogg/Opus. Los originales en el NAS no se modifican.</p>
+        </div>
+        <div class="settings-group">
+          <div class="settings-quality-pills">
+            <button *ngFor="let q of qualityOptions"
+                    class="settings-quality-btn"
+                    [class.active]="streamQuality === q.value"
+                    (click)="setStreamQuality(q.value)">
+              <span class="sq-name">{{ q.value === 'low' ? '96 kbps' : q.value === 'normal' ? '128 kbps' : q.value === 'high' ? '192 kbps' : 'Original' }}</span>
+              <span class="sq-hint">{{ q.value === 'low' ? 'Ahorro máximo' : q.value === 'normal' ? 'Como Spotify' : q.value === 'high' ? 'Alta calidad' : 'Sin compresión' }}</span>
+            </button>
+          </div>
+          <p class="sq-info" *ngIf="streamQuality !== 'original'">
+            Primera reproducción: 2-5s de espera mientras se transcodifica. Siguientes: instantáneo desde caché.
+          </p>
+        </div>
+      </section>
     </div>
   </div>
 </div>

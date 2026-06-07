@@ -512,3 +512,126 @@
   animation-duration: 0.01ms !important;
   transition-duration: 0.01ms !important;
 }
+
+/* ── Mobile / Android layout ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mb-bar {
+    padding: 0 12px;
+    gap: 6px;
+    height: auto;
+    min-height: 60px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    position: relative;
+  }
+
+  /* Thin progress line at top of bar */
+  .mb-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: color-mix(in srgb, var(--ml-text) 8%, transparent);
+  }
+
+  /* Track section: flex:1 so it fills remaining space; whole area opens fullscreen */
+  .mb-track {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+    cursor: pointer;
+    gap: 10px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mb-cover {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  /* Show hover-arrow on touch (briefly) */
+  .mb-cover-hover { display: none; }
+
+  /* Album subtitle and heart hidden on mobile */
+  .mb-subtle { display: none; }
+  .mb-heart { display: none; }
+
+  /* Center section: only show prev/play/next, no progress row */
+  .mb-center {
+    max-width: none;
+    width: auto;
+    flex-shrink: 0;
+    gap: 0;
+  }
+
+  .mb-controls {
+    gap: 4px;
+  }
+
+  /* Shuffle and repeat hidden on mobile (accessible in fullscreen) */
+  .mb-btn-desktop { display: none; }
+
+  /* Larger tap targets for prev/next */
+  .mb-btn-lg {
+    padding: 8px;
+  }
+
+  .mb-play {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Hide progress row on mobile */
+  .mb-progress-row { display: none; }
+
+  /* Hide right section (volume/EQ/queue) on mobile */
+  .mb-right { display: none; }
+
+  /* EQ panel on mobile: full-width centered */
+  .mb-eq-panel {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    bottom: calc(100% + 4px);
+  }
+}
+
+/* ── Stream quality selector ─────────────────────────────────────────────── */
+.mb-quality-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.mb-quality-btn {
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
+  color: var(--color-slate-400);
+  padding: 5px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mb-quality-btn:hover {
+  background: color-mix(in srgb, var(--color-white) 12%, transparent);
+  color: var(--color-white);
+}
+
+.mb-quality-active {
+  background: color-mix(in srgb, var(--color-green-500) 20%, transparent) !important;
+  border-color: var(--color-green-500) !important;
+  color: var(--color-green-400) !important;
+}
+
+.mb-quality-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--color-slate-500);
+  margin-top: 5px;
+}

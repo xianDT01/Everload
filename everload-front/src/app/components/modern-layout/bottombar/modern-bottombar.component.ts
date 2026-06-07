@@ -28,6 +28,15 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   reduceAnimations = false;
   private volumeScrollStep = 0.05;
 
+  // Stream quality
+  readonly qualityOptions = MusicService.QUALITY_OPTIONS;
+  streamQuality = localStorage.getItem('streamQuality') || 'original';
+
+  setStreamQuality(q: string) {
+    this.music.setStreamQuality(q);
+    this.streamQuality = q;
+  }
+
   readonly channelModes: ('stereo' | 'mono' | 'left' | 'right' | 'swap')[] = ['stereo', 'mono', 'left', 'right', 'swap'];
 
   activeEqPresetKey = 'MUSIC.MODERN_EQ_PRESET_FLAT';

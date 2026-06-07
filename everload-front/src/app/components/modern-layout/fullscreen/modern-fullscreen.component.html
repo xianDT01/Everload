@@ -1,5 +1,13 @@
 <div class="mfs-overlay" (click)="$event.target === $event.currentTarget && state$.closeFullscreen()">
-  <div class="mfs-panel">
+  <div class="mfs-panel" #panel
+       (touchstart)="onTouchStart($event)"
+       (touchmove)="onTouchMove($event)"
+       (touchend)="onTouchEnd()">
+
+    <!-- Drag handle (mobile) -->
+    <div class="mfs-drag-handle">
+      <div class="mfs-drag-pill"></div>
+    </div>
 
     <!-- Close -->
     <button class="mfs-close" (click)="state$.closeFullscreen()">✕</button>

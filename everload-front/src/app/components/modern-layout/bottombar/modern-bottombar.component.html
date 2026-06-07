@@ -1,8 +1,9 @@
 <div class="mb-bar">
 
-  <!-- Left: Track info -->
-  <div class="mb-track">
-    <div class="mb-cover" (click)="openFullscreen()" [title]="'MUSIC.MODERN_OPEN_PLAYER' | translate">
+  <!-- Left: Track info (tapping meta area opens fullscreen on mobile) -->
+  <div class="mb-track" (click)="openFullscreen()">
+    <div class="mb-cover" [title]="'MUSIC.MODERN_OPEN_PLAYER' | translate"
+         (click)="$event.stopPropagation(); openFullscreen()">
       <img *ngIf="track && coverUrl" [src]="coverUrl"
            (error)="$any($event.target).style.display='none'" class="mb-cover-img" />
       <span class="mb-cover-icon">♪</span>
@@ -10,7 +11,10 @@
     </div>
     <div class="mb-meta" *ngIf="track">
       <span class="mb-title">{{ track.title || track.name }}</span>
-      <button class="mb-artist" type="button" (click)="openCurrentArtist()" [disabled]="!track.artist" [title]="'MUSIC.MODERN_VIEW_ARTIST' | translate">
+      <button class="mb-artist" type="button"
+              (click)="$event.stopPropagation(); openCurrentArtist()"
+              [disabled]="!track.artist"
+              [title]="'MUSIC.MODERN_VIEW_ARTIST' | translate">
         {{ track.artist || '—' }}
       </button>
       <span class="mb-subtle" *ngIf="track.album || track.duration">
@@ -19,7 +23,9 @@
         <ng-container *ngIf="track.duration">{{ fmt(track.duration) }}</ng-container>
       </span>
     </div>
-    <button class="mb-heart" [class.mb-heart-active]="isFav" (click)="toggleFav()" [title]="'MUSIC.MODERN_FAVORITE' | translate" *ngIf="track">
+    <button class="mb-heart" [class.mb-heart-active]="isFav"
+            (click)="$event.stopPropagation(); toggleFav()"
+            [title]="'MUSIC.MODERN_FAVORITE' | translate" *ngIf="track">
       <svg viewBox="0 0 24 24">
         <path *ngIf="isFav" d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/>
         <path *ngIf="!isFav" fill="none" stroke="currentColor" stroke-width="1.5" d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/>
@@ -30,7 +36,8 @@
   <!-- Center: Controls + progress -->
   <div class="mb-center">
     <div class="mb-controls">
-      <button class="mb-btn" [class.mb-active]="shuffle" (click)="toggleShuffle()" [title]="'MUSIC.MODERN_SHUFFLE' | translate">
+      <!-- Shuffle: hidden on mobile, visible on desktop -->
+      <button class="mb-btn mb-btn-desktop" [class.mb-active]="shuffle" (click)="toggleShuffle()" [title]="'MUSIC.MODERN_SHUFFLE' | translate">
         <svg viewBox="0 0 24 24"><path d="M16 3h5v5h-2V6.4l-4.8 4.8-1.4-1.4L17.6 5H16V3ZM4 7h3.6l10 10H21v2h-4.2l-10-10H4V7Zm8.8 7.2 1.4 1.4L10.8 19H8v-2h2l2.8-2.8Z"/></svg>
       </button>
       <button class="mb-btn mb-btn-lg" (click)="prev()" [title]="'MUSIC.MODERN_PREVIOUS' | translate">
@@ -43,7 +50,8 @@
       <button class="mb-btn mb-btn-lg" (click)="next()" [title]="'MUSIC.MODERN_NEXT' | translate">
         <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2V5ZM5 19V5l10 7-10 7Z"/></svg>
       </button>
-      <button class="mb-btn" [class.mb-active]="repeat !== 'none'" (click)="toggleRepeat()" [title]="'MUSIC.MODERN_REPEAT' | translate">
+      <!-- Repeat: hidden on mobile, visible on desktop -->
+      <button class="mb-btn mb-btn-desktop" [class.mb-active]="repeat !== 'none'" (click)="toggleRepeat()" [title]="'MUSIC.MODERN_REPEAT' | translate">
         <svg *ngIf="repeat !== 'one'" viewBox="0 0 24 24"><path d="M7 7h9.2l-2.6-2.6L15 3l5 5-5 5-1.4-1.4L16.2 9H7a3 3 0 0 0 0 6h1v2H7A5 5 0 0 1 7 7Zm10 8a3 3 0 0 0 0-6h-1V7h1a5 5 0 0 1 0 10H7.8l2.6 2.6L9 21l-5-5 5-5 1.4 1.4L7.8 15H17Z"/></svg>
         <span *ngIf="repeat === 'one'" class="mb-repeat1">1</span>
       </button>
@@ -148,6 +156,26 @@
     <button class="mb-eq-toggle" [class.mb-eq-toggle-on]="reduceAnimations" (click)="toggleReduceAnimations()">
       {{ reduceAnimations ? ('MUSIC.UI_ON' | translate) : ('MUSIC.UI_OFF' | translate) }}
     </button>
+  </div>
+
+  <!-- Stream Quality -->
+  <div class="mb-eq-section">
+    <span class="mb-eq-section-label">Calidad de streaming</span>
+    <div class="mb-quality-pills">
+      <button *ngFor="let q of qualityOptions"
+              class="mb-quality-btn"
+              [class.mb-quality-active]="streamQuality === q.value"
+              (click)="setStreamQuality(q.value)"
+              [title]="q.label">
+        {{ q.value === 'low' ? '96k' : q.value === 'normal' ? '128k' : q.value === 'high' ? '192k' : 'Original' }}
+      </button>
+    </div>
+    <span class="mb-quality-hint">
+      {{ streamQuality === 'original' ? 'Sin compresión adicional' :
+         streamQuality === 'low' ? 'Ahorro máximo de datos (~2.9MB/canción)' :
+         streamQuality === 'normal' ? 'Calidad Spotify (~3.8MB/canción)' :
+         'Alta calidad Opus (~5.7MB/canción)' }}
+    </span>
   </div>
 
 </div>

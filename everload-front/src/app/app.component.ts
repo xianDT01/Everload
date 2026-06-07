@@ -73,6 +73,11 @@ export class AppComponent implements OnInit, OnDestroy {
     // Subscribe to auth state: start/stop global chat polling
     this.authSub = this.authService.currentUser$.subscribe(user => {
       if (user) {
+        // En Android (Capacitor) ir siempre al reproductor moderno
+        if (this.apiBase.isNativePlatform() && this.router.url === '/') {
+          this.router.navigate(['/modern']);
+        }
+
         this.chatService.startGlobalPolling();
         this.startHeartbeat();
 

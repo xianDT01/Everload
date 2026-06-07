@@ -51,6 +51,13 @@ public class MusicService {
             Arrays.asList("mp3", "flac", "m4a", "wav", "ogg", "aac", "opus", "wma", "alac");
 
     private static final String DJ_CACHE_DIR = "./downloads/dj_cache/";
+    private static final String TRANSCODE_CACHE_DIR = "./downloads/transcode-cache/";
+    private static final Set<String> LOSSLESS_EXTS = Set.of("flac", "wav", "aiff", "aif", "alac");
+    private static final Set<String> ALREADY_OPUS = Set.of("ogg", "opus");
+    private static final long BROWSE_RESULT_TTL_MS = 5 * 60_000L;
+    private final ConcurrentHashMap<String, Object[]> browseResultCache = new ConcurrentHashMap<>();
+    private final java.util.Set<String> transcoding = ConcurrentHashMap.newKeySet();
+    private final ExecutorService transcodePool = Executors.newFixedThreadPool(2);
     private static final long STREAM_CHUNK_SIZE_BYTES = 8L * 1024L * 1024L;
     private static final int STREAM_BUFFER_SIZE_BYTES = 256 * 1024;
     private static final Pattern HLS_SEGMENT_NAME = Pattern.compile("[A-Za-z0-9._-]+\\.(ts|m4s|aac|vtt)");
@@ -408,6 +415,12 @@ public class MusicService {
      * Audio tracks are read in batches of `size` to avoid blocking on large folders.
      */
     public PagedMusicResult listFilesWithMetadata(Long pathId, String subPath, int page, int size) {
+        String cacheKey = pathId + "|" + subPath + "|" + page + "|" + size;
+        Object[] cached = browseResultCache.get(cacheKey);
+        if (cached != null && System.currentTimeMillis() - (long) cached[1] < BROWSE_RESULT_TTL_MS) {
+            return (PagedMusicResult) cached[0];
+        }
+
         Path target = nasService.resolveValidatedPath(pathId, subPath);
         Path base   = nasService.getBasePath(pathId);
 
@@ -434,7 +447,14 @@ public class MusicService {
             warmMetadataCacheAsync(pathId, pageFiles, base, cacheMap);
         }
 
-        return new PagedMusicResult(items, totalTracks, page, size);
+        PagedMusicResult result = new PagedMusicResult(items, totalTracks, page, size);
+        if (browseResultCache.size() > 500) browseResultCache.clear();
+        browseResultCache.put(cacheKey, new Object[]{result, System.currentTimeMillis()});
+        return result;
+    }
+
+    public void invalidateBrowseCache(Long pathId) {
+        browseResultCache.keySet().removeIf(k -> k.startsWith(pathId + "|"));
     }
 
     /**
@@ -443,8 +463,7 @@ public class MusicService {
      */
     public void streamAudioToResponse(Long pathId, String relativePath,
                                       String rangeHeader, HttpServletResponse response) throws IOException {
-        File file = resolveFile(pathId, relativePath);
-        streamFileToResponse(file, rangeHeader, response);
+        streamAudioToResponse(pathId, relativePath, rangeHeader, "original", response);
     }
 
     public Map<String, Object> prepareHlsStream(Long pathId, String relativePath) {
@@ -712,7 +731,13 @@ public class MusicService {
             if (tag != null && tag.getFirstArtwork() != null) {
                 return tag.getFirstArtwork().getBinaryData();
             }
-        } catch (Exception ignored) { /* file may have no tags */ }
+        } catch (Exception ignored) {}
+        // Fallback: look for cover image in the same directory
+        File dir = file.getParentFile();
+        if (dir != null && dir.isDirectory()) {
+            byte[] fallback = readCoverImageFile(dir);
+            if (fallback != null) return fallback;
+        }
         return null;
     }
 
@@ -857,6 +882,101 @@ public class MusicService {
         File file = new File(DJ_CACHE_DIR + videoId + ".mp3");
         if (!file.exists()) throw new IllegalArgumentException("Archivo no encontrado en caché: " + videoId);
         streamFileToResponse(file, rangeHeader, response);
+    }
+
+    // ── Transcode-to-Opus streaming (Spotify-like quality tiers) ─────────────
+
+    public void streamAudioToResponse(Long pathId, String relativePath,
+                                      String rangeHeader, String quality,
+                                      HttpServletResponse response) throws IOException {
+        File file = resolveFile(pathId, relativePath);
+        if (quality == null || quality.isBlank() || "original".equals(quality)) {
+            streamFileToResponse(file, rangeHeader, response);
+            return;
+        }
+        int bitrateKbps = switch (quality) {
+            case "low"  -> 96;
+            case "high" -> 192;
+            default     -> 128; // normal
+        };
+        String ext = getExtension(file.getName());
+        // Skip transcode if already Ogg/Opus (already low-size), or high quality on non-lossless
+        if (ALREADY_OPUS.contains(ext) || ("high".equals(quality) && !LOSSLESS_EXTS.contains(ext))) {
+            streamFileToResponse(file, rangeHeader, response);
+            return;
+        }
+        try {
+            File cached = getTranscodeCache(pathId, relativePath, quality);
+            if (cached.exists()) {
+                streamFileToResponse(cached, rangeHeader, response);
+            } else {
+                // Serve original immediately — start background transcode for next play
+                streamFileToResponse(file, rangeHeader, response);
+                String jobKey = cached.getName();
+                if (transcoding.add(jobKey)) {
+                    final int bps = bitrateKbps;
+                    transcodePool.submit(() -> {
+                        try { transcodeToOggOpus(file, cached, bps); }
+                        catch (Exception ex) { log.warn("Background transcode failed for {}: {}", file.getName(), ex.getMessage()); }
+                        finally { transcoding.remove(jobKey); }
+                    });
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Stream with quality failed for {}, falling back to original: {}", file.getName(), e.getMessage());
+            streamFileToResponse(file, rangeHeader, response);
+        }
+    }
+
+    private File getTranscodeCache(Long pathId, String relativePath, String quality) {
+        try {
+            String key = pathId + ":" + relativePath + ":" + quality;
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            String hash = HexFormat.of().formatHex(md.digest(key.getBytes(StandardCharsets.UTF_8))).substring(0, 16);
+            File dir = new File(TRANSCODE_CACHE_DIR);
+            if (!dir.exists()) dir.mkdirs();
+            return new File(dir, hash + "_" + quality + ".ogg");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void transcodeToOggOpus(File input, File output, int bitrateKbps) throws IOException, InterruptedException {
+        File tmp = new File(output.getPath() + ".tmp");
+        String[] cmd = {
+            "ffmpeg", "-y",
+            "-i", input.getAbsolutePath(),
+            "-vn",
+            "-c:a", "libopus",
+            "-b:a", bitrateKbps + "k",
+            "-ac", "2",
+            "-ar", "48000",
+            "-f", "ogg",
+            tmp.getAbsolutePath()
+        };
+        Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+        p.getInputStream().transferTo(OutputStream.nullOutputStream());
+        int exit = p.waitFor();
+        if (exit != 0 || !tmp.exists()) { tmp.delete(); throw new IOException("ffmpeg exit=" + exit); }
+        Files.move(tmp.toPath(), output.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        log.info("Transcoded {} → {}kbps Opus ({}MB)", input.getName(), bitrateKbps, output.length() / 1_048_576);
+    }
+
+    private static String getExtension(String name) {
+        int i = name.lastIndexOf('.');
+        return i >= 0 ? name.substring(i + 1).toLowerCase() : "";
+    }
+
+    /** Cleanup transcode cache files older than 7 days (called by scheduler). */
+    public void cleanTranscodeCache() {
+        File dir = new File(TRANSCODE_CACHE_DIR);
+        if (!dir.exists()) return;
+        long cutoff = System.currentTimeMillis() - 7L * 86_400_000L;
+        File[] files = dir.listFiles();
+        if (files == null) return;
+        int deleted = 0;
+        for (File f : files) { if (f.lastModified() < cutoff) { f.delete(); deleted++; } }
+        if (deleted > 0) log.info("Transcode cache: deleted {} stale files", deleted);
     }
 
     // ── Core streaming ────────────────────────────────────────────────────────

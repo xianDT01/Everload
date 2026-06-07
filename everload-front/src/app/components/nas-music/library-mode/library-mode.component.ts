@@ -342,6 +342,15 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ytFormat = 'mp3';
   ytDownloadingIds = new Set<string>();
 
+  // ── Stream quality ────────────────────────────────────────────────────────
+  readonly qualityOptions = MusicService.QUALITY_OPTIONS;
+  streamQuality = localStorage.getItem('streamQuality') || 'original';
+
+  setStreamQuality(q: string) {
+    this.musicService.setStreamQuality(q);
+    this.streamQuality = q;
+  }
+
   // ── Visualizer (sidebar mini) ─────────────────────────────────────────────
   vizActive = false;
   playerSkin: PlayerSkin = 'xp';

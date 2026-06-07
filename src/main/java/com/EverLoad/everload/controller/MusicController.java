@@ -248,15 +248,16 @@ public class MusicController {
      * The JWT token can be passed as ?token= query param because HTMLAudioElement
      * cannot set custom request headers.
      */
-    @Operation(summary = "Streaming de audio con soporte Accept-Ranges")
+    @Operation(summary = "Streaming de audio con soporte Accept-Ranges y calidad configurable")
     @GetMapping("/stream")
     @PreAuthorize("isAuthenticated()")
     public void streamAudio(@RequestParam Long pathId,
                             @RequestParam String subPath,
+                            @RequestParam(required = false, defaultValue = "original") String quality,
                             @RequestHeader(value = "Range", required = false) String rangeHeader,
                             HttpServletResponse response) {
         try {
-            musicService.streamAudioToResponse(pathId, subPath, rangeHeader, response);
+            musicService.streamAudioToResponse(pathId, subPath, rangeHeader, quality, response);
         } catch (SecurityException e) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         } catch (IllegalArgumentException e) {
