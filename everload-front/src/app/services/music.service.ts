@@ -911,13 +911,17 @@ export class MusicService {
   // Shuffle & Repeat
   private _shuffle = false;
   private _repeat: 'none' | 'one' | 'all' = 'none';
+  private _ytMusicAutomix = true;
   private shuffleOrder: number[] = [];
   private shuffleSubj  = new BehaviorSubject<boolean>(false);
   private repeatSubj   = new BehaviorSubject<'none' | 'one' | 'all'>('none');
+  private ytMusicAutomixSubj = new BehaviorSubject<boolean>(true);
   public shuffle$ = this.shuffleSubj.asObservable();
   public repeat$  = this.repeatSubj.asObservable();
+  public ytMusicAutomix$ = this.ytMusicAutomixSubj.asObservable();
   get shuffle() { return this._shuffle; }
   get repeat()  { return this._repeat; }
+  get ytMusicAutomix() { return this._ytMusicAutomix; }
 
   nowPlayingPanelOpen = false;
   globalPlayerHidden = false;
@@ -948,6 +952,8 @@ export class MusicService {
   private nativeAudioLastKey = '';
   private browseCache = new Map<string, { result: PagedMusicResult; timestamp: number }>();
   private readonly browseCacheTtlMs = 15_000;
+  private ytMusicMixLoadingFor: string | null = null;
+  private ytMusicMixLoadedSeeds = new Set<string>();
 
   constructor(private http: HttpClient, private auth: AuthService, private apiBase: ApiBaseService) {
     this.mainPlayer  = new DeckPlayer(this, 'main');
@@ -1160,6 +1166,7 @@ export class MusicService {
       const savedQueue = localStorage.getItem('ev_queue');
       const savedRepeat = localStorage.getItem('ev_repeat');
       const savedShuffle = localStorage.getItem('ev_shuffle');
+      const savedYtMusicAutomix = localStorage.getItem('ev_ytmusic_automix');
       if (savedQueue) {
         const q = JSON.parse(savedQueue);
         if (q && q.tracks && q.tracks.length > 0) {
@@ -1172,6 +1179,10 @@ export class MusicService {
         this.shuffleSubj.next(this._shuffle);
         if (this._shuffle) this.buildShuffleOrder();
       }
+      if (savedYtMusicAutomix != null) {
+        this._ytMusicAutomix = savedYtMusicAutomix !== 'false';
+        this.ytMusicAutomixSubj.next(this._ytMusicAutomix);
+      }
     } catch (e) {
       console.warn('Could not load player state from localStorage', e);
     }
@@ -1182,6 +1193,7 @@ export class MusicService {
       localStorage.setItem('ev_queue', JSON.stringify(this.queueSubj.value));
       localStorage.setItem('ev_repeat', this._repeat);
       localStorage.setItem('ev_shuffle', String(this._shuffle));
+      localStorage.setItem('ev_ytmusic_automix', String(this._ytMusicAutomix));
     } catch (e) {}
   }
 
@@ -1197,6 +1209,13 @@ export class MusicService {
     this._repeat = modes[(modes.indexOf(this._repeat) + 1) % modes.length];
     this.repeatSubj.next(this._repeat);
     this.persistState();
+  }
+
+  toggleYtMusicAutomix() {
+    this._ytMusicAutomix = !this._ytMusicAutomix;
+    this.ytMusicAutomixSubj.next(this._ytMusicAutomix);
+    this.persistState();
+    if (this._ytMusicAutomix) this.ensureYtMusicAutomix();
   }
 
   private buildShuffleOrder() {
@@ -1844,7 +1863,6 @@ export class MusicService {
   private setupPreloading(): void {
     this.mainPlayer.state$.subscribe(state => {
       if (!state.currentTrack || !state.duration || state.duration < 1) return;
-      if (state.currentTrack.source === 'youtube' || state.currentTrack.source === 'ytmusic') return;
 
       // Reset triggers when track changes
       if (state.currentTrack.path !== this.preloadTriggeredForPath &&
@@ -1861,6 +1879,12 @@ export class MusicService {
 
       const timeLeft = state.duration - state.currentTime;
       if (timeLeft <= 0) return;
+
+      if (state.currentTrack.source === 'ytmusic' && timeLeft <= 45) {
+        this.ensureYtMusicAutomix();
+      }
+
+      if (state.currentTrack.source === 'youtube' || state.currentTrack.source === 'ytmusic') return;
 
       // Auto-crossfade: schedule fade-out when we enter the crossfade window
       if (this.crossfadeDuration > 0 && state.playing &&
@@ -1948,6 +1972,52 @@ export class MusicService {
     }, delayMs);
   }
 
+  private ensureYtMusicAutomix(playWhenReady = false): void {
+    if (!this._ytMusicAutomix) return;
+    const q = this.queueSubj.value;
+    const currentIndex = this.resolveQueueIndex();
+    const currentTrack = q.tracks[currentIndex] || this.mainPlayer.state.currentTrack;
+    if (!currentTrack || currentTrack.source !== 'ytmusic' || !currentTrack.path) return;
+    if (this._repeat === 'one' || this._repeat === 'all') return;
+    if (q.tracks.some(t => t.source !== 'ytmusic')) return;
+
+    const hasNext = this._shuffle
+      ? this.shuffleOrder.indexOf(currentIndex) >= 0 && this.shuffleOrder.indexOf(currentIndex) < this.shuffleOrder.length - 1
+      : currentIndex < q.tracks.length - 1;
+    if (hasNext) return;
+
+    const seed = currentTrack.path;
+    if (this.ytMusicMixLoadingFor === seed || this.ytMusicMixLoadedSeeds.has(seed)) return;
+    this.ytMusicMixLoadingFor = seed;
+
+    this.startYtMusicMix(seed).subscribe({
+      next: res => {
+        this.ytMusicMixLoadingFor = null;
+        this.ytMusicMixLoadedSeeds.add(seed);
+        const current = this.queueSubj.value;
+        const currentTrackNow = this.mainPlayer.state.currentTrack;
+        if (!currentTrackNow || currentTrackNow.source !== 'ytmusic') return;
+
+        const known = new Set(current.tracks.map(t => t.path));
+        const additions = this.toYtMusicQueue(res.items || []).filter(t => t.path && !known.has(t.path));
+        if (!additions.length) return;
+
+        const indexNow = this.resolveQueueIndex();
+        const nextQueue = [...current.tracks, ...additions];
+        this.updateQueue(current.pathId, nextQueue, indexNow);
+        additions.slice(0, 2).forEach(t => this.prefetchYtMusicStream(t.path));
+
+        const stillAtEnd = indexNow >= current.tracks.length - 1;
+        if (playWhenReady && stillAtEnd && !this.mainPlayer.state.playing) {
+          this.advanceToTrack(current.pathId, nextQueue, indexNow + 1);
+        }
+      },
+      error: () => {
+        this.ytMusicMixLoadingFor = null;
+      }
+    });
+  }
+
   // ── Queue / Library controls ──────────────────────────────────────────────
 
   setQueue(pathId: number, tracks: MusicMetadataDto[], index: number) {
@@ -1959,6 +2029,7 @@ export class MusicService {
       this.mainPlayer.load(tracks[index], pathId).then(() => {
         this.mainPlayer.play();
         this.scheduleNextPreload();
+        if (tracks[index]?.source === 'ytmusic') this.ensureYtMusicAutomix();
       });
     }
   }
@@ -1980,6 +2051,7 @@ export class MusicService {
       this.mainPlayer.load(tracks[index], pathId).then(() => {
         this.mainPlayer.play();
         this.scheduleNextPreload();
+        if (tracks[index]?.source === 'ytmusic') this.ensureYtMusicAutomix();
       });
     }
   }
@@ -2017,12 +2089,16 @@ export class MusicService {
       } else if (this._repeat === 'all') {
         this.buildShuffleOrder();
         this.advanceToTrack(q.pathId, q.tracks, this.shuffleOrder[0]);
+      } else {
+        this.ensureYtMusicAutomix(true);
       }
     } else {
       if (currentIndex < q.tracks.length - 1) {
         this.setQueue(q.pathId, q.tracks, currentIndex + 1);
       } else if (this._repeat === 'all') {
         this.setQueue(q.pathId, q.tracks, 0);
+      } else {
+        this.ensureYtMusicAutomix(true);
       }
     }
   }

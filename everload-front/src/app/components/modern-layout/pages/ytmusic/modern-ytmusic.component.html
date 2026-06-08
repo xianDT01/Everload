@@ -4,9 +4,18 @@
       <h1>{{ 'MUSIC.YTMUSIC_TITLE' | translate }}</h1>
       <p>{{ 'MUSIC.YTMUSIC_SUBTITLE' | translate }}</p>
     </div>
-    <button class="mytm-refresh" type="button" (click)="loadDiscover()" [title]="'MUSIC.YTMUSIC_REFRESH' | translate">
-      <svg viewBox="0 0 24 24"><path d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h8V3l-3.3 3.3Z"/></svg>
-    </button>
+    <div class="mytm-header-actions">
+      <button class="mytm-refresh"
+              type="button"
+              [class.active]="music.ytMusicAutomix"
+              (click)="music.toggleYtMusicAutomix()"
+              [title]="'MUSIC.YTMUSIC_AUTOMIX' | translate">
+        <svg viewBox="0 0 24 24"><path d="M13 3a1 1 0 0 1 1 1v1.1a7 7 0 0 1 0 13.8V20a1 1 0 1 1-2 0v-1.1a7 7 0 0 1-5.84-4.08 1 1 0 1 1 1.84-.78A5 5 0 0 0 12 16.9V14a1 1 0 1 1 2 0v2.9A5 5 0 0 0 14 7.1V10a1 1 0 1 1-2 0V7.1a5 5 0 0 0-4.62 3.08 1 1 0 1 1-1.84-.78A7 7 0 0 1 12 5.1V4a1 1 0 0 1 1-1Z"/></svg>
+      </button>
+      <button class="mytm-refresh" type="button" (click)="loadDiscover()" [title]="'MUSIC.YTMUSIC_REFRESH' | translate">
+        <svg viewBox="0 0 24 24"><path d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h8V3l-3.3 3.3Z"/></svg>
+      </button>
+    </div>
   </div>
 
   <div class="mytm-search">

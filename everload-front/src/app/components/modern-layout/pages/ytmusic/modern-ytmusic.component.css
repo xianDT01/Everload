@@ -23,6 +23,12 @@
   font-size: 13px;
 }
 
+.mytm-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .mytm-refresh,
 .mytm-section-head button,
 .mytm-more,
@@ -42,6 +48,12 @@
   padding: 0;
   display: grid;
   place-items: center;
+}
+
+.mytm-refresh.active {
+  color: var(--color-indigo-300);
+  border-color: color-mix(in srgb, var(--color-indigo-400) 38%, transparent);
+  background: color-mix(in srgb, var(--color-indigo-500) 18%, transparent);
 }
 
 .mytm-refresh svg,
