@@ -30,6 +30,7 @@ export class ModernFullscreenComponent implements OnInit, OnDestroy {
   state: PlayerState | null = null;
   shuffle = false;
   repeat: 'none' | 'one' | 'all' = 'none';
+  readonly speedOptions = [0.75, 1, 1.25, 1.5, 2];
 
   // Queue
   queueTracks: MusicMetadataDto[] = [];
@@ -126,6 +127,7 @@ export class ModernFullscreenComponent implements OnInit, OnDestroy {
   get currentTime(): number { return this.state?.currentTime ?? 0; }
   get duration(): number { return this.state?.duration ?? 0; }
   get volume(): number { return this.state?.volume ?? 1; }
+  get playbackRate(): number { return this.state?.playbackRate ?? 1; }
   get progress(): number { return this.duration > 0 ? (this.currentTime / this.duration) * 100 : 0; }
 
   get coverUrl(): string {
@@ -145,6 +147,7 @@ export class ModernFullscreenComponent implements OnInit, OnDestroy {
   next() { this.music.playNextMain(); }
   toggleShuffle() { this.music.toggleShuffle(); }
   toggleRepeat() { this.music.toggleRepeat(); }
+  setPlaybackRate(rate: number) { this.music.mainPlayer.setPlaybackRate(rate); }
 
   onSeek(e: Event) {
     const v = +(e.target as HTMLInputElement).value;
@@ -189,7 +192,7 @@ export class ModernFullscreenComponent implements OnInit, OnDestroy {
     this.lrcLines = [];
     this.plainLyrics = '';
     const pathId = this.state?.pathId ?? t.nasPathId ?? 0;
-    this.music.getLyrics(pathId, t.path, t.title || t.name, t.artist, t.duration)
+    this.music.getLyrics(pathId, t.path, t.title || t.name, t.artist, t.duration, t.source)
       .subscribe({
         next: res => {
           this.lyricsSource = res.source;

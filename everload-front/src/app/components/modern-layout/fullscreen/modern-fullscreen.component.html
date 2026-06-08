@@ -79,6 +79,16 @@
                  [value]="volume * 100" (input)="onVolume($event)" />
         </div>
       </div>
+
+      <div class="mfs-speed-row" *ngIf="track">
+        <button type="button"
+                class="mfs-speed"
+                *ngFor="let speed of speedOptions"
+                [class.mfs-speed-active]="playbackRate === speed"
+                (click)="setPlaybackRate(speed)">
+          {{ speed }}x
+        </button>
+      </div>
     </div>
 
     <!-- Right: tabs -->

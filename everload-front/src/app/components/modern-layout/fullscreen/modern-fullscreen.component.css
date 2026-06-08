@@ -225,6 +225,33 @@
   overflow: hidden;
 }
 
+.mfs-speed-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.mfs-speed {
+  min-width: 44px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
+  background: color-mix(in srgb, var(--color-white) 4%, transparent);
+  color: var(--color-slate-400);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mfs-speed:hover,
+.mfs-speed-active {
+  color: var(--color-white);
+  border-color: color-mix(in srgb, var(--color-white) 22%, transparent);
+  background: color-mix(in srgb, var(--color-white) 9%, transparent);
+}
+
 .mfs-tabs {
   display: flex;
   gap: 4px;

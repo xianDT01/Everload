@@ -16,8 +16,11 @@ import org.springframework.web.client.RestTemplate;
 
 import org.springframework.core.io.FileSystemResource;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -428,42 +431,103 @@ public class MusicController {
             @RequestParam String subPath,
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String artist,
-            @RequestParam(required = false, defaultValue = "0") int duration) {
+            @RequestParam(required = false, defaultValue = "0") int duration,
+            @RequestParam(required = false) String source) {
 
         // 1. Look for a .lrc sidecar file next to the audio file
-        String lrc = musicService.findLrcSidecar(pathId, subPath);
-        if (lrc != null) {
-            return ResponseEntity.ok(Map.of("source", "file", "lrc", lrc));
+        if (pathId != null && pathId >= 0 && !"ytmusic".equalsIgnoreCase(source)) {
+            String lrc = musicService.findLrcSidecar(pathId, subPath);
+            if (lrc != null) {
+                return ResponseEntity.ok(Map.of("source", "file", "lrc", lrc));
+            }
         }
 
-        // 2. Fallback: query LRCLIB (free, no key required)
+        // 2. Fallback: query LRCLIB (free, no key required). For streaming-only
+        // sources such as YouTube Music there is no local sidecar, so we go here directly.
         if (title != null && !title.isBlank()) {
-            try {
-                String url = "https://lrclib.net/api/get?track_name=" +
-                        java.net.URLEncoder.encode(title, java.nio.charset.StandardCharsets.UTF_8) +
-                        (artist != null && !artist.isBlank()
-                                ? "&artist_name=" + java.net.URLEncoder.encode(artist, java.nio.charset.StandardCharsets.UTF_8)
-                                : "") +
-                        (duration > 0 ? "&duration=" + duration : "");
-
-                RestTemplate rt = new RestTemplate();
-                HttpHeaders h = new HttpHeaders();
-                h.set("User-Agent", "EverLoad/1.0 (https://github.com/everload)");
-                ResponseEntity<Map> resp = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class);
-
-                if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
-                    Object syncedLyrics = resp.getBody().get("syncedLyrics");
-                    Object plainLyrics  = resp.getBody().get("plainLyrics");
-                    if (syncedLyrics != null) {
-                        return ResponseEntity.ok(Map.of("source", "lrclib", "lrc", syncedLyrics));
-                    }
-                    if (plainLyrics != null) {
-                        return ResponseEntity.ok(Map.of("source", "lrclib_plain", "plain", plainLyrics));
-                    }
-                }
-            } catch (Exception ignored) {}
+            Map<String, Object> lyrics = fetchLrclibLyrics(title, artist, duration);
+            if (lyrics != null) return ResponseEntity.ok(lyrics);
         }
 
         return ResponseEntity.ok(Map.of("source", "none"));
+    }
+
+    private Map<String, Object> fetchLrclibLyrics(String title, String artist, int duration) {
+        RestTemplate rt = new RestTemplate();
+        HttpHeaders h = new HttpHeaders();
+        h.set("User-Agent", "EverLoad/1.0 (https://github.com/everload)");
+
+        try {
+            String url = "https://lrclib.net/api/get?track_name=" + enc(cleanLyricsTerm(title)) +
+                    (artist != null && !artist.isBlank() ? "&artist_name=" + enc(cleanLyricsTerm(artist)) : "") +
+                    (duration > 0 ? "&duration=" + duration : "");
+            ResponseEntity<Map> resp = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class);
+            Map<String, Object> mapped = mapLrclibBody(resp.getBody());
+            if (mapped != null) return mapped;
+        } catch (Exception ignored) {}
+
+        try {
+            String query = cleanLyricsTerm(title + " " + (artist == null ? "" : artist)).trim();
+            if (query.isBlank()) return null;
+            ResponseEntity<Map[]> resp = rt.exchange(
+                    "https://lrclib.net/api/search?q=" + enc(query),
+                    HttpMethod.GET,
+                    new HttpEntity<>(h),
+                    Map[].class
+            );
+            Map[] body = resp.getBody();
+            if (body == null || body.length == 0) return null;
+            return java.util.Arrays.stream(body)
+                    .filter(item -> item != null && hasAnyLyrics(item))
+                    .min(Comparator.comparingInt(item -> lyricsDistance(item, title, artist, duration)))
+                    .map(this::mapLrclibBody)
+                    .orElse(null);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Map<String, Object> mapLrclibBody(Map body) {
+        if (body == null) return null;
+        Object syncedLyrics = body.get("syncedLyrics");
+        Object plainLyrics = body.get("plainLyrics");
+        if (syncedLyrics instanceof String synced && !synced.isBlank()) {
+            return Map.of("source", "lrclib", "lrc", synced);
+        }
+        if (plainLyrics instanceof String plain && !plain.isBlank()) {
+            return Map.of("source", "lrclib_plain", "plain", plain);
+        }
+        return null;
+    }
+
+    private boolean hasAnyLyrics(Map item) {
+        return item.get("syncedLyrics") instanceof String synced && !synced.isBlank()
+                || item.get("plainLyrics") instanceof String plain && !plain.isBlank();
+    }
+
+    private int lyricsDistance(Map item, String title, String artist, int duration) {
+        String foundTitle = String.valueOf(item.getOrDefault("trackName", ""));
+        String foundArtist = String.valueOf(item.getOrDefault("artistName", ""));
+        int score = cleanLyricsTerm(foundTitle).equalsIgnoreCase(cleanLyricsTerm(title)) ? 0 : 20;
+        if (artist != null && !artist.isBlank()
+                && cleanLyricsTerm(foundArtist).toLowerCase().contains(cleanLyricsTerm(artist).toLowerCase())) {
+            score -= 10;
+        }
+        if (duration > 0 && item.get("duration") instanceof Number n) {
+            score += Math.min(30, Math.abs(n.intValue() - duration));
+        }
+        return score;
+    }
+
+    private String cleanLyricsTerm(String value) {
+        return (value == null ? "" : value)
+                .replaceAll("(?i)\\s*\\((official\\s*(music\\s*)?video|official\\s*audio|lyric\\s*video|visualizer|remaster(ed)?|audio|video)\\)", "")
+                .replaceAll("(?i)\\s*-\\s*(official\\s*(music\\s*)?video|official\\s*audio|lyric\\s*video|visualizer|remaster(ed)?|audio|video).*", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private String enc(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

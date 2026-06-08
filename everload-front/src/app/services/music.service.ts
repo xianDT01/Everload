@@ -1831,11 +1831,12 @@ export class MusicService {
     return this.http.delete<ArtistProfileDto>(`${this.artistApi}/${id}/image`);
   }
 
-  getLyrics(pathId: number, subPath: string, title?: string, artist?: string, duration?: number): Observable<{ source: string; lrc?: string; plain?: string }> {
+  getLyrics(pathId: number, subPath: string, title?: string, artist?: string, duration?: number, source?: string): Observable<{ source: string; lrc?: string; plain?: string }> {
     let url = `${this.api}/lyrics?pathId=${pathId}&subPath=${encodeURIComponent(subPath)}`;
     if (title)    url += `&title=${encodeURIComponent(title)}`;
     if (artist)   url += `&artist=${encodeURIComponent(artist)}`;
     if (duration) url += `&duration=${Math.round(duration)}`;
+    if (source)   url += `&source=${encodeURIComponent(source)}`;
     return this.http.get<{ source: string; lrc?: string; plain?: string }>(url);
   }
 
