@@ -43,16 +43,27 @@ RUN ./mvnw clean package -DskipTests || mvn clean package -DskipTests
 FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
+# Versión del binario rustypipe-botguard a instalar (ver releases en Codeberg).
+ARG BOTGUARD_VERSION=v0.1.2
+
 # Instala yt-dlp + ffmpeg + python3 + node.js (runtime JS para yt-dlp) + chromaprint
+# + rustypipe-botguard: genera los tokens PO que permiten resolver streams sin
+# pasar por el fallback yt-dlp (mucho más lento, ~7s por canción al arrancar).
 RUN apt-get update && \
-    apt-get install -y wget ffmpeg python3 nodejs libchromaprint-tools && \
+    apt-get install -y wget xz-utils ffmpeg python3 nodejs libchromaprint-tools && \
     wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp && \
+    wget -q "https://codeberg.org/ThetaDev/rustypipe-botguard/releases/download/${BOTGUARD_VERSION}/rustypipe-botguard-${BOTGUARD_VERSION}-x86_64-unknown-linux-gnu.tar.xz" -O /tmp/botguard.tar.xz && \
+    mkdir -p /tmp/botguard && tar -xJf /tmp/botguard.tar.xz -C /tmp/botguard && \
+    find /tmp/botguard -type f -name 'rustypipe-botguard*' -exec install -m 0755 {} /usr/local/bin/rustypipe-botguard \; && \
+    ln -s /usr/local/bin/rustypipe-botguard /usr/bin/rustypipe-botguard && \
+    rm -rf /tmp/botguard /tmp/botguard.tar.xz && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Variable para que el backend sepa dónde está yt-dlp
+# Variables para que el backend sepa dónde están yt-dlp y rustypipe-botguard
 ENV everload.ytdlp.path=/usr/local/bin/yt-dlp
+ENV YTMUSIC_BOTGUARD_PATH=/usr/local/bin/rustypipe-botguard
 
 # Copia el .jar compilado desde la etapa anterior
 COPY --from=backend-build /app/target/*.jar app.jar

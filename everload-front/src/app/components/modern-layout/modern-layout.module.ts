@@ -17,6 +17,7 @@ import { ModernFavoritesComponent } from './pages/favorites/modern-favorites.com
 import { ModernActivityComponent } from './pages/activity/modern-activity.component';
 import { ModernSearchComponent } from './pages/search/modern-search.component';
 import { ModernDownloadsComponent } from './pages/downloads/modern-downloads.component';
+import { ModernYtMusicComponent } from './pages/ytmusic/modern-ytmusic.component';
 import { ModernSettingsComponent } from './pages/settings/modern-settings.component';
 import { ModernQueueComponent } from './queue/modern-queue.component';
 import { ModernFullscreenComponent } from './fullscreen/modern-fullscreen.component';
@@ -34,6 +35,7 @@ const routes: Routes = [
       { path: 'favorites', component: ModernFavoritesComponent },
       { path: 'activity',  component: ModernActivityComponent },
       { path: 'search',    component: ModernSearchComponent },
+      { path: 'ytmusic',   component: ModernYtMusicComponent },
       { path: 'downloads', component: ModernDownloadsComponent },
       { path: 'settings',  component: ModernSettingsComponent },
     ]
@@ -53,6 +55,7 @@ const routes: Routes = [
     ModernFavoritesComponent,
     ModernActivityComponent,
     ModernSearchComponent,
+    ModernYtMusicComponent,
     ModernDownloadsComponent,
     ModernSettingsComponent,
     ModernQueueComponent,

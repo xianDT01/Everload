@@ -1,0 +1,146 @@
+<div class="mytm-page">
+  <div class="mytm-header">
+    <div>
+      <h1>{{ 'MUSIC.YTMUSIC_TITLE' | translate }}</h1>
+      <p>{{ 'MUSIC.YTMUSIC_SUBTITLE' | translate }}</p>
+    </div>
+    <button class="mytm-refresh" type="button" (click)="loadDiscover()" [title]="'MUSIC.YTMUSIC_REFRESH' | translate">
+      <svg viewBox="0 0 24 24"><path d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h8V3l-3.3 3.3Z"/></svg>
+    </button>
+  </div>
+
+  <div class="mytm-search">
+    <svg viewBox="0 0 24 24"><path d="M10.5 4a6.5 6.5 0 0 1 5.12 10.5l4.44 4.44-1.42 1.42-4.44-4.44A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+    <input type="search" [(ngModel)]="query" (input)="onSearchInput()" [placeholder]="'MUSIC.YTMUSIC_SEARCH_PLACEHOLDER' | translate" />
+  </div>
+
+  <div class="mytm-tabs">
+    <button type="button" [class.active]="mode === 'discover'" (click)="loadDiscover()">{{ 'MUSIC.YTMUSIC_TAB_HOME' | translate }}</button>
+    <button type="button" [class.active]="mode === 'search'" [disabled]="!query.trim()" (click)="search()">{{ 'MUSIC.YTMUSIC_TAB_SEARCH' | translate }}</button>
+    <button type="button" [class.active]="false" [disabled]="!history.length" (click)="playTrack(history[0], history)">{{ 'MUSIC.YTMUSIC_TAB_HISTORY' | translate }}</button>
+  </div>
+
+  <div class="mytm-error" *ngIf="error">{{ error }}</div>
+  <div class="mytm-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
+
+  <ng-container *ngIf="!loading">
+    <section class="mytm-section" *ngIf="mode === 'discover'">
+      <div class="mytm-shelf" *ngFor="let shelf of shelves">
+        <div class="mytm-shelf-head">
+          <div>
+            <h2>{{ shelf.title }}</h2>
+            <p *ngIf="shelf.strapline">{{ shelf.strapline }}</p>
+          </div>
+        </div>
+
+        <div class="mytm-card-row">
+          <button class="mytm-card" type="button" *ngFor="let item of shelf.items" (click)="openItem(item)">
+            <span class="mytm-card-img">
+              <img *ngIf="itemImage(item)" [src]="itemImage(item)" alt="" />
+            </span>
+            <span class="mytm-card-title">{{ item.title }}</span>
+            <span class="mytm-card-sub">{{ item.subtitle || item.type }}</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="mytm-more" type="button" *ngIf="continuation" (click)="loadMore()" [disabled]="loadingMore">
+        {{ (loadingMore ? 'COMMON.LOADING' : 'MUSIC.YTMUSIC_LOAD_MORE') | translate }}
+      </button>
+    </section>
+
+    <section class="mytm-section" *ngIf="mode === 'search'">
+      <div class="mytm-section-head">
+        <h2>{{ 'MUSIC.YTMUSIC_RESULTS' | translate }}</h2>
+        <button type="button" *ngIf="results.length" (click)="playTracks(results, 0)">{{ 'MUSIC.MODERN_PLAY_ALL' | translate }}</button>
+      </div>
+      <ng-container *ngTemplateOutlet="trackList; context: { tracks: results }"></ng-container>
+      <div class="mytm-empty" *ngIf="!results.length && query.trim()">{{ 'MUSIC.MODERN_NO_RESULTS' | translate }}</div>
+    </section>
+
+    <section class="mytm-detail" *ngIf="mode === 'album' && album">
+      <div class="mytm-hero">
+        <img *ngIf="album.thumbnailUrl" [src]="album.thumbnailUrl" alt="" />
+        <div>
+          <span>{{ 'MUSIC.YTMUSIC_ALBUM' | translate }}</span>
+          <h2>{{ album.title }}</h2>
+          <p>{{ album.artist }} <ng-container *ngIf="album.year">· {{ album.year }}</ng-container></p>
+          <button type="button" (click)="playTracks(album.tracks, 0)">{{ 'MUSIC.MODERN_PLAY' | translate }}</button>
+        </div>
+      </div>
+      <ng-container *ngTemplateOutlet="trackList; context: { tracks: tracksForCurrentView() }"></ng-container>
+    </section>
+
+    <section class="mytm-detail" *ngIf="mode === 'playlist' && playlist">
+      <div class="mytm-hero">
+        <img *ngIf="playlist.thumbnailUrl" [src]="playlist.thumbnailUrl" alt="" />
+        <div>
+          <span>{{ 'MUSIC.YTMUSIC_PUBLIC_PLAYLIST' | translate }}</span>
+          <h2>{{ playlist.title }}</h2>
+          <p>{{ 'MUSIC.YTMUSIC_TRACK_COUNT' | translate:{ count: playlist.tracks.length } }}</p>
+          <button type="button" (click)="playTracks(playlist.tracks, 0)">{{ 'MUSIC.MODERN_PLAY' | translate }}</button>
+        </div>
+      </div>
+      <ng-container *ngTemplateOutlet="trackList; context: { tracks: tracksForCurrentView() }"></ng-container>
+    </section>
+
+    <section class="mytm-detail" *ngIf="mode === 'artist' && artist">
+      <div class="mytm-hero">
+        <img *ngIf="artist.thumbnailUrl" [src]="artist.thumbnailUrl" alt="" />
+        <div>
+          <span>{{ 'MUSIC.MODERN_ARTIST' | translate }}</span>
+          <h2>{{ artist.name }}</h2>
+          <p>{{ artist.description }}</p>
+          <button type="button" *ngIf="artist.topSongs.length" (click)="playTracks(artist.topSongs, 0)">{{ 'MUSIC.YTMUSIC_PLAY_TOP' | translate }}</button>
+        </div>
+      </div>
+
+      <div class="mytm-section-head">
+        <h2>{{ 'MUSIC.MODERN_SONGS' | translate }}</h2>
+      </div>
+      <ng-container *ngTemplateOutlet="trackList; context: { tracks: tracksForCurrentView() }"></ng-container>
+
+      <div class="mytm-section-head" *ngIf="artist.albums.length">
+        <h2>{{ 'MUSIC.MODERN_SIDEBAR_ALBUMS' | translate }}</h2>
+      </div>
+      <div class="mytm-card-row" *ngIf="artist.albums.length">
+        <button class="mytm-card" type="button" *ngFor="let a of artist.albums" (click)="loadAlbum(a.browseId)">
+          <span class="mytm-card-img"><img *ngIf="a.thumbnailUrl" [src]="a.thumbnailUrl" alt="" /></span>
+          <span class="mytm-card-title">{{ a.title }}</span>
+          <span class="mytm-card-sub">{{ a.year || a.artist }}</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="mytm-section" *ngIf="history.length">
+      <div class="mytm-section-head">
+        <h2>{{ 'MUSIC.YTMUSIC_RECENT_HISTORY' | translate }}</h2>
+        <button type="button" (click)="clearHistory()">{{ 'MUSIC.YTMUSIC_CLEAR' | translate }}</button>
+      </div>
+      <ng-container *ngTemplateOutlet="trackList; context: { tracks: history }"></ng-container>
+    </section>
+  </ng-container>
+
+  <ng-template #trackList let-tracks="tracks">
+    <div class="mytm-track-list" *ngIf="tracks.length">
+      <div class="mytm-track" *ngFor="let t of tracks; let i = index; trackBy: trackByPath" (dblclick)="playTrack(t, tracks)">
+        <button class="mytm-play" type="button" (click)="playTrack(t, tracks)" [title]="'MUSIC.MODERN_PLAY' | translate">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
+        </button>
+        <span class="mytm-cover"><img *ngIf="cover(t)" [src]="cover(t)" alt="" /></span>
+        <span class="mytm-meta">
+          <span class="mytm-title">{{ t.title || t.name }}</span>
+          <button class="mytm-artist-link" type="button" (click)="resolveArtist(t.artist); $event.stopPropagation()">{{ t.artist }}</button>
+        </span>
+        <span class="mytm-album">{{ t.album }}</span>
+        <span class="mytm-duration">{{ fmt(t.duration) }}</span>
+        <button class="mytm-icon-btn" type="button" (click)="appendTrack(t)" [title]="'MUSIC.YTMUSIC_ADD_TO_QUEUE' | translate">
+          <svg viewBox="0 0 24 24"><path d="M4 6h10v2H4V6Zm0 5h10v2H4v-2Zm0 5h7v2H4v-2Zm13-7h2v4h4v2h-4v4h-2v-4h-4v-2h4V9Z"/></svg>
+        </button>
+        <button class="mytm-icon-btn" type="button" (click)="startMix(t)" [title]="'MUSIC.YTMUSIC_RADIO' | translate">
+          <svg viewBox="0 0 24 24"><path d="M4 7h3l4 10h2l4-10h3v2h-1.6l-4 10h-4.8l-4-10H4V7Zm8-3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z"/></svg>
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</div>

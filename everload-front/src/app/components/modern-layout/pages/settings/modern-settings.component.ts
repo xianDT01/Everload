@@ -26,7 +26,7 @@ export type ChannelMode = 'stereo' | 'mono' | 'left' | 'right' | 'swap';
 
 export const DEFAULT_SIDEBAR_ORDER = [
   'home', 'search', 'library', 'albums', 'artists',
-  'playlists', 'favorites', 'activity', 'downloads', 'settings',
+  'playlists', 'favorites', 'activity', 'ytmusic', 'downloads', 'settings',
 ];
 
 @Component({
@@ -62,7 +62,7 @@ export class ModernSettingsComponent implements OnInit {
     home: 'Home', search: 'Search', library: 'Library',
     albums: 'Albums', artists: 'Artists', playlists: 'Playlists',
     favorites: 'Favorites', activity: 'Activity',
-    downloads: 'Downloads', settings: 'Settings',
+    ytmusic: 'Explore', downloads: 'Downloads', settings: 'Settings',
   };
 
   constructor(public music: MusicService, private translate: TranslateService) {}

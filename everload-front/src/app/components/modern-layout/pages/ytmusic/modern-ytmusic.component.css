@@ -1,0 +1,304 @@
+.mytm-page {
+  padding: 28px 32px 44px;
+  color: var(--color-white);
+  min-width: 0;
+}
+
+.mytm-header,
+.mytm-section-head,
+.mytm-shelf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mytm-header { margin-bottom: 20px; }
+.mytm-header h1 { margin: 0; font-size: 32px; font-weight: 900; }
+.mytm-header p,
+.mytm-shelf-head p,
+.mytm-hero p {
+  margin: 4px 0 0;
+  color: var(--color-slate-400);
+  font-size: 13px;
+}
+
+.mytm-refresh,
+.mytm-section-head button,
+.mytm-more,
+.mytm-hero button {
+  border: 1px solid color-mix(in srgb, var(--color-white) 12%, transparent);
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
+  color: var(--color-white);
+  border-radius: 8px;
+  padding: 9px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mytm-refresh {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.mytm-refresh svg,
+.mytm-search svg,
+.mytm-play svg,
+.mytm-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.mytm-search {
+  max-width: 720px;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
+  background: color-mix(in srgb, var(--color-white) 5%, transparent);
+  border-radius: 8px;
+  padding: 0 14px;
+  height: 48px;
+  margin-bottom: 14px;
+}
+
+.mytm-search svg { color: var(--color-slate-400); }
+.mytm-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-white);
+  font: inherit;
+}
+
+.mytm-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.mytm-tabs button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-slate-400);
+  cursor: pointer;
+  font: inherit;
+}
+
+.mytm-tabs button.active,
+.mytm-tabs button:hover:not(:disabled) {
+  color: var(--color-white);
+  background: color-mix(in srgb, var(--color-white) 7%, transparent);
+  border-color: color-mix(in srgb, var(--color-white) 10%, transparent);
+}
+
+.mytm-tabs button:disabled { opacity: .45; cursor: default; }
+.mytm-loading,
+.mytm-empty,
+.mytm-error {
+  color: var(--color-slate-400);
+  padding: 22px 0;
+}
+
+.mytm-error { color: #fca5a5; }
+.mytm-section { margin-top: 22px; }
+.mytm-section-head { margin: 0 0 12px; }
+.mytm-section-head h2,
+.mytm-shelf-head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.mytm-shelf { margin: 0 0 30px; }
+.mytm-card-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(152px, 176px);
+  gap: 12px;
+  overflow-x: auto;
+  padding: 12px 0 4px;
+}
+
+.mytm-card {
+  display: grid;
+  grid-template-rows: 148px auto auto;
+  gap: 7px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  min-width: 0;
+}
+
+.mytm-card-img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+}
+
+.mytm-card-img img,
+.mytm-cover img,
+.mytm-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.mytm-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--color-white) 92%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mytm-card-sub {
+  font-size: 12px;
+  color: var(--color-slate-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mytm-hero {
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  gap: 24px;
+  align-items: end;
+  margin: 10px 0 24px;
+}
+
+.mytm-hero img {
+  width: 176px;
+  height: 176px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+}
+
+.mytm-hero span {
+  color: var(--color-slate-400);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.mytm-hero h2 {
+  margin: 4px 0;
+  font-size: 36px;
+  line-height: 1.05;
+}
+
+.mytm-hero button { margin-top: 16px; }
+
+.mytm-track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mytm-track {
+  display: grid;
+  grid-template-columns: 34px 46px minmax(0, 1.4fr) minmax(0, 1fr) 58px 34px 34px;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 7px 10px;
+  border-radius: 8px;
+}
+
+.mytm-track:hover { background: color-mix(in srgb, var(--color-white) 5%, transparent); }
+
+.mytm-play,
+.mytm-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-white) 10%, transparent);
+  background: color-mix(in srgb, var(--color-white) 4%, transparent);
+  color: var(--color-white);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mytm-cover {
+  width: 42px;
+  height: 42px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-white) 8%, transparent);
+}
+
+.mytm-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mytm-title,
+.mytm-sub,
+.mytm-album {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mytm-title { font-size: 14px; font-weight: 700; }
+.mytm-artist-link,
+.mytm-album,
+.mytm-duration {
+  font-size: 12px;
+  color: var(--color-slate-500);
+}
+
+.mytm-artist-link {
+  width: fit-content;
+  max-width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mytm-artist-link:hover { color: var(--color-white); }
+
+.mytm-duration {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mytm-more {
+  display: block;
+  margin: 16px auto 0;
+}
+
+@media (max-width: 760px) {
+  .mytm-page { padding: 22px 16px 36px; }
+  .mytm-header h1 { font-size: 26px; }
+  .mytm-hero { grid-template-columns: 104px minmax(0, 1fr); gap: 14px; }
+  .mytm-hero img { width: 104px; height: 104px; }
+  .mytm-hero h2 { font-size: 24px; }
+  .mytm-track {
+    grid-template-columns: 34px 42px minmax(0, 1fr) 42px 34px;
+  }
+  .mytm-album,
+  .mytm-duration { display: none; }
+}

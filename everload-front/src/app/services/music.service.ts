@@ -24,9 +24,72 @@ export interface MusicMetadataDto {
   format: string;
   hasCover: boolean;
   bpm: number;
-  source?: 'nas' | 'youtube' | 'local';
+  source?: 'nas' | 'youtube' | 'local' | 'ytmusic';
   localHandle?: any;
   nasPathId?: number; // Set when track comes from favorites/history
+  thumbnailUrl?: string;
+}
+
+export interface YtMusicTrackDto {
+  videoId: string;
+  title: string;
+  artist: string;
+  artists?: string[];
+  album?: string;
+  albumId?: string;
+  durationSeconds?: number;
+  thumbnailUrl?: string;
+}
+
+export interface YtMusicDiscoverItemDto {
+  type: 'SONG' | 'PLAYLIST' | 'ALBUM' | 'ARTIST' | 'MOOD';
+  title: string;
+  subtitle?: string;
+  thumbnailUrl?: string;
+  track?: YtMusicTrackDto;
+  playlistId?: string;
+  browseId?: string;
+  channelId?: string;
+  moodBrowseId?: string;
+}
+
+export interface YtMusicDiscoverShelfDto {
+  title: string;
+  strapline?: string;
+  moreBrowseId?: string;
+  items: YtMusicDiscoverItemDto[];
+}
+
+export interface YtMusicDiscoverHomeDto {
+  shelves: YtMusicDiscoverShelfDto[];
+  continuation?: string;
+}
+
+export interface YtMusicAlbumDto {
+  browseId: string;
+  title: string;
+  artist?: string;
+  year?: string;
+  thumbnailUrl?: string;
+  tracks: YtMusicTrackDto[];
+}
+
+export interface YtMusicArtistDto {
+  channelId: string;
+  name: string;
+  description?: string;
+  thumbnailUrl?: string;
+  topSongs: YtMusicTrackDto[];
+  albums: YtMusicAlbumDto[];
+}
+
+export interface YtMusicStreamInfoDto {
+  url: string;
+  format?: string;
+  userAgent?: string;
+  contentLength?: number;
+  durationSeconds?: number;
+  resolvedBy?: string;
 }
 
 export interface ArtistProfileDto {
@@ -104,7 +167,7 @@ export class DeckPlayer {
   private ytContainerId: string;
   private ytReady = false;
   private ytInterval: any = null;
-  private activeSource: 'nas' | 'youtube' | 'local' | null = null;
+  private activeSource: 'nas' | 'youtube' | 'local' | 'ytmusic' | null = null;
   private loadNonce = 0;
   private hls: any = null;
   private hlsCtorPromise?: Promise<any | null>;
@@ -310,6 +373,9 @@ export class DeckPlayer {
     if (track.source === 'youtube') {
       this.activeSource = 'youtube';
       await this.loadYoutube(track.path, loadId);
+    } else if (track.source === 'ytmusic') {
+      this.activeSource = 'ytmusic';
+      await this.loadYtMusic(track, loadId);
     } else if (track.source === 'local') {
       this.activeSource = 'local';
       this.loadLocal(track, loadId);
@@ -362,6 +428,19 @@ export class DeckPlayer {
     this.audio.preload = 'auto';
     this.audio.src = url;
     this.audio.load();
+  }
+
+  private async loadYtMusic(track: MusicMetadataDto, loadId: number) {
+    if (this.isStaleLoad(loadId)) return;
+    const url = this.musicService.getYtMusicAudioUrl(track.path);
+    if (!url) {
+      this.patch({ playing: false, loading: false, error: 'No se pudo preparar el stream' });
+      return;
+    }
+    this.loadDirectAudio(url);
+    if (track.duration) {
+      this.patch({ duration: track.duration });
+    }
   }
 
   private async canPlayHls(): Promise<boolean> {
@@ -1065,6 +1144,10 @@ export class MusicService {
       return `https://img.youtube.com/vi/${track.path}/hqdefault.jpg`;
     }
 
+    if (track.source === 'ytmusic') {
+      return track.thumbnailUrl || override || '';
+    }
+
     if (!track.hasCover) return '';
 
     const relative = this.getCoverUrl(pathId, track.path, track.source);
@@ -1182,7 +1265,7 @@ export class MusicService {
   }
 
   shouldUseHls(track: MusicMetadataDto): boolean {
-    if (!track || track.source === 'youtube' || track.source === 'local') return false;
+    if (!track || track.source === 'youtube' || track.source === 'ytmusic' || track.source === 'local') return false;
     return (track.duration || 0) >= 1200 || (track.size || 0) >= 80 * 1024 * 1024;
   }
 
@@ -1206,6 +1289,9 @@ export class MusicService {
     const token = this.auth.getToken();
     if (source === 'youtube') {
       return `https://img.youtube.com/vi/${trackPath}/hqdefault.jpg`;
+    }
+    if (source === 'ytmusic') {
+      return this.coverOverrideMap.get(trackPath) || '';
     }
     return `${this.api}/cover?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}`;
   }
@@ -1486,6 +1572,117 @@ export class MusicService {
     return this.http.get<any>(`${this.BASE}/api/nas/ytdlp/status/${jobId}`);
   }
 
+  // YouTube Music anonymous catalogue
+  private get ytMusicApi(): string { return `${this.BASE}/api/ytmusic`; }
+
+  searchYtMusic(query: string): Observable<{ items: YtMusicTrackDto[] }> {
+    return this.http.get<{ items: YtMusicTrackDto[] }>(
+      `${this.ytMusicApi}/search?query=${encodeURIComponent(query)}`
+    );
+  }
+
+  resolveYtMusicArtist(name: string): Observable<{ channelId: string }> {
+    return this.http.get<{ channelId: string }>(
+      `${this.ytMusicApi}/artist/resolve?name=${encodeURIComponent(name)}`
+    );
+  }
+
+  discoverYtMusicHome(): Observable<YtMusicDiscoverHomeDto> {
+    return this.http.get<YtMusicDiscoverHomeDto>(`${this.ytMusicApi}/discover/home`);
+  }
+
+  discoverYtMusicContinuation(token: string): Observable<YtMusicDiscoverHomeDto> {
+    return this.http.get<YtMusicDiscoverHomeDto>(
+      `${this.ytMusicApi}/discover/continuation?token=${encodeURIComponent(token)}`
+    );
+  }
+
+  getYtMusicAlbum(browseId: string): Observable<YtMusicAlbumDto> {
+    return this.http.get<YtMusicAlbumDto>(`${this.ytMusicApi}/album/${encodeURIComponent(browseId)}`);
+  }
+
+  getYtMusicArtist(channelId: string): Observable<YtMusicArtistDto> {
+    return this.http.get<YtMusicArtistDto>(`${this.ytMusicApi}/artist/${encodeURIComponent(channelId)}`);
+  }
+
+  getYtMusicPlaylist(playlistId: string): Observable<{ playlistId: string; title: string; thumbnailUrl?: string; tracks: YtMusicTrackDto[] }> {
+    return this.http.get<{ playlistId: string; title: string; thumbnailUrl?: string; tracks: YtMusicTrackDto[] }>(
+      `${this.ytMusicApi}/playlist/${encodeURIComponent(playlistId)}`
+    );
+  }
+
+  startYtMusicMix(videoId: string): Observable<{ items: YtMusicTrackDto[] }> {
+    return this.http.get<{ items: YtMusicTrackDto[] }>(`${this.ytMusicApi}/mix/${encodeURIComponent(videoId)}`);
+  }
+
+  getYtMusicStream(videoId: string): Observable<YtMusicStreamInfoDto> {
+    return this.http.get<YtMusicStreamInfoDto>(`${this.ytMusicApi}/stream/${encodeURIComponent(videoId)}`);
+  }
+
+  getYtMusicAudioUrl(videoId: string): string {
+    const token = this.auth.getToken();
+    return `${this.ytMusicApi}/stream/${encodeURIComponent(videoId)}/audio?token=${encodeURIComponent(token || '')}`;
+  }
+
+  /** Warms the backend's resolved-stream cache so playback of `videoId` can start instantly when it comes up next. */
+  private prefetchYtMusicStream(videoId: string): void {
+    if (!videoId) return;
+    this.getYtMusicStream(videoId).subscribe({ error: () => {} });
+  }
+
+  toYtMusicTrack(track: YtMusicTrackDto): MusicMetadataDto {
+    const videoId = track.videoId || '';
+    const title = track.title || videoId;
+    const artist = track.artist || (track.artists || []).join(', ');
+    if (videoId && track.thumbnailUrl) {
+      this.coverOverrideMap.set(videoId, track.thumbnailUrl);
+    }
+    return {
+      name: title,
+      path: videoId,
+      directory: false,
+      size: 0,
+      lastModified: '',
+      title,
+      artist,
+      album: track.album || '',
+      duration: track.durationSeconds || 0,
+      format: 'm4a',
+      hasCover: !!track.thumbnailUrl,
+      bpm: 0,
+      source: 'ytmusic',
+      thumbnailUrl: track.thumbnailUrl,
+    };
+  }
+
+  toYtMusicQueue(tracks: YtMusicTrackDto[]): MusicMetadataDto[] {
+    return (tracks || []).filter(t => !!t.videoId).map(t => this.toYtMusicTrack(t));
+  }
+
+  getYtMusicHistory(limit = 40): MusicMetadataDto[] {
+    try {
+      const parsed = JSON.parse(localStorage.getItem('ev_ytmusic_history') || '[]');
+      const tracks: MusicMetadataDto[] = Array.isArray(parsed) ? parsed.slice(0, limit) : [];
+      // El override map vive en memoria — repoblarlo aquí evita perder las
+      // miniaturas del historial tras recargar la página.
+      tracks.forEach(t => {
+        if (t.path && t.thumbnailUrl) this.coverOverrideMap.set(t.path, t.thumbnailUrl);
+      });
+      return tracks;
+    } catch {
+      return [];
+    }
+  }
+
+  clearYtMusicHistory(): void {
+    localStorage.removeItem('ev_ytmusic_history');
+  }
+
+  private addYtMusicHistory(track: MusicMetadataDto): void {
+    const current = this.getYtMusicHistory(80).filter(t => t.path !== track.path);
+    localStorage.setItem('ev_ytmusic_history', JSON.stringify([track, ...current].slice(0, 80)));
+  }
+
   // ── Favorites & History API ───────────────────────────────────────────────
 
   getFavorites(): Observable<any[]> {
@@ -1624,6 +1821,11 @@ export class MusicService {
   }
 
   recordHistory(track: MusicMetadataDto | null, pathId: number | null) {
+    if (!track) return;
+    if (track.source === 'ytmusic') {
+      this.addYtMusicHistory(track);
+      return;
+    }
     if (!track || pathId == null || pathId < 0) return;
     this.http.post(`${this.api.replace('/music', '/library')}/history`, {
       trackPath: track.path,
@@ -1642,7 +1844,7 @@ export class MusicService {
   private setupPreloading(): void {
     this.mainPlayer.state$.subscribe(state => {
       if (!state.currentTrack || !state.duration || state.duration < 1) return;
-      if (state.currentTrack.source === 'youtube') return;
+      if (state.currentTrack.source === 'youtube' || state.currentTrack.source === 'ytmusic') return;
 
       // Reset triggers when track changes
       if (state.currentTrack.path !== this.preloadTriggeredForPath &&
@@ -1673,8 +1875,16 @@ export class MusicService {
 
       this.preloadTriggeredForPath = state.currentTrack.path;
       const next = this.peekNextTrack();
-      if (next && next.track.source !== 'youtube' && next.track.path !== state.currentTrack.path) {
-        this.doPreload(next.track, next.pathId);
+      if (next && next.track.path !== state.currentTrack.path) {
+        if (next.track.source === 'ytmusic') {
+          // No descargamos el audio entero por adelantado (sería tráfico
+          // desperdiciado si el usuario salta de pista) — basta con dejar
+          // la resolución del stream ya cacheada en el backend para que el
+          // siguiente <audio>.src arranque sin esperar al resolver chain.
+          this.prefetchYtMusicStream(next.track.path);
+        } else if (next.track.source !== 'youtube') {
+          this.doPreload(next.track, next.pathId);
+        }
       }
     });
   }
@@ -1731,7 +1941,7 @@ export class MusicService {
       this.preloadTimer = undefined;
       if (!expectedPath || this.mainPlayer.state.currentTrack?.path !== expectedPath) return;
       const next = this.peekNextTrack();
-      if (next && next.track.source !== 'youtube' && next.track.path !== expectedPath) {
+      if (next && next.track.source !== 'youtube' && next.track.source !== 'ytmusic' && next.track.path !== expectedPath) {
         this.preloadTriggeredForPath = expectedPath;
         this.doPreload(next.track, next.pathId);
       }

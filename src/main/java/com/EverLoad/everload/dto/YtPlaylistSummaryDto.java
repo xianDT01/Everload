@@ -1,0 +1,16 @@
+package com.EverLoad.everload.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class YtPlaylistSummaryDto {
+    private String playlistId;
+    private String title;
+    private String thumbnailUrl;
+}

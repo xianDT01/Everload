@@ -75,6 +75,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.equals("/api/music/cover")
                 || path.equals("/api/music/folder-cover")
                 || path.equals("/api/music/youtube/stream")
-                || path.equals("/api/music/youtube/cover");
+                || path.equals("/api/music/youtube/cover")
+                || path.matches("^/api/ytmusic/stream/[A-Za-z0-9_-]{1,100}/audio$");
     }
 }
