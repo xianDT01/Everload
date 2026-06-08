@@ -55,6 +55,13 @@
         <svg *ngIf="repeat !== 'one'" viewBox="0 0 24 24"><path d="M7 7h9.2l-2.6-2.6L15 3l5 5-5 5-1.4-1.4L16.2 9H7a3 3 0 0 0 0 6h1v2H7A5 5 0 0 1 7 7Zm10 8a3 3 0 0 0 0-6h-1V7h1a5 5 0 0 1 0 10H7.8l2.6 2.6L9 21l-5-5 5-5 1.4 1.4L7.8 15H17Z"/></svg>
         <span *ngIf="repeat === 'one'" class="mb-repeat1">1</span>
       </button>
+      <button class="mb-btn mb-btn-desktop"
+              *ngIf="track?.source === 'ytmusic'"
+              [class.mb-active]="music.ytMusicAutomix"
+              (click)="music.toggleYtMusicAutomix()"
+              [title]="'MUSIC.YTMUSIC_AUTOMIX' | translate">
+        <svg viewBox="0 0 24 24"><path d="M13 3a1 1 0 0 1 1 1v1.1a7 7 0 0 1 0 13.8V20a1 1 0 1 1-2 0v-1.1a7 7 0 0 1-5.84-4.08 1 1 0 1 1 1.84-.78A5 5 0 0 0 12 16.9V14a1 1 0 1 1 2 0v2.9A5 5 0 0 0 14 7.1V10a1 1 0 1 1-2 0V7.1a5 5 0 0 0-4.62 3.08 1 1 0 1 1-1.84-.78A7 7 0 0 1 12 5.1V4a1 1 0 0 1 1-1Z"/></svg>
+      </button>
     </div>
 
     <!-- Progress bar -->
