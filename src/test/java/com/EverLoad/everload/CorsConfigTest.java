@@ -2,6 +2,9 @@ package com.EverLoad.everload;
 
 import com.EverLoad.everload.config.CorsConfig;
 import com.EverLoad.everload.security.JwtUtil;
+import com.EverLoad.everload.security.UserDetailsServiceImpl;
+import com.EverLoad.everload.service.MaintenanceService;
+import com.EverLoad.everload.service.TokenRevocationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -22,6 +25,15 @@ class CorsConfigTest {
 
     @MockBean
     JwtUtil jwtUtil;
+
+    @MockBean
+    UserDetailsServiceImpl userDetailsService;
+
+    @MockBean
+    TokenRevocationService tokenRevocationService;
+
+    @MockBean
+    MaintenanceService maintenanceService;
 
     @Autowired
     MockMvc mvc;

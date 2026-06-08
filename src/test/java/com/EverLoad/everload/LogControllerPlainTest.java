@@ -3,8 +3,10 @@ import com.EverLoad.everload.controller.LogController;
 import org.junit.jupiter.api.*;
 import org.springframework.http.ResponseEntity;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,12 +20,18 @@ public class LogControllerPlainTest {
         controller = new LogController(new com.EverLoad.everload.service.LogService());
         // Crear log con contido
         Files.writeString(logPath,
-                "Linea 1\nLinea 2\nLinea 3 conten ERRORS\nLinea 4\nLinea 5\n");
+                "Linea 1\nLinea 2\nLinea 3 contiene ERROR\nLinea 4\nLinea 5\n");
     }
 
     @AfterEach
-    void tearDown() throws Exception {
-        if (Files.exists(logPath)) Files.delete(logPath);
+    void tearDown() {
+        // Best-effort cleanup: on Windows the active Logback appender (configured via
+        // logging.file.name=everload.log) can hold this same file open when Spring-context
+        // tests have run earlier in the same JVM, making delete() throw. Truncating in place
+        // works regardless and a failed cleanup must not fail the test itself.
+        try {
+            if (Files.exists(logPath)) Files.write(logPath, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException ignored) {}
     }
 
     @Test
