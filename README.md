@@ -61,6 +61,31 @@ Network music library for browsing, playing, and managing music stored in config
 - Favoritos, historial, cola, shuffle y repeat / Favorites, history, queue, shuffle, repeat.
 - Carátulas desde archivos, carpetas o búsqueda iTunes / Covers from files, folders, or iTunes lookup.
 
+### Modern Player
+
+Interfaz principal de música, con un diseño moderno tipo app de streaming.
+
+Main music interface, styled like a modern streaming app.
+
+- Inicio, Biblioteca, Álbumes, Artistas, Listas de reproducción, Favoritos y Actividad (historial) / Home, Library, Albums, Artists, Playlists, Favorites, and Activity (history).
+- Búsqueda unificada en NAS y YouTube Music / Unified search across NAS and YouTube Music.
+- Reproductor con cola, crossfade, ecualizador global y velocidad de reproducción / Player with queue, crossfade, global equalizer, and playback speed.
+- Letras sincronizadas (LRC) con vista de pantalla completa / Synced lyrics (LRC) with a fullscreen view.
+- Más de 20 temas de color (oscuros y claros) y selector de tipografía / 20+ color themes (dark and light) and a font picker.
+- Ajustes de personalización: orden de la barra lateral, posición del reproductor, comportamiento del botón atrás, fuente de fotos de artista, etc. / Personalization settings: sidebar order, player bar position, back-button behavior, artist photo source, and more.
+
+### YouTube Music
+
+Integración con YouTube Music para explorar y reproducir directamente desde EverLoad.
+
+YouTube Music integration for browsing and playback directly from EverLoad.
+
+- Búsqueda y sugerencias / Search and suggestions.
+- Inicio, novedades y listas de éxitos / Home, new releases, and charts.
+- Álbumes, artistas y listas de reproducción / Albums, artists, and playlists.
+- Mixes/radio automáticos y "automix" para continuar la cola al terminar / Auto-generated mixes/radio and "automix" to keep the queue going.
+- Streaming de audio bajo demanda / On-demand audio streaming.
+
 ### Radio
 
 Modo dedicado para escuchar emisoras nacionales e internacionales.
@@ -125,6 +150,12 @@ Real-time chat with private conversations, groups, and announcement channels.
 - Roles de grupo, avatares, silencios y moderación / Group roles, avatars, muting, moderation.
 - Zumbido estilo Messenger / Messenger-style buzz.
 - Temas visuales / Visual themes.
+
+### App Android / Android App
+
+App nativa para Android centrada en la reproducción de música, mantenida en un repositorio aparte. APK descargable desde `/android-app`.
+
+Native Android music-player app, maintained in a separate repository. APK downloadable from `/android-app`.
 
 ### Usuarios, Seguridad y Admin / Users, Security and Admin
 
@@ -290,6 +321,8 @@ Then add `/app/nas_storage` from the admin panel under NAS paths.
 | `/` | Home |
 | `/login` | Login |
 | `/register` | Registro / Register |
+| `/modern` | Modern Player (inicio, biblioteca, álbumes, artistas, listas, favoritos, actividad, búsqueda, ajustes) / Modern Player (home, library, albums, artists, playlists, favorites, activity, search, settings) |
+| `/modern/ytmusic` | YouTube Music |
 | `/radio` | Radio |
 | `/nas-music` | Biblioteca NAS / NAS music library |
 | `/nas-music?mode=deck` | Cabina DJ / DJ decks |
@@ -297,6 +330,7 @@ Then add `/app/nas_storage` from the admin panel under NAS paths.
 | `/chat` | Chat |
 | `/profile` | Perfil / Profile |
 | `/about-app` | Acerca de / About |
+| `/android-app` | Descarga de la app Android / Android app download |
 | `/admin-config` | Panel admin / Admin panel |
 
 ---
@@ -318,6 +352,7 @@ Main groups:
 | Auth | `/api/auth` |
 | Downloads | `/api/downloadVideo`, `/api/downloadMusic`, `/api/downloadTwitter`, etc. |
 | YouTube search | `/api/youtube` |
+| YouTube Music | `/api/ytmusic` |
 | Spotify tools | `/api/spotify` |
 | NAS | `/api/nas` |
 | NAS yt-dlp jobs | `/api/nas/ytdlp` |

@@ -715,7 +715,7 @@
 .mh-artist-track-copy small { color: var(--ml-muted); font-size: 10px; font-weight: 700; }
 .mh-artist-track-play { color: var(--ml-accent); text-align: center; font-size: 11px; }
 
-/* ── Explore albums — horizontal scroll, vertical cards ── */
+/* ── Album/Explore rows — horizontal scroll, overlay cards ── */
 .mh-albums-row {
   display: flex;
   gap: 14px;
@@ -728,57 +728,158 @@
 
 .mh-album-card {
   flex-shrink: 0;
-  width: 150px;
+  width: 168px;
   cursor: pointer;
+}
+
+/* Wide variant for Explore: landscape aspect */
+.mh-album-card--wide {
+  width: 224px;
 }
 
 .mh-album-cover {
   position: relative;
-  width: 150px;
-  height: 150px;
-  border-radius: 9px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--ml-card);
-  margin-bottom: 10px;
-  transition: transform 0.3s;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.28);
+  transition: box-shadow 0.25s, transform 0.25s;
 }
 
-.mh-album-card:hover .mh-album-cover { transform: scale(1.02); }
+.mh-album-card--wide .mh-album-cover {
+  aspect-ratio: 16 / 10;
+}
+
+.mh-cover-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mh-cover-fallback::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.18), transparent 42%),
+    linear-gradient(0deg, rgba(0,0,0,0.18), rgba(0,0,0,0.02));
+}
+
+.mh-cover-fallback svg {
+  position: relative;
+  z-index: 1;
+  width: 42px;
+  height: 42px;
+  fill: rgba(255,255,255,0.82);
+  filter: drop-shadow(0 8px 24px rgba(0,0,0,0.34));
+}
+
+.mh-album-card:hover .mh-album-cover {
+  box-shadow: 0 8px 28px rgba(0,0,0,0.42);
+  transform: translateY(-3px);
+}
+
+.mh-local-row {
+  gap: 15px;
+}
+
+.mh-local-card {
+  width: 154px;
+}
+
+.mh-local-card .mh-album-cover {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--ml-card) 92%, var(--ml-accent) 8%);
+}
+
+.mh-local-card:hover .mh-album-cover {
+  box-shadow: 0 8px 20px rgba(0,0,0,0.34);
+  transform: translateY(-2px);
+}
+
+.mh-local-card .mh-cover-fallback svg {
+  width: 34px;
+  height: 34px;
+  opacity: 0.86;
+}
+
+.mh-local-card .mh-album-overlay {
+  display: none;
+}
+
+.mh-local-card .mh-album-play {
+  width: 31px;
+  height: 31px;
+  right: 8px;
+  bottom: 8px;
+}
+
+.mh-local-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 9px;
+  min-width: 0;
+}
+
+.mh-local-title,
+.mh-local-artist {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mh-local-title {
+  color: var(--ml-text);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.mh-local-artist {
+  color: var(--ml-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.15;
+}
 
 .mh-album-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.5s;
+  z-index: 0;
 }
 
-.mh-album-card:hover .mh-album-img { transform: scale(1.05); }
+.mh-album-card:hover .mh-album-img { transform: scale(1.06); }
 
-.mh-album-play {
+/* Text overlay at bottom of card */
+.mh-album-overlay {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--ml-text);
-  color: var(--ml-bg);
-  border: none;
-  font-size: 14px;
+  inset: auto 0 0 0;
+  padding: 32px 10px 10px;
+  background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.38) 60%, transparent 100%);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  transform: translateY(4px);
   opacity: 0;
-  transform: translateY(8px);
   transition: opacity 0.2s, transform 0.2s;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  font-family: inherit;
+  z-index: 2;
 }
 
-.mh-album-play svg { width: 14px; height: 14px; fill: currentColor; }
-
-.mh-album-card:hover .mh-album-play {
+.mh-album-card:hover .mh-album-overlay {
   opacity: 1;
   transform: translateY(0);
 }
@@ -787,23 +888,49 @@
   display: block;
   font-size: 12px;
   font-weight: 700;
-  color: var(--ml-text);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0 4px;
 }
 
 .mh-album-artist {
   display: block;
   font-size: 10px;
-  color: var(--ml-muted);
+  color: rgba(255,255,255,0.72);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0 4px;
-  margin-top: 4px;
+}
+
+.mh-album-play {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(6px) scale(0.88);
+  transition: opacity 0.2s, transform 0.2s;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  font-family: inherit;
+  z-index: 3;
+}
+
+.mh-album-play svg { width: 15px; height: 15px; fill: currentColor; }
+
+.mh-album-card:hover .mh-album-play {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 @media (max-width: 980px) {

@@ -61,6 +61,12 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Apply the user's chosen font (if any) before anything renders
+    const font = localStorage.getItem('mpl_font');
+    if (font && font !== 'inter') {
+      document.documentElement.classList.add(`font-${font}`);
+    }
+
     // Initialize PWA update checks
     this.pwaUpdate.init();
 

@@ -12,6 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public interface PlaylistTrackRepository extends JpaRepository<PlaylistTrack, Long> {
     int countByPlaylist(Playlist playlist);
+    boolean existsByPlaylistAndTrackPathAndNasPathId(Playlist playlist, String trackPath, Long nasPathId);
+    java.util.Optional<PlaylistTrack> findByPlaylistAndTrackPathAndNasPathId(Playlist playlist, String trackPath, Long nasPathId);
+    java.util.Optional<PlaylistTrack> findByIdAndPlaylist(Long id, Playlist playlist);
 
     @Modifying
     @Transactional

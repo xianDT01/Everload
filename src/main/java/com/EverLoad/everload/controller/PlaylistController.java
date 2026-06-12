@@ -1,8 +1,11 @@
 package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.model.Playlist;
+import com.EverLoad.everload.model.PlaylistCollaborator;
 import com.EverLoad.everload.model.PlaylistTrack;
 import com.EverLoad.everload.model.User;
+import com.EverLoad.everload.model.UserStatus;
+import com.EverLoad.everload.repository.PlaylistCollaboratorRepository;
 import com.EverLoad.everload.repository.PlaylistRepository;
 import com.EverLoad.everload.repository.PlaylistTrackRepository;
 import com.EverLoad.everload.repository.UserRepository;
@@ -28,6 +31,7 @@ public class PlaylistController {
 
     private final PlaylistRepository playlistRepository;
     private final PlaylistTrackRepository playlistTrackRepository;
+    private final PlaylistCollaboratorRepository playlistCollaboratorRepository;
     private final UserRepository userRepository;
 
     private User getUser(UserDetails ud) {
@@ -49,6 +53,13 @@ public class PlaylistController {
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<List<Playlist>> listPublic() {
         return ResponseEntity.ok(playlistRepository.findByIsPublicTrueOrderByCreatedAtDesc());
+    }
+
+    @Operation(summary = "Listar playlists colaborativas compartidas con el usuario")
+    @GetMapping("/shared")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<List<Playlist>> listShared(@AuthenticationPrincipal UserDetails ud) {
+        return ResponseEntity.ok(playlistRepository.findSharedWithUser(getUser(ud)));
     }
 
     @Operation(summary = "Cambiar visibilidad de la playlist (pública/privada)")
@@ -102,8 +113,13 @@ public class PlaylistController {
     public ResponseEntity<?> addTrack(@AuthenticationPrincipal UserDetails ud,
                                       @PathVariable Long id,
                                       @RequestBody PlaylistTrackDto dto) {
-        return playlistRepository.findByIdAndUser(id, getUser(ud))
+        return playlistRepository.findByIdAndEditableByUser(id, getUser(ud))
                 .map(pl -> {
+                    if (playlistTrackRepository.existsByPlaylistAndTrackPathAndNasPathId(pl, dto.getTrackPath(), dto.getNasPathId())) {
+                        return ResponseEntity.ok(playlistTrackRepository
+                                .findByPlaylistAndTrackPathAndNasPathId(pl, dto.getTrackPath(), dto.getNasPathId())
+                                .orElseThrow());
+                    }
                     int pos = playlistTrackRepository.countByPlaylist(pl);
                     PlaylistTrack pt = PlaylistTrack.builder()
                             .playlist(pl)
@@ -126,10 +142,95 @@ public class PlaylistController {
     public ResponseEntity<?> removeTrack(@AuthenticationPrincipal UserDetails ud,
                                          @PathVariable Long id,
                                          @PathVariable Long trackId) {
+        return playlistRepository.findByIdAndEditableByUser(id, getUser(ud))
+                .map(pl -> {
+                    playlistTrackRepository.findByIdAndPlaylist(trackId, pl).ifPresent(playlistTrackRepository::delete);
+                    return ResponseEntity.ok(Map.of("deleted", true));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ── Colaboradores ─────────────────────────────────────────────────────────
+
+    @Operation(summary = "Listar colaboradores de la playlist")
+    @GetMapping("/{id}/collaborators")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> listCollaborators(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
+        return playlistRepository.findByIdAndEditableByUser(id, getUser(ud))
+                .map(pl -> ResponseEntity.ok(pl.getCollaboratorUsernames()))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Buscar usuarios por nombre para compartir una playlist")
+    @GetMapping("/users/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<List<String>> searchUsers(@AuthenticationPrincipal UserDetails ud,
+                                                     @RequestParam("q") String query) {
+        String q = query == null ? "" : query.trim();
+        if (q.isEmpty()) return ResponseEntity.ok(List.of());
+        return ResponseEntity.ok(userRepository.findTop10ByUsernameContainingIgnoreCaseAndStatus(q, UserStatus.ACTIVE)
+                .stream()
+                .map(User::getUsername)
+                .filter(u -> !u.equalsIgnoreCase(ud.getUsername()))
+                .toList());
+    }
+
+    @Operation(summary = "Añadir colaborador a la playlist (solo el dueño)")
+    @PostMapping("/{id}/collaborators")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> addCollaborator(@AuthenticationPrincipal UserDetails ud,
+                                             @PathVariable Long id,
+                                             @RequestBody CollaboratorDto dto) {
+        Playlist pl = playlistRepository.findByIdAndUser(id, getUser(ud)).orElse(null);
+        if (pl == null) return ResponseEntity.notFound().build();
+
+        String username = dto.getUsername() == null ? "" : dto.getUsername().trim();
+        User collaborator = userRepository.findByUsername(username).orElse(null);
+        if (collaborator == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Usuario no encontrado"));
+        }
+        if (collaborator.getId().equals(pl.getUser().getId())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El dueño ya tiene acceso a la playlist"));
+        }
+        if (playlistCollaboratorRepository.existsByPlaylistAndUser(pl, collaborator)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "El usuario ya es colaborador"));
+        }
+        playlistCollaboratorRepository.save(PlaylistCollaborator.builder()
+                .playlist(pl)
+                .user(collaborator)
+                .build());
+        List<String> usernames = playlistCollaboratorRepository.findByPlaylist(pl).stream()
+                .map(PlaylistCollaborator::getUsername)
+                .toList();
+        return ResponseEntity.ok(usernames);
+    }
+
+    @Operation(summary = "Quitar colaborador de la playlist (solo el dueño)")
+    @DeleteMapping("/{id}/collaborators/{username}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> removeCollaborator(@AuthenticationPrincipal UserDetails ud,
+                                                @PathVariable Long id,
+                                                @PathVariable String username) {
         return playlistRepository.findByIdAndUser(id, getUser(ud))
                 .map(pl -> {
-                    playlistTrackRepository.findById(trackId).ifPresent(playlistTrackRepository::delete);
+                    User collaborator = userRepository.findByUsername(username).orElse(null);
+                    if (collaborator != null) {
+                        playlistCollaboratorRepository.deleteByPlaylistAndUser(pl, collaborator);
+                    }
                     return ResponseEntity.ok(Map.of("deleted", true));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Abandonar una playlist colaborativa")
+    @PostMapping("/{id}/leave")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> leave(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
+        User user = getUser(ud);
+        return playlistRepository.findById(id)
+                .map(pl -> {
+                    playlistCollaboratorRepository.deleteByPlaylistAndUser(pl, user);
+                    return ResponseEntity.ok(Map.of("left", true));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -138,6 +239,7 @@ public class PlaylistController {
 
     @Data static class CreatePlaylistDto { private String name; }
     @Data static class VisibilityDto { private Boolean isPublic; }
+    @Data static class CollaboratorDto { private String username; }
 
     @Data static class PlaylistTrackDto {
         private String trackPath, title, artist, album;

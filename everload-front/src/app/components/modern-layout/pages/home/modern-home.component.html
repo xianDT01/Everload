@@ -123,34 +123,89 @@
 
     <!-- Recently Added -->
     <section class="mh-section" *ngIf="isEnabled('recently_added') && recentlyAdded.length" [style.order]="sectionOrder('recently_added')">
-      <h2 class="mh-h2">{{ 'MUSIC.MODERN_RECENTLY_ADDED' | translate }}</h2>
-      <div class="mh-albums-row">
-        <div class="mh-album-card" *ngFor="let card of recentlyAdded" (dblclick)="playAlbum(card)">
+      <div class="mh-section-head">
+        <h2 class="mh-h2">{{ 'MUSIC.MODERN_RECENTLY_ADDED' | translate }}</h2>
+        <div class="mh-section-arrows">
+          <button type="button" [title]="'MUSIC.MODERN_PREVIOUS' | translate" (click)="scrollRecent(-1)"><svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg></button>
+          <button type="button" [title]="'MUSIC.MODERN_NEXT' | translate" (click)="scrollRecent(1)"><svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg></button>
+        </div>
+      </div>
+      <div class="mh-albums-row mh-local-row" #recentRow>
+        <div class="mh-album-card mh-local-card" *ngFor="let card of recentlyAdded" (dblclick)="playAlbum(card)">
           <div class="mh-album-cover">
+            <div class="mh-cover-fallback" [ngStyle]="coverFallbackStyle(card.album, card.artist)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11.55A4 4 0 1 0 14 18V7h6V3h-8Z"/></svg>
+            </div>
             <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" class="mh-album-img" />
+            <div class="mh-album-overlay">
+              <span class="mh-album-title">{{ card.album }}</span>
+              <span class="mh-album-artist">{{ card.artist }}</span>
+            </div>
             <button class="mh-album-play" (click)="playAlbum(card); $event.stopPropagation()" [title]="'MUSIC.MODERN_PLAY' | translate">
               <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
             </button>
           </div>
-          <span class="mh-album-title">{{ card.album }}</span>
-          <span class="mh-album-artist">{{ card.artist }}</span>
+          <div class="mh-local-meta">
+            <span class="mh-local-title">{{ card.album }}</span>
+            <span class="mh-local-artist">{{ card.artist }}</span>
+          </div>
         </div>
       </div>
     </section>
 
     <!-- Explore -->
     <section class="mh-section" *ngIf="isEnabled('explore') && newReleases.length" [style.order]="sectionOrder('explore')">
-      <h2 class="mh-h2">{{ 'MUSIC.MODERN_EXPLORE' | translate }}</h2>
-      <div class="mh-albums-row">
-        <div class="mh-album-card" *ngFor="let card of newReleases" (dblclick)="playAlbum(card)">
+      <div class="mh-section-head">
+        <h2 class="mh-h2">{{ 'MUSIC.MODERN_EXPLORE' | translate }}</h2>
+        <div class="mh-section-arrows">
+          <button type="button" [title]="'MUSIC.MODERN_PREVIOUS' | translate" (click)="scrollExplore(-1)"><svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg></button>
+          <button type="button" [title]="'MUSIC.MODERN_NEXT' | translate" (click)="scrollExplore(1)"><svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg></button>
+        </div>
+      </div>
+      <div class="mh-albums-row mh-local-row" #exploreRow>
+        <div class="mh-album-card mh-local-card" *ngFor="let card of newReleases" (dblclick)="playAlbum(card)">
           <div class="mh-album-cover">
+            <div class="mh-cover-fallback" [ngStyle]="coverFallbackStyle(card.album, card.artist)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11.55A4 4 0 1 0 14 18V7h6V3h-8Z"/></svg>
+            </div>
             <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" class="mh-album-img" />
+            <div class="mh-album-overlay">
+              <span class="mh-album-title">{{ card.album }}</span>
+              <span class="mh-album-artist">{{ card.artist }}</span>
+            </div>
             <button class="mh-album-play" (click)="playAlbum(card); $event.stopPropagation()" [title]="'MUSIC.MODERN_PLAY' | translate">
               <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
             </button>
           </div>
-          <span class="mh-album-title">{{ card.album }}</span>
-          <span class="mh-album-artist">{{ card.artist }}</span>
+          <div class="mh-local-meta">
+            <span class="mh-local-title">{{ card.album }}</span>
+            <span class="mh-local-artist">{{ card.artist }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- YT Music Playlists -->
+    <section class="mh-section" *ngIf="isEnabled('yt_playlists') && ytPlaylists.length" [style.order]="sectionOrder('yt_playlists')">
+      <div class="mh-section-head">
+        <h2 class="mh-h2">{{ 'MUSIC.MODERN_YTMUSIC_PLAYLISTS' | translate }}</h2>
+        <div class="mh-section-arrows">
+          <button type="button" [title]="'MUSIC.MODERN_PREVIOUS' | translate" (click)="scrollYtPlaylists(-1)"><svg viewBox="0 0 24 24"><path d="m15.4 6-1.4-1.4L6.6 12l7.4 7.4 1.4-1.4-6-6 6-6Z"/></svg></button>
+          <button type="button" [title]="'MUSIC.MODERN_NEXT' | translate" (click)="scrollYtPlaylists(1)"><svg viewBox="0 0 24 24"><path d="m8.6 18 1.4 1.4 7.4-7.4L10 4.6 8.6 6l6 6-6 6Z"/></svg></button>
+        </div>
+      </div>
+      <div class="mh-albums-row" #ytPlaylistsRow>
+        <div class="mh-album-card" *ngFor="let item of ytPlaylists" (click)="openYtPlaylist(item)">
+          <div class="mh-album-cover">
+            <img [src]="item.thumbnailUrl" (error)="$any($event.target).style.display='none'" class="mh-album-img" />
+            <div class="mh-album-overlay">
+              <span class="mh-album-title">{{ item.title }}</span>
+              <span class="mh-album-artist">{{ item.subtitle }}</span>
+            </div>
+            <button class="mh-album-play" (click)="openYtPlaylist(item); $event.stopPropagation()" [title]="'MUSIC.MODERN_PLAY' | translate">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -193,5 +248,3 @@
 <ng-template #spinner>
   <div class="mh-loading">{{ 'COMMON.LOADING' | translate }}</div>
 </ng-template>
-
-

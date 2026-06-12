@@ -1,6 +1,7 @@
 target/
 everload-front/node_modules/
 everload-front/dist/
+everload-front/.angular/
 everload-db.mv.db
 everload-db.lock.db
 everload-db.trace.db

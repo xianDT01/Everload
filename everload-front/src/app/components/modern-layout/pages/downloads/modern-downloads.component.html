@@ -1,53 +1,44 @@
 <div class="mdl-page">
   <h1 class="mdl-title">{{ 'MUSIC.MODERN_SIDEBAR_DOWNLOADS' | translate }}</h1>
 
-  <!-- ── Sin permisos (BASIC_USER) ── -->
   <div class="mdl-no-access" *ngIf="!isNasUser">
     <svg class="mdl-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
       <rect x="3" y="11" width="18" height="11" rx="2"/>
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
-    <p class="mdl-no-access-title">Función restringida</p>
+    <p class="mdl-no-access-title">{{ 'MUSIC.DOWNLOADS_RESTRICTED_TITLE' | translate }}</p>
     <p class="mdl-no-access-desc">
-      Las descargas directas al NAS requieren permisos de <strong>NAS_USER</strong> o <strong>ADMIN</strong>.<br>
-      Pide a un administrador que actualice los permisos de tu cuenta.
+      <span [innerHTML]="'MUSIC.DOWNLOADS_RESTRICTED_DESC' | translate"></span>
     </p>
   </div>
 
-  <!-- ── Contenido principal (NAS_USER / ADMIN) ── -->
   <ng-container *ngIf="isNasUser">
-
-    <!-- Format selector -->
     <div class="mdl-format-row">
-      <span class="mdl-label">Formato de audio:</span>
+      <span class="mdl-label">{{ 'MUSIC.DOWNLOADS_AUDIO_FORMAT' | translate }}</span>
       <button class="mdl-fmt-btn" [class.mdl-fmt-active]="format === 'mp3'"  (click)="format = 'mp3'">MP3</button>
       <button class="mdl-fmt-btn" [class.mdl-fmt-active]="format === 'm4a'"  (click)="format = 'm4a'">M4A</button>
       <button class="mdl-fmt-btn" [class.mdl-fmt-active]="format === 'flac'" (click)="format = 'flac'">FLAC</button>
       <button class="mdl-fmt-btn" [class.mdl-fmt-active]="format === 'opus'" (click)="format = 'opus'">OPUS</button>
     </div>
 
-    <!-- Destination -->
     <div class="mdl-dest-section">
-      <span class="mdl-label">Destino en el NAS:</span>
       <div class="mdl-dest-row">
-        <select class="mdl-dest-select" [(ngModel)]="selectedPathId">
-          <option *ngFor="let p of writablePaths" [value]="p.id">{{ p.name }}</option>
-          <option *ngIf="!writablePaths.length" [value]="null" disabled>Sin rutas disponibles</option>
-        </select>
-        <input class="mdl-dest-subpath" type="text" placeholder="Subcarpeta (opcional, ej: Rock/2024)"
-               [(ngModel)]="subPath" />
+        <div class="mdl-dest-current" [class.mdl-dest-missing]="!selectedPathId">
+          <span class="mdl-dest-current-label">{{ destinationLabel }}</span>
+        </div>
+        <button class="mdl-dest-pick" type="button" (click)="openDestinationPicker()" [disabled]="!writablePaths.length">
+          {{ 'MUSIC.DOWNLOADS_PICK_FOLDER' | translate }}
+        </button>
       </div>
     </div>
 
-    <!-- Search -->
     <div class="mdl-search-wrap">
-      <span class="mdl-search-icon">🔍</span>
+      <span class="mdl-search-icon">&#128269;</span>
       <input class="mdl-search" type="text" [placeholder]="'MUSIC.MODERN_YOUTUBE_SEARCH_PLACEHOLDER' | translate"
              [(ngModel)]="query" (input)="onInput()" (keyup.enter)="doSearch()" />
-      <div class="mdl-searching" *ngIf="searching">●</div>
+      <div class="mdl-searching" *ngIf="searching">&bull;</div>
     </div>
 
-    <!-- Results -->
     <div class="mdl-results" *ngIf="results.length">
       <div class="mdl-result" *ngFor="let r of results">
         <img class="mdl-thumb" [src]="r.thumbnail" alt="" />
@@ -58,25 +49,33 @@
         <button class="mdl-dl-btn"
                 [disabled]="queuedIds.has(r.videoId) || !selectedPathId"
                 (click)="download(r)"
-                [title]="selectedPathId ? 'Descargar al NAS' : 'Selecciona una ruta de destino'">
-          {{ queuedIds.has(r.videoId) ? '⏳' : '⬇' }}
+                [title]="selectedPathId ? ('MUSIC.DOWNLOADS_DOWNLOAD_TO_NAS' | translate) : ('MUSIC.DOWNLOADS_SELECT_DESTINATION' | translate)">
+          <ng-container *ngIf="queuedIds.has(r.videoId); else downloadIcon">...</ng-container>
+          <ng-template #downloadIcon>&#8595;</ng-template>
         </button>
       </div>
     </div>
 
     <div class="mdl-hint" *ngIf="!results.length && !searching && !query.trim()">
-      <span>🎬</span>
+      <span>&#127916;</span>
       <p>{{ 'MUSIC.MODERN_DOWNLOAD_HINT' | translate }}</p>
     </div>
 
-    <!-- Active jobs -->
     <div class="mdl-jobs" *ngIf="activeJobs.length">
       <h2 class="mdl-jobs-title">{{ 'MUSIC.MODERN_IN_PROGRESS' | translate }}</h2>
       <div class="mdl-job" *ngFor="let j of activeJobs">
         <div class="mdl-job-meta">
           <span class="mdl-job-title">{{ j.title }}</span>
           <span class="mdl-job-status" [class.mdl-done]="j.status === 'DONE'" [class.mdl-error]="j.status === 'ERROR'">
-            {{ j.status === 'DONE' ? 'Completado' : j.status === 'ERROR' ? 'Error' : j.status === 'RUNNING' ? 'Descargando…' : 'En cola' }}
+            {{
+              j.status === 'DONE'
+                ? ('MUSIC.DOWNLOADS_JOB_DONE' | translate)
+                : j.status === 'ERROR'
+                  ? ('MUSIC.DOWNLOADS_JOB_ERROR' | translate)
+                  : j.status === 'RUNNING'
+                    ? ('MUSIC.DOWNLOADS_JOB_RUNNING' | translate)
+                    : ('MUSIC.DOWNLOADS_JOB_QUEUED' | translate)
+            }}
           </span>
         </div>
         <div class="mdl-job-bar" *ngIf="j.status !== 'ERROR'">
@@ -84,9 +83,91 @@
         </div>
         <span class="mdl-job-pct" *ngIf="j.status !== 'ERROR' && j.status !== 'DONE'">{{ j.progress }}%</span>
         <span class="mdl-job-error-msg" *ngIf="j.status === 'ERROR' && j.error">{{ j.error }}</span>
-        <span class="mdl-job-done-msg" *ngIf="j.status === 'DONE'">✔ Guardado en el NAS</span>
+        <span class="mdl-job-done-msg" *ngIf="j.status === 'DONE'">{{ 'MUSIC.DOWNLOADS_SAVED_TO_NAS' | translate }}</span>
       </div>
     </div>
-
   </ng-container>
+
+  <div class="mdl-picker-backdrop" *ngIf="pickerOpen">
+    <div class="mdl-picker" role="dialog" aria-modal="true" [attr.aria-label]="'MUSIC.DOWNLOADS_PICKER_TITLE' | translate">
+      <div class="mdl-picker-header">
+        <div>
+          <h2>{{ 'MUSIC.DOWNLOADS_PICKER_TITLE' | translate }}</h2>
+          <p>{{ 'MUSIC.DOWNLOADS_PICKER_DESC' | translate }}</p>
+        </div>
+        <button class="mdl-picker-close" type="button" (click)="closeDestinationPicker()" [title]="'MUSIC.DOWNLOADS_CLOSE' | translate">x</button>
+      </div>
+
+      <div class="mdl-picker-body">
+        <aside class="mdl-picker-roots">
+          <span class="mdl-picker-side-title">{{ 'MUSIC.DOWNLOADS_LOCATIONS' | translate }}</span>
+          <button class="mdl-root-btn"
+                  *ngFor="let p of writablePaths"
+                  type="button"
+                  [class.active]="p.id === pickerPathId"
+                  (click)="selectPickerRoot(p.id)">
+            <span>{{ p.name }}</span>
+            <small>{{ p.path }}</small>
+          </button>
+          <div class="mdl-picker-empty" *ngIf="!writablePaths.length">{{ 'MUSIC.DOWNLOADS_NO_WRITABLE_PATHS' | translate }}</div>
+        </aside>
+
+        <section class="mdl-picker-files">
+          <div class="mdl-picker-pathbar">
+            <div class="mdl-picker-path">
+              <span class="mdl-picker-path-label">{{ 'MUSIC.DOWNLOADS_CURRENT_FOLDER' | translate }}</span>
+              <strong>{{ pickerDestinationLabel }}</strong>
+            </div>
+            <div class="mdl-picker-breadcrumbs" *ngIf="pickerBreadcrumbs.length">
+              <button *ngFor="let crumb of pickerBreadcrumbs"
+                      type="button"
+                      (click)="goPickerBreadcrumb(crumb.subPath)">
+                {{ crumb.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="mdl-picker-toolbar">
+            <button type="button" (click)="goPickerUp()" [disabled]="!pickerSubPath">{{ 'NAS.GO_UP' | translate }}</button>
+            <button type="button" (click)="pickerShowNewFolder = !pickerShowNewFolder">{{ 'NAS.NEW_FOLDER' | translate }}</button>
+          </div>
+
+          <div class="mdl-picker-new" *ngIf="pickerShowNewFolder">
+            <input type="text"
+                   [placeholder]="'NAS.FOLDER_NAME_PLACEHOLDER' | translate"
+                   [(ngModel)]="pickerNewFolder"
+                   (keyup.enter)="createPickerFolder()" />
+            <button type="button" (click)="createPickerFolder()" [disabled]="!pickerNewFolder.trim()">{{ 'NAS.CREATE' | translate }}</button>
+          </div>
+
+          <div class="mdl-picker-error" *ngIf="pickerError">{{ pickerError }}</div>
+          <div class="mdl-picker-loading" *ngIf="pickerLoading">{{ 'MUSIC.DOWNLOADS_LOADING_FOLDERS' | translate }}</div>
+
+          <div class="mdl-picker-list" *ngIf="!pickerLoading">
+            <button class="mdl-folder-btn"
+                    *ngFor="let folder of pickerFiles"
+                    type="button"
+                    (click)="openPickerFolder(folder)">
+              <span class="mdl-folder-icon"></span>
+              <span class="mdl-folder-name">{{ folder.name }}</span>
+              <small>{{ 'MUSIC.DOWNLOADS_OPEN_FOLDER' | translate }}</small>
+            </button>
+            <div class="mdl-picker-empty" *ngIf="!pickerFiles.length && !pickerError">
+              {{ 'MUSIC.DOWNLOADS_EMPTY_FOLDER' | translate }}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="mdl-picker-footer">
+        <span>{{ 'MUSIC.DOWNLOADS_WILL_SAVE_IN' | translate }} <strong>{{ pickerDestinationLabel }}</strong></span>
+        <div>
+          <button class="mdl-picker-secondary" type="button" (click)="closeDestinationPicker()">{{ 'NAS.CANCEL' | translate }}</button>
+          <button class="mdl-picker-primary" type="button" (click)="confirmDestination()" [disabled]="pickerPathId == null">
+            {{ 'MUSIC.DOWNLOADS_USE_THIS_FOLDER' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

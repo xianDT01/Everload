@@ -7,6 +7,9 @@
         <button class="mpl-tab" [class.mpl-tab-active]="tab === 'mine'" (click)="switchTab('mine')">
           {{ 'MUSIC.MODERN_MY_PLAYLISTS' | translate }}
         </button>
+        <button class="mpl-tab" [class.mpl-tab-active]="tab === 'shared'" (click)="switchTab('shared')">
+          {{ 'MUSIC.MODERN_SHARED_WITH_ME' | translate }}
+        </button>
         <button class="mpl-tab" [class.mpl-tab-active]="tab === 'community'" (click)="switchTab('community')">
           {{ 'MUSIC.MODERN_COMMUNITY' | translate }}
         </button>
@@ -50,6 +53,33 @@
       </div>
     </ng-container>
 
+    <!-- ── {{ 'MUSIC.MODERN_SHARED_WITH_ME' | translate }} ── -->
+    <ng-container *ngIf="tab === 'shared'">
+      <div class="mpl-loading" *ngIf="loadingShared">{{ 'COMMON.LOADING' | translate }}</div>
+      <div class="mpl-grid" *ngIf="!loadingShared">
+        <div class="mpl-card" *ngFor="let pl of sharedPlaylists" (click)="openPlaylist(pl)">
+          <div class="mpl-cover">
+            <div class="mpl-auto-cover" *ngIf="pl.tracks?.length > 0"
+                 [class.mpl-auto-cover-single]="coverTracks(pl).length === 1">
+              <img *ngFor="let t of coverTracks(pl)"
+                   [src]="trackCoverUrl(t)"
+                   (error)="$any($event.target).style.display='none'"
+                   class="mpl-auto-cover-cell" />
+            </div>
+            <span class="mpl-cover-icon" *ngIf="!pl.tracks?.length">📋</span>
+            <div class="mpl-play-btn" (click)="play(pl); $event.stopPropagation()">▶</div>
+          </div>
+          <div class="mpl-name">{{ pl.name }}</div>
+          <div class="mpl-count">{{ 'MUSIC.MODERN_TRACK_COUNT' | translate: { count: pl.tracks?.length ?? 0 } }}</div>
+          <div class="mpl-card-footer">
+            <span class="mpl-owner-name">{{ 'MUSIC.MODERN_BY_OWNER' | translate: { owner: pl.ownerUsername } }}</span>
+          </div>
+          <button class="mpl-delete" (click)="leavePlaylist(pl, $event)" [title]="'MUSIC.MODERN_LEAVE_PLAYLIST' | translate">⏏</button>
+        </div>
+        <div class="mpl-empty" *ngIf="sharedPlaylists.length === 0">{{ 'MUSIC.MODERN_NO_SHARED_PLAYLISTS' | translate }}</div>
+      </div>
+    </ng-container>
+
     <!-- ── {{ 'MUSIC.MODERN_COMMUNITY' | translate }} ── -->
     <ng-container *ngIf="tab === 'community'">
       <div class="mpl-loading" *ngIf="loadingPublic">{{ 'MUSIC.MODERN_LOADING_PUBLIC_PLAYLISTS' | translate }}</div>
@@ -83,7 +113,7 @@
     <!-- Back -->
     <button class="mpl-back-btn" (click)="back()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-      {{ tab === 'community' ? ('MUSIC.MODERN_COMMUNITY' | translate) : ('MUSIC.MODERN_SIDEBAR_PLAYLISTS' | translate) }}
+      {{ tab === 'community' ? ('MUSIC.MODERN_COMMUNITY' | translate) : tab === 'shared' ? ('MUSIC.MODERN_SHARED_WITH_ME' | translate) : ('MUSIC.MODERN_SIDEBAR_PLAYLISTS' | translate) }}
     </button>
 
     <!-- Hero -->
@@ -121,7 +151,48 @@
             <svg *ngIf="selectedPlaylist.isPublic"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             {{ selectedPlaylist.isPublic ? 'Pública' : 'Privada' }}
           </button>
+          <!-- Compartir — solo el dueño gestiona colaboradores -->
+          <button *ngIf="isOwned(selectedPlaylist)" class="mpl-btn-visibility" (click)="openShareDialog()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            {{ 'MUSIC.MODERN_SHARE' | translate }}
+            <span *ngIf="selectedPlaylist.collaboratorUsernames?.length"> ({{ selectedPlaylist.collaboratorUsernames.length }})</span>
+          </button>
+          <!-- Abandonar — colaboradores -->
+          <button *ngIf="!isOwned(selectedPlaylist) && isCollaborator(selectedPlaylist)" class="mpl-btn-visibility"
+                  (click)="leavePlaylist(selectedPlaylist, $event)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            {{ 'MUSIC.MODERN_LEAVE_PLAYLIST' | translate }}
+          </button>
         </div>
+        <p class="mpl-hero-collab" *ngIf="selectedPlaylist.collaboratorUsernames?.length">
+          {{ 'MUSIC.MODERN_COLLABORATIVE_WITH' | translate: { users: selectedPlaylist.collaboratorUsernames.join(', ') } }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Diálogo de compartir -->
+    <div class="mpl-modal-backdrop" *ngIf="showShareDialog" (click)="closeShareDialog()">
+      <div class="mpl-modal" (click)="$event.stopPropagation()">
+        <h3 class="mpl-modal-title">{{ 'MUSIC.MODERN_SHARE_PLAYLIST' | translate }}</h3>
+        <div class="mpl-share-input-row mpl-share-input-wrap">
+          <input class="mpl-input" type="text" [placeholder]="'MUSIC.MODERN_SHARE_USERNAME_PLACEHOLDER' | translate"
+                 [(ngModel)]="shareUsername" (input)="onShareUsernameInput()" (keyup.enter)="addCollaborator()" autocomplete="off" />
+          <button class="mpl-btn-create" (click)="addCollaborator()" [disabled]="sharingBusy || !shareUsername.trim()">+</button>
+          <ul class="mpl-user-suggestions" *ngIf="userSuggestions.length">
+            <li *ngFor="let u of userSuggestions" (click)="selectUserSuggestion(u)">{{ u }}</li>
+          </ul>
+        </div>
+        <p class="mpl-share-error" *ngIf="shareError">{{ shareError }}</p>
+        <ul class="mpl-collab-list">
+          <li class="mpl-collab-row" *ngFor="let u of selectedPlaylist.collaboratorUsernames">
+            <span>{{ u }}</span>
+            <button class="mpl-collab-remove" (click)="removeCollaborator(u)" [title]="'MUSIC.MODERN_REMOVE_COLLABORATOR' | translate">✕</button>
+          </li>
+          <li class="mpl-empty" *ngIf="!selectedPlaylist.collaboratorUsernames?.length">
+            {{ 'MUSIC.MODERN_NO_COLLABORATORS' | translate }}
+          </li>
+        </ul>
+        <button class="mpl-back-btn" (click)="closeShareDialog()">{{ 'COMMON.CLOSE' | translate }}</button>
       </div>
     </div>
 
@@ -132,7 +203,7 @@
         <span class="mpl-col-title">{{ 'MUSIC.MODERN_COL_TITLE' | translate }}</span>
         <span class="mpl-col-album">{{ 'MUSIC.MODERN_COL_ALBUM' | translate }}</span>
         <span class="mpl-col-dur">{{ 'MUSIC.MODERN_DURATION' | translate }}</span>
-        <span class="mpl-col-remove" *ngIf="isOwned(selectedPlaylist)"></span>
+        <span class="mpl-col-remove" *ngIf="canEditTracks(selectedPlaylist)"></span>
       </div>
       <div class="mpl-track-row" *ngFor="let t of selectedPlaylist.tracks; let i = index">
         <span class="mpl-col-num mpl-track-num">{{ i + 1 }}</span>
@@ -147,18 +218,18 @@
         </div>
         <span class="mpl-col-album mpl-track-album">{{ t.album }}</span>
         <span class="mpl-col-dur mpl-track-dur">{{ fmtDur(t.durationSeconds) }}</span>
-        <button *ngIf="isOwned(selectedPlaylist)" class="mpl-col-remove mpl-track-remove"
+        <button *ngIf="canEditTracks(selectedPlaylist)" class="mpl-col-remove mpl-track-remove"
                 (click)="removeTrack(t.id)" [title]="'MUSIC.MODERN_REMOVE_FROM_PLAYLIST' | translate">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="mpl-empty" *ngIf="!selectedPlaylist.tracks?.length">
-        {{ 'MUSIC.MODERN_PLAYLIST_EMPTY' | translate }}<span *ngIf="isOwned(selectedPlaylist)"> {{ 'MUSIC.MODERN_ADD_SONGS_BELOW' | translate }}</span>
+        {{ 'MUSIC.MODERN_PLAYLIST_EMPTY' | translate }}<span *ngIf="canEditTracks(selectedPlaylist)"> {{ 'MUSIC.MODERN_ADD_SONGS_BELOW' | translate }}</span>
       </div>
     </div>
 
-    <!-- Add songs — solo el dueño puede añadir -->
-    <div class="mpl-add-section" *ngIf="isOwned(selectedPlaylist)">
+    <!-- Add songs — dueño y colaboradores pueden añadir -->
+    <div class="mpl-add-section" *ngIf="canEditTracks(selectedPlaylist)">
       <h3 class="mpl-add-title">{{ 'MUSIC.MODERN_ADD_SONGS' | translate }}</h3>
       <div class="mpl-search-wrap">
         <svg class="mpl-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

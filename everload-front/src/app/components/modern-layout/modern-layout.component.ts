@@ -18,13 +18,17 @@ export const THEMES = [
   { id: 'kanagawa-dragon',   label: 'Kanagawa Dragon',   dark: true },
   { id: 'everforest',        label: 'Everforest Dark',   dark: true },
   { id: 'ef-night',          label: 'Ef Night',          dark: true },
+  { id: 'midnight',          label: 'Midnight',          dark: true },
   { id: 'osmium',            label: 'Osmium',            dark: true },
   { id: 'vague',             label: 'Vague',             dark: true },
+  { id: 'kettek16',          label: 'kettek16',          dark: true },
   { id: 'default-light',     label: 'Default Light',     dark: false },
   { id: 'catppuccin-latte',  label: 'Catppuccin Latte',  dark: false },
   { id: 'rosepine-dawn',     label: 'Rosé Pine Dawn',    dark: false },
   { id: 'everforest-light',  label: 'Everforest Light',  dark: false },
   { id: 'gruvbox-light',     label: 'Gruvbox Light',     dark: false },
+  { id: 'ayu-light',         label: 'Ayu Light',         dark: false },
+  { id: 'onelight',          label: 'One Light',         dark: false },
 ];
 
 const DEFAULT_MODERN_THEME = 'gruvbox-classic';

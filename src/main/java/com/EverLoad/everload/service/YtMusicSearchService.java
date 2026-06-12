@@ -25,6 +25,7 @@ public class YtMusicSearchService {
 
     private final YtMusicInnertubeClient client;
     private YtMusicCache<String, List<YtTrackDto>> searchCache;
+    private YtMusicCache<String, List<String>> suggestionsCache;
 
     @Value("${ytmusic.cache.ttl-seconds:600}")
     private long cacheTtlSeconds;
@@ -39,11 +40,77 @@ public class YtMusicSearchService {
     @PostConstruct
     void init() {
         searchCache = new YtMusicCache<>(cacheTtlSeconds * 1000, cacheMaxEntries);
+        suggestionsCache = new YtMusicCache<>(cacheTtlSeconds * 1000, cacheMaxEntries);
     }
 
     public List<YtTrackDto> searchTracks(String query) {
         String key = query.trim().toLowerCase();
         return searchCache.getOrCompute(key, () -> doSearchTracks(query));
+    }
+
+    public List<String> suggestions(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        String key = query.trim().toLowerCase();
+        return suggestionsCache.getOrCompute(key, () -> doSuggestions(query.trim()));
+    }
+
+    private List<String> doSuggestions(String query) {
+        JsonNode resp = client.searchSuggestions(query);
+        List<String> out = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+        collectSuggestions(resp, out, seen);
+        return out.stream().limit(10).toList();
+    }
+
+    private void collectSuggestions(JsonNode node, List<String> out, Set<String> seen) {
+        if (node == null || node.isMissingNode() || out.size() >= 12) {
+            return;
+        }
+        if (node.isObject()) {
+            JsonNode suggestion = node.get("searchSuggestionRenderer");
+            if (suggestion != null) {
+                addSuggestion(readSuggestionText(suggestion), out, seen);
+            }
+            for (JsonNode child : node) {
+                collectSuggestions(child, out, seen);
+            }
+        } else if (node.isArray()) {
+            for (JsonNode child : node) {
+                collectSuggestions(child, out, seen);
+            }
+        }
+    }
+
+    private String readSuggestionText(JsonNode suggestion) {
+        String text = runsText(at(suggestion, "suggestion", "runs"));
+        if (text == null || text.isBlank()) {
+            text = textAt(suggestion, "navigationEndpoint", "searchEndpoint", "query");
+        }
+        return text;
+    }
+
+    private String runsText(JsonNode runs) {
+        if (!runs.isArray()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (JsonNode run : runs) {
+            String text = textAt(run, "text");
+            if (text != null) {
+                sb.append(text);
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private void addSuggestion(String value, List<String> out, Set<String> seen) {
+        if (value == null) return;
+        String clean = value.replaceAll("\\s+", " ").trim();
+        if (!clean.isBlank() && seen.add(clean.toLowerCase())) {
+            out.add(clean);
+        }
     }
 
     private List<YtTrackDto> doSearchTracks(String query) {

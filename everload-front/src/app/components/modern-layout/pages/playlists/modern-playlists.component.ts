@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({
   selector: 'app-modern-playlists',
@@ -11,12 +12,14 @@ import { ModernStateService } from '../../modern-state.service';
 export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   playlists: any[] = [];
   publicPlaylists: any[] = [];
+  sharedPlaylists: any[] = [];
   loading = false;
   loadingPublic = false;
+  loadingShared = false;
   newName = '';
   creating = false;
 
-  tab: 'mine' | 'community' = 'mine';
+  tab: 'mine' | 'community' | 'shared' = 'mine';
   view: 'list' | 'detail' = 'list';
   selectedPlaylist: any | null = null;
 
@@ -26,13 +29,24 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   private searchDebounce: any;
   private searchSub?: Subscription;
 
-  constructor(public music: MusicService, public state: ModernStateService) {}
+  // Share dialog
+  showShareDialog = false;
+  shareUsername = '';
+  sharingBusy = false;
+  shareError = '';
+  userSuggestions: string[] = [];
+  private userSearchDebounce: any;
+  private userSearchSub?: Subscription;
+
+  constructor(public music: MusicService, public state: ModernStateService, private auth: AuthService) {}
 
   ngOnInit() { this.load(); }
 
   ngOnDestroy() {
     this.searchSub?.unsubscribe();
+    this.userSearchSub?.unsubscribe();
     clearTimeout(this.searchDebounce);
+    clearTimeout(this.userSearchDebounce);
   }
 
   load() {
@@ -42,7 +56,8 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
         this.playlists = p;
         this.loading = false;
         if (this.selectedPlaylist) {
-          const updated = p.find((pl: any) => pl.id === this.selectedPlaylist.id);
+          const all = [...this.playlists, ...this.sharedPlaylists, ...this.publicPlaylists];
+          const updated = all.find((pl: any) => pl.id === this.selectedPlaylist.id);
           if (updated) this.selectedPlaylist = updated;
         }
       },
@@ -58,11 +73,20 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
     });
   }
 
-  switchTab(t: 'mine' | 'community') {
+  loadShared() {
+    this.loadingShared = true;
+    this.music.getSharedPlaylists().subscribe({
+      next: p => { this.sharedPlaylists = p; this.loadingShared = false; },
+      error: () => { this.loadingShared = false; }
+    });
+  }
+
+  switchTab(t: 'mine' | 'community' | 'shared') {
     this.tab = t;
     this.view = 'list';
     this.selectedPlaylist = null;
     if (t === 'community' && !this.publicPlaylists.length) this.loadPublic();
+    if (t === 'shared' && !this.sharedPlaylists.length) this.loadShared();
   }
 
   create() {
@@ -95,11 +119,93 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
     return pl != null && this.playlists.some(p => p.id === pl.id);
   }
 
+  get currentUsername(): string | null {
+    return this.auth.getCurrentUser()?.username ?? null;
+  }
+
+  isCollaborator(pl: any): boolean {
+    return pl != null && (pl.collaboratorUsernames ?? []).includes(this.currentUsername);
+  }
+
+  canEditTracks(pl: any): boolean {
+    return this.isOwned(pl) || this.isCollaborator(pl);
+  }
+
   toggleVisibility(pl: any, event: Event) {
     event.stopPropagation();
     this.music.setPlaylistVisibility(pl.id, !pl.isPublic).subscribe(() => {
       this.load();
       if (this.publicPlaylists.length) this.loadPublic();
+    });
+  }
+
+  // ── Colaboradores ─────────────────────────────────────────────────────────
+
+  openShareDialog() {
+    this.shareUsername = '';
+    this.shareError = '';
+    this.userSuggestions = [];
+    this.showShareDialog = true;
+  }
+
+  closeShareDialog() {
+    this.showShareDialog = false;
+    this.userSuggestions = [];
+  }
+
+  onShareUsernameInput() {
+    clearTimeout(this.userSearchDebounce);
+    const q = this.shareUsername.trim();
+    if (!q) { this.userSuggestions = []; return; }
+    this.userSearchDebounce = setTimeout(() => {
+      this.userSearchSub?.unsubscribe();
+      this.userSearchSub = this.music.searchUsers(q).subscribe({
+        next: users => {
+          const existing = this.selectedPlaylist?.collaboratorUsernames ?? [];
+          this.userSuggestions = users.filter(u => !existing.includes(u));
+        },
+        error: () => { this.userSuggestions = []; }
+      });
+    }, 250);
+  }
+
+  selectUserSuggestion(username: string) {
+    this.shareUsername = username;
+    this.userSuggestions = [];
+  }
+
+  addCollaborator() {
+    if (!this.selectedPlaylist || !this.shareUsername.trim()) return;
+    this.sharingBusy = true;
+    this.shareError = '';
+    this.userSuggestions = [];
+    this.music.addPlaylistCollaborator(this.selectedPlaylist.id, this.shareUsername.trim()).subscribe({
+      next: (usernames: string[]) => {
+        this.selectedPlaylist.collaboratorUsernames = usernames;
+        this.shareUsername = '';
+        this.sharingBusy = false;
+      },
+      error: (err) => {
+        this.shareError = err?.error?.error || 'No se pudo añadir al colaborador';
+        this.sharingBusy = false;
+      }
+    });
+  }
+
+  removeCollaborator(username: string) {
+    if (!this.selectedPlaylist) return;
+    this.music.removePlaylistCollaborator(this.selectedPlaylist.id, username).subscribe(() => {
+      this.selectedPlaylist.collaboratorUsernames = (this.selectedPlaylist.collaboratorUsernames ?? [])
+        .filter((u: string) => u !== username);
+    });
+  }
+
+  leavePlaylist(pl: any, event: Event) {
+    event.stopPropagation();
+    if (!confirm('¿Abandonar esta playlist colaborativa?')) return;
+    this.music.leavePlaylist(pl.id).subscribe(() => {
+      this.sharedPlaylists = this.sharedPlaylists.filter(p => p.id !== pl.id);
+      if (this.selectedPlaylist?.id === pl.id) this.back();
     });
   }
 
@@ -117,7 +223,22 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
 
   removeTrack(trackId: number) {
     if (!this.selectedPlaylist) return;
-    this.music.removeTrackFromPlaylist(this.selectedPlaylist.id, trackId).subscribe(() => this.load());
+    this.music.removeTrackFromPlaylist(this.selectedPlaylist.id, trackId).subscribe(() => this.reloadCurrentTab());
+  }
+
+  /** Reloads whichever playlist list is backing the current tab and refreshes the open detail view. */
+  private reloadCurrentTab() {
+    if (this.tab === 'shared') {
+      this.music.getSharedPlaylists().subscribe(p => {
+        this.sharedPlaylists = p;
+        if (this.selectedPlaylist) {
+          const updated = p.find((pl: any) => pl.id === this.selectedPlaylist.id);
+          if (updated) this.selectedPlaylist = updated;
+        }
+      });
+    } else {
+      this.load();
+    }
   }
 
   onSearchInput() {
@@ -140,7 +261,7 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   addTrack(track: MusicMetadataDto) {
     const pid = this.state.pathId;
     if (!this.selectedPlaylist || pid == null) return;
-    this.music.addTrackToPlaylist(this.selectedPlaylist.id, track, track.nasPathId ?? pid).subscribe(() => this.load());
+    this.music.addTrackToPlaylist(this.selectedPlaylist.id, track, track.nasPathId ?? pid).subscribe(() => this.reloadCurrentTab());
   }
 
   trackCoverUrl(t: any): string {

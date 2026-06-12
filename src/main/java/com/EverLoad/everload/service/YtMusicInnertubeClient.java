@@ -150,6 +150,18 @@ public class YtMusicInnertubeClient {
      * token) and {@code visitorData} are optional extras that, combined with
      * the ANDROID_VR client, unlock plain (non-signature-cipher) URLs.
      */
+    /** Raw anonymous search suggestions call for the YouTube Music search box. */
+    public JsonNode searchSuggestions(String query) {
+        Map<String, Object> body = baseBody(WEB_REMIX);
+        body.put("input", query);
+        try {
+            return post(ORIGIN_YOUTUBE_MUSIC + "/youtubei/v1/music/get_search_suggestions?prettyPrint=false",
+                    body, headersFor(WEB_REMIX, true));
+        } catch (Exception e) {
+            throw new YtMusicTransportException("searchSuggestions(\"" + query + "\") fallo: " + e.getMessage(), e);
+        }
+    }
+
     public JsonNode player(YtMusicClient client, String videoId, String contentPot, String visitorData) {
         Map<String, Object> contextClient = buildClientContext(client);
         if (visitorData != null) {

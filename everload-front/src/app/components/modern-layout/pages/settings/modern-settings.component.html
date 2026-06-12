@@ -90,6 +90,20 @@
     </button>
   </section>
 
+  <!-- Font -->
+  <section class="mst-section">
+    <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_FONT' | translate }}</h2>
+    <p class="mst-section-desc">{{ 'MUSIC.MODERN_SETTINGS_FONT_DESC' | translate }}</p>
+    <div class="mst-chip-group">
+      <button class="mst-chip" *ngFor="let f of FONTS"
+              [class.mst-chip-active]="font === f.id"
+              [style.fontFamily]="f.family"
+              (click)="setFont(f.id)">
+        {{ f.label }}
+      </button>
+    </div>
+  </section>
+
   <!-- Language -->
   <section class="mst-section">
     <h2 class="mst-section-title">{{ 'MUSIC.MODERN_SETTINGS_LANGUAGE' | translate }}</h2>

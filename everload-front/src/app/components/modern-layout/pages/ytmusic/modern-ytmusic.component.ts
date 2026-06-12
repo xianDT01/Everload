@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import {
@@ -24,6 +25,7 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
 
   query = '';
   mode: ViewMode = 'discover';
+  discoverTab: 'home' | 'new-releases' | 'charts' = 'home';
   loading = false;
   loadingMore = false;
   error = '';
@@ -32,40 +34,64 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
   continuation = '';
   results: MusicMetadataDto[] = [];
   history: MusicMetadataDto[] = [];
+  suggestions: string[] = [];
+  showSuggestions = false;
 
   album: YtMusicAlbumDto | null = null;
   artist: YtMusicArtistDto | null = null;
   playlist: { playlistId: string; title: string; thumbnailUrl?: string; tracks: YtMusicTrackDto[] } | null = null;
 
   private sub?: Subscription;
+  private suggestionsSub?: Subscription;
   private debounce?: ReturnType<typeof setTimeout>;
+  private suggestionsDebounce?: ReturnType<typeof setTimeout>;
 
-  constructor(public music: MusicService, private translate: TranslateService) {}
+  constructor(public music: MusicService, private translate: TranslateService, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.history = this.music.getYtMusicHistory();
-    this.loadDiscover();
+    const playlistId = this.route.snapshot.queryParamMap.get('playlist');
+    if (playlistId) {
+      this.loadPlaylist(playlistId);
+    } else {
+      this.loadDiscover();
+    }
   }
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
+    this.suggestionsSub?.unsubscribe();
     if (this.debounce) clearTimeout(this.debounce);
+    if (this.suggestionsDebounce) clearTimeout(this.suggestionsDebounce);
   }
 
   onSearchInput(): void {
     if (this.debounce) clearTimeout(this.debounce);
+    if (this.suggestionsDebounce) clearTimeout(this.suggestionsDebounce);
     const q = this.query.trim();
     if (!q) {
       this.results = [];
+      this.suggestions = [];
+      this.showSuggestions = false;
       if (this.mode === 'search') this.mode = 'discover';
       return;
     }
+    this.suggestionsDebounce = setTimeout(() => this.loadSuggestions(q), 120);
     this.debounce = setTimeout(() => this.search(), 250);
+  }
+
+  onSearchFocus(): void {
+    if (this.suggestions.length) this.showSuggestions = true;
+  }
+
+  onSearchBlur(): void {
+    setTimeout(() => this.showSuggestions = false, 120);
   }
 
   search(): void {
     const q = this.query.trim();
     if (!q) return;
+    this.showSuggestions = false;
     this.run('search', () => {
       this.sub = this.music.searchYtMusic(q).subscribe({
         next: res => {
@@ -77,11 +103,40 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
     });
   }
 
+  applySuggestion(value: string): void {
+    this.query = value;
+    this.showSuggestions = false;
+    this.search();
+  }
+
   loadDiscover(): void {
+    this.discoverTab = 'home';
     this.mode = 'discover';
     this.clearDetails();
     this.run('discover', () => {
       this.sub = this.music.discoverYtMusicHome().subscribe({
+        next: res => this.applyDiscover(res),
+        error: err => this.fail(err)
+      });
+    });
+  }
+
+  loadNewReleases(): void {
+    this.discoverTab = 'new-releases';
+    this.clearDetails();
+    this.run('discover', () => {
+      this.sub = this.music.discoverYtMusicNewReleases().subscribe({
+        next: res => this.applyDiscover(res),
+        error: err => this.fail(err)
+      });
+    });
+  }
+
+  loadCharts(): void {
+    this.discoverTab = 'charts';
+    this.clearDetails();
+    this.run('discover', () => {
+      this.sub = this.music.discoverYtMusicCharts().subscribe({
         next: res => this.applyDiscover(res),
         error: err => this.fail(err)
       });
@@ -257,6 +312,21 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
     this.shelves = res.shelves || [];
     this.continuation = res.continuation || '';
     this.loading = false;
+  }
+
+  private loadSuggestions(expectedQuery: string): void {
+    this.suggestionsSub?.unsubscribe();
+    this.suggestionsSub = this.music.suggestYtMusic(expectedQuery).subscribe({
+      next: res => {
+        if (this.query.trim() !== expectedQuery) return;
+        this.suggestions = (res.items || []).filter(s => !!s && s !== expectedQuery).slice(0, 8);
+        this.showSuggestions = this.suggestions.length > 0;
+      },
+      error: () => {
+        this.suggestions = [];
+        this.showSuggestions = false;
+      }
+    });
   }
 
   private clearDetails(): void {

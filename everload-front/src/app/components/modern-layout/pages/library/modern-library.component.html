@@ -1,45 +1,126 @@
-﻿<div class="ml-page">
+<div class="ml-page">
+
+  <!-- ── Cabecera ─────────────────────────────────────────────────── -->
   <div class="ml-header">
-    <h1 class="ml-title">{{ 'MUSIC.MODERN_SIDEBAR_LIBRARY' | translate }}</h1>
+    <div class="ml-header-top">
+      <div class="ml-header-meta">
+        <h1 class="ml-title">{{ 'MUSIC.MODERN_SIDEBAR_LIBRARY' | translate }}</h1>
+        <span class="ml-count" *ngIf="!loading">
+          {{ 'MUSIC.YTMUSIC_TRACK_COUNT' | translate:{ count: tracks.length } }}
+        </span>
+      </div>
+      <div class="ml-header-actions">
+        <button class="ml-action-secondary" type="button" (click)="shuffle()" [disabled]="!tracks.length">
+          <svg viewBox="0 0 24 24"><path d="M16 3h5v5l-1.8-1.8-4.6 4.6-1.4-1.4 4.6-4.6L16 3Zm-11.3.3 14 14 1.4 1.4-1.4 1.4-14-14L3.3 6.1l-1.4-1.4 1.4-1.4ZM3 16l1.8 1.8 4.6-4.6 1.4 1.4-4.6 4.6L8 21H3v-5Z"/></svg>
+          {{ 'MUSIC.MODERN_SHUFFLE' | translate }}
+        </button>
+        <button class="ml-action-primary" type="button" (click)="playAll()" [disabled]="!tracks.length">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
+          {{ 'MUSIC.MODERN_PLAY_ALL' | translate }}
+        </button>
+      </div>
+    </div>
+
     <div class="ml-search-wrap">
-      <input class="ml-search" type="text" [placeholder]="'MUSIC.MODERN_SEARCH_PLACEHOLDER_SHORT' | translate" [(ngModel)]="query"
-             (keyup.enter)="onSearch()" (input)="onSearch()" />
+      <svg class="ml-search-icon" viewBox="0 0 24 24"><path d="M10.5 4a6.5 6.5 0 0 1 5.12 10.5l4.44 4.44-1.42 1.42-4.44-4.44A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>
+      <input class="ml-search" type="search"
+             [placeholder]="'MUSIC.MODERN_SEARCH_PLACEHOLDER_SHORT' | translate"
+             [(ngModel)]="query"
+             (input)="onSearch()" />
     </div>
   </div>
 
   <div class="ml-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
 
+  <!-- ── Tabla ─────────────────────────────────────────────────────── -->
   <div class="ml-track-list" *ngIf="!loading">
+
     <div class="ml-track-header">
       <span class="ml-col-num">#</span>
-      <span class="ml-col-title">{{ 'MUSIC.MODERN_COL_TITLE' | translate }}</span>
-      <span class="ml-col-album">{{ 'MUSIC.MODERN_COL_ALBUM' | translate }}</span>
-      <span class="ml-col-dur">⏱</span>
+      <button class="ml-col-title ml-sort-btn" type="button" (click)="sortBy('title')">
+        {{ 'MUSIC.MODERN_COL_TITLE' | translate }}
+        <svg class="ml-sort-arrow" viewBox="0 0 24 24" [class.desc]="sortCol === 'title' && sortDir === 'desc'" [class.visible]="sortCol === 'title'">
+          <path d="M12 5l7 7H5l7-7Z"/>
+        </svg>
+      </button>
+      <button class="ml-col-artist ml-sort-btn" type="button" (click)="sortBy('artist')">
+        {{ 'MUSIC.MODERN_COL_ARTIST' | translate }}
+        <svg class="ml-sort-arrow" viewBox="0 0 24 24" [class.desc]="sortCol === 'artist' && sortDir === 'desc'" [class.visible]="sortCol === 'artist'">
+          <path d="M12 5l7 7H5l7-7Z"/>
+        </svg>
+      </button>
+      <button class="ml-col-album ml-sort-btn" type="button" (click)="sortBy('album')">
+        {{ 'MUSIC.MODERN_COL_ALBUM' | translate }}
+        <svg class="ml-sort-arrow" viewBox="0 0 24 24" [class.desc]="sortCol === 'album' && sortDir === 'desc'" [class.visible]="sortCol === 'album'">
+          <path d="M12 5l7 7H5l7-7Z"/>
+        </svg>
+      </button>
+      <button class="ml-col-dur ml-sort-btn" type="button" (click)="sortBy('duration')">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:currentColor"><path d="M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2Zm0 2a8 8 0 1 0 0 16A8 8 0 0 0 12 4Zm0 2v6.4l4 2.4-.8 1.2L11 13.5V6h1Z"/></svg>
+        <svg class="ml-sort-arrow" viewBox="0 0 24 24" [class.desc]="sortCol === 'duration' && sortDir === 'desc'" [class.visible]="sortCol === 'duration'">
+          <path d="M12 5l7 7H5l7-7Z"/>
+        </svg>
+      </button>
+      <span class="ml-col-actions"></span>
     </div>
 
-    <cdk-virtual-scroll-viewport itemSize="60" class="ml-virtual-list">
+    <cdk-virtual-scroll-viewport itemSize="56" class="ml-virtual-list">
       <div class="ml-track-row"
            *cdkVirtualFor="let t of tracks; let i = index; trackBy: trackByPath"
            [class.playing]="isPlaying(t)"
            (dblclick)="play(i)">
+
+        <!-- # / barras animadas / play en hover -->
         <span class="ml-col-num">
-          <span class="ml-row-num" *ngIf="!isPlaying(t)">{{ i + 1 }}</span>
-          <span class="ml-row-play" *ngIf="isPlaying(t)">♪</span>
+          <span class="ml-num-idle" *ngIf="!isPlaying(t)">{{ i + 1 }}</span>
+          <span class="ml-playing-bars" *ngIf="isPlaying(t)">
+            <i></i><i></i><i></i>
+          </span>
+          <button class="ml-num-play" type="button" (click)="play(i); $event.stopPropagation()" [title]="'MUSIC.MODERN_PLAY' | translate">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
+          </button>
         </span>
+
+        <!-- Portada + título -->
         <div class="ml-col-title ml-track-info">
           <div class="ml-track-cover">
             <img [src]="cover(t)" (error)="$any($event.target).style.display='none'" loading="lazy" />
           </div>
-          <div class="ml-track-meta">
-            <span class="ml-track-name">{{ t.title || t.name }}</span>
-            <span class="ml-track-artist">{{ t.artist }}</span>
-          </div>
+          <span class="ml-track-name" [class.active]="isPlaying(t)">{{ t.title || t.name }}</span>
         </div>
-        <span class="ml-col-album">{{ t.album }}</span>
-        <span class="ml-col-dur">{{ fmt(t.duration) }}</span>
+
+        <!-- Artista -->
+        <span class="ml-col-artist ml-cell-muted">{{ t.artist }}</span>
+
+        <!-- Álbum -->
+        <span class="ml-col-album ml-cell-muted">{{ t.album }}</span>
+
+        <!-- Duración -->
+        <span class="ml-col-dur ml-cell-muted">{{ fmt(t.duration) }}</span>
+
+        <!-- Acciones (hover) -->
+        <div class="ml-col-actions">
+          <button class="ml-row-btn" type="button" (click)="appendTrack(t); $event.stopPropagation()" [title]="'MUSIC.YTMUSIC_ADD_TO_QUEUE' | translate">
+            <svg viewBox="0 0 24 24"><path d="M4 6h10v2H4V6Zm0 5h10v2H4v-2Zm0 5h7v2H4v-2Zm13-7h2v4h4v2h-4v4h-2v-4h-4v-2h4V9Z"/></svg>
+          </button>
+          <button class="ml-row-btn" type="button" (click)="openPlaylistPicker(t, $event)" title="Añadir a playlist">
+            <svg viewBox="0 0 24 24"><path d="M4 6h11v2H4V6Zm0 4h11v2H4v-2Zm0 4h7v2H4v-2Zm13-8h2v8.18A3 3 0 1 1 17 11V6Z"/></svg>
+          </button>
+        </div>
+
       </div>
-      <div class="ml-empty" *ngIf="tracks.length === 0">{{ 'MUSIC.MODERN_NO_RESULTS' | translate }}</div>
+      <div class="ml-empty" *ngIf="tracks.length === 0 && !loading">{{ 'MUSIC.MODERN_NO_RESULTS' | translate }}</div>
     </cdk-virtual-scroll-viewport>
   </div>
+  <div class="ml-playlist-picker-backdrop" *ngIf="playlistPickerTrack" (click)="closePlaylistPicker()">
+    <div class="ml-playlist-picker" (click)="$event.stopPropagation()">
+      <strong>Añadir a playlist</strong>
+      <p>{{ playlistPickerTrack.title || playlistPickerTrack.name }}</p>
+      <button *ngFor="let pl of playlists" type="button" class="ml-playlist-picker-item" [disabled]="isTrackInPlaylist(pl)" (click)="addToPlaylist(pl)">
+        <span>{{ pl.name }}</span>
+        <small>{{ isTrackInPlaylist(pl) ? 'Ya está añadida' : ((pl.tracks?.length ?? 0) + ' canciones') }}</small>
+      </button>
+      <div class="ml-empty" *ngIf="!playlists.length">No hay playlists</div>
+    </div>
+  </div>
 </div>
-

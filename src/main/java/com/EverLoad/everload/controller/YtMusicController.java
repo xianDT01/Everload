@@ -51,6 +51,13 @@ public class YtMusicController {
         return handle(() -> Map.of("items", ytMusicService.search(query.trim())), "buscar \"" + query + "\"");
     }
 
+    @GetMapping("/suggestions")
+    public ResponseEntity<?> suggestions(@RequestParam String query) {
+        ResponseEntity<?> gate = checkEnabledAndQuery(query);
+        if (gate != null) return gate;
+        return handle(() -> Map.of("items", ytMusicService.suggestions(query.trim())), "sugerencias \"" + query + "\"");
+    }
+
     @GetMapping("/artist/resolve")
     public ResponseEntity<?> resolveArtistChannel(@RequestParam String name) {
         ResponseEntity<?> gate = checkEnabledAndQuery(name);
@@ -70,6 +77,20 @@ public class YtMusicController {
         ResponseEntity<?> gate = checkEnabled();
         if (gate != null) return gate;
         return handle(ytMusicService::discoverHome, "cargar la página de inicio de YT Music");
+    }
+
+    @GetMapping("/discover/new-releases")
+    public ResponseEntity<?> discoverNewReleases() {
+        ResponseEntity<?> gate = checkEnabled();
+        if (gate != null) return gate;
+        return handle(ytMusicService::discoverNewReleases, "cargar los nuevos lanzamientos de YT Music");
+    }
+
+    @GetMapping("/discover/charts")
+    public ResponseEntity<?> discoverCharts() {
+        ResponseEntity<?> gate = checkEnabled();
+        if (gate != null) return gate;
+        return handle(ytMusicService::discoverCharts, "cargar los charts de YT Music");
     }
 
     @GetMapping("/discover/continuation")

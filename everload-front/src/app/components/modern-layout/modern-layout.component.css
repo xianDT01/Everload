@@ -28,7 +28,7 @@
   overflow: hidden;
   background: var(--ml-bg);
   color: var(--ml-text);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 

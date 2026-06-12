@@ -150,6 +150,11 @@ public class NasYtDlpService {
 
             job.progress = 97;
             String saved = nasService.saveToNas(job.nasPathId, job.subPath, tmp.toPath(), tmp.getName());
+            try {
+                musicService.startLibraryIndex(job.nasPathId);
+            } catch (Exception indexError) {
+                log.warn("No se pudo refrescar la biblioteca tras descargar {}: {}", saved, indexError.getMessage());
+            }
             downloadHistoryService.recordDownload(new Download(tmp.getName(), "music (NAS)", "YouTube"));
 
             job.resultFilename = tmp.getName();

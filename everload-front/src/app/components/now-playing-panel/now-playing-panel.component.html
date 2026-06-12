@@ -253,8 +253,8 @@
       <button [class.active]="musicManagerTab === 'history'" (click)="musicManagerTab = 'history'; loadMusicHistory()">{{ 'WINDOWS.MANAGER_HISTORY' | translate }}</button>
       <button [class.active]="musicManagerTab === 'stats'" (click)="musicManagerTab = 'stats'; loadStats()">{{ 'WINDOWS.MANAGER_STATS' | translate }}</button>
       <button [class.active]="musicManagerTab === 'playlists'" (click)="musicManagerTab = 'playlists'; loadPlaylists()">{{ 'MUSIC.PLAYLISTS' | translate }}</button>
-      <button *ngIf="canManageNas" [class.active]="musicManagerTab === 'review'" (click)="musicManagerTab = 'review'; loadMetadataReview()">Revisión</button>
-      <button *ngIf="canManageNas" [class.active]="musicManagerTab === 'artists'" (click)="musicManagerTab = 'artists'; loadArtistReview()">Artistas</button>
+      <button *ngIf="canManageNas" [class.active]="musicManagerTab === 'review'" (click)="musicManagerTab = 'review'; loadMetadataReview()">{{ 'PLAYER.REVIEW_TAB' | translate }}</button>
+      <button *ngIf="canManageNas" [class.active]="musicManagerTab === 'artists'" (click)="musicManagerTab = 'artists'; loadArtistReview()">{{ 'PLAYER.ARTISTS_TAB' | translate }}</button>
     </div>
     <div class="np-music-manager-body">
       <section class="np-manager-pane" *ngIf="musicManagerTab === 'properties'">
@@ -307,13 +307,13 @@
             </button>
           </div>
           <div class="np-meta-suggestion" *ngIf="metadataSuggestion">
-            <div class="np-meta-suggestion-head">Sugerencia encontrada</div>
-            <div><span>Título</span><strong>{{ metadataSuggestion.title || '-' }}</strong></div>
-            <div><span>Artista</span><strong>{{ metadataSuggestion.artist || '-' }}</strong></div>
-            <div><span>Álbum</span><strong>{{ metadataSuggestion.album || '-' }}</strong></div>
+            <div class="np-meta-suggestion-head">{{ 'PLAYER.SUGGESTION_FOUND' | translate }}</div>
+            <div><span>{{ 'NAS.METADATA_TITLE' | translate }}</span><strong>{{ metadataSuggestion.title || '-' }}</strong></div>
+            <div><span>{{ 'NAS.METADATA_ARTIST' | translate }}</span><strong>{{ metadataSuggestion.artist || '-' }}</strong></div>
+            <div><span>{{ 'NAS.METADATA_ALBUM' | translate }}</span><strong>{{ metadataSuggestion.album || '-' }}</strong></div>
             <small *ngIf="metadataSuggestion.rawTitle">YouTube: {{ metadataSuggestion.rawTitle }}</small>
             <div class="np-meta-suggestion-actions">
-              <button type="button" class="accept" (click)="applyMetadataSuggestion()">Sí, usar</button>
+              <button type="button" class="accept" (click)="applyMetadataSuggestion()">{{ 'PLAYER.YES_USE' | translate }}</button>
               <button type="button" class="reject" (click)="rejectMetadataSuggestion()">No</button>
             </div>
           </div>
@@ -445,7 +445,7 @@
 
       <section class="np-manager-pane" *ngIf="musicManagerTab === 'review' && canManageNas">
         <div class="np-manager-toolbar">
-          <strong>Revisión de metadatos</strong>
+          <strong>{{ 'PLAYER.METADATA_REVIEW_TITLE' | translate }}</strong>
           <button (click)="loadMetadataReview()" [disabled]="metadataReviewLoading">{{ metadataReviewLoading ? '...' : ('ADMIN.REFRESH' | translate) }}</button>
         </div>
         <div class="np-manager-empty" *ngIf="metadataReviewStatus">{{ metadataReviewStatus }}</div>
@@ -453,8 +453,8 @@
           <div class="np-review-row" *ngFor="let item of metadataReviewItems" [class.saved]="item.status === 'saved'" [class.rejected]="item.status === 'rejected'">
             <div class="np-review-main">
               <strong>{{ item.track.title || item.track.name }}</strong>
-              <small>{{ item.track.artist || 'Sin artista' }} · {{ item.track.album || 'Sin álbum' }}</small>
-              <em>{{ item.reason || (item.status === 'saved' ? 'Guardado' : item.status === 'rejected' ? 'Omitido' : '') }}</em>
+              <small>{{ item.track.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ item.track.album || ('MUSIC.MODERN_NO_ALBUM' | translate) }}</small>
+              <em>{{ item.reason || (item.status === 'saved' ? ('PLAYER.SAVED' | translate) : item.status === 'rejected' ? ('PLAYER.SKIPPED' | translate) : '') }}</em>
             </div>
             <div class="np-review-suggestion" *ngIf="item.suggestion">
               <span>{{ item.suggestion.title || '-' }}</span>
@@ -463,9 +463,9 @@
             </div>
             <div class="np-review-actions">
               <button (click)="previewReviewMetadata(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">
-                {{ item.status === 'loading' ? '...' : item.suggestion ? 'Buscar otra vez' : 'Previsualizar' }}
+                {{ item.status === 'loading' ? '...' : item.suggestion ? ('PLAYER.SEARCH_AGAIN' | translate) : ('PLAYER.PREVIEW' | translate) }}
               </button>
-              <button class="accept" (click)="acceptReviewMetadata(item)" [disabled]="!item.suggestion || item.status === 'loading' || item.status === 'saved'">Sí, guardar</button>
+              <button class="accept" (click)="acceptReviewMetadata(item)" [disabled]="!item.suggestion || item.status === 'loading' || item.status === 'saved'">{{ 'PLAYER.YES_SAVE' | translate }}</button>
               <button class="reject" (click)="rejectReviewMetadata(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">No</button>
             </div>
           </div>
@@ -474,7 +474,7 @@
 
       <section class="np-manager-pane" *ngIf="musicManagerTab === 'artists' && canManageNas">
         <div class="np-manager-toolbar">
-          <strong>Revisión de artistas</strong>
+          <strong>{{ 'PLAYER.ARTIST_REVIEW_TITLE' | translate }}</strong>
           <button (click)="loadArtistReview()" [disabled]="artistReviewLoading">{{ artistReviewLoading ? '...' : ('ADMIN.REFRESH' | translate) }}</button>
         </div>
         <div class="np-manager-empty" *ngIf="artistReviewStatus">{{ artistReviewStatus }}</div>
@@ -486,14 +486,14 @@
             </div>
             <div class="np-review-main">
               <strong>{{ item.artist }}</strong>
-              <small>{{ item.tracks.length }} canciones</small>
-              <em>{{ item.status === 'saved' ? 'Imagen guardada' : item.status === 'rejected' ? 'Rechazado' : item.status === 'error' ? 'Sin sugerencia fiable' : 'Sin foto revisada' }}</em>
+              <small>{{ 'PLAYER.SONGS_COUNT' | translate:{count: item.tracks.length} }}</small>
+              <em>{{ item.status === 'saved' ? ('PLAYER.IMAGE_SAVED' | translate) : item.status === 'rejected' ? ('PLAYER.REJECTED' | translate) : item.status === 'error' ? ('PLAYER.NO_RELIABLE_SUGGESTION' | translate) : ('PLAYER.NO_REVIEWED_PHOTO' | translate) }}</em>
             </div>
             <div class="np-review-actions">
               <button (click)="previewArtistImage(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">
-                {{ item.status === 'loading' ? '...' : item.suggestionUrl ? 'Buscar otra vez' : 'Previsualizar' }}
+                {{ item.status === 'loading' ? '...' : item.suggestionUrl ? ('PLAYER.SEARCH_AGAIN' | translate) : ('PLAYER.PREVIEW' | translate) }}
               </button>
-              <button class="accept" (click)="acceptArtistImage(item)" [disabled]="!item.suggestionUrl || item.status === 'loading' || item.status === 'saved'">Sí, guardar</button>
+              <button class="accept" (click)="acceptArtistImage(item)" [disabled]="!item.suggestionUrl || item.status === 'loading' || item.status === 'saved'">{{ 'PLAYER.YES_SAVE' | translate }}</button>
               <button class="reject" (click)="rejectArtistImage(item)" [disabled]="item.status === 'loading' || item.status === 'saved'">No</button>
             </div>
           </div>
@@ -506,7 +506,7 @@
           <strong>{{ 'MUSIC.PLAYLISTS' | translate }}</strong>
           <div>
             <button (click)="selectedPlaylist && playSelectedPlaylist()" [disabled]="!selectedPlaylist?.tracks?.length">▶</button>
-            <button (click)="selectedPlaylist && addCurrentTrackToPlaylist(selectedPlaylist.id)" [disabled]="!selectedPlaylist || !state?.currentTrack">+ canción actual</button>
+            <button (click)="selectedPlaylist && addCurrentTrackToPlaylist(selectedPlaylist.id)" [disabled]="!selectedPlaylist || !state?.currentTrack || isCurrentTrackInPlaylist(selectedPlaylist)">{{ isCurrentTrackInPlaylist(selectedPlaylist) ? 'Ya está añadida' : ('PLAYER.ADD_CURRENT_SONG' | translate) }}</button>
             <button (click)="loadPlaylists()">{{ 'ADMIN.REFRESH' | translate }}</button>
           </div>
         </div>
@@ -527,7 +527,7 @@
                 <span class="np-playlist-count">{{ pl.tracks?.length || 0 }}</span>
                 <span class="np-playlist-actions">
                   <i (click)="playPlaylist(pl); $event.stopPropagation()" title="▶">▶</i>
-                  <i (click)="addCurrentTrackToPlaylist(pl.id); $event.stopPropagation()" [title]="'MUSIC.PLAYLIST_ADD_CURRENT' | translate">+♪</i>
+                  <i (click)="addCurrentTrackToPlaylist(pl.id); $event.stopPropagation()" [title]="isCurrentTrackInPlaylist(pl) ? 'Ya está añadida' : ('MUSIC.PLAYLIST_ADD_CURRENT' | translate)">{{ isCurrentTrackInPlaylist(pl) ? '✓' : '+♪' }}</i>
                   <i (click)="startRenamePlaylist(pl, $event)" title="✎">✎</i>
                   <i (click)="deletePlaylist(pl.id, $event)" title="×">×</i>
                 </span>
@@ -549,36 +549,36 @@
             <div class="np-playlist-detail-head">
               <div>
                 <strong>{{ selectedPlaylist.name }}</strong>
-                <small>{{ selectedPlaylist.tracks?.length || 0 }} canciones</small>
+                <small>{{ 'PLAYER.SONGS_COUNT' | translate:{count: selectedPlaylist.tracks?.length || 0} }}</small>
               </div>
-              <button (click)="playSelectedPlaylist()" [disabled]="!selectedPlaylist.tracks?.length">Reproducir</button>
+              <button (click)="playSelectedPlaylist()" [disabled]="!selectedPlaylist.tracks?.length">{{ 'COMMON.PLAY' | translate }}</button>
             </div>
 
             <div class="np-playlist-track-list">
               <button class="np-manager-track" *ngFor="let t of selectedPlaylist.tracks || []; let i = index" (dblclick)="playPlaylistTrack(i)">
                 <span class="num">{{ i + 1 }}</span>
-                <span class="copy"><strong>{{ t.title || t.trackPath }}</strong><small>{{ t.artist || 'Sin artista' }} · {{ t.album || 'Sin álbum' }}</small></span>
+                <span class="copy"><strong>{{ t.title || t.trackPath }}</strong><small>{{ t.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ t.album || ('MUSIC.MODERN_NO_ALBUM' | translate) }}</small></span>
                 <span class="np-manager-row-actions">
                   <i (click)="playPlaylistTrack(i); $event.stopPropagation()">▶</i>
                   <i (click)="removeSelectedPlaylistTrack(t.id, $event)">×</i>
                 </span>
               </button>
-              <div *ngIf="!selectedPlaylist.tracks?.length" class="np-manager-empty">Playlist vacía</div>
+              <div *ngIf="!selectedPlaylist.tracks?.length" class="np-manager-empty">{{ 'MUSIC.MODERN_PLAYLIST_EMPTY' | translate }}</div>
             </div>
 
             <div class="np-playlist-search">
-              <input type="text" [(ngModel)]="playlistSearchQuery" placeholder="Buscar canciones para añadir" (keydown.enter)="searchTracksForPlaylist()" (mousedown)="$event.stopPropagation()" />
-              <button (click)="searchTracksForPlaylist()" [disabled]="playlistLibraryLoading">{{ playlistLibraryLoading ? '...' : 'Buscar' }}</button>
+              <input type="text" [(ngModel)]="playlistSearchQuery" [placeholder]="'PLAYER.SEARCH_SONGS_TO_ADD' | translate" (keydown.enter)="searchTracksForPlaylist()" (mousedown)="$event.stopPropagation()" />
+              <button (click)="searchTracksForPlaylist()" [disabled]="playlistLibraryLoading">{{ playlistLibraryLoading ? '...' : ('COMMON.SEARCH' | translate) }}</button>
             </div>
             <div class="np-playlist-results" *ngIf="playlistLibraryTracks.length">
-              <button class="np-manager-track" *ngFor="let t of playlistLibraryTracks" (dblclick)="addTrackToSelectedPlaylist(t)">
-                <span class="num">+</span>
-                <span class="copy"><strong>{{ t.title || t.name }}</strong><small>{{ t.artist || 'Sin artista' }} · {{ t.album || 'Sin álbum' }}</small></span>
-                <span class="np-manager-row-actions"><i (click)="addTrackToSelectedPlaylist(t, $event)">+♪</i></span>
+              <button class="np-manager-track" *ngFor="let t of playlistLibraryTracks" [disabled]="isTrackInSelectedPlaylist(t)" (dblclick)="addTrackToSelectedPlaylist(t)">
+                <span class="num">{{ isTrackInSelectedPlaylist(t) ? '✓' : '+' }}</span>
+                <span class="copy"><strong>{{ t.title || t.name }}</strong><small>{{ t.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ t.album || ('MUSIC.MODERN_NO_ALBUM' | translate) }}</small></span>
+                <span class="np-manager-row-actions"><i (click)="addTrackToSelectedPlaylist(t, $event)">{{ isTrackInSelectedPlaylist(t) ? 'Ya está' : '+♪' }}</i></span>
               </button>
             </div>
           </div>
-          <ng-template #noPlaylistSelected><div class="np-manager-empty">Selecciona una playlist.</div></ng-template>
+          <ng-template #noPlaylistSelected><div class="np-manager-empty">{{ 'PLAYER.SELECT_PLAYLIST' | translate }}</div></ng-template>
         </div>
       </section>
     </div>
@@ -599,8 +599,8 @@
         <strong>NAS Explorer</strong>
       </div>
       <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
-        <button class="np-window-min-btn" (click)="minimizeWindow('explorer')" title="Minimizar">_</button>
-        <button class="np-window-max-btn" (click)="toggleExplorerMaximize()" [title]="explorerMaximized ? 'Restaurar' : 'Maximizar'">
+        <button class="np-window-min-btn" (click)="minimizeWindow('explorer')" [title]="'PLAYER.MINIMIZE' | translate">_</button>
+        <button class="np-window-max-btn" (click)="toggleExplorerMaximize()" [title]="explorerMaximized ? ('PLAYER.RESTORE' | translate) : ('PLAYER.MAXIMIZE' | translate)">
           <span *ngIf="!explorerMaximized"></span>
           <span *ngIf="explorerMaximized" class="restore"></span>
         </button>
@@ -721,44 +721,44 @@
     <div class="np-exp-ctx-menu" *ngIf="explorerCtxOpen" [style.left.px]="explorerCtxX" [style.top.px]="explorerCtxY" (click)="$event.stopPropagation()">
       <ng-container *ngIf="explorerCtxTarget && !explorerCtxTarget.directory && explorerSelectionCount <= 1">
         <div class="np-exp-ctx-item" (click)="explorerCtxPlay()">
-          <span class="np-exp-ctx-icon play"></span> Reproducir
+          <span class="np-exp-ctx-icon play"></span> {{ 'COMMON.PLAY' | translate }}
         </div>
         <div class="np-exp-ctx-separator"></div>
       </ng-container>
       <ng-container *ngIf="explorerCtxTarget && canManageNas">
         <div class="np-exp-ctx-item" (click)="explorerCtxCopy()">
-          <span class="np-exp-ctx-icon copy"></span> Copiar<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
+          <span class="np-exp-ctx-icon copy"></span> {{ 'COMMON.COPY' | translate }}<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
         </div>
         <div class="np-exp-ctx-item" (click)="explorerCtxCut()">
-          <span class="np-exp-ctx-icon cut"></span> Cortar<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
+          <span class="np-exp-ctx-icon cut"></span> {{ 'PLAYER.CUT' | translate }}<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
         </div>
       </ng-container>
       <div class="np-exp-ctx-item" *ngIf="explorerClipboard && canManageNas" (click)="explorerCtxPaste()">
         <span class="np-exp-ctx-icon paste"></span>
-        Pegar <span class="np-exp-ctx-hint">({{ explorerClipboardLabel }})</span>
+        {{ 'PLAYER.PASTE' | translate }} <span class="np-exp-ctx-hint">({{ explorerClipboardLabel }})</span>
       </div>
       <ng-container *ngIf="explorerCtxTarget && canManageNas">
         <div class="np-exp-ctx-separator"></div>
         <div class="np-exp-ctx-item" *ngIf="explorerCanRename" (click)="explorerCtxRename()">
-          <span class="np-exp-ctx-icon rename"></span> Renombrar
+          <span class="np-exp-ctx-icon rename"></span> {{ 'COMMON.RENAME' | translate }}
         </div>
         <div class="np-exp-ctx-item danger" (click)="explorerCtxDelete()">
-          <span class="np-exp-ctx-icon delete"></span> Eliminar<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
+          <span class="np-exp-ctx-icon delete"></span> {{ 'COMMON.DELETE' | translate }}<span class="np-exp-ctx-hint" *ngIf="explorerSelectionCount > 1"> ({{ explorerSelectionCount }})</span>
         </div>
       </ng-container>
       <div class="np-exp-ctx-separator" *ngIf="explorerCtxTarget"></div>
       <div class="np-exp-ctx-item" (click)="explorerCtxDownload()" *ngIf="explorerCtxTarget">
-        <span class="np-exp-ctx-icon download"></span> Descargar
+        <span class="np-exp-ctx-icon download"></span> {{ 'DOWNLOAD' | translate }}
       </div>
       <div class="np-exp-ctx-item" *ngIf="!explorerCtxTarget && canManageNas" (click)="explorerCtxNewFolder()">
-        <span class="np-exp-ctx-icon folder"></span> Nueva carpeta
+        <span class="np-exp-ctx-icon folder"></span> {{ 'NAS.NEW_FOLDER' | translate }}
       </div>
       <div class="np-exp-ctx-item" *ngIf="!explorerCtxTarget && explorerClipboard && canManageNas" (click)="explorerCtxPaste()">
         <span class="np-exp-ctx-icon paste"></span>
-        Pegar <span class="np-exp-ctx-hint">({{ explorerClipboardLabel }})</span>
+        {{ 'PLAYER.PASTE' | translate }} <span class="np-exp-ctx-hint">({{ explorerClipboardLabel }})</span>
       </div>
       <div class="np-exp-ctx-item" (click)="loadExplorerItems(); closeExplorerCtxMenu()">
-        <span class="np-exp-ctx-icon refresh"></span> Actualizar
+        <span class="np-exp-ctx-icon refresh"></span> {{ 'ADMIN.REFRESH' | translate }}
       </div>
     </div>
     <input #uploadFilesInput type="file" multiple hidden (change)="onExplorerFilesSelected($event)" />
@@ -778,8 +778,8 @@
         <strong>MSN Messenger</strong>
       </div>
       <div class="np-msn-winctrls" (mousedown)="$event.stopPropagation()">
-        <button class="np-msn-wcbtn" (click)="minimizeWindow('messenger')" title="Minimizar">_</button>
-        <button class="np-msn-wcbtn np-msn-max-btn" (click)="toggleMessengerMaximize()" [title]="messengerMaximized ? 'Restaurar' : 'Maximizar'">
+        <button class="np-msn-wcbtn" (click)="minimizeWindow('messenger')" [title]="'PLAYER.MINIMIZE' | translate">_</button>
+        <button class="np-msn-wcbtn np-msn-max-btn" (click)="toggleMessengerMaximize()" [title]="messengerMaximized ? ('PLAYER.RESTORE' | translate) : ('PLAYER.MAXIMIZE' | translate)">
           <span *ngIf="!messengerMaximized"></span>
           <span *ngIf="messengerMaximized" class="restore"></span>
         </button>
@@ -823,8 +823,8 @@
         <strong>YouTube XP Downloader</strong>
       </div>
       <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
-        <button class="np-window-min-btn" (click)="minimizeWindow('youtube')" title="Minimizar">_</button>
-        <button class="np-window-max-btn" (click)="toggleYoutubeMaximize()" [title]="youtubeDownloaderMaximized ? 'Restaurar' : 'Maximizar'">
+        <button class="np-window-min-btn" (click)="minimizeWindow('youtube')" [title]="'PLAYER.MINIMIZE' | translate">_</button>
+        <button class="np-window-max-btn" (click)="toggleYoutubeMaximize()" [title]="youtubeDownloaderMaximized ? ('PLAYER.RESTORE' | translate) : ('PLAYER.MAXIMIZE' | translate)">
           <span *ngIf="!youtubeDownloaderMaximized"></span>
           <span *ngIf="youtubeDownloaderMaximized" class="restore"></span>
         </button>
@@ -900,8 +900,8 @@
         <strong>{{ 'WINDOWS.BROWSER_TITLE' | translate }}</strong>
       </div>
       <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
-        <button class="np-window-min-btn" (click)="minimizeWindow('browser')" title="Minimizar">_</button>
-        <button class="np-window-max-btn" (click)="toggleBrowserMaximize()" [title]="browserMaximized ? 'Restaurar' : 'Maximizar'">
+        <button class="np-window-min-btn" (click)="minimizeWindow('browser')" [title]="'PLAYER.MINIMIZE' | translate">_</button>
+        <button class="np-window-max-btn" (click)="toggleBrowserMaximize()" [title]="browserMaximized ? ('PLAYER.RESTORE' | translate) : ('PLAYER.MAXIMIZE' | translate)">
           <span *ngIf="!browserMaximized"></span>
           <span *ngIf="browserMaximized" class="restore"></span>
         </button>
@@ -919,7 +919,7 @@
     <div class="np-browser-toolbar">
       <button (click)="browserBack()" [disabled]="browserHistoryIndex <= 0" title="Atrás">‹</button>
       <button (click)="browserForward()" [disabled]="browserHistoryIndex >= browserHistory.length - 1" title="Adelante">›</button>
-      <button (click)="browserRefresh()" title="Actualizar">↻</button>
+      <button (click)="browserRefresh()" [title]="'ADMIN.REFRESH' | translate">↻</button>
       <button (click)="browserHome()" title="Inicio">⌂</button>
       <button
         (click)="addBrowserFavorite()"
@@ -969,7 +969,7 @@
         <strong>{{ 'WINDOWS.MINESWEEPER' | translate }}</strong>
       </div>
       <div class="np-window-titleactions" (mousedown)="$event.stopPropagation()">
-        <button class="np-window-min-btn" (click)="minimizeWindow('minesweeper')" title="Minimizar">_</button>
+        <button class="np-window-min-btn" (click)="minimizeWindow('minesweeper')" [title]="'PLAYER.MINIMIZE' | translate">_</button>
         <button class="np-explorer-close" (click)="closeMinesweeper()">×</button>
       </div>
     </div>
@@ -1448,7 +1448,7 @@
           <strong>{{ 'WINDOWS.MEDIA_PLAYER_FULL' | translate }}</strong>
         </div>
         <div class="wmp-title-actions">
-          <button class="wmp-close-btn wmp-minimize-btn" (click)="minimizeWindow('player')" title="Minimizar">_</button>
+          <button class="wmp-close-btn wmp-minimize-btn" (click)="minimizeWindow('player')" [title]="'PLAYER.MINIMIZE' | translate">_</button>
           <button class="wmp-close-btn wmp-fullscreen-btn" (click)="toggleFullscreen()" [title]="isFullscreen ? ('WINDOWS.START_EXIT_FULLSCREEN' | translate) : ('WINDOWS.START_FULLSCREEN' | translate)">
             <svg *ngIf="!isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm0-4h2V7h3V5H5v5zm10 7h-3v2h5v-5h-2v3zm0-7h2V5h-5v2h3v3z"/></svg>
             <svg *ngIf="isFullscreen" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-4v4h-2v-6h6v2zM5 11h6v6H9v-4H5v-2zm4-4v4H7V5h6v2H9zm6 0v4h2V7h4V5h-6z"/></svg>

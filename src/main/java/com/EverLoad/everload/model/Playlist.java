@@ -6,15 +6,20 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "playlists")
 @Data
+@EqualsAndHashCode(of = "id")
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -44,10 +49,23 @@ public class Playlist {
     @Builder.Default
     private List<PlaylistTrack> tracks = new ArrayList<>();
 
+    @OneToMany(mappedBy = "playlist", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    @Builder.Default
+    private Set<PlaylistCollaborator> collaborators = new HashSet<>();
+
     @Transient
     @JsonProperty("ownerUsername")
     public String getOwnerUsername() {
         return user != null ? user.getUsername() : null;
+    }
+
+    @Transient
+    @JsonProperty("collaboratorUsernames")
+    public List<String> getCollaboratorUsernames() {
+        return collaborators == null ? List.of() : collaborators.stream()
+                .map(c -> c.getUser().getUsername())
+                .collect(Collectors.toList());
     }
 
     @PrePersist

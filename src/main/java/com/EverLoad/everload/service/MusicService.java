@@ -142,6 +142,20 @@ public class MusicService {
         );
     }
 
+    public List<MusicMetadataDto> getRecentTracks(Long pathId, int limit) {
+        List<MusicMetadataDto> tracks = metadataCacheRepo.findByNasPathId(pathId).stream()
+                .sorted(Comparator.comparingLong(TrackMetadataCache::getLastModified).reversed())
+                .limit(Math.max(1, limit))
+                .map(this::dtoFromCache)
+                .collect(Collectors.toList());
+
+        if (tracks.isEmpty()) {
+            startLibraryIndex(pathId);
+        }
+
+        return tracks;
+    }
+
     public Map<String, Object> startLibraryIndex(Long pathId) {
         Path base = nasService.getBasePath(pathId);
         if (!Files.isDirectory(base) || !Files.isReadable(base)) {
@@ -1550,7 +1564,7 @@ public class MusicService {
                 .path(path)
                 .directory(false)
                 .size(0)
-                .lastModified("")
+                .lastModified(formatDate(cache.getLastModified()))
                 .title(title)
                 .artist(cache.getArtist() != null ? cache.getArtist() : "")
                 .album(cache.getAlbum() != null ? cache.getAlbum() : "")

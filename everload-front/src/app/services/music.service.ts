@@ -374,8 +374,8 @@ export class DeckPlayer {
       this.activeSource = 'youtube';
       await this.loadYoutube(track.path, loadId);
     } else if (track.source === 'ytmusic') {
-      this.activeSource = 'ytmusic';
-      await this.loadYtMusic(track, loadId);
+      this.activeSource = 'youtube';
+      await this.loadYoutube(track.path, loadId);
     } else if (track.source === 'local') {
       this.activeSource = 'local';
       this.loadLocal(track, loadId);
@@ -428,19 +428,6 @@ export class DeckPlayer {
     this.audio.preload = 'auto';
     this.audio.src = url;
     this.audio.load();
-  }
-
-  private async loadYtMusic(track: MusicMetadataDto, loadId: number) {
-    if (this.isStaleLoad(loadId)) return;
-    const url = this.musicService.getYtMusicAudioUrl(track.path);
-    if (!url) {
-      this.patch({ playing: false, loading: false, error: 'No se pudo preparar el stream' });
-      return;
-    }
-    this.loadDirectAudio(url);
-    if (track.duration) {
-      this.patch({ duration: track.duration });
-    }
   }
 
   private async canPlayHls(): Promise<boolean> {
@@ -1472,6 +1459,10 @@ export class MusicService {
     return this.http.get<LibraryOverviewDto>(`${this.api}/library-overview?pathId=${pathId}&limit=${limit}`);
   }
 
+  getRecentTracks(pathId: number, limit = 40): Observable<MusicMetadataDto[]> {
+    return this.http.get<MusicMetadataDto[]>(`${this.api}/recent?pathId=${pathId}&limit=${limit}`);
+  }
+
   startLibraryIndex(pathId: number): Observable<any> {
     return this.http.post<any>(`${this.api}/library-index?pathId=${pathId}`, {});
   }
@@ -1600,6 +1591,12 @@ export class MusicService {
     );
   }
 
+  suggestYtMusic(query: string): Observable<{ items: string[] }> {
+    return this.http.get<{ items: string[] }>(
+      `${this.ytMusicApi}/suggestions?query=${encodeURIComponent(query)}`
+    );
+  }
+
   resolveYtMusicArtist(name: string): Observable<{ channelId: string }> {
     return this.http.get<{ channelId: string }>(
       `${this.ytMusicApi}/artist/resolve?name=${encodeURIComponent(name)}`
@@ -1614,6 +1611,14 @@ export class MusicService {
     return this.http.get<YtMusicDiscoverHomeDto>(
       `${this.ytMusicApi}/discover/continuation?token=${encodeURIComponent(token)}`
     );
+  }
+
+  discoverYtMusicNewReleases(): Observable<YtMusicDiscoverHomeDto> {
+    return this.http.get<YtMusicDiscoverHomeDto>(`${this.ytMusicApi}/discover/new-releases`);
+  }
+
+  discoverYtMusicCharts(): Observable<YtMusicDiscoverHomeDto> {
+    return this.http.get<YtMusicDiscoverHomeDto>(`${this.ytMusicApi}/discover/charts`);
   }
 
   getYtMusicAlbum(browseId: string): Observable<YtMusicAlbumDto> {
@@ -1641,12 +1646,6 @@ export class MusicService {
   getYtMusicAudioUrl(videoId: string): string {
     const token = this.auth.getToken();
     return `${this.ytMusicApi}/stream/${encodeURIComponent(videoId)}/audio?token=${encodeURIComponent(token || '')}`;
-  }
-
-  /** Warms the backend's resolved-stream cache so playback of `videoId` can start instantly when it comes up next. */
-  private prefetchYtMusicStream(videoId: string): void {
-    if (!videoId) return;
-    this.getYtMusicStream(videoId).subscribe({ error: () => {} });
   }
 
   toYtMusicTrack(track: YtMusicTrackDto): MusicMetadataDto {
@@ -1787,6 +1786,30 @@ export class MusicService {
     return this.http.patch<any>(`${this.playlistApi}/${id}/visibility`, { isPublic });
   }
 
+  getSharedPlaylists(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.playlistApi}/shared`);
+  }
+
+  searchUsers(query: string): Observable<string[]> {
+    return this.http.get<string[]>(`${this.playlistApi}/users/search`, { params: { q: query } });
+  }
+
+  getPlaylistCollaborators(id: number): Observable<string[]> {
+    return this.http.get<string[]>(`${this.playlistApi}/${id}/collaborators`);
+  }
+
+  addPlaylistCollaborator(id: number, username: string): Observable<any> {
+    return this.http.post<any>(`${this.playlistApi}/${id}/collaborators`, { username });
+  }
+
+  removePlaylistCollaborator(id: number, username: string): Observable<any> {
+    return this.http.delete<any>(`${this.playlistApi}/${id}/collaborators/${encodeURIComponent(username)}`);
+  }
+
+  leavePlaylist(id: number): Observable<any> {
+    return this.http.post<any>(`${this.playlistApi}/${id}/leave`, {});
+  }
+
   // ── Manual artist profiles ────────────────────────────────────────────────
 
   private get artistApi(): string { return `${this.BASE}/api/artists`; }
@@ -1901,13 +1924,7 @@ export class MusicService {
       this.preloadTriggeredForPath = state.currentTrack.path;
       const next = this.peekNextTrack();
       if (next && next.track.path !== state.currentTrack.path) {
-        if (next.track.source === 'ytmusic') {
-          // No descargamos el audio entero por adelantado (sería tráfico
-          // desperdiciado si el usuario salta de pista) — basta con dejar
-          // la resolución del stream ya cacheada en el backend para que el
-          // siguiente <audio>.src arranque sin esperar al resolver chain.
-          this.prefetchYtMusicStream(next.track.path);
-        } else if (next.track.source !== 'youtube') {
+        if (next.track.source !== 'youtube' && next.track.source !== 'ytmusic') {
           this.doPreload(next.track, next.pathId);
         }
       }
@@ -2006,7 +2023,7 @@ export class MusicService {
         const indexNow = this.resolveQueueIndex();
         const nextQueue = [...current.tracks, ...additions];
         this.updateQueue(current.pathId, nextQueue, indexNow);
-        additions.slice(0, 2).forEach(t => this.prefetchYtMusicStream(t.path));
+        // ytmusic usa IFrame player — no necesita prefetch de resolución de stream
 
         const stillAtEnd = indexNow >= current.tracks.length - 1;
         if (playWhenReady && stillAtEnd && !this.mainPlayer.state.playing) {

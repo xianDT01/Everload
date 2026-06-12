@@ -259,6 +259,23 @@
   --color-neutral-900: #1c1c24;
 }
 
+/* ─── kettek16 ─────────────────────────────────────────── */
+.theme-kettek16 {
+  --color-black:   #090909;
+  --color-white:   #fef638;
+  --color-slate-400: #dddddd;
+  --color-slate-500: #bbbbbb;
+  --color-green-500: #009988;
+  --color-indigo-400: #66ccee;
+  --color-indigo-500: #33bbee;
+  --color-indigo-600: #0077bb;
+  --color-indigo-900: #1d1f21;
+  --color-purple-600: #ee3377;
+  --color-purple-700: #aa3377;
+  --color-red-400: #ee6677;
+  --color-neutral-900: #1d1f21;
+}
+
 /* ─── Osmium ───────────────────────────────────────────── */
 .theme-osmium {
   --color-black:   #14131e;
@@ -344,6 +361,38 @@
   --color-neutral-900: #f8f0dc;
 }
 
+.theme-ayu-light {
+  --color-black:   #fafafa;
+  --color-white:   #5c6166;
+  --color-slate-400: #8a9199;
+  --color-slate-500: #d8d8d8;
+  --color-green-500: #86b300;
+  --color-indigo-400: #55b4d4;
+  --color-indigo-500: #399ee6;
+  --color-indigo-600: #399ee6;
+  --color-indigo-900: #f0f0f0;
+  --color-purple-600: #a37acc;
+  --color-purple-700: #9063b8;
+  --color-red-400: #f07171;
+  --color-neutral-900: #f3f3f3;
+}
+
+.theme-onelight {
+  --color-black:   #fafafa;
+  --color-white:   #383a42;
+  --color-slate-400: #696c77;
+  --color-slate-500: #d3d5db;
+  --color-green-500: #50a14f;
+  --color-indigo-400: #0184bc;
+  --color-indigo-500: #4078f2;
+  --color-indigo-600: #4078f2;
+  --color-indigo-900: #ecedf0;
+  --color-purple-600: #a626a4;
+  --color-purple-700: #9118a1;
+  --color-red-400: #e45649;
+  --color-neutral-900: #f0f0f0;
+}
+
 .theme-gruvbox-light {
   --color-black:   #f2e5bc;
   --color-white:   #3c3836;
@@ -358,6 +407,76 @@
   --color-purple-700: #b16286;
   --color-red-400: #cc241d;
   --color-neutral-900: #f9f5d7;
+}
+
+/* ─── Midnight ────────────────────────────────────────── */
+.theme-midnight {
+  --color-black:   #0d0d14;
+  --color-white:   #f0f0f0;
+  --color-slate-400: rgba(255,255,255,0.42);
+  --color-slate-500: rgba(255,255,255,0.22);
+  --color-green-500: #22c55e;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6c5ce7;
+  --color-indigo-600: #6c5ce7;
+  --color-indigo-900: #08080f;
+  --color-purple-600: #a78bfa;
+  --color-purple-700: #8b5cf6;
+  --color-red-400: #f87171;
+  --color-neutral-900: #121219;
+}
+
+/* ─── Midnight flat overrides ─────────────────────────── */
+/* Sidebar fondo igual que el contenido, sin distinción visual */
+.theme-midnight {
+  --ml-panel: #0d0d14;
+  --ml-card:  transparent;
+  --ml-card-hover: color-mix(in srgb, var(--color-white) 6%, transparent);
+  --ml-border: color-mix(in srgb, var(--color-white) 5%, transparent);
+}
+
+/* Cards de álbumes y artistas sin fondo */
+.theme-midnight .ma-card,
+.theme-midnight .mar-card {
+  background: transparent;
+  border-radius: 8px;
+}
+.theme-midnight .ma-card:hover,
+.theme-midnight .mar-card:hover {
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
+}
+
+/* Cards de YT Music sin fondo */
+.theme-midnight .mytm-card {
+  background: transparent;
+}
+.theme-midnight .mytm-card:hover {
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
+}
+
+/* Tracks sin fondo */
+.theme-midnight .mytm-track:hover,
+.theme-midnight .mytm-subpage-track:hover,
+.theme-midnight .ma-track:hover {
+  background: color-mix(in srgb, var(--color-white) 5%, transparent);
+}
+
+/* Hero de subpágina sin borde/fondo */
+.theme-midnight .mytm-subpage-hero,
+.theme-midnight .ma-detail-hero {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Player bar sin fondo distinto del shell */
+.theme-midnight .ml-bottombar {
+  background: transparent;
+  border-top-color: color-mix(in srgb, var(--color-white) 7%, transparent);
+}
+
+/* Botones de busqueda y otros inputs sin fondo */
+.theme-midnight .mytm-search {
+  background: color-mix(in srgb, var(--color-white) 4%, transparent);
 }
 
 /* ─── Themed scrollbars ───────────────────────────────── */

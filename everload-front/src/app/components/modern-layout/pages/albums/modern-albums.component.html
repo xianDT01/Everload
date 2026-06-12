@@ -1,19 +1,83 @@
-﻿<div class="ma-page">
-  <h1 class="ma-title">{{ 'MUSIC.MODERN_SIDEBAR_ALBUMS' | translate }}</h1>
+<div class="ma-page">
 
-  <div class="ma-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
+  <!-- ── Grid de álbumes ──────────────────────────────────────────── -->
+  <ng-container *ngIf="!selected">
+    <h1 class="ma-title">{{ 'MUSIC.MODERN_SIDEBAR_ALBUMS' | translate }}</h1>
 
-  <div class="ma-grid" *ngIf="!loading">
-    <div class="ma-card" *ngFor="let g of albums" (dblclick)="play(g)">
-      <div class="ma-cover">
-        <img [src]="cover(g)" (error)="$any($event.target).style.display='none'" class="ma-img" />
-        <div class="ma-play-btn" (click)="play(g); $event.stopPropagation()">▶</div>
+    <div class="ma-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
+
+    <div class="ma-grid" *ngIf="!loading">
+      <div class="ma-card" *ngFor="let g of albums" (click)="openDetail(g)">
+        <div class="ma-cover">
+          <img [src]="cover(g)" (error)="$any($event.target).style.display='none'" class="ma-img" />
+          <div class="ma-play-btn" (click)="play(g); $event.stopPropagation()">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
+          </div>
+        </div>
+        <div class="ma-album">{{ g.album }}</div>
+        <div class="ma-artist">{{ g.artist }}</div>
+        <div class="ma-count">{{ 'MUSIC.MODERN_TRACKS_COUNT_SHORT' | translate: { count: g.tracks.length } }}</div>
       </div>
-      <div class="ma-album">{{ g.album }}</div>
-      <div class="ma-artist">{{ g.artist }}</div>
-      <div class="ma-count">{{ 'MUSIC.MODERN_TRACKS_COUNT_SHORT' | translate: { count: g.tracks.length } }}</div>
+      <div class="ma-empty" *ngIf="albums.length === 0">{{ 'MUSIC.MODERN_NO_ALBUMS' | translate }}</div>
     </div>
-    <div class="ma-empty" *ngIf="albums.length === 0">{{ 'MUSIC.MODERN_NO_ALBUMS' | translate }}</div>
-  </div>
-</div>
+  </ng-container>
 
+  <!-- ── Detalle de álbum ─────────────────────────────────────────── -->
+  <ng-container *ngIf="selected">
+    <button class="ma-back-btn" type="button" (click)="back()">
+      <svg viewBox="0 0 24 24"><path d="M15.7 18.7 10 12l5.7-6.7-1.4-1.3L7.3 12l7 8 1.4-1.3Z"/></svg>
+      {{ 'MUSIC.MODERN_SIDEBAR_ALBUMS' | translate }}
+    </button>
+
+    <div class="ma-detail-hero">
+      <div class="ma-detail-art">
+        <img [src]="cover(selected)" (error)="$any($event.target).style.display='none'" alt="" />
+      </div>
+      <div class="ma-detail-info">
+        <span class="ma-detail-badge">{{ 'MUSIC.YTMUSIC_ALBUM' | translate }}</span>
+        <h2 class="ma-detail-title">{{ selected.album }}</h2>
+        <p class="ma-detail-byline">
+          <span>{{ selected.artist }}</span>
+          <span> · {{ 'MUSIC.MODERN_TRACKS_COUNT_SHORT' | translate: { count: selected.tracks.length } }}</span>
+        </p>
+        <button class="ma-detail-play" type="button" (click)="play(selected)">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
+          {{ 'MUSIC.MODERN_PLAY' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <div class="ma-tracklist">
+      <div class="ma-track" *ngFor="let t of selected.tracks; let i = index; trackBy: trackByPath" (dblclick)="playFrom(i)">
+        <span class="ma-track-num">{{ i + 1 }}</span>
+        <span class="ma-track-meta">
+          <span class="ma-track-title">{{ t.title || t.name }}</span>
+          <span class="ma-track-artist">{{ t.artist }}</span>
+        </span>
+        <span class="ma-track-duration">{{ fmt(t.duration) }}</span>
+        <button class="ma-track-btn" type="button" (click)="playFrom(i)" [title]="'MUSIC.MODERN_PLAY' | translate">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
+        </button>
+        <button class="ma-track-btn" type="button" (click)="appendTrack(t)" [title]="'MUSIC.YTMUSIC_ADD_TO_QUEUE' | translate">
+          <svg viewBox="0 0 24 24"><path d="M4 6h10v2H4V6Zm0 5h10v2H4v-2Zm0 5h7v2H4v-2Zm13-7h2v4h4v2h-4v4h-2v-4h-4v-2h4V9Z"/></svg>
+        </button>
+        <button class="ma-track-btn" type="button" (click)="openPlaylistPicker(t, $event)" title="Añadir a playlist">
+          <svg viewBox="0 0 24 24"><path d="M4 6h11v2H4V6Zm0 4h11v2H4v-2Zm0 4h7v2H4v-2Zm13-8h2v8.18A3 3 0 1 1 17 11V6Z"/></svg>
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <div class="ma-playlist-picker-backdrop" *ngIf="playlistPickerTrack" (click)="closePlaylistPicker()">
+    <div class="ma-playlist-picker" (click)="$event.stopPropagation()">
+      <strong>Añadir a playlist</strong>
+      <p>{{ playlistPickerTrack.title || playlistPickerTrack.name }}</p>
+      <button *ngFor="let pl of playlists" type="button" class="ma-playlist-picker-item" [disabled]="isTrackInPlaylist(pl)" (click)="addToPlaylist(pl)">
+        <span>{{ pl.name }}</span>
+        <small>{{ isTrackInPlaylist(pl) ? 'Ya está añadida' : ((pl.tracks?.length ?? 0) + ' canciones') }}</small>
+      </button>
+      <div class="ma-empty" *ngIf="!playlists.length">No hay playlists</div>
+    </div>
+  </div>
+
+</div>

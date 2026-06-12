@@ -54,6 +54,10 @@ public class YtMusicService {
         return searchService.searchTracks(query);
     }
 
+    public List<String> suggestions(String query) {
+        return searchService.suggestions(query);
+    }
+
     public String resolveArtistChannelId(String artistName) {
         return searchService.resolveArtistChannelId(artistName);
     }
@@ -66,6 +70,14 @@ public class YtMusicService {
 
     public YtDiscoverHomeDto discoverContinuation(String token) {
         return discoverService.fetchContinuation(token);
+    }
+
+    public YtDiscoverHomeDto discoverNewReleases() {
+        return discoverService.fetchNewReleases();
+    }
+
+    public YtDiscoverHomeDto discoverCharts() {
+        return discoverService.fetchCharts();
     }
 
     public YtAlbumDto getAlbum(String browseId) {

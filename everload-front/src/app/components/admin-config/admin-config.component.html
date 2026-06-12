@@ -918,6 +918,24 @@
         <p *ngIf="cleanupMsg['metadata-cache']" class="cleanup-result" [class.error]="cleanupMsg['metadata-cache'].includes('❌')">{{ cleanupMsg['metadata-cache'] }}</p>
       </div>
 
+      <!-- Referencias huérfanas en historial y favoritos -->
+      <div class="cleanup-item">
+        <div class="cleanup-header">
+          <span class="cleanup-title">{{ 'ADMIN.CLEANUP_ORPHANED_TITLE' | translate }}</span>
+          <button class="btn-help" (click)="toggleCleanupInfo('orphaned-references')" title="{{ 'ADMIN.CLEANUP_INFO_HINT' | translate }}">?</button>
+        </div>
+        <div *ngIf="cleanupInfo['orphaned-references']" class="cleanup-info-box">
+          <p><strong>{{ 'ADMIN.CLEANUP_WHAT_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_ORPHANED_WHAT' | translate }}</p>
+          <p><strong>{{ 'ADMIN.CLEANUP_WHEN_LABEL' | translate }}</strong> {{ 'ADMIN.CLEANUP_ORPHANED_WHEN' | translate }}</p>
+        </div>
+        <div class="cleanup-action-row">
+          <button class="btn warning" [disabled]="cleanupLoading['orphaned-references']" (click)="runCleanup('orphaned-references')">
+            {{ cleanupLoading['orphaned-references'] ? ('ADMIN.CLEANUP_RUNNING' | translate) : ('ADMIN.CLEANUP_BTN' | translate) }}
+          </button>
+        </div>
+        <p *ngIf="cleanupMsg['orphaned-references']" class="cleanup-result" [class.error]="cleanupMsg['orphaned-references'].includes('❌')">{{ cleanupMsg['orphaned-references'] }}</p>
+      </div>
+
       <!-- Tokens expirados -->
       <div class="cleanup-item">
         <div class="cleanup-header">

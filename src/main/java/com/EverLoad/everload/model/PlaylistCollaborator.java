@@ -1,6 +1,7 @@
 package com.EverLoad.everload.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,14 +9,16 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
-@Table(name = "playlist_tracks")
+@Table(name = "playlist_collaborators")
 @Data
 @EqualsAndHashCode(of = "id")
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PlaylistTrack {
+public class PlaylistCollaborator {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,20 +29,19 @@ public class PlaylistTrack {
     @JsonIgnore
     private Playlist playlist;
 
-    @Column(nullable = false)
-    private String trackPath;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
-    @Column(nullable = false)
-    private String title;
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime addedAt;
 
-    private String artist;
-    private String album;
+    @Transient
+    @JsonProperty("username")
+    public String getUsername() {
+        return user != null ? user.getUsername() : null;
+    }
 
-    @Column(nullable = false)
-    private Long nasPathId;
-
-    private Integer durationSeconds;
-
-    @Column(nullable = false)
-    private Integer position;
+    @PrePersist
+    protected void onAdd() { addedAt = LocalDateTime.now(); }
 }

@@ -1830,10 +1830,17 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     } else if (this.playlistPicker.track) {
       const track = this.playlistPicker.track;
       const pid = track.nasPathId ?? this.selectedPathId;
-      if (pid == null) return;
+      if (pid == null || this.isPickerTrackInPlaylist(pl)) return;
       this.musicService.addTrackToPlaylist(pl.id, track, pid).subscribe(() => this.loadPlaylists());
       this.closePlaylistPicker();
     }
+  }
+
+  isPickerTrackInPlaylist(pl: any): boolean {
+    const track = this.playlistPicker.track;
+    if (!pl || !track) return false;
+    const pid = track.nasPathId ?? this.selectedPathId;
+    return (pl.tracks ?? []).some((t: any) => t.trackPath === track.path && (pid == null || t.nasPathId === pid));
   }
 
   createPlaylistAndAdd(): void {

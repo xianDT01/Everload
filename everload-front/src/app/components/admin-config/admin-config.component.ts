@@ -1074,6 +1074,8 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
         this.cleanupLoading[key] = false;
         if (res.artistImageCacheCleared !== undefined) {
           this.cleanupMsg[key] = `✅ Imágenes: ${res.artistImageCacheCleared} entradas, directorios: ${res.directoryListingCacheCleared} entradas vaciadas de memoria.`;
+        } else if (res.historyRemoved !== undefined) {
+          this.cleanupMsg[key] = `✅ Historial: ${res.historyRemoved} de ${res.historyTotal} entradas eliminadas. Favoritos: ${res.favoritesRemoved} de ${res.favoritesTotal} eliminados.`;
         } else if (res.removed !== undefined) {
           let msg = `✅ ${res.removed} registro${res.removed !== 1 ? 's' : ''} eliminado${res.removed !== 1 ? 's' : ''}` +
             (res.total !== undefined ? ` de ${res.total}` : '') + '.';

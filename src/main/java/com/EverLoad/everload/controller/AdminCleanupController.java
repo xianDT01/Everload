@@ -26,6 +26,11 @@ public class AdminCleanupController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/orphaned-references")
+    public ResponseEntity<Map<String, Object>> purgeOrphanedReferences() {
+        return ResponseEntity.ok(cleanupService.purgeOrphanedReferences());
+    }
+
     @PostMapping("/expired-tokens")
     public ResponseEntity<Map<String, Object>> purgeExpiredTokens() {
         return ResponseEntity.ok(cleanupService.purgeExpiredTokens());

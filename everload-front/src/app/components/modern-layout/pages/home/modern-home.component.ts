@@ -1,6 +1,7 @@
 ﻿import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import { forkJoin, Subscription } from 'rxjs';
-import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../../../services/music.service';
+import { ArtistProfileDto, MusicService, MusicMetadataDto, YtMusicDiscoverItemDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
 
 interface AlbumCard {
@@ -32,6 +33,7 @@ const HOME_SECTION_DEFAULTS: HomeSection[] = [
   { key: 'top_artists', enabled: true },
   { key: 'recently_added', enabled: true },
   { key: 'explore', enabled: true },
+  { key: 'yt_playlists', enabled: true },
 ];
 
 const LS_SECTIONS = 'modern_home_sections';
@@ -48,6 +50,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   topArtists: ArtistCard[] = [];
   recentlyAdded: AlbumCard[] = [];
   newReleases: AlbumCard[] = [];
+  ytPlaylists: YtMusicDiscoverItemDto[] = [];
   selectedArtist: ArtistCard | null = null;
   selectedArtistTracks: MusicMetadataDto[] = [];
   artistLoading = false;
@@ -59,22 +62,29 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   listenNowStyle: 'cards' | 'list' = 'cards';
 
   private sub!: Subscription;
+  private coverSub?: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
   private imageRetryTimer?: ReturnType<typeof setTimeout>;
 
   @ViewChild('artistsRow') artistsRowRef?: ElementRef<HTMLElement>;
+  @ViewChild('recentRow') recentRowRef?: ElementRef<HTMLElement>;
+  @ViewChild('exploreRow') exploreRowRef?: ElementRef<HTMLElement>;
+  @ViewChild('ytPlaylistsRow') ytPlaylistsRowRef?: ElementRef<HTMLElement>;
 
-  constructor(public music: MusicService, private state: ModernStateService) {}
+  constructor(public music: MusicService, private state: ModernStateService, private router: Router) {}
 
   ngOnInit() {
     this.loadHomeConfig();
     this.sub = this.state.pathId$.subscribe(pid => {
       if (pid != null) this.load(pid);
     });
+    this.coverSub = this.music.coverReady$.subscribe(() => {});
+    this.loadYtPlaylists();
   }
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
+    this.coverSub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
     if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
   }
@@ -118,6 +128,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       top_artists: 'MUSIC.MODERN_TOP_ARTISTS',
       recently_added: 'MUSIC.MODERN_RECENTLY_ADDED',
       explore: 'MUSIC.MODERN_EXPLORE',
+      yt_playlists: 'MUSIC.MODERN_YTMUSIC_PLAYLISTS',
     };
     return labels[key] || key;
   }
@@ -162,10 +173,11 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     forkJoin({
       history: this.music.getHistory(24),
       overview: this.state.getOverview(pathId),
+      recent: this.music.getRecentTracks(pathId, 60),
       profiles: this.music.getArtistProfiles(),
       topArtists: this.music.getTopArtists(50),
     }).subscribe({
-      next: ({ history, overview, profiles, topArtists }) => {
+      next: ({ history, overview, recent, profiles, topArtists }) => {
         const items = history || [];
         const tracks = overview.tracks || [];
         if (this.indexPoll) clearTimeout(this.indexPoll);
@@ -202,7 +214,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
             albumMap.get(key)!.tracks.push(t);
           }
         });
-        this.listenNow = Array.from(albumMap.values()).slice(0, 8);
+        this.listenNow = Array.from(albumMap.values()).slice(0, 9);
 
         // Top Artists
         const artistMap = new Map<string, ArtistCard>();
@@ -239,7 +251,8 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
 
         // Recently Added = latest albums by lastModified
         const recentMap = new Map<string, AlbumCard>();
-        [...tracks]
+        const recentSource = (recent?.length ? recent : tracks);
+        [...recentSource]
           .sort((a, b) => (b.lastModified || '').localeCompare(a.lastModified || ''))
           .forEach(t => {
             const key = (t.album || t.title || '').trim();
@@ -258,6 +271,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
           }
         });
         this.newReleases = Array.from(exploreMap.values()).slice(0, 10);
+        this.prefetchHomeCovers([...this.recentlyAdded, ...this.newReleases]);
         this.loading = false;
       },
       error: () => {
@@ -273,9 +287,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
               const k = (t.album || t.title).trim();
               if (!m.has(k)) m.set(k, { album: t.album || t.title, artist: t.artist, track: t, pathId, tracks: [t] });
             });
-            this.listenNow = Array.from(m.values()).slice(0, 8);
+            this.listenNow = Array.from(m.values()).slice(0, 9);
             this.recentlyAdded = [];
             this.newReleases = Array.from(m.values()).slice(0, 10);
+            this.prefetchHomeCovers(this.newReleases);
             this.topArtists = profiles.map(profile => ({
               artist: profile.name, track: this.placeholderTrack(profile.name),
               pathId, tracks: [], profile, imageUrl: this.profileImage(profile)
@@ -301,6 +316,16 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       .slice(0, 80)
       .sort(() => Math.random() - 0.5)
       .slice(0, 14);
+  }
+
+  private prefetchHomeCovers(cards: AlbumCard[]) {
+    const seen = new Set<string>();
+    cards.forEach(card => {
+      const path = card.track?.path;
+      if (!path || seen.has(path)) return;
+      seen.add(path);
+      this.music.fetchCoverIfNeeded(card.track);
+    });
   }
 
   private profileImage(profile?: ArtistProfileDto): string {
@@ -380,6 +405,20 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     return this.music.getCoverUrlWithCache(pid, t.path, t.source);
   }
 
+  coverFallbackStyle(title: string, subtitle = ''): Record<string, string> {
+    const seed = this.hash(`${title}|${subtitle}`);
+    const hueA = seed % 360;
+    const hueB = (hueA + 42 + (seed % 70)) % 360;
+    const hueC = (hueA + 176) % 360;
+    return {
+      background: [
+        `radial-gradient(circle at 24% 18%, hsl(${hueB} 78% 55% / 0.78), transparent 34%)`,
+        `radial-gradient(circle at 82% 70%, hsl(${hueC} 70% 48% / 0.62), transparent 38%)`,
+        `linear-gradient(135deg, hsl(${hueA} 54% 24%), hsl(${hueB} 58% 14%))`
+      ].join(', ')
+    };
+  }
+
   playAlbum(card: AlbumCard) {
     this.music.setQueue(card.pathId, card.tracks, 0);
   }
@@ -443,6 +482,45 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     if (el) el.scrollBy({ left: dir * 220, behavior: 'smooth' });
   }
 
+  scrollRecent(dir: 1 | -1) {
+    const el = this.recentRowRef?.nativeElement;
+    if (el) el.scrollBy({ left: dir * 380, behavior: 'smooth' });
+  }
+
+  scrollExplore(dir: 1 | -1) {
+    const el = this.exploreRowRef?.nativeElement;
+    if (el) el.scrollBy({ left: dir * 460, behavior: 'smooth' });
+  }
+
+  scrollYtPlaylists(dir: 1 | -1) {
+    const el = this.ytPlaylistsRowRef?.nativeElement;
+    if (el) el.scrollBy({ left: dir * 380, behavior: 'smooth' });
+  }
+
+  private loadYtPlaylists() {
+    this.music.discoverYtMusicHome().subscribe({
+      next: res => {
+        const playlists: YtMusicDiscoverItemDto[] = [];
+        const seen = new Set<string>();
+        (res.shelves || []).forEach(shelf => {
+          (shelf.items || []).forEach(item => {
+            if (item.type === 'PLAYLIST' && item.playlistId && !seen.has(item.playlistId)) {
+              seen.add(item.playlistId);
+              playlists.push(item);
+            }
+          });
+        });
+        this.ytPlaylists = playlists.slice(0, 14);
+      },
+      error: () => { this.ytPlaylists = []; }
+    });
+  }
+
+  openYtPlaylist(item: YtMusicDiscoverItemDto) {
+    if (!item.playlistId) return;
+    this.router.navigate(['/modern/ytmusic'], { queryParams: { playlist: item.playlistId } });
+  }
+
   private key(value: string): string {
     return (value || '')
       .normalize('NFD')
@@ -453,5 +531,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       .replace(/\s+/g, ' ')
       .trim();
   }
-}
 
+  private hash(value: string): number {
+    let h = 0;
+    for (let i = 0; i < value.length; i++) h = Math.imul(31, h) + value.charCodeAt(i) | 0;
+    return Math.abs(h);
+  }
+}

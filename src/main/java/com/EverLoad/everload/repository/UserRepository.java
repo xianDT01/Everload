@@ -24,6 +24,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByStatus(UserStatus status);
 
+    List<User> findTop10ByUsernameContainingIgnoreCaseAndStatus(String username, UserStatus status);
+
     @Modifying
     @Query("DELETE FROM User u WHERE u.id = :id")
     void hardDeleteById(@Param("id") Long id);

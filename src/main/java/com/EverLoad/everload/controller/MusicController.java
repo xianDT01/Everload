@@ -75,6 +75,20 @@ public class MusicController {
         }
     }
 
+    @Operation(summary = "Canciones añadidas recientemente desde la cache musical")
+    @GetMapping("/recent")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> recentMusic(@RequestParam Long pathId,
+                                         @RequestParam(defaultValue = "40") int limit) {
+        try {
+            return ResponseEntity.ok(musicService.getRecentTracks(pathId, Math.min(limit, 200)));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @Operation(summary = "Iniciar indexado cacheado de la biblioteca musical")
     @PostMapping("/library-index")
     @PreAuthorize("isAuthenticated()")
@@ -442,10 +456,15 @@ public class MusicController {
             }
         }
 
-        // 2. Fallback: query LRCLIB (free, no key required). For streaming-only
-        // sources such as YouTube Music there is no local sidecar, so we go here directly.
+        // 2. LRCLIB (synced lyrics preferred, free, no key required).
         if (title != null && !title.isBlank()) {
             Map<String, Object> lyrics = fetchLrclibLyrics(title, artist, duration);
+            if (lyrics != null) return ResponseEntity.ok(lyrics);
+        }
+
+        // 3. lyrics.ovh (plain text, broader coverage of popular songs).
+        if (title != null && !title.isBlank() && artist != null && !artist.isBlank()) {
+            Map<String, Object> lyrics = fetchLyricsOvh(title, artist);
             if (lyrics != null) return ResponseEntity.ok(lyrics);
         }
 
@@ -519,10 +538,27 @@ public class MusicController {
         return score;
     }
 
+    private Map<String, Object> fetchLyricsOvh(String title, String artist) {
+        try {
+            RestTemplate rt = new RestTemplate();
+            HttpHeaders h = new HttpHeaders();
+            h.set("User-Agent", "EverLoad/1.0 (https://github.com/everload)");
+            String url = "https://lyrics.ovh/v1/"
+                    + enc(cleanLyricsTerm(artist)).replace("+", "%20")
+                    + "/" + enc(cleanLyricsTerm(title)).replace("+", "%20");
+            ResponseEntity<Map> resp = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class);
+            if (resp.getBody() != null && resp.getBody().get("lyrics") instanceof String lyrics && !lyrics.isBlank()) {
+                return Map.of("source", "lyrics_ovh", "plain", lyrics);
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     private String cleanLyricsTerm(String value) {
         return (value == null ? "" : value)
-                .replaceAll("(?i)\\s*\\((official\\s*(music\\s*)?video|official\\s*audio|lyric\\s*video|visualizer|remaster(ed)?|audio|video)\\)", "")
+                .replaceAll("(?i)\\s*\\((official\\s*(music\\s*)?video|official\\s*audio|lyric\\s*video|visualizer|remaster(ed)?|audio|video|explicit)\\)", "")
                 .replaceAll("(?i)\\s*-\\s*(official\\s*(music\\s*)?video|official\\s*audio|lyric\\s*video|visualizer|remaster(ed)?|audio|video).*", "")
+                .replaceAll("(?i)\\s*(\\(|\\[)\\s*(feat|ft)\\.?\\s+[^)\\]]+[)\\]]", "")
                 .replaceAll("\\s+", " ")
                 .trim();
     }

@@ -105,7 +105,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
         });
 
         tracks.forEach(t => {
-          this.artistDisplayParts(t.artist || '').forEach(artistName => {
+          this.artistDisplayPartsForTrack(t).forEach(artistName => {
             const profile = this.findProfileForArtist(artistName, profileByKey);
             this.addTrackToGroup(map, pathId, profile?.name || artistName, t, profile);
           });
@@ -183,7 +183,8 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     }
 
     const group = map.get(key)!;
-    if (group.tracks.some(existing => existing.path === track.path)) return;
+    const trackKey = this.key(track.title || track.name);
+    if (group.tracks.some(existing => this.key(existing.title || existing.name) === trackKey)) return;
     group.tracks.push(track);
     if (!group.cover) group.cover = track;
     if (profile && !group.profile) {
@@ -213,10 +214,11 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
       map.set(key, group);
     }
 
-    const existing = new Set(group.tracks.map(t => t.path));
+    const existing = new Set(group.tracks.map(t => this.key(t.title || t.name)));
     tracks.forEach(track => {
-      if (existing.has(track.path)) return;
-      existing.add(track.path);
+      const trackKey = this.key(track.title || track.name);
+      if (existing.has(trackKey)) return;
+      existing.add(trackKey);
       group!.tracks.push(track);
       if (!group!.cover) group!.cover = track;
     });
@@ -435,6 +437,57 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     });
     const values = Array.from(unique.values());
     return values.length ? values : ['Desconocido'];
+  }
+
+  private artistDisplayPartsForTrack(track: MusicMetadataDto): string[] {
+    const rawArtist = (track.artist || '').trim();
+    if (rawArtist && !this.isUnknownArtistName(rawArtist)) {
+      return this.artistDisplayParts(rawArtist);
+    }
+    const inferred = this.inferArtistFromTrackName(track);
+    return inferred ? this.artistDisplayParts(inferred) : ['Desconocido'];
+  }
+
+  private inferArtistFromTrackName(track: MusicMetadataDto): string {
+    const candidates = [track.title, track.name, track.path?.split(/[\\/]/).pop()]
+      .map(v => this.cleanFilenameTitle(v || ''))
+      .filter(Boolean);
+
+    for (const candidate of candidates) {
+      const match = candidate.match(/^(.+?)\s+-\s+(.+)$/);
+      if (match?.[1]) {
+        const artist = this.cleanInferredArtist(match[1]);
+        if (artist && !this.isSuspiciousArtistName(artist)) return artist;
+      }
+    }
+
+    return '';
+  }
+
+  private cleanFilenameTitle(value: string): string {
+    return value
+      .replace(/\.[a-z0-9]{2,5}$/i, '')
+      .replace(/[_]+/g, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&#0*39;/gi, "'")
+      .replace(/^\s*(?:\(?\d+\)?\s*[\.-]\s*)+/, '')
+      .replace(/^\s*[-–—]+\s*/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private cleanInferredArtist(value: string): string {
+    return value
+      .replace(/^\s*(?:\(?\d+\)?\s*[\.-]\s*)+/, '')
+      .replace(/^\s*[-–—]+\s*/, '')
+      .replace(/\s*\((?:audio|official|video|lyrics?|lyric video|cover audio)\)\s*$/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private isUnknownArtistName(value: string): boolean {
+    const key = this.key(value);
+    return !key || key === 'unknown' || key === 'desconocido' || key === 'interprete desconocido';
   }
 
   private isSuspiciousArtistName(value: string): boolean {

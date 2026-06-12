@@ -29,6 +29,8 @@ public class YtMusicDiscoverService {
 
     private final YtMusicInnertubeClient client;
     private YtMusicCache<String, YtDiscoverHomeDto> homeCache;
+    private YtMusicCache<String, YtDiscoverHomeDto> newReleasesCache;
+    private YtMusicCache<String, YtDiscoverHomeDto> chartsCache;
     private YtMusicCache<String, YtAlbumDto> albumCache;
     private YtMusicCache<String, YtArtistDto> artistCache;
 
@@ -46,6 +48,8 @@ public class YtMusicDiscoverService {
     void init() {
         long ttlMillis = cacheTtlSeconds * 1000;
         homeCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
+        newReleasesCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
+        chartsCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
         albumCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
         artistCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
     }
@@ -54,6 +58,16 @@ public class YtMusicDiscoverService {
 
     public YtDiscoverHomeDto fetchHome() {
         return homeCache.getOrCompute("home", () -> parseInitial(client.browse("FEmusic_home")));
+    }
+
+    public YtDiscoverHomeDto fetchNewReleases() {
+        return newReleasesCache.getOrCompute("new_releases",
+                () -> parseInitial(client.browse("FEmusic_new_releases")));
+    }
+
+    public YtDiscoverHomeDto fetchCharts() {
+        return chartsCache.getOrCompute("charts",
+                () -> parseInitial(client.browse("FEmusic_charts")));
     }
 
     public YtDiscoverHomeDto fetchContinuation(String token) {

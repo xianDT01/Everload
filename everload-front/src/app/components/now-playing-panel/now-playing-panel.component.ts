@@ -7,6 +7,7 @@ import { NasPath, NasService } from '../../services/nas.service';
 import { ChatMessageDto, ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { ApiBaseService } from '../../services/api-base.service';
+import { TranslateService } from '@ngx-translate/core';
 
 type DesktopWindowTarget = 'player' | 'explorer' | 'manager' | 'messenger' | 'youtube' | 'browser' | 'minesweeper' | 'calculator' | 'notepad' | 'equalizer' | 'snake';
 type DesktopIconId = 'explorer' | 'music' | 'manager' | 'player' | 'calculator' | 'notepad' | 'equalizer' | 'snake' | 'xp' | 'messenger' | 'youtube' | 'browser' | 'minesweeper' | 'wallpaper';
@@ -397,7 +398,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private apiBase: ApiBaseService,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private translate: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -1220,7 +1222,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   addCurrentTrackToPlaylist(playlistId: number): void {
     const track = this.state?.currentTrack;
     const pathId = track?.nasPathId ?? this.state?.pathId ?? this.winampQueue.pathId;
-    if (!track || pathId == null) return;
+    const playlist = this.playlists.find(pl => pl.id === playlistId);
+    if (!track || pathId == null || this.isTrackInPlaylist(playlist, track, pathId)) return;
     this.musicService.addTrackToPlaylist(playlistId, track, pathId).subscribe({
       next: () => this.loadPlaylists()
     });
@@ -1282,10 +1285,27 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     event?.stopPropagation();
     if (!this.selectedPlaylist?.id) return;
     const pathId = track.nasPathId ?? this.state?.pathId ?? this.winampQueue.pathId;
-    if (!pathId) return;
+    if (!pathId || this.isTrackInSelectedPlaylist(track)) return;
     this.musicService.addTrackToPlaylist(this.selectedPlaylist.id, track, pathId).subscribe({
       next: () => this.loadPlaylists()
     });
+  }
+
+  isTrackInSelectedPlaylist(track: MusicMetadataDto): boolean {
+    const pathId = track.nasPathId ?? this.state?.pathId ?? this.winampQueue.pathId;
+    return this.isTrackInPlaylist(this.selectedPlaylist, track, pathId);
+  }
+
+  isCurrentTrackInPlaylist(pl: any): boolean {
+    const track = this.state?.currentTrack;
+    const pathId = track?.nasPathId ?? this.state?.pathId ?? this.winampQueue.pathId;
+    return this.isTrackInPlaylist(pl, track || null, pathId);
+  }
+
+  private isTrackInPlaylist(pl: any, track: MusicMetadataDto | null, pathId?: number | null): boolean {
+    if (!pl || !track) return false;
+    const pid = track.nasPathId ?? pathId;
+    return (pl.tracks ?? []).some((t: any) => t.trackPath === track.path && (pid == null || t.nasPathId === pid));
   }
 
   private playlistTrackToMusic(t: any): MusicMetadataDto {

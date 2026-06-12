@@ -16,6 +16,7 @@ const LS = {
   LANGUAGE:           'language',
   EQ_BANDS:           'mpl_eq_bands',
   CHANNEL_MODE:       'mpl_channel_mode',
+  FONT:               'mpl_font',
 };
 
 export type BackBehavior = 'rewind-then-prev' | 'always-prev';
@@ -49,9 +50,20 @@ export class ModernSettingsComponent implements OnInit {
   language = 'es';
   eqBands = [0, 0, 0, 0, 0];
   channelMode: ChannelMode = 'stereo';
+  font = 'inter';
 
   readonly eqLabels = ['60Hz', '250Hz', '1kHz', '4kHz', '16kHz'];
   readonly channelModes: ChannelMode[] = ['stereo', 'mono', 'left', 'right', 'swap'];
+  readonly FONTS = [
+    { id: 'inter',          label: 'Inter',           family: "'Inter', sans-serif" },
+    { id: 'poppins',        label: 'Poppins',         family: "'Poppins', sans-serif" },
+    { id: 'outfit',         label: 'Outfit',          family: "'Outfit', sans-serif" },
+    { id: 'manrope',        label: 'Manrope',         family: "'Manrope', sans-serif" },
+    { id: 'sora',           label: 'Sora',            family: "'Sora', sans-serif" },
+    { id: 'jakarta',        label: 'Plus Jakarta Sans', family: "'Plus Jakarta Sans', sans-serif" },
+    { id: 'space-grotesk',  label: 'Space Grotesk',   family: "'Space Grotesk', sans-serif" },
+    { id: 'jetbrains-mono', label: 'JetBrains Mono',  family: "'JetBrains Mono', monospace" },
+  ];
   readonly LANGUAGES = [
     { code: 'es', label: 'Español' },
     { code: 'en', label: 'English' },
@@ -83,6 +95,7 @@ export class ModernSettingsComponent implements OnInit {
     this.artistPhotoSource = (localStorage.getItem(LS.ARTIST_PHOTO) as ArtistPhotoSource) || 'deezer';
     this.language          = localStorage.getItem(LS.LANGUAGE) || 'es';
     this.channelMode       = (localStorage.getItem(LS.CHANNEL_MODE) as ChannelMode) || 'stereo';
+    this.font              = localStorage.getItem(LS.FONT) || 'inter';
     const savedEq = localStorage.getItem(LS.EQ_BANDS);
     if (savedEq) {
       try {
@@ -214,6 +227,20 @@ export class ModernSettingsComponent implements OnInit {
     this.music.mainPlayer.setChannelMode(mode);
   }
 
+  // ── Font ──────────────────────────────────────────────────────────────────
+
+  setFont(id: string) {
+    this.font = id;
+    localStorage.setItem(LS.FONT, id);
+    this.applyFont();
+  }
+
+  private applyFont() {
+    const classes = document.documentElement.classList;
+    this.FONTS.forEach(f => classes.remove(`font-${f.id}`));
+    if (this.font !== 'inter') classes.add(`font-${this.font}`);
+  }
+
   // ── Sidebar order ─────────────────────────────────────────────────────────
 
   channelModeLabelKey(mode: ChannelMode): string {
@@ -254,6 +281,7 @@ export class ModernSettingsComponent implements OnInit {
     this.music.crossfadeDuration = this.crossfade;
     this.applyBarPosition();
     this.applyReduceAnimations();
+    this.applyFont();
     this.applySidebarOrder();
     // Apply persisted EQ and channel mode to active player
     this.eqBands.forEach((dB, i) => this.music.mainPlayer.setEqBand(i, dB));
