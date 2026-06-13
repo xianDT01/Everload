@@ -80,6 +80,14 @@ public class YtMusicService {
         return discoverService.fetchCharts();
     }
 
+    public YtDiscoverHomeDto discoverMoods() {
+        return discoverService.fetchMoods();
+    }
+
+    public YtDiscoverHomeDto discoverMoodCategory(String browseId, String params) {
+        return discoverService.fetchMoodCategory(browseId, params);
+    }
+
     public YtAlbumDto getAlbum(String browseId) {
         return discoverService.fetchAlbum(browseId);
     }

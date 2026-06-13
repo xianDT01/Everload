@@ -39,6 +39,7 @@
     <!-- Featured banner -->
     <div *ngIf="isEnabled('featured') && featured" [style.order]="sectionOrder('featured')">
       <div class="mh-featured"
+           [class.mh-feat-fading]="featuredFade"
            [style.background-image]="'url(' + coverFor(featured.track, featured.pathId) + ')'">
         <div class="mh-feat-overlay">
           <div class="mh-feat-label">{{ 'MUSIC.MODERN_FEATURED_ALBUM' | translate }}</div>
@@ -49,8 +50,12 @@
               <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
               {{ 'MUSIC.MODERN_START_LISTENING' | translate }}
             </button>
-            <button class="mh-btn-heart" (click)="toggleFavFeatured()" [title]="'MUSIC.MODERN_FAVORITE' | translate">
-              <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/></svg>
+            <button class="mh-btn-heart" [class.mh-btn-heart-active]="featuredFav"
+                    (click)="toggleFavFeatured()" [title]="'MUSIC.MODERN_FAVORITE' | translate">
+              <svg viewBox="0 0 24 24">
+                <path *ngIf="featuredFav" d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/>
+                <path *ngIf="!featuredFav" fill="none" stroke="currentColor" stroke-width="1.6" d="M12 21s-7.5-4.7-9.4-10A5.7 5.7 0 0 1 12 5.1 5.7 5.7 0 0 1 21.4 11C19.5 16.3 12 21 12 21Z"/>
+              </svg>
             </button>
           </div>
         </div>

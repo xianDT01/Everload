@@ -100,8 +100,16 @@ public class YtMusicInnertubeClient {
 
     /** Anonymous browse by browse id — works for public surfaces (artists, albums, playlists, home feed). */
     public JsonNode browse(String browseId) {
+        return browse(browseId, null);
+    }
+
+    /** Browse with optional {@code params} — required by mood/genre category pages. */
+    public JsonNode browse(String browseId, String params) {
         Map<String, Object> body = baseBody(WEB_REMIX);
         body.put("browseId", browseId);
+        if (params != null && !params.isBlank()) {
+            body.put("params", params);
+        }
         try {
             return post(ORIGIN_YOUTUBE_MUSIC + "/youtubei/v1/browse?prettyPrint=false",
                     body, headersFor(WEB_REMIX, true));

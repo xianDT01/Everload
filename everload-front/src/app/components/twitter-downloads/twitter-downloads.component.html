@@ -14,32 +14,6 @@
         <span *ngIf="!loading">{{ 'DOWNLOAD_TWITTER' | translate }}</span>
         <span *ngIf="loading">{{ 'LOADING' | translate }}...</span>
       </button>
-      <button *ngIf="hasNasAccess && !nasJob" class="login-button btn-nas" (click)="openNasPicker()" [disabled]="loading">
-        💾 {{ 'NAS.SAVE_TO_NAS' | translate }}
-      </button>
-
-      <div *ngIf="showNasPicker" class="nas-picker-inline">
-        <select class="nas-picker-select" [(ngModel)]="selectedNasPathId">
-          <option *ngFor="let p of nasPaths" [value]="p.id">{{ p.name }}</option>
-        </select>
-        <input class="nas-picker-input" type="text" placeholder="Subcarpeta (opcional)" [(ngModel)]="nasSubPath" />
-        <div class="nas-picker-actions">
-          <button class="login-button btn-nas" (click)="saveToNas()" [disabled]="!selectedNasPathId">Guardar</button>
-          <button class="login-button" (click)="showNasPicker = false">Cancelar</button>
-        </div>
-      </div>
-
-      <div *ngIf="nasJob" class="nas-job-status">
-        <span class="nas-job-label">{{ nasJob.title || 'Descargando al NAS…' }}</span>
-        <span class="nas-job-badge" [class.nas-done]="nasJob.status==='DONE'" [class.nas-error]="nasJob.status==='ERROR'">
-          {{ nasJob.status === 'DONE' ? '✔ Guardado' : nasJob.status === 'ERROR' ? '✘ Error' : nasJob.status === 'RUNNING' ? 'Descargando…' : 'En cola' }}
-        </span>
-        <div class="nas-job-bar" *ngIf="nasJob.status !== 'ERROR'">
-          <div class="nas-job-fill" [style.width.%]="nasJob.progress"></div>
-        </div>
-        <div class="nas-job-error" *ngIf="nasJob.status === 'ERROR'">{{ nasJob.error }}</div>
-        <button class="nas-job-close" *ngIf="nasJob.status === 'DONE' || nasJob.status === 'ERROR'" (click)="nasJob = null">✕</button>
-      </div>
 
       <a routerLink="/" class="forgot-link" aria-label="Volver al inicio">
         {{ 'HOME' | translate }}

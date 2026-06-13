@@ -25,7 +25,9 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
 
   query = '';
   mode: ViewMode = 'discover';
-  discoverTab: 'home' | 'new-releases' | 'charts' = 'home';
+  discoverTab: 'home' | 'new-releases' | 'charts' | 'moods' = 'home';
+  /** Título de la categoría de mood abierta, o null si se está en el catálogo. */
+  moodCategoryTitle: string | null = null;
   loading = false;
   loadingMore = false;
   error = '';
@@ -112,6 +114,7 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
   loadDiscover(): void {
     this.discoverTab = 'home';
     this.mode = 'discover';
+    this.moodCategoryTitle = null;
     this.clearDetails();
     this.run('discover', () => {
       this.sub = this.music.discoverYtMusicHome().subscribe({
@@ -123,6 +126,7 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
 
   loadNewReleases(): void {
     this.discoverTab = 'new-releases';
+    this.moodCategoryTitle = null;
     this.clearDetails();
     this.run('discover', () => {
       this.sub = this.music.discoverYtMusicNewReleases().subscribe({
@@ -134,9 +138,35 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
 
   loadCharts(): void {
     this.discoverTab = 'charts';
+    this.moodCategoryTitle = null;
     this.clearDetails();
     this.run('discover', () => {
       this.sub = this.music.discoverYtMusicCharts().subscribe({
+        next: res => this.applyDiscover(res),
+        error: err => this.fail(err)
+      });
+    });
+  }
+
+  loadMoods(): void {
+    this.discoverTab = 'moods';
+    this.moodCategoryTitle = null;
+    this.clearDetails();
+    this.run('discover', () => {
+      this.sub = this.music.discoverYtMusicMoods().subscribe({
+        next: res => this.applyDiscover(res),
+        error: err => this.fail(err)
+      });
+    });
+  }
+
+  loadMoodCategory(item: YtMusicDiscoverItemDto): void {
+    if (!item.moodParams) return;
+    this.discoverTab = 'moods';
+    this.moodCategoryTitle = item.title;
+    this.clearDetails();
+    this.run('discover', () => {
+      this.sub = this.music.getYtMusicMoodCategory(item.moodParams!, item.moodBrowseId).subscribe({
         next: res => this.applyDiscover(res),
         error: err => this.fail(err)
       });
@@ -159,6 +189,11 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Alto del viewport de scroll virtual: crece con la lista hasta un tope. */
+  vListHeight(count: number): number {
+    return Math.min(count * 58 + 8, 640);
+  }
+
   openItem(item: YtMusicDiscoverItemDto): void {
     if (item.type === 'SONG' && item.track) {
       this.playTracks([item.track], 0);
@@ -168,6 +203,8 @@ export class ModernYtMusicComponent implements OnInit, OnDestroy {
       this.loadArtist(item.channelId);
     } else if (item.type === 'PLAYLIST' && item.playlistId) {
       this.loadPlaylist(item.playlistId);
+    } else if (item.type === 'MOOD' && item.moodParams) {
+      this.loadMoodCategory(item);
     }
   }
 

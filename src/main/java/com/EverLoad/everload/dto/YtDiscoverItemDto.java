@@ -38,4 +38,7 @@ public class YtDiscoverItemDto {
 
     // MOOD (genre/mood shelves, browseId starting with FEmusic_)
     private String moodBrowseId;
+
+    // MOOD category pages need the browse params alongside the browse id.
+    private String moodParams;
 }

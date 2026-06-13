@@ -635,3 +635,90 @@
   color: var(--color-slate-500);
   margin-top: 5px;
 }
+
+/* ═══ Añadir a playlist (popover) ═══ */
+.mb-pl-wrap { position: relative; display: inline-flex; }
+
+.mb-pl-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.mb-pl-menu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  z-index: 61;
+  width: 260px;
+  max-height: 340px;
+  overflow-y: auto;
+  background: var(--ml-panel, #1e1e2e);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  padding: 6px;
+  animation: mbPlIn 0.16s ease;
+}
+
+@keyframes mbPlIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mb-pl-menu-head {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ml-text-dim, #9aa4c0);
+  padding: 8px 10px 6px;
+}
+
+.mb-pl-loading,
+.mb-pl-empty {
+  padding: 12px 10px;
+  font-size: 13px;
+  color: var(--ml-text-dim, #9aa4c0);
+}
+
+.mb-pl-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 10px;
+  cursor: pointer;
+  color: var(--ml-text, #fff);
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.mb-pl-item:hover { background: rgba(255, 255, 255, 0.08); }
+
+.mb-pl-item svg {
+  width: 17px;
+  height: 17px;
+  fill: var(--ml-accent, #7c3aed);
+  flex-shrink: 0;
+}
+
+.mb-pl-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mb-pl-count {
+  font-size: 11px;
+  color: var(--ml-text-dim, #9aa4c0);
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  padding: 2px 8px;
+}

@@ -45,6 +45,7 @@
     <button type="button" [class.active]="discoverTab === 'home'" (click)="loadDiscover()">{{ 'MUSIC.YTMUSIC_DISCOVER_TAB_FEATURED' | translate }}</button>
     <button type="button" [class.active]="discoverTab === 'new-releases'" (click)="loadNewReleases()">{{ 'MUSIC.YTMUSIC_DISCOVER_TAB_NEW' | translate }}</button>
     <button type="button" [class.active]="discoverTab === 'charts'" (click)="loadCharts()">{{ 'MUSIC.YTMUSIC_DISCOVER_TAB_CHARTS' | translate }}</button>
+    <button type="button" [class.active]="discoverTab === 'moods'" (click)="loadMoods()">{{ 'MUSIC.YTMUSIC_DISCOVER_TAB_MOODS' | translate }}</button>
   </div>
 
   <div class="mytm-error" *ngIf="error">{{ error }}</div>
@@ -52,6 +53,14 @@
 
   <ng-container *ngIf="!loading">
     <section class="mytm-section" *ngIf="mode === 'discover'">
+      <div class="mytm-mood-head" *ngIf="moodCategoryTitle">
+        <button class="mytm-back-btn" type="button" (click)="loadMoods()">
+          <svg viewBox="0 0 24 24"><path d="M15.7 18.7 10 12l5.7-6.7-1.4-1.3L7.3 12l7 8 1.4-1.3Z"/></svg>
+          {{ 'MUSIC.YTMUSIC_BACK' | translate }}
+        </button>
+        <h2>{{ moodCategoryTitle }}</h2>
+      </div>
+
       <div class="mytm-shelf" *ngFor="let shelf of shelves">
         <div class="mytm-shelf-head">
           <div>
@@ -60,15 +69,23 @@
           </div>
         </div>
 
-        <div class="mytm-card-row">
-          <button class="mytm-card" type="button" *ngFor="let item of shelf.items" (click)="openItem(item)">
-            <span class="mytm-card-img">
-              <img *ngIf="itemImage(item)" [src]="itemImage(item)" alt="" />
-            </span>
-            <span class="mytm-card-title">{{ item.title }}</span>
-            <span class="mytm-card-sub">{{ item.subtitle || item.type }}</span>
+        <!-- Los moods se pintan como chips de colores, sin imagen -->
+        <div class="mytm-mood-grid" *ngIf="shelf.items[0]?.type === 'MOOD'; else cardRow">
+          <button class="mytm-mood-chip" type="button" *ngFor="let item of shelf.items" (click)="openItem(item)">
+            {{ item.title }}
           </button>
         </div>
+        <ng-template #cardRow>
+          <div class="mytm-card-row">
+            <button class="mytm-card" type="button" *ngFor="let item of shelf.items" (click)="openItem(item)">
+              <span class="mytm-card-img">
+                <img *ngIf="itemImage(item)" [src]="itemImage(item)" alt="" />
+              </span>
+              <span class="mytm-card-title">{{ item.title }}</span>
+              <span class="mytm-card-sub">{{ item.subtitle || item.type }}</span>
+            </button>
+          </div>
+        </ng-template>
       </div>
 
       <button class="mytm-more" type="button" *ngIf="continuation" (click)="loadMore()" [disabled]="loadingMore">
@@ -114,26 +131,7 @@
       </div>
 
       <ng-container *ngIf="tracksForCurrentView() as tracks">
-        <div class="mytm-subpage-tracklist">
-          <div class="mytm-subpage-track" *ngFor="let t of tracks; let i = index; trackBy: trackByPath" (dblclick)="playTrack(t, tracks)">
-            <span class="mytm-track-num">{{ i + 1 }}</span>
-            <span class="mytm-cover"><img *ngIf="cover(t)" [src]="cover(t)" alt="" /></span>
-            <span class="mytm-meta">
-              <span class="mytm-title">{{ t.title || t.name }}</span>
-              <button class="mytm-artist-link" type="button" (click)="resolveArtist(t.artist); $event.stopPropagation()">{{ t.artist }}</button>
-            </span>
-            <span class="mytm-duration">{{ fmt(t.duration) }}</span>
-            <button class="mytm-icon-btn" type="button" (click)="playTrack(t, tracks)" [title]="'MUSIC.MODERN_PLAY' | translate">
-              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
-            </button>
-            <button class="mytm-icon-btn" type="button" (click)="appendTrack(t)" [title]="'MUSIC.YTMUSIC_ADD_TO_QUEUE' | translate">
-              <svg viewBox="0 0 24 24"><path d="M4 6h10v2H4V6Zm0 5h10v2H4v-2Zm0 5h7v2H4v-2Zm13-7h2v4h4v2h-4v4h-2v-4h-4v-2h4V9Z"/></svg>
-            </button>
-            <button class="mytm-icon-btn" type="button" (click)="startMix(t)" [title]="'MUSIC.YTMUSIC_RADIO' | translate">
-              <svg viewBox="0 0 24 24"><path d="M4 7h3l4 10h2l4-10h3v2h-1.6l-4 10h-4.8l-4-10H4V7Zm8-3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z"/></svg>
-            </button>
-          </div>
-        </div>
+        <ng-container *ngTemplateOutlet="numberedTrackList; context: { tracks: tracks }"></ng-container>
       </ng-container>
     </section>
 
@@ -162,26 +160,7 @@
       </div>
 
       <ng-container *ngIf="tracksForCurrentView() as tracks">
-        <div class="mytm-subpage-tracklist">
-          <div class="mytm-subpage-track" *ngFor="let t of tracks; let i = index; trackBy: trackByPath" (dblclick)="playTrack(t, tracks)">
-            <span class="mytm-track-num">{{ i + 1 }}</span>
-            <span class="mytm-cover"><img *ngIf="cover(t)" [src]="cover(t)" alt="" /></span>
-            <span class="mytm-meta">
-              <span class="mytm-title">{{ t.title || t.name }}</span>
-              <button class="mytm-artist-link" type="button" (click)="resolveArtist(t.artist); $event.stopPropagation()">{{ t.artist }}</button>
-            </span>
-            <span class="mytm-duration">{{ fmt(t.duration) }}</span>
-            <button class="mytm-icon-btn" type="button" (click)="playTrack(t, tracks)" [title]="'MUSIC.MODERN_PLAY' | translate">
-              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
-            </button>
-            <button class="mytm-icon-btn" type="button" (click)="appendTrack(t)" [title]="'MUSIC.YTMUSIC_ADD_TO_QUEUE' | translate">
-              <svg viewBox="0 0 24 24"><path d="M4 6h10v2H4V6Zm0 5h10v2H4v-2Zm0 5h7v2H4v-2Zm13-7h2v4h4v2h-4v4h-2v-4h-4v-2h4V9Z"/></svg>
-            </button>
-            <button class="mytm-icon-btn" type="button" (click)="startMix(t)" [title]="'MUSIC.YTMUSIC_RADIO' | translate">
-              <svg viewBox="0 0 24 24"><path d="M4 7h3l4 10h2l4-10h3v2h-1.6l-4 10h-4.8l-4-10H4V7Zm8-3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z"/></svg>
-            </button>
-          </div>
-        </div>
+        <ng-container *ngTemplateOutlet="numberedTrackList; context: { tracks: tracks }"></ng-container>
       </ng-container>
     </section>
 
@@ -192,14 +171,13 @@
         {{ 'MUSIC.YTMUSIC_BACK' | translate }}
       </button>
 
-      <div class="mytm-subpage-hero mytm-artist-hero">
-        <div class="mytm-subpage-art mytm-artist-art">
-          <img *ngIf="artist.thumbnailUrl" [src]="artist.thumbnailUrl" alt="" />
-        </div>
-        <div class="mytm-subpage-info">
+      <!-- Banner ancho estilo Spotify con el nombre superpuesto -->
+      <div class="mytm-artist-banner" [class.no-image]="!artist.thumbnailUrl">
+        <img class="mytm-artist-banner-img" *ngIf="artist.thumbnailUrl" [src]="artist.thumbnailUrl" alt="" />
+        <div class="mytm-artist-banner-shade"></div>
+        <div class="mytm-artist-banner-info">
           <span class="mytm-subpage-badge">{{ 'MUSIC.MODERN_ARTIST' | translate }}</span>
-          <h2 class="mytm-subpage-title">{{ artist.name }}</h2>
-          <p class="mytm-subpage-byline mytm-artist-desc" *ngIf="artist.description">{{ artist.description }}</p>
+          <h2 class="mytm-artist-banner-name">{{ artist.name }}</h2>
           <div class="mytm-subpage-actions" *ngIf="artist.topSongs.length">
             <button class="mytm-subpage-play" type="button" (click)="playTracks(artist.topSongs, 0)">
               <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
@@ -208,6 +186,7 @@
           </div>
         </div>
       </div>
+      <p class="mytm-artist-desc" *ngIf="artist.description">{{ artist.description }}</p>
 
       <div class="mytm-section-head">
         <h2>{{ 'MUSIC.MODERN_SONGS' | translate }}</h2>
@@ -224,6 +203,17 @@
           <span class="mytm-card-sub">{{ a.year || a.artist }}</span>
         </button>
       </div>
+
+      <div class="mytm-section-head" *ngIf="artist.singles?.length">
+        <h2>{{ 'MUSIC.YTMUSIC_SINGLES' | translate }}</h2>
+      </div>
+      <div class="mytm-card-row" *ngIf="artist.singles?.length">
+        <button class="mytm-card" type="button" *ngFor="let a of artist.singles" (click)="loadAlbum(a.browseId)">
+          <span class="mytm-card-img"><img *ngIf="a.thumbnailUrl" [src]="a.thumbnailUrl" alt="" /></span>
+          <span class="mytm-card-title">{{ a.title }}</span>
+          <span class="mytm-card-sub">{{ a.year || a.artist }}</span>
+        </button>
+      </div>
     </section>
 
     <section class="mytm-section" *ngIf="history.length">
@@ -235,9 +225,13 @@
     </section>
   </ng-container>
 
+  <!-- Lista plana (busqueda, top songs, historial) con scroll virtual -->
   <ng-template #trackList let-tracks="tracks">
-    <div class="mytm-track-list" *ngIf="tracks.length">
-      <div class="mytm-track" *ngFor="let t of tracks; let i = index; trackBy: trackByPath" (dblclick)="playTrack(t, tracks)">
+    <cdk-virtual-scroll-viewport *ngIf="tracks.length"
+                                 class="mytm-track-list mytm-vscroll"
+                                 [itemSize]="58"
+                                 [style.height.px]="vListHeight(tracks.length)">
+      <div class="mytm-track" *cdkVirtualFor="let t of tracks; let i = index; trackBy: trackByPath" (dblclick)="playTrack(t, tracks)">
         <button class="mytm-play" type="button" (click)="playTrack(t, tracks)" [title]="'MUSIC.MODERN_PLAY' | translate">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
         </button>
@@ -255,6 +249,33 @@
           <svg viewBox="0 0 24 24"><path d="M4 7h3l4 10h2l4-10h3v2h-1.6l-4 10h-4.8l-4-10H4V7Zm8-3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z"/></svg>
         </button>
       </div>
-    </div>
+    </cdk-virtual-scroll-viewport>
+  </ng-template>
+
+  <!-- Lista numerada (album y playlist) con scroll virtual -->
+  <ng-template #numberedTrackList let-tracks="tracks">
+    <cdk-virtual-scroll-viewport *ngIf="tracks.length"
+                                 class="mytm-subpage-tracklist mytm-vscroll"
+                                 [itemSize]="58"
+                                 [style.height.px]="vListHeight(tracks.length)">
+      <div class="mytm-subpage-track" *cdkVirtualFor="let t of tracks; let i = index; trackBy: trackByPath" (dblclick)="playTrack(t, tracks)">
+        <span class="mytm-track-num">{{ i + 1 }}</span>
+        <span class="mytm-cover"><img *ngIf="cover(t)" [src]="cover(t)" alt="" /></span>
+        <span class="mytm-meta">
+          <span class="mytm-title">{{ t.title || t.name }}</span>
+          <button class="mytm-artist-link" type="button" (click)="resolveArtist(t.artist); $event.stopPropagation()">{{ t.artist }}</button>
+        </span>
+        <span class="mytm-duration">{{ fmt(t.duration) }}</span>
+        <button class="mytm-icon-btn" type="button" (click)="playTrack(t, tracks)" [title]="'MUSIC.MODERN_PLAY' | translate">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
+        </button>
+        <button class="mytm-icon-btn" type="button" (click)="appendTrack(t)" [title]="'MUSIC.YTMUSIC_ADD_TO_QUEUE' | translate">
+          <svg viewBox="0 0 24 24"><path d="M4 6h10v2H4V6Zm0 5h10v2H4v-2Zm0 5h7v2H4v-2Zm13-7h2v4h4v2h-4v4h-2v-4h-4v-2h4V9Z"/></svg>
+        </button>
+        <button class="mytm-icon-btn" type="button" (click)="startMix(t)" [title]="'MUSIC.YTMUSIC_RADIO' | translate">
+          <svg viewBox="0 0 24 24"><path d="M4 7h3l4 10h2l4-10h3v2h-1.6l-4 10h-4.8l-4-10H4V7Zm8-3a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z"/></svg>
+        </button>
+      </div>
+    </cdk-virtual-scroll-viewport>
   </ng-template>
 </div>

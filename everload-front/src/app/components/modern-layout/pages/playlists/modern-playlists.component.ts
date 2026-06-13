@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
 import { AuthService } from '../../../../services/auth.service';
@@ -37,16 +39,35 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   userSuggestions: string[] = [];
   private userSearchDebounce: any;
   private userSearchSub?: Subscription;
+  private routerSub?: Subscription;
 
-  constructor(public music: MusicService, public state: ModernStateService, private auth: AuthService) {}
+  constructor(public music: MusicService, public state: ModernStateService, private auth: AuthService, private router: Router) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    // El layout moderno mantiene esta página viva entre pestañas (RouteReuseStrategy),
+    // así que ngOnInit solo corre una vez. Recargamos al volver a entrar para que las
+    // playlists no queden vacías/obsoletas si la primera carga falló o llegó vacía.
+    this.routerSub = this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(() => {
+        if (this.router.url.includes('/playlists')) this.refreshActive();
+      });
+  }
 
   ngOnDestroy() {
     this.searchSub?.unsubscribe();
     this.userSearchSub?.unsubscribe();
+    this.routerSub?.unsubscribe();
     clearTimeout(this.searchDebounce);
     clearTimeout(this.userSearchDebounce);
+  }
+
+  /** Recarga los datos de la pestaña activa (al re-entrar en la vista). */
+  private refreshActive() {
+    this.load();
+    if (this.tab === 'community') this.loadPublic();
+    if (this.tab === 'shared') this.loadShared();
   }
 
   load() {

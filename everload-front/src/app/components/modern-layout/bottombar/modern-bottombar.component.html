@@ -91,6 +91,28 @@
              (mousedown)="$event.stopPropagation()" />
     </div>
 
+    <!-- Add to playlist -->
+    <div class="mb-pl-wrap" *ngIf="track">
+      <button class="mb-btn mb-icon-btn" [class.mb-active]="showPlaylistMenu"
+              (click)="togglePlaylistMenu()" [title]="'MUSIC.ADD_TO_PLAYLIST' | translate">
+        <svg viewBox="0 0 24 24"><path d="M3 6h12v2H3V6Zm0 4h12v2H3v-2Zm0 4h8v2H3v-2Zm14-4h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3Z"/></svg>
+      </button>
+
+      <div class="mb-pl-backdrop" *ngIf="showPlaylistMenu" (click)="closePlaylistMenu()"></div>
+      <div class="mb-pl-menu" *ngIf="showPlaylistMenu">
+        <div class="mb-pl-menu-head">{{ 'MUSIC.ADD_TO_PLAYLIST' | translate }}</div>
+        <div class="mb-pl-loading" *ngIf="playlistMenuLoading">{{ 'LOADING' | translate }}…</div>
+        <div class="mb-pl-empty" *ngIf="!playlistMenuLoading && !playlists.length">
+          {{ 'MUSIC.MODERN_NO_PLAYLISTS' | translate }}
+        </div>
+        <button class="mb-pl-item" *ngFor="let pl of playlists" (click)="addCurrentToPlaylist(pl)">
+          <svg viewBox="0 0 24 24"><path d="M4 6h11v2H4V6Zm0 4h11v2H4v-2Zm0 4h7v2H4v-2Zm13-8h2v8.18A3 3 0 1 1 17 11V6Z"/></svg>
+          <span class="mb-pl-name">{{ pl.name }}</span>
+          <span class="mb-pl-count">{{ (pl.tracks?.length || 0) }}</span>
+        </button>
+      </div>
+    </div>
+
     <!-- EQ button -->
     <button class="mb-btn mb-icon-btn" [class.mb-active]="showEq" (click)="toggleEq()" [title]="'MUSIC.MODERN_EQUALIZER' | translate">
       <svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3ZM3 5v2h10V5H3Zm10 16v-2h8v-2h-8v-2h-2v6h2ZM7 9v2H3v2h4v2h2V9H7Zm14 4v-2H11v2h10Zm-6-4h2V7h4V5h-4V3h-2v6Z"/></svg>

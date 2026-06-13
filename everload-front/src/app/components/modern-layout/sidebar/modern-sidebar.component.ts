@@ -18,7 +18,7 @@ const ALL_NAV: NavItem[] = [
   { labelKey: 'MUSIC.MODERN_SIDEBAR_PLAYLISTS',   icon: 'playlist', route: '/modern/playlists' },
   { labelKey: 'MUSIC.MODERN_SIDEBAR_FAVORITES',   icon: 'heart',    route: '/modern/favorites' },
   { labelKey: 'MUSIC.MODERN_SIDEBAR_ACTIVITY',   icon: 'activity', route: '/modern/activity' },
-  { labelKey: 'MUSIC.MODERN_SIDEBAR_YTMUSIC',    icon: 'wave',     route: '/modern/ytmusic' },
+  { labelKey: 'MUSIC.MODERN_SIDEBAR_YTMUSIC',    icon: 'ytmusic',  route: '/modern/ytmusic' },
   { labelKey: 'MUSIC.MODERN_SIDEBAR_DOWNLOADS',   icon: 'download', route: '/modern/downloads' },
   { labelKey: 'MUSIC.MODERN_SIDEBAR_SETTINGS',     icon: 'settings', route: '/modern/settings' },
 ];

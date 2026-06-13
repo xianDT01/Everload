@@ -8,8 +8,11 @@
 
   <div class="msrch-loading" *ngIf="loading">{{ 'MUSIC.MODERN_SEARCHING' | translate }}</div>
 
-  <div class="msrch-results" *ngIf="!loading && results.length">
-    <div class="msrch-row" *ngFor="let t of results; let i = index" (dblclick)="play(i)">
+  <cdk-virtual-scroll-viewport class="msrch-results msrch-vscroll"
+                               *ngIf="!loading && results.length"
+                               [itemSize]="64"
+                               [style.height.px]="vListHeight(results.length)">
+    <div class="msrch-row" *cdkVirtualFor="let t of results; let i = index" (dblclick)="play(i)">
       <div class="msrch-cover">
         <img [src]="cover(t)" (error)="$any($event.target).style.display='none'" />
       </div>
@@ -20,7 +23,7 @@
       <span class="msrch-album">{{ t.album }}</span>
       <span class="msrch-dur">{{ fmt(t.duration) }}</span>
     </div>
-  </div>
+  </cdk-virtual-scroll-viewport>
 
   <div class="msrch-empty" *ngIf="!loading && !results.length && query.trim()">
     {{ 'MUSIC.MODERN_NO_RESULTS_FOR' | translate: { query: query } }}

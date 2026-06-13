@@ -8,9 +8,9 @@
     {{ 'MUSIC.MODERN_QUEUE_COUNT' | translate: { count: tracks.length, current: currentIndex + 1 } }}
   </div>
 
-  <div class="mq-list" *ngIf="tracks.length; else emptyTpl">
+  <cdk-virtual-scroll-viewport class="mq-list" [itemSize]="52" *ngIf="tracks.length; else emptyTpl">
     <div class="mq-item"
-         *ngFor="let t of tracks; let i = index"
+         *cdkVirtualFor="let t of tracks; let i = index"
          [class.mq-active]="i === currentIndex"
          (click)="playAt(i)">
       <span class="mq-idx">{{ i + 1 }}</span>
@@ -24,7 +24,7 @@
       </div>
       <span class="mq-dur">{{ fmt(t.duration || 0) }}</span>
     </div>
-  </div>
+  </cdk-virtual-scroll-viewport>
 
   <ng-template #emptyTpl>
     <div class="mq-empty">

@@ -31,6 +31,7 @@ public class YtMusicDiscoverService {
     private YtMusicCache<String, YtDiscoverHomeDto> homeCache;
     private YtMusicCache<String, YtDiscoverHomeDto> newReleasesCache;
     private YtMusicCache<String, YtDiscoverHomeDto> chartsCache;
+    private YtMusicCache<String, YtDiscoverHomeDto> moodsCache;
     private YtMusicCache<String, YtAlbumDto> albumCache;
     private YtMusicCache<String, YtArtistDto> artistCache;
 
@@ -50,6 +51,7 @@ public class YtMusicDiscoverService {
         homeCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
         newReleasesCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
         chartsCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
+        moodsCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
         albumCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
         artistCache = new YtMusicCache<>(ttlMillis, cacheMaxEntries);
     }
@@ -68,6 +70,89 @@ public class YtMusicDiscoverService {
     public YtDiscoverHomeDto fetchCharts() {
         return chartsCache.getOrCompute("charts",
                 () -> parseInitial(client.browse("FEmusic_charts")));
+    }
+
+    // ── Moods & genres ────────────────────────────────────────────────
+
+    /**
+     * Mood/genre catalogue ({@code FEmusic_moods_and_genres}): grids of
+     * {@code musicNavigationButtonRenderer} buttons, one per mood, each
+     * carrying the (browseId, params) pair its category page needs.
+     */
+    public YtDiscoverHomeDto fetchMoods() {
+        return moodsCache.getOrCompute("moods",
+                () -> parseMoods(client.browse("FEmusic_moods_and_genres")));
+    }
+
+    /** One mood/genre category page: carousels plus playlist grids. */
+    public YtDiscoverHomeDto fetchMoodCategory(String browseId, String params) {
+        String effectiveBrowseId = (browseId == null || browseId.isBlank())
+                ? "FEmusic_moods_and_genres_category" : browseId;
+        return moodsCache.getOrCompute("cat:" + effectiveBrowseId + ":" + params,
+                () -> parseMoodCategory(client.browse(effectiveBrowseId, params)));
+    }
+
+    private YtDiscoverHomeDto parseMoods(JsonNode resp) {
+        List<YtDiscoverShelfDto> shelves = new ArrayList<>();
+        for (JsonNode section : albumSectionContents(resp)) {
+            JsonNode grid = section.get("gridRenderer");
+            if (grid == null) continue;
+            String title = runsText(at(grid, "header", "gridHeaderRenderer"), "title", "runs");
+            List<YtDiscoverItemDto> items = new ArrayList<>();
+            JsonNode gridItems = grid.get("items");
+            if (gridItems != null && gridItems.isArray()) {
+                for (JsonNode gi : gridItems) {
+                    JsonNode btn = gi.get("musicNavigationButtonRenderer");
+                    if (btn == null) continue;
+                    String label = runsText(btn, "buttonText", "runs");
+                    String browseId = textAt(btn, "clickCommand", "browseEndpoint", "browseId");
+                    String params = textAt(btn, "clickCommand", "browseEndpoint", "params");
+                    if (label == null || browseId == null) continue;
+                    items.add(YtDiscoverItemDto.builder()
+                            .type(YtDiscoverItemDto.Type.MOOD)
+                            .title(label)
+                            .moodBrowseId(browseId)
+                            .moodParams(params)
+                            .build());
+                }
+            }
+            if (!items.isEmpty()) {
+                shelves.add(YtDiscoverShelfDto.builder()
+                        .title(title == null ? "Moods" : title)
+                        .items(items)
+                        .build());
+            }
+        }
+        return YtDiscoverHomeDto.builder().shelves(shelves).build();
+    }
+
+    private YtDiscoverHomeDto parseMoodCategory(JsonNode resp) {
+        List<YtDiscoverShelfDto> shelves = new ArrayList<>();
+        for (JsonNode section : albumSectionContents(resp)) {
+            YtDiscoverShelfDto carousel = parseShelf(section);
+            if (carousel != null) {
+                shelves.add(carousel);
+                continue;
+            }
+            JsonNode grid = section.get("gridRenderer");
+            if (grid == null) continue;
+            String title = runsText(at(grid, "header", "gridHeaderRenderer"), "title", "runs");
+            List<YtDiscoverItemDto> items = new ArrayList<>();
+            JsonNode gridItems = grid.get("items");
+            if (gridItems != null && gridItems.isArray()) {
+                for (JsonNode tile : gridItems) {
+                    YtDiscoverItemDto item = parseTile(tile);
+                    if (item != null) items.add(item);
+                }
+            }
+            if (!items.isEmpty()) {
+                shelves.add(YtDiscoverShelfDto.builder()
+                        .title(title == null ? "" : title)
+                        .items(items)
+                        .build());
+            }
+        }
+        return YtDiscoverHomeDto.builder().shelves(shelves).build();
     }
 
     public YtDiscoverHomeDto fetchContinuation(String token) {
@@ -418,10 +503,15 @@ public class YtMusicDiscoverService {
 
         List<YtTrackDto> topSongs = new ArrayList<>();
         List<YtAlbumDto> albums = new ArrayList<>();
+        List<YtAlbumDto> singles = new ArrayList<>();
         for (JsonNode section : albumSectionContents(resp)) {
             JsonNode carousel = section.get("musicCarouselShelfRenderer");
             if (carousel != null) {
-                collectCarouselAlbums(carousel, albums);
+                // hl=en in the innertube context makes the carousel titles stable.
+                String carouselTitle = safe(runsText(at(carousel, "header",
+                        "musicCarouselShelfBasicHeaderRenderer"), "title", "runs")).toLowerCase();
+                boolean isSingles = carouselTitle.contains("single") || carouselTitle.contains("sencillo");
+                collectCarouselAlbums(carousel, isSingles ? singles : albums);
                 continue;
             }
             JsonNode shelf = section.get("musicShelfRenderer");
@@ -445,6 +535,7 @@ public class YtMusicDiscoverService {
                 .thumbnailUrl(banner)
                 .topSongs(topSongs)
                 .albums(albums)
+                .singles(singles)
                 .build();
     }
 

@@ -115,4 +115,21 @@ public class DownloadController {
         }
     }
 
+    @Operation(summary = "Encolar guardado de música en el NAS (asíncrono, para audios largos)")
+    @PostMapping("/saveMusicToNas/jobs")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<?> queueNasSave(
+            @RequestParam String videoId,
+            @RequestParam(defaultValue = "mp3") String format,
+            @RequestParam Long nasPathId,
+            @RequestParam(required = false, defaultValue = "") String subPath) {
+        try {
+            return ResponseEntity.ok(downloadService.queueNasSave(videoId, format, nasPathId, subPath));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al iniciar el guardado: " + e.getMessage()));
+        }
+    }
+
 }

@@ -74,3 +74,10 @@
 
 .msrch-hint-icon { font-size: 52px; color: color-mix(in srgb, var(--color-white) 20%, transparent); }
 .msrch-hint p { font-size: 14px; margin: 0; }
+
+/* Scroll virtual: filas de alto fijo para que el viewport calcule bien */
+.msrch-vscroll { width: 100%; overflow-x: hidden; }
+.msrch-vscroll .msrch-row {
+  height: 64px;
+  box-sizing: border-box;
+}

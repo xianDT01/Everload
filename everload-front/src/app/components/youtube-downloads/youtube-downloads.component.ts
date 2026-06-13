@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 import { ChatService, ChatGroupDto, ActiveUser } from '../../services/chat.service';
 import { ApiBaseService } from '../../services/api-base.service';
+import { NasService, NasPath } from '../../services/nas.service';
 
 interface QueueItem {
   id: string;
@@ -54,6 +55,12 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   // NAS
   showNasBrowser = false;
   nasDownloadType: 'video' | 'music' = 'video';
+  // Modal propio de guardado en NAS (sustituye al navegador genérico)
+  showNasModal = false;
+  nasPaths: NasPath[] = [];
+  selectedNasPathId: number | null = null;
+  nasSubPath = '';
+  nasLoadingPaths = false;
   get hasNasAccess(): boolean { return this.authService.hasNasAccess(); }
 
   searchResults: any[] = [];
@@ -82,7 +89,8 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private notificationService: NotificationService,
     private chatService: ChatService,
-    private apiBase: ApiBaseService
+    private apiBase: ApiBaseService,
+    private nas: NasService
   ) {
     translate.setDefaultLang('gl');
     const savedLang = localStorage.getItem('language');
@@ -371,19 +379,90 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   }
 
   private processItemToNas(item: QueueItem): Promise<void> {
+    // Asíncrono con polling: el guardado en NAS de audios largos (>~1h) superaba el
+    // timeout de cabeceras del proxy cuando era síncrono. Ahora encola un job y consulta
+    // el progreso, igual que la descarga de música al navegador.
     return new Promise<void>((resolve) => {
+      let pollTimer: any = null;
+      let startSub: any = null;
+      let statusSub: any = null;
+      let settled = false;
+      let pollErrors = 0;
+      let pollCount = 0;
+      const MAX_POLL_ERRORS = 3;
+      const MAX_POLL_ATTEMPTS = 480; // 20 min at 2.5s intervals
+
+      const cleanup = () => {
+        if (pollTimer) clearInterval(pollTimer);
+        startSub?.unsubscribe?.();
+        statusSub?.unsubscribe?.();
+        this.cancelActiveDownload = null;
+      };
+
+      const fail = (message: string) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        this.ngZone.run(() => {
+          item.status = 'failed';
+          item.error = message || 'Error al guardar en NAS';
+          item.completedAt = new Date();
+          this.notificationService.showToast('error', 'Error NAS', item.error!);
+        });
+        resolve();
+      };
+
+      const complete = (filename: string) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        this.ngZone.run(() => {
+          item.filename = filename;
+          item.status = 'completed';
+          item.progress = 100;
+          item.completedAt = new Date();
+          this.notificationService.showToast('success', '💾 Guardado en NAS', filename);
+        });
+        resolve();
+      };
+
+      const pollJob = () => {
+        if (!item.downloadJobId || settled) return;
+        pollCount++;
+        if (pollCount > MAX_POLL_ATTEMPTS) {
+          fail('El guardado tardó demasiado (más de 20 min). Comprueba la conexión del servidor.');
+          return;
+        }
+        statusSub = this.http.get<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs/${item.downloadJobId}`).subscribe({
+          next: job => {
+            pollErrors = 0;
+            this.ngZone.run(() => {
+              item.progress = Math.max(item.progress, Math.min(job.progress || 0, 99));
+              item.filename = job.filename || item.filename;
+            });
+            if (job.status === 'DONE') {
+              complete(job.filename || item.filename || `${item.videoId}.mp3`);
+            } else if (job.status === 'ERROR') {
+              fail(job.error || 'yt-dlp no pudo preparar la canción');
+            }
+          },
+          error: (err) => {
+            pollErrors++;
+            if (pollErrors >= MAX_POLL_ERRORS) {
+              fail(err?.status === 404
+                ? 'El guardado fue interrumpido (el servidor se reinició)'
+                : 'No se pudo consultar el progreso del guardado');
+            }
+          }
+        });
+      };
+
       this.ngZone.run(() => {
         item.status = 'downloading';
         item.startedAt = new Date();
-        item.progress = 10;
+        item.progress = 3;
+        item.error = undefined;
       });
-
-      // Simulate progress while yt-dlp runs on the server
-      const progressInterval = setInterval(() => {
-        this.ngZone.run(() => {
-          if (item.progress < 85) item.progress += 5;
-        });
-      }, 3000);
 
       const params: any = {
         videoId: item.videoId,
@@ -392,31 +471,28 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         subPath: item.nasSubPath || ''
       };
 
-      this.http.post<{ filename: string; path: string; error?: string }>(
-        `${this.backendUrl}/saveMusicToNas`, null, { params }
-      ).subscribe({
-        next: (result) => {
-          clearInterval(progressInterval);
+      startSub = this.http.post<DirectDownloadJob>(`${this.backendUrl}/saveMusicToNas/jobs`, null, { params }).subscribe({
+        next: job => {
           this.ngZone.run(() => {
-            item.filename = result.filename;
-            item.status = 'completed';
-            item.progress = 100;
-            item.completedAt = new Date();
-            this.notificationService.showToast('success', '💾 Guardado en NAS', result.filename);
+            item.downloadJobId = job.jobId;
+            item.progress = Math.max(item.progress, job.progress || 5);
           });
-          resolve();
+          pollJob();
+          pollTimer = setInterval(pollJob, 2500);
         },
-        error: (err) => {
-          clearInterval(progressInterval);
-          this.ngZone.run(() => {
-            item.status = 'failed';
-            item.error = err.error?.error || 'Error al guardar en NAS';
-            item.completedAt = new Date();
-            this.notificationService.showToast('error', 'Error NAS', item.error!);
-          });
-          resolve();
-        }
+        error: err => fail(err?.error?.error || 'No se pudo iniciar el guardado')
       });
+
+      this.cancelActiveDownload = () => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        this.ngZone.run(() => {
+          item.status = 'cancelled';
+          item.completedAt = new Date();
+        });
+        resolve();
+      };
     });
   }
 
@@ -711,17 +787,40 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
 
   openNasBrowser(type: 'video' | 'music') {
     if (!this.videoUrl.trim()) {
-      alert('Introduce primero un enlace de YouTube');
+      alert(this.translate.instant('PLEASE_ENTER_YOUTUBE_LINK'));
+      return;
+    }
+    if (!this.extractVideoId(this.videoUrl)) {
+      alert(this.translate.instant('INVALID_YOUTUBE_LINK'));
       return;
     }
     this.nasDownloadType = type;
-    this.showNasBrowser = true;
+    this.nasSubPath = '';
+    this.nasLoadingPaths = true;
+    this.showNasModal = true;
+    this.nas.getPaths().subscribe({
+      next: paths => {
+        this.nasPaths = paths.filter(p => p.writable);
+        this.selectedNasPathId = this.nasPaths[0]?.id ?? null;
+        this.nasLoadingPaths = false;
+      },
+      error: () => {
+        this.nasLoadingPaths = false;
+        this.showNasModal = false;
+        this.notificationService.showToast('error', 'NAS', 'No se pudieron cargar las carpetas del NAS');
+      }
+    });
   }
 
-  onNasPathSelected(dest: { pathId: number; subPath: string }) {
-    this.showNasBrowser = false;
+  closeNasModal() {
+    this.showNasModal = false;
+  }
+
+  confirmNasSave() {
+    if (!this.selectedNasPathId) return;
     const videoId = this.extractVideoId(this.videoUrl);
-    if (!videoId) { alert('URL no válida'); return; }
+    if (!videoId) { alert(this.translate.instant('INVALID_YOUTUBE_LINK')); return; }
+    this.showNasModal = false;
 
     const item: QueueItem = {
       id: this.generateId(),
@@ -731,8 +830,8 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       resolution: this.nasDownloadType === 'video' ? this.resolution : undefined,
       status: 'pending',
       progress: 0,
-      nasPathId: dest.pathId,
-      nasSubPath: dest.subPath
+      nasPathId: this.selectedNasPathId,
+      nasSubPath: this.nasSubPath.trim()
     };
     this.queue.push(item);
     if (!this.showQueue) this.showQueue = true;

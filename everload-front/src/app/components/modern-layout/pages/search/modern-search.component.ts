@@ -55,6 +55,11 @@ export class ModernSearchComponent implements OnInit, OnDestroy {
     return `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
   }
 
+  /** Alto del viewport de scroll virtual: crece con la lista hasta un tope. */
+  vListHeight(count: number): number {
+    return Math.min(count * 64 + 8, 680);
+  }
+
   cover(t: MusicMetadataDto): string {
     return this.music.getCoverUrlWithCache(this.pathId ?? 0, t.path, t.source);
   }

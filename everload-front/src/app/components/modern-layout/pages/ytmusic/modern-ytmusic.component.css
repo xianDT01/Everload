@@ -534,3 +534,117 @@
   .mytm-album,
   .mytm-duration { display: none; }
 }
+
+/* ── Moods ─────────────────────────────────────────────────────────── */
+
+.mytm-mood-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 14px;
+}
+
+.mytm-mood-head h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.mytm-mood-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  padding: 12px 0 4px;
+}
+
+.mytm-mood-chip {
+  border: 1px solid color-mix(in srgb, var(--color-white) 14%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
+  color: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  padding: 16px 14px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.mytm-mood-chip:hover {
+  background: color-mix(in srgb, var(--color-white) 12%, transparent);
+  transform: translateY(-1px);
+}
+
+/* ── Banner de artista ─────────────────────────────────────────────── */
+
+.mytm-artist-banner {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 0 0 14px;
+  background: color-mix(in srgb, var(--color-white) 6%, transparent);
+}
+
+.mytm-artist-banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+}
+
+.mytm-artist-banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.72) 100%);
+}
+
+.mytm-artist-banner-info {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.mytm-artist-banner-name {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 52px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+  line-height: 1.05;
+}
+
+.mytm-artist-banner.no-image { height: 200px; }
+
+.mytm-artist-desc {
+  margin: 0 0 18px;
+  max-width: 860px;
+  color: color-mix(in srgb, var(--color-white) 62%, transparent);
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Scroll virtual ────────────────────────────────────────────────── */
+
+.mytm-vscroll {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.mytm-vscroll .mytm-track,
+.mytm-vscroll .mytm-subpage-track {
+  height: 58px;
+  min-height: 58px;
+  box-sizing: border-box;
+}

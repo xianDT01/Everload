@@ -46,6 +46,13 @@ const LS_LISTEN_STYLE = 'modern_home_listen_style';
 })
 export class ModernHomeComponent implements OnInit, OnDestroy {
   featured: { track: MusicMetadataDto; pathId: number } | null = null;
+  // Pool de "lo más escuchado" que rota en el hero con un fundido suave.
+  featuredPool: { track: MusicMetadataDto; pathId: number }[] = [];
+  featuredFade = false;
+  featuredFav = false;
+  private featuredIndex = 0;
+  private featuredTimer?: ReturnType<typeof setInterval>;
+  private featuredFadeTimer?: ReturnType<typeof setTimeout>;
   listenNow: AlbumCard[] = [];
   topArtists: ArtistCard[] = [];
   recentlyAdded: AlbumCard[] = [];
@@ -87,6 +94,32 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     this.coverSub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
     if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
+    this.stopFeaturedRotation();
+  }
+
+  /** Rota el hero "Álbum destacado" entre lo más escuchado, con un fundido suave. */
+  private startFeaturedRotation() {
+    this.stopFeaturedRotation();
+    if (this.featuredPool.length <= 1) return;
+    this.featuredTimer = setInterval(() => this.rotateFeatured(), 8000);
+  }
+
+  private stopFeaturedRotation() {
+    if (this.featuredTimer) clearInterval(this.featuredTimer);
+    if (this.featuredFadeTimer) clearTimeout(this.featuredFadeTimer);
+    this.featuredTimer = undefined;
+    this.featuredFadeTimer = undefined;
+  }
+
+  private rotateFeatured() {
+    if (this.featuredPool.length <= 1) return;
+    this.featuredFade = true;                       // fundido de salida
+    this.featuredFadeTimer = setTimeout(() => {
+      this.featuredIndex = (this.featuredIndex + 1) % this.featuredPool.length;
+      this.featured = this.featuredPool[this.featuredIndex];
+      this.checkFeaturedFav();
+      this.featuredFade = false;                    // fundido de entrada
+    }, 450);
   }
 
   // ── Home config (localStorage) ────────────────────────────────
@@ -187,12 +220,41 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         const profileByKey = new Map<string, ArtistProfileDto>();
         profiles.forEach(profile => this.profileKeys(profile).forEach(key => profileByKey.set(key, profile)));
 
-        // Featured = most recent
-        if (items[0]) {
-          this.featured = { track: this.toTrack(items[0], pathId), pathId: items[0].nasPathId ?? pathId };
-        } else if (tracks[0]) {
-          this.featured = { track: tracks[0], pathId: tracks[0].nasPathId ?? pathId };
+        // Featured = pool de lo más escuchado (frecuencia en el historial), que rota.
+        const freq = new Map<string, number>();
+        items.forEach((i: any) => {
+          const k = (i.trackPath || '').trim();
+          if (k) freq.set(k, (freq.get(k) || 0) + 1);
+        });
+        // Dedup por ÁLBUM (no por pista): así cada rotación cambia de portada de verdad,
+        // evitando que se repita la misma imagen con otra canción del mismo álbum.
+        const seenAlbum = new Set<string>();
+        const pool: { track: MusicMetadataDto; pathId: number }[] = [];
+        [...items]
+          .sort((a: any, b: any) =>
+            (freq.get((b.trackPath || '').trim()) || 0) - (freq.get((a.trackPath || '').trim()) || 0))
+          .forEach((i: any) => {
+            const albumKey = (i.album || i.title || '').trim().toLowerCase();
+            if (albumKey && !seenAlbum.has(albumKey)) {
+              seenAlbum.add(albumKey);
+              pool.push({ track: this.toTrack(i, pathId), pathId: i.nasPathId ?? pathId });
+            }
+          });
+        if (pool.length === 0) {
+          tracks.forEach(t => {
+            const albumKey = (t.album || t.title || '').trim().toLowerCase();
+            if (albumKey && !seenAlbum.has(albumKey)) {
+              seenAlbum.add(albumKey);
+              pool.push({ track: t, pathId: t.nasPathId ?? pathId });
+            }
+          });
         }
+        this.featuredPool = pool.slice(0, 8);
+        this.featuredIndex = 0;
+        this.featured = this.featuredPool[0]
+          || (tracks[0] ? { track: tracks[0], pathId: tracks[0].nasPathId ?? pathId } : null);
+        this.checkFeaturedFav();
+        this.startFeaturedRotation();
 
         // Listen Now = unique albums from history + overview
         const albumMap = new Map<string, AlbumCard>();
@@ -465,7 +527,16 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   toggleFavFeatured() {
     if (!this.featured) return;
     const t = this.featured.track;
-    this.music.toggleFavorite(t.path, t.title, t.artist, t.album, this.featured.pathId).subscribe();
+    this.music.toggleFavorite(t.path, t.title, t.artist, t.album, this.featured.pathId)
+      .subscribe({ next: (res: any) => { this.featuredFav = !!res?.isFavorite; }, error: () => {} });
+  }
+
+  /** Refresca el estado de "me gusta" del destacado actual. */
+  private checkFeaturedFav() {
+    const f = this.featured;
+    if (!f || !f.track?.path || (f.pathId ?? 0) < 0) { this.featuredFav = false; return; }
+    this.music.checkFavorite(f.track.path, f.pathId)
+      .subscribe({ next: (res: any) => { this.featuredFav = !!res?.isFavorite; }, error: () => { this.featuredFav = false; } });
   }
 
   private artistParts(value: string): string[] {

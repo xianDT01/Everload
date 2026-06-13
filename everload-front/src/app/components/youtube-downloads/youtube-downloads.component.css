@@ -1228,3 +1228,101 @@ button:active {
   font-weight: 700;
   color: #81c784;
 }
+
+/* ═══════════════════════════════════════════
+   MODAL: GUARDAR EN NAS
+═══════════════════════════════════════════ */
+.nas-modal {
+  border: 1px solid rgba(21, 101, 192, 0.4);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(21, 101, 192, 0.18);
+}
+
+.nas-modal-body {
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.nas-field-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #9aa4c0;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.nas-path-list {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nas-path-item {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.nas-path-item:hover {
+  background: rgba(21, 101, 192, 0.12);
+}
+
+.nas-path-item.nas-selected {
+  background: rgba(21, 101, 192, 0.22);
+  border-color: rgba(33, 150, 243, 0.6);
+}
+
+.nas-path-item .share-item-arrow {
+  color: #4fa3ff;
+  font-weight: 800;
+}
+
+.nas-subpath-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.18s;
+}
+
+.nas-subpath-input::placeholder { color: #6b7385; }
+
+.nas-subpath-input:focus {
+  border-color: rgba(33, 150, 243, 0.7);
+}
+
+.nas-save-confirm {
+  margin-top: 8px;
+  width: 100%;
+  background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(21, 101, 192, 0.35);
+  transition: all 0.18s;
+}
+
+.nas-save-confirm:hover:not(:disabled) {
+  box-shadow: 0 6px 18px rgba(21, 101, 192, 0.5);
+  transform: translateY(-1px);
+}
+
+.nas-save-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

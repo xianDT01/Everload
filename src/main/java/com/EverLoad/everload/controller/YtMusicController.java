@@ -93,6 +93,28 @@ public class YtMusicController {
         return handle(ytMusicService::discoverCharts, "cargar los charts de YT Music");
     }
 
+    @GetMapping("/discover/moods")
+    public ResponseEntity<?> discoverMoods() {
+        ResponseEntity<?> gate = checkEnabled();
+        if (gate != null) return gate;
+        return handle(ytMusicService::discoverMoods, "cargar los moods de YT Music");
+    }
+
+    @GetMapping("/discover/moods/category")
+    public ResponseEntity<?> discoverMoodCategory(@RequestParam(required = false) String browseId,
+                                                  @RequestParam String params) {
+        ResponseEntity<?> gate = checkEnabled();
+        if (gate != null) return gate;
+        if (params == null || params.isBlank() || params.length() > 1000) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Parámetros de mood inválidos"));
+        }
+        if (browseId != null && !browseId.isBlank() && !SAFE_ID.matcher(browseId).matches()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "browseId inválido"));
+        }
+        return handle(() -> ytMusicService.discoverMoodCategory(browseId, params),
+                "cargar la categoría de mood");
+    }
+
     @GetMapping("/discover/continuation")
     public ResponseEntity<?> discoverContinuation(@RequestParam String token) {
         ResponseEntity<?> gate = checkEnabled();

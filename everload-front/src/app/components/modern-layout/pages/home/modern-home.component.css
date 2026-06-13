@@ -292,6 +292,15 @@
   background-size: cover;
   background-position: center;
   background-color: var(--ml-panel);
+  /* Fundido suave al rotar el destacado */
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.mh-featured.mh-feat-fading {
+  opacity: 0;
+  transform: scale(1.03);
 }
 
 .mh-feat-overlay {
@@ -378,8 +387,14 @@
   transition: background 0.15s;
 }
 
-.mh-btn-heart svg { width: 17px; height: 17px; fill: currentColor; }
+.mh-btn-heart svg { width: 17px; height: 17px; }
 .mh-btn-heart:hover { background: color-mix(in srgb, var(--ml-accent) 17%, transparent); }
+.mh-btn-heart-active {
+  background: var(--ml-accent);
+  border-color: var(--ml-accent);
+  color: #fff;
+}
+.mh-btn-heart-active:hover { background: var(--ml-accent); }
 
 /* ── Sections ── */
 .mh-section { margin-bottom: 26px; }
@@ -541,6 +556,7 @@
 
 .mh-artist-circle {
   position: relative;
+  isolation: isolate;
   width: 126px;
   height: 126px;
   border-radius: 50%;
@@ -739,6 +755,7 @@
 
 .mh-album-cover {
   position: relative;
+  isolation: isolate;
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 10px;

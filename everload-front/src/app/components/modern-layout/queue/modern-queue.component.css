@@ -151,3 +151,9 @@
 }
 
 .mq-empty p { font-size: 13px; margin: 0; }
+
+/* Scroll virtual: filas de alto fijo para que el viewport calcule bien */
+.mq-list .mq-item {
+  height: 52px;
+  box-sizing: border-box;
+}

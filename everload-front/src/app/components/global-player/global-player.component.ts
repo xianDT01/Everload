@@ -110,7 +110,8 @@ export class GlobalPlayerComponent implements OnInit, OnDestroy {
   }
 
   goToLibrary(): void {
-    if (this.isNasTrack) this.router.navigate(['/nas-music']);
+    // Lleva al reproductor moderno (no al antiguo EverWave).
+    this.router.navigate(['/modern']);
   }
 
   onMiniPlayerClick(e: Event): void {

@@ -51,6 +51,7 @@ export interface YtMusicDiscoverItemDto {
   browseId?: string;
   channelId?: string;
   moodBrowseId?: string;
+  moodParams?: string;
 }
 
 export interface YtMusicDiscoverShelfDto {
@@ -78,9 +79,11 @@ export interface YtMusicArtistDto {
   channelId: string;
   name: string;
   description?: string;
+  /** Imagen ancha del header inmersivo — sirve directamente como banner. */
   thumbnailUrl?: string;
   topSongs: YtMusicTrackDto[];
   albums: YtMusicAlbumDto[];
+  singles?: YtMusicAlbumDto[];
 }
 
 export interface YtMusicStreamInfoDto {
@@ -1619,6 +1622,17 @@ export class MusicService {
 
   discoverYtMusicCharts(): Observable<YtMusicDiscoverHomeDto> {
     return this.http.get<YtMusicDiscoverHomeDto>(`${this.ytMusicApi}/discover/charts`);
+  }
+
+  discoverYtMusicMoods(): Observable<YtMusicDiscoverHomeDto> {
+    return this.http.get<YtMusicDiscoverHomeDto>(`${this.ytMusicApi}/discover/moods`);
+  }
+
+  getYtMusicMoodCategory(params: string, browseId?: string): Observable<YtMusicDiscoverHomeDto> {
+    const browse = browseId ? `&browseId=${encodeURIComponent(browseId)}` : '';
+    return this.http.get<YtMusicDiscoverHomeDto>(
+      `${this.ytMusicApi}/discover/moods/category?params=${encodeURIComponent(params)}${browse}`
+    );
   }
 
   getYtMusicAlbum(browseId: string): Observable<YtMusicAlbumDto> {

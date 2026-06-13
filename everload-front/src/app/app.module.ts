@@ -6,7 +6,9 @@ import { HttpClientModule, HttpClient, HTTP_INTERCEPTORS } from '@angular/common
 import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { ServiceWorkerModule } from '@angular/service-worker';
+import { RouteReuseStrategy } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { ModernReuseStrategy } from './components/modern-layout/modern-reuse-strategy';
 
 import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es';
@@ -99,6 +101,9 @@ export function initRuntimeConfig(apiBase: ApiBaseService): () => Promise<void> 
     { provide: HTTP_INTERCEPTORS, useClass: ApiUrlInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: MaintenanceInterceptor, multi: true },
+    // Mantiene vivas las paginas del layout moderno al cambiar de pestana:
+    // Inicio <-> Biblioteca <-> YT Music no se destruyen ni recargan datos.
+    { provide: RouteReuseStrategy, useClass: ModernReuseStrategy },
     {
       provide: APP_INITIALIZER,
       useFactory: initTranslations,

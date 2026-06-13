@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { MusicService, PlayerState, MusicMetadataDto } from '../../../services/music.service';
 import { ModernStateService } from '../modern-state.service';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   selector: 'app-modern-bottombar',
@@ -18,6 +19,12 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   // Favorites
   isFav = false;
   private favTrackPath = '';
+
+  // Añadir a playlist
+  showPlaylistMenu = false;
+  playlists: any[] = [];
+  playlistMenuLoading = false;
+  private addingToPlaylist = false;
 
   // EQ panel
   showEq = false;
@@ -60,7 +67,12 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   private subs: Subscription[] = [];
   private prevVolume = 1;
 
-  constructor(public music: MusicService, public modState: ModernStateService, private router: Router) {}
+  constructor(
+    public music: MusicService,
+    public modState: ModernStateService,
+    private router: Router,
+    private notify: NotificationService
+  ) {}
 
   ngOnInit() {
     this.crossfade = this.music.crossfadeDuration;
@@ -177,6 +189,39 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     const pathId = this.state?.pathId ?? t.nasPathId ?? 0;
     this.music.toggleFavorite(t.path, t.title || t.name, t.artist || '', t.album || '', pathId)
       .subscribe({ next: (res: any) => { this.isFav = !!res?.isFavorite; }, error: () => {} });
+  }
+
+  // ── Añadir a playlist ──────────────────────────────────────────────────────
+
+  togglePlaylistMenu() {
+    this.showPlaylistMenu = !this.showPlaylistMenu;
+    if (this.showPlaylistMenu && !this.playlists.length) {
+      this.playlistMenuLoading = true;
+      this.music.getPlaylists().subscribe({
+        next: (p) => { this.playlists = p || []; this.playlistMenuLoading = false; },
+        error: () => { this.playlistMenuLoading = false; }
+      });
+    }
+  }
+
+  closePlaylistMenu() { this.showPlaylistMenu = false; }
+
+  addCurrentToPlaylist(pl: any) {
+    const t = this.track;
+    if (!t || this.addingToPlaylist) return;
+    this.addingToPlaylist = true;
+    const pathId = this.state?.pathId ?? t.nasPathId ?? 0;
+    this.music.addTrackToPlaylist(pl.id, t, pathId).subscribe({
+      next: () => {
+        this.addingToPlaylist = false;
+        this.showPlaylistMenu = false;
+        this.notify.showToast('success', 'Añadida', `"${t.title || t.name}" → ${pl.name}`);
+      },
+      error: (err) => {
+        this.addingToPlaylist = false;
+        this.notify.showToast('error', 'Error', err?.error?.error || 'No se pudo añadir a la playlist');
+      }
+    });
   }
 
   openCurrentArtist() {

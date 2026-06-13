@@ -166,6 +166,129 @@ public class DownloadService {
         return job;
     }
 
+    /**
+     * Encola un guardado de música directamente en el NAS, de forma asíncrona.
+     * Antes era síncrono y para audios largos (>~1h) superaba el timeout de cabeceras
+     * del proxy (Caddy, 120s) → fallaba. Ahora responde al instante con un jobId y el
+     * frontend consulta el progreso por polling, como en la descarga al navegador.
+     */
+    public DirectDownloadJob queueNasSave(String videoId, String format, Long nasPathId, String subPath) {
+        if (!isValidYouTubeId(videoId)) {
+            throw new IllegalArgumentException("ID de YouTube invalido");
+        }
+        String safeFormat = (format == null || format.isBlank()) ? "mp3" : format;
+        if (!ALLOWED_AUDIO_FORMATS.contains(safeFormat)) {
+            throw new IllegalArgumentException("Formato no permitido");
+        }
+        if (nasPathId == null) {
+            throw new IllegalArgumentException("Ruta de NAS requerida");
+        }
+        if (directDownloadExecutor == null || downloadSemaphore == null) {
+            throw new IllegalStateException("El servicio de descargas no está listo aún");
+        }
+
+        String jobId = UUID.randomUUID().toString();
+        DirectDownloadJob job = new DirectDownloadJob(jobId, videoId, safeFormat);
+        job.nasPathId = nasPathId;
+        job.nasSubPath = subPath == null ? "" : subPath;
+        directDownloadJobs.put(jobId, job);
+        directDownloadExecutor.submit(() -> executeQueuedNasSave(job));
+        return job;
+    }
+
+    private void executeQueuedNasSave(DirectDownloadJob job) {
+        if (!acquireSlot()) {
+            job.status = DirectDownloadStatus.ERROR;
+            job.error = "Demasiadas descargas simultaneas, intentalo de nuevo";
+            job.completedAt = System.currentTimeMillis();
+            return;
+        }
+
+        String tempDirPath = createTempDownloadDir();
+        try {
+            job.status = DirectDownloadStatus.RUNNING;
+            job.progress = 5;
+            String[] cmd = {
+                "yt-dlp",
+                "--js-runtimes", "node",
+                "--ignore-errors",
+                "--print", "after_move:filepath",
+                "-x", "--audio-format", job.format, "--audio-quality", "0",
+                "--embed-thumbnail",
+                "--embed-metadata",
+                "--parse-metadata", "%(title)s:%(meta_title)s",
+                "--parse-metadata", "%(uploader)s:%(meta_artist)s",
+                "--no-playlist",
+                "-o", tempDirPath + "%(title)s.%(ext)s",
+                "https://www.youtube.com/watch?v=" + job.videoId
+            };
+
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            Process process = pb.start();
+
+            Thread stderrThread = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        if (line.contains("nsig extraction failed")) continue;
+                        Matcher matcher = YT_DLP_PROGRESS.matcher(line);
+                        if (matcher.find()) {
+                            try {
+                                job.progress = Math.max(job.progress, Math.min((int) Double.parseDouble(matcher.group(1)), 94));
+                            } catch (NumberFormatException ignored) {}
+                        } else {
+                            logger.info("yt-dlp NAS save: {}", line);
+                        }
+                    }
+                } catch (IOException ignored) {}
+            });
+            stderrThread.start();
+
+            String finalPath;
+            try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                finalPath = outReader.readLine();
+            }
+            int exit = process.waitFor();
+            stderrThread.join(5000);
+
+            if (exit != 0 || finalPath == null || finalPath.isBlank()) {
+                throw new RuntimeException("yt-dlp fallo o no devolvio la ruta del archivo");
+            }
+
+            File tmpFile = new File(finalPath.trim());
+            if (!tmpFile.exists()) {
+                throw new RuntimeException("Archivo temporal no encontrado: " + finalPath);
+            }
+
+            String songTitle  = tmpFile.getName();
+            String songArtist = "";
+            int dashIdx = songTitle.indexOf(" - ");
+            if (dashIdx > 0) {
+                songArtist = songTitle.substring(0, dashIdx).trim();
+                songTitle  = songTitle.substring(dashIdx + 3).trim();
+            }
+            musicService.ensureMetadata(tmpFile, songTitle, songArtist);
+
+            String fileName = tmpFile.getName();
+            String savedPath = nasService.saveToNas(job.nasPathId, job.nasSubPath, tmpFile.toPath(), fileName);
+            downloadHistoryService.recordDownload(new Download(fileName, "music (NAS)", "YouTube"));
+            logger.info("✅ [NAS] Guardado en: {}", savedPath);
+
+            job.filename = fileName;
+            job.progress = 100;
+            job.status = DirectDownloadStatus.DONE;
+            job.completedAt = System.currentTimeMillis();
+        } catch (Exception e) {
+            job.status = DirectDownloadStatus.ERROR;
+            job.error = e.getMessage();
+            job.completedAt = System.currentTimeMillis();
+            logger.error("Queued NAS save failed for {}: {}", job.videoId, e.getMessage());
+        } finally {
+            downloadSemaphore.release();
+            cleanupTempDir(tempDirPath);
+        }
+    }
+
     public DirectDownloadJob getDirectDownloadJob(String jobId) {
         return directDownloadJobs.get(jobId);
     }
@@ -588,6 +711,11 @@ public class DownloadService {
         public volatile String error;
         public final long createdAt = System.currentTimeMillis();
         public volatile long completedAt;
+        /** Si están presentes, el job guarda en el NAS en lugar de dejar el archivo para descargar. */
+        @JsonIgnore
+        public volatile Long nasPathId;
+        @JsonIgnore
+        public volatile String nasSubPath;
 
         public DirectDownloadJob(String jobId, String videoId, String format) {
             this.jobId = jobId;
