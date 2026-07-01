@@ -15,6 +15,7 @@ interface QueueItem {
   title: string;
   type: 'video' | 'music';
   resolution?: string;
+  audioFormat?: string;
   status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
   progress: number;
   startedAt?: Date;
@@ -42,6 +43,8 @@ interface DirectDownloadJob {
 export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   videoUrl: string = '';
   resolution: string = '720';
+  audioFormat: string = 'mp3';
+  readonly audioFormats: string[] = ['mp3', 'm4a', 'flac', 'opus', 'ogg', 'wav'];
   get backendUrl(): string {
     return `${this.apiBase.backendUrl || ''}/api`;
   }
@@ -139,6 +142,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       title: videoId,
       type,
       resolution: type === 'video' ? this.resolution : undefined,
+      audioFormat: type === 'music' ? this.audioFormat : undefined,
       status: 'pending',
       progress: 0
     };
@@ -185,7 +189,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       const endpoint = item.type === 'video' ? 'downloadVideo' : 'downloadMusic';
       const params: any = item.type === 'video'
         ? { videoId: item.videoId, resolution: item.resolution || '720' }
-        : { videoId: item.videoId, format: 'mp3' };
+        : { videoId: item.videoId, format: item.audioFormat || 'mp3' };
 
       const sub = this.http.get(`${this.backendUrl}/${endpoint}`, {
         params,
@@ -352,7 +356,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       });
 
       startSub = this.http.post<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs`, null, {
-        params: { videoId: item.videoId, format: 'mp3' }
+        params: { videoId: item.videoId, format: item.audioFormat || 'mp3' }
       }).subscribe({
         next: job => {
           this.ngZone.run(() => {
@@ -466,7 +470,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
 
       const params: any = {
         videoId: item.videoId,
-        format: 'mp3',
+        format: item.audioFormat || 'mp3',
         nasPathId: item.nasPathId,
         subPath: item.nasSubPath || ''
       };
@@ -654,6 +658,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         videoId: id,
         title: id,
         type: 'music',
+        audioFormat: this.audioFormat,
         status: 'pending',
         progress: 0
       });
@@ -828,6 +833,7 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       title: videoId,
       type: this.nasDownloadType,
       resolution: this.nasDownloadType === 'video' ? this.resolution : undefined,
+      audioFormat: this.nasDownloadType === 'music' ? this.audioFormat : undefined,
       status: 'pending',
       progress: 0,
       nasPathId: this.selectedNasPathId,

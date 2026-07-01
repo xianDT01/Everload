@@ -205,7 +205,8 @@
         <span class="mpl-col-dur">{{ 'MUSIC.MODERN_DURATION' | translate }}</span>
         <span class="mpl-col-remove" *ngIf="canEditTracks(selectedPlaylist)"></span>
       </div>
-      <div class="mpl-track-row" *ngFor="let t of selectedPlaylist.tracks; let i = index">
+      <div class="mpl-track-row mpl-track-row-clickable" *ngFor="let t of selectedPlaylist.tracks; let i = index"
+           (click)="playFrom(i)" [title]="'MUSIC.MODERN_START_LISTENING' | translate">
         <span class="mpl-col-num mpl-track-num">{{ i + 1 }}</span>
         <div class="mpl-col-title mpl-track-main">
           <img class="mpl-track-thumb"
@@ -219,7 +220,7 @@
         <span class="mpl-col-album mpl-track-album">{{ t.album }}</span>
         <span class="mpl-col-dur mpl-track-dur">{{ fmtDur(t.durationSeconds) }}</span>
         <button *ngIf="canEditTracks(selectedPlaylist)" class="mpl-col-remove mpl-track-remove"
-                (click)="removeTrack(t.id)" [title]="'MUSIC.MODERN_REMOVE_FROM_PLAYLIST' | translate">
+                (click)="$event.stopPropagation(); removeTrack(t.id)" [title]="'MUSIC.MODERN_REMOVE_FROM_PLAYLIST' | translate">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>

@@ -84,6 +84,11 @@
       <option value="1080">1080p</option>
     </select>
 
+    <label for="audioFormat">{{ 'SELECT_AUDIO_FORMAT' | translate }}</label>
+    <select id="audioFormat" [(ngModel)]="audioFormat">
+      <option *ngFor="let f of audioFormats" [value]="f">{{ f.toUpperCase() }}</option>
+    </select>
+
     <div class="buttons">
       <button (click)="addToQueue('video')" [disabled]="isLoading">{{ 'DOWNLOAD_VIDEO' | translate }}</button>
       <button (click)="addToQueue('music')" [disabled]="isLoading">{{ 'DOWNLOAD_MUSIC' | translate }}</button>

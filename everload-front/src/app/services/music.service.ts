@@ -192,6 +192,11 @@ export class DeckPlayer {
   // Master gain — used for crossfade in/out (separate from user volume)
   private masterGain: GainNode | null = null;
 
+  // Normalizador de volumen (compresor/leveler + makeup) para igualar canciones
+  private normalizeCompressor: DynamicsCompressorNode | null = null;
+  private normalizeMakeup: GainNode | null = null;
+  normalizeEnabled = false;
+
   // Combo Filter
   private comboFilter: BiquadFilterNode | null = null;
 
@@ -356,8 +361,14 @@ export class DeckPlayer {
       this.channelModeGains[2].connect(this.channelMerger, 0, 1);
       this.channelModeGains[3].connect(this.channelMerger, 0, 1);
       this.masterGain = this.audioCtx.createGain();
+      // Normalizador al final: masterGain → compresor → makeup → destino
+      this.normalizeCompressor = this.audioCtx.createDynamicsCompressor();
+      this.normalizeMakeup = this.audioCtx.createGain();
       this.channelMerger.connect(this.masterGain);
-      this.masterGain.connect(this.audioCtx.destination);
+      this.masterGain.connect(this.normalizeCompressor);
+      this.normalizeCompressor.connect(this.normalizeMakeup);
+      this.normalizeMakeup.connect(this.audioCtx.destination);
+      this.applyNormalize();
       this.setChannelMode('stereo');
     } catch (e) {
       console.error('[DeckPlayer ' + this.deckId + '] Web Audio API setup failed — EQ will not work:', e);
@@ -745,6 +756,36 @@ export class DeckPlayer {
     };
     const m = matrices[mode] ?? matrices['stereo'];
     m.forEach((v, i) => g[i].gain.setTargetAtTime(v, t, 0.02));
+  }
+
+  // ── Normalización de volumen ──────────────────────────────────────────────
+  // Compresor/leveler + ganancia de makeup: sube las canciones flojas y limita las
+  // fuertes para que suenen a un nivel parecido. Transparente cuando está apagado.
+  setNormalize(enabled: boolean) {
+    this.normalizeEnabled = enabled;
+    this.applyNormalize();
+  }
+
+  private applyNormalize() {
+    const c = this.normalizeCompressor;
+    const m = this.normalizeMakeup;
+    const ctx = this.audioCtx;
+    if (!c || !m || !ctx) return;
+    const t = ctx.currentTime;
+    if (this.normalizeEnabled) {
+      c.threshold.setValueAtTime(-24, t);
+      c.knee.setValueAtTime(30, t);
+      c.ratio.setValueAtTime(8, t);
+      c.attack.setValueAtTime(0.003, t);
+      c.release.setValueAtTime(0.25, t);
+      m.gain.setTargetAtTime(1.7, t, 0.05); // makeup ≈ +4.6 dB
+    } else {
+      // Ratio 1 = sin compresión (transparente)
+      c.threshold.setValueAtTime(0, t);
+      c.knee.setValueAtTime(0, t);
+      c.ratio.setValueAtTime(1, t);
+      m.gain.setTargetAtTime(1, t, 0.05);
+    }
   }
 
   scheduleFadeOut(durationSec: number) {

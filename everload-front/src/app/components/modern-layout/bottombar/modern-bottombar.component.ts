@@ -4,6 +4,7 @@ import { Subscription } from 'rxjs';
 import { MusicService, PlayerState, MusicMetadataDto } from '../../../services/music.service';
 import { ModernStateService } from '../modern-state.service';
 import { NotificationService } from '../../../services/notification.service';
+import { NasService } from '../../../services/nas.service';
 
 @Component({
   selector: 'app-modern-bottombar',
@@ -26,6 +27,12 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   playlistMenuLoading = false;
   private addingToPlaylist = false;
 
+  // Metadata editor (solo pistas del NAS).
+  showMetadataEditor = false;
+  metadataSaving = false;
+  metadataError = '';
+  metadataForm = { title: '', artist: '', album: '', year: '' };
+
   // EQ panel
   showEq = false;
   eqBands = [0, 0, 0, 0, 0];
@@ -33,6 +40,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   crossfade = 0;
   channelMode: 'stereo' | 'mono' | 'left' | 'right' | 'swap' = 'stereo';
   reduceAnimations = false;
+  normalize = false;
   private volumeScrollStep = 0.05;
 
   // Stream quality
@@ -71,13 +79,16 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     public music: MusicService,
     public modState: ModernStateService,
     private router: Router,
-    private notify: NotificationService
+    private notify: NotificationService,
+    private nas: NasService
   ) {}
 
   ngOnInit() {
     this.crossfade = this.music.crossfadeDuration;
     this.reduceAnimations = localStorage.getItem('mpl_reduce_animations') === 'true';
     this.applyReduceAnimations();
+    this.normalize = localStorage.getItem('mpl_normalize') === 'true';
+    this.music.mainPlayer.setNormalize(this.normalize);
     const step = parseFloat(localStorage.getItem('mpl_vol_scroll_step') ?? '5');
     this.volumeScrollStep = (isFinite(step) && step >= 1 ? step : 5) / 100;
     const savedEq = localStorage.getItem('mpl_eq_bands');
@@ -195,8 +206,9 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
 
   togglePlaylistMenu() {
     this.showPlaylistMenu = !this.showPlaylistMenu;
-    if (this.showPlaylistMenu && !this.playlists.length) {
-      this.playlistMenuLoading = true;
+    // Recarga siempre al abrir para que el indicador "ya añadida" sea fiable.
+    if (this.showPlaylistMenu) {
+      this.playlistMenuLoading = !this.playlists.length;
       this.music.getPlaylists().subscribe({
         next: (p) => { this.playlists = p || []; this.playlistMenuLoading = false; },
         error: () => { this.playlistMenuLoading = false; }
@@ -206,14 +218,29 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
 
   closePlaylistMenu() { this.showPlaylistMenu = false; }
 
+  /** True si la canción que suena ya está en esa playlist. */
+  trackInPlaylist(pl: any): boolean {
+    const t = this.track;
+    return !!t && (pl?.tracks ?? []).some((x: any) => x.trackPath === t.path);
+  }
+
   addCurrentToPlaylist(pl: any) {
     const t = this.track;
     if (!t || this.addingToPlaylist) return;
+
+    // Ya está: avísale en vez de añadir en silencio (el backend no duplica).
+    if (this.trackInPlaylist(pl)) {
+      this.notify.showToast('info', 'Ya en la lista', `"${t.title || t.name}" ya está en ${pl.name}`);
+      return;
+    }
+
     this.addingToPlaylist = true;
     const pathId = this.state?.pathId ?? t.nasPathId ?? 0;
     this.music.addTrackToPlaylist(pl.id, t, pathId).subscribe({
       next: () => {
         this.addingToPlaylist = false;
+        // Marca localmente para que el indicador se actualice al instante.
+        (pl.tracks = pl.tracks || []).push({ trackPath: t.path });
         this.showPlaylistMenu = false;
         this.notify.showToast('success', 'Añadida', `"${t.title || t.name}" → ${pl.name}`);
       },
@@ -229,6 +256,66 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     if (!artist) return;
     this.modState.selectArtist(artist);
     this.router.navigate(['/modern/artists']);
+  }
+  get sourceLabelKey(): string {
+    switch (this.track?.source) {
+      case 'ytmusic': return 'MUSIC.SOURCE_YTMUSIC';
+      case 'youtube': return 'MUSIC.SOURCE_YOUTUBE';
+      case 'local': return 'MUSIC.SOURCE_LOCAL';
+      default: return 'MUSIC.SOURCE_NAS';
+    }
+  }
+
+  get isNasTrack(): boolean {
+    const source = this.track?.source;
+    const pathId = this.state?.pathId ?? this.track?.nasPathId ?? 0;
+    return !!this.track && pathId > 0 && (!source || source === 'nas');
+  }
+
+  openMetadataEditor() {
+    const t = this.track;
+    if (!t || !this.isNasTrack) return;
+    this.metadataForm = {
+      title: t.title || t.name || '',
+      artist: t.artist || '',
+      album: t.album || '',
+      year: (t as any).year || ''
+    };
+    this.metadataError = '';
+    this.showMetadataEditor = true;
+  }
+
+  closeMetadataEditor() {
+    if (!this.metadataSaving) this.showMetadataEditor = false;
+  }
+
+  setMetadataField(field: 'title' | 'artist' | 'album' | 'year', value: string) {
+    this.metadataForm = { ...this.metadataForm, [field]: value };
+  }
+
+  saveMetadata() {
+    const t = this.track;
+    const pathId = this.state?.pathId ?? t?.nasPathId ?? 0;
+    if (!t || !pathId || this.metadataSaving) return;
+
+    this.metadataSaving = true;
+    this.metadataError = '';
+    this.nas.updateMetadata(pathId, t.path, this.metadataForm.title.trim(), this.metadataForm.artist.trim(), this.metadataForm.album.trim(), this.metadataForm.year.trim())
+      .subscribe({
+        next: () => {
+          t.title = this.metadataForm.title.trim() || t.name;
+          t.artist = this.metadataForm.artist.trim();
+          t.album = this.metadataForm.album.trim();
+          (t as any).year = this.metadataForm.year.trim();
+          this.metadataSaving = false;
+          this.showMetadataEditor = false;
+          this.notify.showToast('success', 'Metadatos actualizados', 'Los cambios ya se han guardado en el NAS.');
+        },
+        error: (err) => {
+          this.metadataSaving = false;
+          this.metadataError = err?.error?.error || 'No se pudieron actualizar los metadatos.';
+        }
+      });
   }
 
   // ── EQ ───────────────────────────────────────────────────────────────────
@@ -289,6 +376,12 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     this.reduceAnimations = !this.reduceAnimations;
     localStorage.setItem('mpl_reduce_animations', String(this.reduceAnimations));
     this.applyReduceAnimations();
+  }
+
+  toggleNormalize() {
+    this.normalize = !this.normalize;
+    localStorage.setItem('mpl_normalize', String(this.normalize));
+    this.music.mainPlayer.setNormalize(this.normalize);
   }
 
   private applyReduceAnimations() {

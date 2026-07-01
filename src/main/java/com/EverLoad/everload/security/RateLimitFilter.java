@@ -39,7 +39,22 @@ public class RateLimitFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return !path.startsWith("/api/");
+        if (!path.startsWith("/api/")) return true;
+        // Servir imágenes/portadas (GET) no se limita: son lecturas baratas con su
+        // propia caché y el Home/Álbumes piden muchas de golpe. Antes caían en el tier
+        // UPLOAD (acababan en "/cover") y devolvían 429 → portadas en negro.
+        return ("GET".equalsIgnoreCase(request.getMethod()) || "HEAD".equalsIgnoreCase(request.getMethod()))
+                && isMediaServe(path);
+    }
+
+    /** Endpoints de solo lectura que sirven imágenes/portadas/avatares. */
+    private boolean isMediaServe(String path) {
+        return path.startsWith("/api/music/cover")
+                || path.startsWith("/api/music/artist-image")
+                || path.startsWith("/api/music/artist-auto-image")
+                || path.startsWith("/api/music/album-auto-cover")
+                || path.startsWith("/api/artists/image/")
+                || path.startsWith("/api/user/avatar/img");
     }
 
     @Override

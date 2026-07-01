@@ -5,6 +5,9 @@
       <button class="mart-bulk" type="button" (click)="fillMissingMetadata()" [disabled]="bulkLoading || pathId == null">
         {{ bulkLoading ? ('MUSIC.MODERN_UPDATING' | translate) : ('MUSIC.MODERN_UPDATE_METADATA' | translate) }}
       </button>
+      <button class="mart-bulk" type="button" (click)="downloadArtistPhotos()" [disabled]="bulkLoading || pathId == null">
+        {{ 'MUSIC.MODERN_DOWNLOAD_ARTIST_PHOTOS' | translate }}
+      </button>
       <button class="mart-create" type="button" (click)="openCreate()">+</button>
     </div>
   </div>

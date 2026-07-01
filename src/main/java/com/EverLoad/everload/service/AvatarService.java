@@ -103,10 +103,17 @@ public class AvatarService {
         Path root = Path.of(storagePath).normalize();
         if (!Files.exists(root)) return List.of();
 
-        try (Stream<Path> paths = Files.walk(root, 3)) {
+        // Avatares de usuario (nivel superior) + fotos de artista persistentes ("artists/").
+        // Se excluye la caché volátil "artists-auto" (se regenera sola y crecería a cientos).
+        try (Stream<Path> paths = Files.walk(root, 2)) {
             List<Path> sortedImages = paths
                     .filter(Files::isRegularFile)
                     .filter(this::isImageFile)
+                    .filter(p -> {
+                        Path parent = p.getParent();
+                        String dirName = parent == null ? "" : parent.getFileName().toString();
+                        return !"artists-auto".equals(dirName);
+                    })
                     .sorted(Comparator.comparing(this::lastModifiedMillis).reversed())
                     .toList();
 

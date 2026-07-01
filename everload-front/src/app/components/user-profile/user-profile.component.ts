@@ -59,6 +59,9 @@ export class UserProfileComponent implements OnInit {
   avatarLoading = false;
   avatarError = '';
 
+  // Navegación lateral
+  activeSection: 'datos' | 'privacidad' | 'seguridad' = 'datos';
+
   constructor(
     private http: HttpClient,
     public authService: AuthService,
@@ -80,6 +83,20 @@ export class UserProfileComponent implements OnInit {
       },
       error: () => this.profileError = 'Error al cargar el perfil'
     });
+  }
+
+  /** Iniciales para el avatar cuando no hay foto. */
+  get initials(): string {
+    const name = (this.profile?.username || '').trim();
+    if (!name) return '?';
+    const parts = name.split(/[\s_.-]+/).filter(Boolean);
+    const chars = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
+    return chars.toUpperCase();
+  }
+
+  scrollTo(id: 'datos' | 'privacidad' | 'seguridad'): void {
+    this.activeSection = id;
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   get avatarUrl(): string | null {

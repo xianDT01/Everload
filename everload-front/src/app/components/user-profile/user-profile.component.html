@@ -1,108 +1,148 @@
-<div class="profile-page">
+<div class="acct-wrap">
+  <div class="acct-inner">
 
-  <div class="profile-header">
-    <button class="btn-back" (click)="goBack()">← Volver</button>
-    <h1 class="profile-title">Mi Perfil</h1>
-  </div>
+    <!-- Cabecera -->
+    <div class="acct-head">
+      <div>
+        <div class="acct-eyebrow">Mi cuenta</div>
+        <h1 class="acct-title">Ajustes</h1>
+        <p class="acct-sub">Administra tu perfil, privacidad y seguridad.</p>
+      </div>
+      <button class="acct-back" (click)="goBack()">
+        <span class="dot"></span> Volver a EverLoad
+      </button>
+    </div>
 
-  <div class="profile-content" *ngIf="profile">
+    <!-- Layout de 2 columnas -->
+    <div class="acct-grid">
 
-    <!-- ══ AVATAR ══════════════════════════════════════════════════════════════ -->
-    <section class="profile-section avatar-section">
-      <div class="avatar-area" [class.loading]="avatarLoading">
-        <div class="avatar-large" (click)="openAvatarPicker()" title="Cambiar foto">
-          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Avatar" class="avatar-img" />
-          <span *ngIf="!avatarUrl" class="avatar-initials-large">
-            {{ profile.username.charAt(0).toUpperCase() }}
-          </span>
-          <div class="avatar-overlay">
-            <span>📷</span>
+      <!-- Columna izquierda: perfil + navegación -->
+      <aside class="acct-aside">
+        <div class="profile-card">
+          <div class="avatar-ring">
+            <div class="avatar-inner">
+              <img *ngIf="avatarUrl" [src]="avatarUrl" alt="avatar">
+              <span *ngIf="!avatarUrl">{{ initials }}</span>
+            </div>
           </div>
+          <div class="profile-name">{{ profile?.username || '—' }}</div>
+          <div class="profile-email">{{ profile?.email }}</div>
+          <span class="role-pill" [ngClass]="getRoleBadge()">{{ profile?.role }}</span>
+
+          <div class="avatar-msg" *ngIf="avatarError">{{ avatarError }}</div>
+
+          <div class="profile-actions">
+            <button class="btn-primary" (click)="openAvatarPicker()" [disabled]="avatarLoading">
+              {{ avatarLoading ? 'Subiendo…' : 'Cambiar foto' }}
+            </button>
+            <button class="btn-danger-outline" (click)="removeAvatar()" [disabled]="avatarLoading || !avatarUrl">
+              Eliminar
+            </button>
+          </div>
+          <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarFileSelected($event)">
         </div>
-        <button *ngIf="avatarUrl" class="btn-remove-avatar" (click)="removeAvatar()" title="Eliminar foto">✕ Eliminar foto</button>
-        <input #avatarInput type="file" accept="image/jpeg,image/png,image/webp,image/gif"
-               (change)="onAvatarFileSelected($event)" style="display:none" />
-      </div>
-      <p *ngIf="avatarError" class="msg-error">{{ avatarError }}</p>
 
-      <div class="user-summary">
-        <h2 class="profile-username">{{ profile.username }}</h2>
-        <p class="profile-email-display">{{ profile.email }}</p>
-        <span class="role-badge" [ngClass]="getRoleBadge()">{{ profile.role }}</span>
-      </div>
-    </section>
+        <nav class="acct-nav">
+          <button type="button" class="nav-item" [class.active]="activeSection==='datos'" (click)="scrollTo('datos')">Datos de la cuenta</button>
+          <button type="button" class="nav-item" [class.active]="activeSection==='privacidad'" (click)="scrollTo('privacidad')">Privacidad</button>
+          <button type="button" class="nav-item" [class.active]="activeSection==='seguridad'" (click)="scrollTo('seguridad')">Cambiar contraseña</button>
+        </nav>
+      </aside>
 
-    <!-- ══ EDITAR DATOS ════════════════════════════════════════════════════════ -->
-    <section class="profile-section">
-      <h3 class="section-title">Datos de la cuenta</h3>
+      <!-- Columna derecha: secciones -->
+      <main class="acct-main">
 
-      <div class="form-group">
-        <label>Nombre de usuario</label>
-        <input type="text" [(ngModel)]="editUsername" class="form-input" placeholder="Nombre de usuario" />
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" [(ngModel)]="editEmail" class="form-input" placeholder="tu@email.com" />
-      </div>
+        <!-- Datos de la cuenta -->
+        <section id="datos" class="acct-card">
+          <div class="sec-head">
+            <span class="sec-dot"></span>
+            <h2>Datos de la cuenta</h2>
+          </div>
+          <p class="sec-sub">Tu información pública dentro de la plataforma.</p>
 
-      <p *ngIf="profileMsg" class="msg-success">✅ {{ profileMsg }}</p>
-      <p *ngIf="profileError" class="msg-error">❌ {{ profileError }}</p>
+          <div class="field-grid">
+            <label class="field">
+              <span>Nombre de usuario</span>
+              <input type="text" [(ngModel)]="editUsername" placeholder="Nombre de usuario">
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input type="email" [(ngModel)]="editEmail" placeholder="tu@email.com">
+            </label>
+          </div>
 
-      <button class="btn-save" (click)="saveProfile()" [disabled]="savingProfile">
-        {{ savingProfile ? 'Guardando...' : 'Guardar cambios' }}
-      </button>
-    </section>
+          <div class="msg-error" *ngIf="profileError">{{ profileError }}</div>
+          <div class="msg-ok" *ngIf="profileMsg">{{ profileMsg }}</div>
 
-    <!-- ══ PRIVACIDAD ════════════════════════════════════════════════════════════ -->
-    <section class="profile-section">
-      <h3 class="section-title">Privacidad</h3>
+          <div class="sec-actions">
+            <button class="btn-primary" (click)="saveProfile()" [disabled]="savingProfile">
+              {{ savingProfile ? 'Guardando…' : 'Guardar cambios' }}
+            </button>
+          </div>
+        </section>
 
-      <div class="privacy-row">
-        <div class="privacy-label">
-          <span class="privacy-label-title">Mostrar última vez conectado</span>
-          <span class="privacy-label-desc">Otros usuarios podrán ver cuándo fue tu última actividad</span>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" [(ngModel)]="showLastSeen" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
+        <!-- Privacidad -->
+        <section id="privacidad" class="acct-card">
+          <div class="sec-head">
+            <span class="sec-dot"></span>
+            <h2>Privacidad</h2>
+          </div>
+          <p class="sec-sub">Controla qué pueden ver otros usuarios.</p>
 
-      <p *ngIf="privacyMsg" class="msg-success">✅ {{ privacyMsg }}</p>
+          <div class="toggle-row">
+            <div>
+              <div class="toggle-title">Mostrar última vez conectado</div>
+              <div class="toggle-desc">Otros usuarios podrán ver cuándo fue tu última actividad.</div>
+            </div>
+            <button type="button" class="switch" [class.on]="showLastSeen" (click)="showLastSeen = !showLastSeen">
+              <span class="knob"></span>
+            </button>
+          </div>
 
-      <button class="btn-save" (click)="savePrivacy()" [disabled]="savingPrivacy">
-        {{ savingPrivacy ? 'Guardando...' : 'Guardar privacidad' }}
-      </button>
-    </section>
+          <div class="msg-ok" *ngIf="privacyMsg">{{ privacyMsg }}</div>
 
-    <!-- ══ CAMBIAR CONTRASEÑA ══════════════════════════════════════════════════ -->
-    <section class="profile-section">
-      <h3 class="section-title">Cambiar contraseña</h3>
+          <div class="sec-actions">
+            <button class="btn-primary" (click)="savePrivacy()" [disabled]="savingPrivacy">
+              {{ savingPrivacy ? 'Guardando…' : 'Guardar privacidad' }}
+            </button>
+          </div>
+        </section>
 
-      <div class="form-group">
-        <label>Contraseña actual</label>
-        <input type="password" [(ngModel)]="currentPassword" class="form-input" placeholder="Contraseña actual" />
-      </div>
-      <div class="form-group">
-        <label>Nueva contraseña</label>
-        <input type="password" [(ngModel)]="newPassword" class="form-input" placeholder="Nueva contraseña (mín. 6 caracteres)" />
-      </div>
-      <div class="form-group">
-        <label>Confirmar nueva contraseña</label>
-        <input type="password" [(ngModel)]="confirmPassword" class="form-input" placeholder="Repite la nueva contraseña" />
-      </div>
+        <!-- Cambiar contraseña -->
+        <section id="seguridad" class="acct-card">
+          <div class="sec-head">
+            <span class="sec-dot"></span>
+            <h2>Cambiar contraseña</h2>
+          </div>
+          <p class="sec-sub">Usa una contraseña segura que no utilices en otros sitios.</p>
 
-      <p *ngIf="passwordMsg" class="msg-success">✅ {{ passwordMsg }}</p>
-      <p *ngIf="passwordError" class="msg-error">❌ {{ passwordError }}</p>
+          <label class="field full">
+            <span>Contraseña actual</span>
+            <input type="password" [(ngModel)]="currentPassword" placeholder="Contraseña actual">
+          </label>
 
-      <button class="btn-save" (click)="changePassword()" [disabled]="savingPassword">
-        {{ savingPassword ? 'Cambiando...' : 'Cambiar contraseña' }}
-      </button>
-    </section>
+          <div class="field-grid">
+            <label class="field">
+              <span>Nueva contraseña</span>
+              <input type="password" [(ngModel)]="newPassword" placeholder="Mín. 6 caracteres">
+            </label>
+            <label class="field">
+              <span>Confirmar nueva contraseña</span>
+              <input type="password" [(ngModel)]="confirmPassword" placeholder="Repite la nueva contraseña">
+            </label>
+          </div>
 
+          <div class="msg-error" *ngIf="passwordError">{{ passwordError }}</div>
+          <div class="msg-ok" *ngIf="passwordMsg">{{ passwordMsg }}</div>
+
+          <div class="sec-actions">
+            <button class="btn-primary" (click)="changePassword()" [disabled]="savingPassword">
+              {{ savingPassword ? 'Cambiando…' : 'Cambiar contraseña' }}
+            </button>
+          </div>
+        </section>
+
+      </main>
+    </div>
   </div>
-
-  <div *ngIf="!profile && !profileError" class="loading-state">Cargando perfil...</div>
-  <div *ngIf="profileError && !profile" class="msg-error page-error">{{ profileError }}</div>
-
 </div>

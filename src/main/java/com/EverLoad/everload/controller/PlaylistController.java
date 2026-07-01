@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 @Tag(name = "Playlists", description = "Gestión de playlists de usuario")
 @RestController
@@ -150,6 +151,36 @@ public class PlaylistController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "Reordenar pistas de una playlist")
+    @PutMapping("/{id}/tracks/order")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<?> reorderTracks(@AuthenticationPrincipal UserDetails ud,
+                                           @PathVariable Long id,
+                                           @RequestBody ReorderTracksDto dto) {
+        return playlistRepository.findByIdAndEditableByUser(id, getUser(ud))
+                .map(pl -> {
+                    List<Long> requestedIds = dto.getTrackIds() == null ? List.of() : dto.getTrackIds();
+                    Map<Long, PlaylistTrack> byId = new HashMap<>();
+                    pl.getTracks().forEach(track -> byId.put(track.getId(), track));
+
+                    List<PlaylistTrack> ordered = new java.util.ArrayList<>();
+                    for (Long trackId : requestedIds) {
+                        PlaylistTrack track = byId.remove(trackId);
+                        if (track != null) ordered.add(track);
+                    }
+                    ordered.addAll(pl.getTracks().stream()
+                            .filter(track -> byId.containsKey(track.getId()))
+                            .toList());
+
+                    for (int position = 0; position < ordered.size(); position++) {
+                        ordered.get(position).setPosition(position);
+                    }
+                    playlistTrackRepository.saveAll(ordered);
+                    return ResponseEntity.ok(Map.of("reordered", ordered.size()));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     // ── Colaboradores ─────────────────────────────────────────────────────────
 
     @Operation(summary = "Listar colaboradores de la playlist")
@@ -240,6 +271,7 @@ public class PlaylistController {
     @Data static class CreatePlaylistDto { private String name; }
     @Data static class VisibilityDto { private Boolean isPublic; }
     @Data static class CollaboratorDto { private String username; }
+    @Data static class ReorderTracksDto { private List<Long> trackIds; }
 
     @Data static class PlaylistTrackDto {
         private String trackPath, title, artist, album;

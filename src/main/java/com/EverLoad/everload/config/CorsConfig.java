@@ -13,7 +13,7 @@ public class CorsConfig implements WebMvcConfigurer {
                         "https://localhost", "capacitor://localhost")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("Authorization", "Content-Type", "Accept", "X-Requested-With", "Range")
-                .exposedHeaders("Content-Disposition", "Accept-Ranges", "Content-Range", "Content-Length")
+                .exposedHeaders("Content-Disposition", "Accept-Ranges", "Content-Range", "Content-Length", "X-Request-Id", "X-Response-Time-Ms")
                 .allowCredentials(false);
     }
 }

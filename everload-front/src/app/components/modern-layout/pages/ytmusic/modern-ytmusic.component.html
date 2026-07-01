@@ -87,10 +87,6 @@
           </div>
         </ng-template>
       </div>
-
-      <button class="mytm-more" type="button" *ngIf="continuation" (click)="loadMore()" [disabled]="loadingMore">
-        {{ (loadingMore ? 'COMMON.LOADING' : 'MUSIC.YTMUSIC_LOAD_MORE') | translate }}
-      </button>
     </section>
 
     <section class="mytm-section" *ngIf="mode === 'search'">

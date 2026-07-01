@@ -10,7 +10,13 @@
       <div class="mb-cover-hover">⤢</div>
     </div>
     <div class="mb-meta" *ngIf="track">
-      <span class="mb-title">{{ track.title || track.name }}</span>
+      <div class="mb-title-row">
+        <span class="mb-title">{{ track.title || track.name }}</span>
+        <span class="mb-source-badge"
+              [class.mb-source-ytmusic]="track.source === 'ytmusic'"
+              [class.mb-source-youtube]="track.source === 'youtube'"
+              [class.mb-source-local]="track.source === 'local'">{{ sourceLabelKey | translate }}</span>
+      </div>
       <button class="mb-artist" type="button"
               (click)="$event.stopPropagation(); openCurrentArtist()"
               [disabled]="!track.artist"
@@ -91,6 +97,12 @@
              (mousedown)="$event.stopPropagation()" />
     </div>
 
+    <!-- Edit metadata (NAS tracks only) -->
+    <button class="mb-btn mb-icon-btn" *ngIf="isNasTrack"
+            (click)="openMetadataEditor()" [title]="'COMMON.EDIT_METADATA' | translate">
+      <svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L17.8 8.7l-2.5-2.5L4 17.5ZM20.7 5.8a1 1 0 0 0 0-1.4l-1.1-1.1a1 1 0 0 0-1.4 0l-1.2 1.2 2.5 2.5 1.2-1.2Z"/></svg>
+    </button>
+
     <!-- Add to playlist -->
     <div class="mb-pl-wrap" *ngIf="track">
       <button class="mb-btn mb-icon-btn" [class.mb-active]="showPlaylistMenu"
@@ -105,10 +117,13 @@
         <div class="mb-pl-empty" *ngIf="!playlistMenuLoading && !playlists.length">
           {{ 'MUSIC.MODERN_NO_PLAYLISTS' | translate }}
         </div>
-        <button class="mb-pl-item" *ngFor="let pl of playlists" (click)="addCurrentToPlaylist(pl)">
+        <button class="mb-pl-item" *ngFor="let pl of playlists"
+                [class.mb-pl-item-added]="trackInPlaylist(pl)"
+                (click)="addCurrentToPlaylist(pl)">
           <svg viewBox="0 0 24 24"><path d="M4 6h11v2H4V6Zm0 4h11v2H4v-2Zm0 4h7v2H4v-2Zm13-8h2v8.18A3 3 0 1 1 17 11V6Z"/></svg>
           <span class="mb-pl-name">{{ pl.name }}</span>
-          <span class="mb-pl-count">{{ (pl.tracks?.length || 0) }}</span>
+          <span class="mb-pl-added" *ngIf="trackInPlaylist(pl)" [title]="'MUSIC.MODERN_FAVORITE' | translate">✓</span>
+          <span class="mb-pl-count" *ngIf="!trackInPlaylist(pl)">{{ (pl.tracks?.length || 0) }}</span>
         </button>
       </div>
     </div>
@@ -179,6 +194,14 @@
     </div>
   </div>
 
+  <!-- Normalizar volumen -->
+  <div class="mb-eq-toggle-row">
+    <span class="mb-eq-cf-label">{{ 'MUSIC.MODERN_NORMALIZE' | translate }}</span>
+    <button class="mb-eq-toggle" [class.mb-eq-toggle-on]="normalize" (click)="toggleNormalize()">
+      {{ normalize ? ('MUSIC.UI_ON' | translate) : ('MUSIC.UI_OFF' | translate) }}
+    </button>
+  </div>
+
   <!-- Reduce Animations -->
   <div class="mb-eq-toggle-row">
     <span class="mb-eq-cf-label">{{ 'MUSIC.MODERN_REDUCE_ANIMATIONS' | translate }}</span>
@@ -207,4 +230,34 @@
     </span>
   </div>
 
+</div>
+
+<!-- Metadata editor for the active NAS track -->
+<div class="mb-modal-backdrop" *ngIf="showMetadataEditor" (click)="closeMetadataEditor()">
+  <section class="mb-metadata-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div class="mb-metadata-head">
+      <div>
+        <span>{{ 'COMMON.EDIT_METADATA' | translate }}</span>
+        <strong>{{ track?.title || track?.name }}</strong>
+      </div>
+      <button type="button" (click)="closeMetadataEditor()" [disabled]="metadataSaving" aria-label="Cerrar">&times;</button>
+    </div>
+    <label>{{ 'MUSIC.TITLE' | translate }}
+      <input [value]="metadataForm.title" (input)="setMetadataField('title', $any($event.target).value)" [disabled]="metadataSaving" />
+    </label>
+    <label>{{ 'MUSIC.ARTIST' | translate }}
+      <input [value]="metadataForm.artist" (input)="setMetadataField('artist', $any($event.target).value)" [disabled]="metadataSaving" />
+    </label>
+    <label>{{ 'MUSIC.ALBUM' | translate }}
+      <input [value]="metadataForm.album" (input)="setMetadataField('album', $any($event.target).value)" [disabled]="metadataSaving" />
+    </label>
+    <label>{{ 'MUSIC.YEAR' | translate }}
+      <input [value]="metadataForm.year" (input)="setMetadataField('year', $any($event.target).value)" [disabled]="metadataSaving" />
+    </label>
+    <p class="mb-metadata-error" *ngIf="metadataError">{{ metadataError }}</p>
+    <div class="mb-metadata-actions">
+      <button type="button" class="mb-metadata-cancel" (click)="closeMetadataEditor()" [disabled]="metadataSaving">{{ 'COMMON.CANCEL' | translate }}</button>
+      <button type="button" class="mb-metadata-save" (click)="saveMetadata()" [disabled]="metadataSaving">{{ metadataSaving ? ('LOADING' | translate) : ('COMMON.SAVE' | translate) }}</button>
+    </div>
+  </section>
 </div>

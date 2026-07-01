@@ -297,6 +297,8 @@
 }
 .mpl-track-row:hover { background: var(--ml-card); }
 .mpl-track-row:hover .mpl-track-remove { opacity: 1; }
+.mpl-track-row-clickable { cursor: pointer; }
+.mpl-track-row-clickable:hover .mpl-track-num { color: var(--ml-accent); }
 
 .mpl-col-num { text-align: center; }
 .mpl-col-album { min-width: 0; }

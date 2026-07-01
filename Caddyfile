@@ -150,3 +150,30 @@ http://192.168.3.56, http://localhost, http://127.0.0.1 {
 
     encode zstd gzip
 }
+
+# ── Aula Viva (aula virtual) → contenedor aulaviva-backend (host:8090) ──
+aulaviva.duckdns.org {
+    reverse_proxy host.docker.internal:8090 {
+        header_up X-Real-IP         {remote_host}
+        header_up X-Forwarded-For   {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host  {host}
+        flush_interval -1
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    encode zstd gzip
+
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}

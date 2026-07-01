@@ -243,8 +243,11 @@
 .brand-badge{
   position: absolute;
   top: -34px;
-  left: 50%;
-  transform: translateX(-50%);
+  /* Centrado con margen (no con transform) para que la animación slideInRight,
+     que termina en translateX(0), no lo descentre. */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
   width: 68px; height: 68px;
   border-radius: 999px;
   display: grid; place-items: center;

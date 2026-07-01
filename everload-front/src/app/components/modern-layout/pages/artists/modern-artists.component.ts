@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { forkJoin, Subscription } from 'rxjs';
+import { forkJoin, from, of, Observable, Subscription } from 'rxjs';
+import { catchError, finalize, map, mergeMap, switchMap, tap } from 'rxjs/operators';
 import { ArtistProfileDto, MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
 import { AuthService } from '../../../../services/auth.service';
@@ -154,10 +155,27 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     map.forEach(group => {
       group.albumCount = new Set(group.tracks.map(t => t.album).filter(Boolean)).size;
     });
-    this.artists = Array.from(map.values()).sort((a, b) => a.artist.localeCompare(b.artist));
+    this.artists = Array.from(map.values())
+      .filter(group => this.keepArtist(group))
+      .sort((a, b) => a.artist.localeCompare(b.artist));
     this.resolveAutoArtistImages();
     this.openRequestedArtist();
     this.loading = false;
+  }
+
+  /** Decide si un grupo es un artista "real" que merece salir en la cuadrícula. */
+  private keepArtist(group: ArtistGroup): boolean {
+    // Sin canciones: solo se mantiene si es un perfil manual con imagen propia.
+    if (group.tracks.length === 0) {
+      return !!(group.profile && this.profileImage(group.profile));
+    }
+    // "Canción como artista": una sola pista, sin perfil, cuyo nombre de artista
+    // coincide con el título de la canción → metadatos erróneos, se descarta.
+    if (!group.profile && group.tracks.length === 1) {
+      const t = group.tracks[0];
+      if (this.key(group.artist) === this.key(t.title || t.name)) return false;
+    }
+    return true;
   }
 
   private addTrackToGroup(
@@ -374,6 +392,60 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
         this.bulkStatus = err?.error?.error || 'No se pudieron actualizar los metadatos.';
       }
     });
+  }
+
+  /** Descarga y guarda en el servidor la foto de cada artista sin imagen (resolviéndola en Deezer al momento). */
+  downloadArtistPhotos() {
+    if (!this.canManageNas || this.pathId == null || this.bulkLoading) return;
+    // Todos los artistas con canciones y sin imagen guardada (no solo los ya resueltos).
+    const targets = this.artists.filter(a =>
+      !a.imageUrl && a.tracks.length > 0 && !this.isSuspiciousArtistName(a.artist));
+    if (!targets.length) {
+      this.bulkStatus = 'Todos los artistas ya tienen foto guardada.';
+      return;
+    }
+    if (!confirm(`Se intentarán descargar fotos para ${targets.length} artistas (las que existan en Deezer). Puede tardar. ¿Continuar?`)) return;
+
+    this.bulkLoading = true;
+    let done = 0;
+    let ok = 0;
+    this.bulkStatus = `Descargando fotos... 0/${targets.length}`;
+
+    from(targets).pipe(
+      mergeMap(a => this.savePhotoForArtist(a).pipe(
+        tap(success => { if (success) ok++; }),
+        finalize(() => { done++; this.bulkStatus = `Descargando fotos... ${done}/${targets.length} (${ok} guardadas)`; })
+      ), 3),
+      finalize(() => {
+        this.bulkLoading = false;
+        this.bulkStatus = `Fotos guardadas: ${ok}/${targets.length}. El resto no tiene imagen disponible en Deezer.`;
+        this.load(this.pathId!);
+      })
+    ).subscribe();
+  }
+
+  private savePhotoForArtist(a: ArtistGroup): Observable<boolean> {
+    // Usa la foto ya resuelta o, si no, la busca en Deezer en el momento.
+    const url$: Observable<string | null> = a.autoImageUrl
+      ? of(a.autoImageUrl)
+      : this.music.getArtistImage(a.artist).pipe(
+          map(r => (r.found && r.imageUrl) ? r.imageUrl! : null),
+          catchError(() => of(null))
+        );
+    return url$.pipe(
+      switchMap(url => {
+        if (!url || !/dzcdn\.net/i.test(url)) return of(false);
+        const ensureProfile$ = a.profile?.id ? of(a.profile) : this.music.createArtistProfile(a.artist);
+        return ensureProfile$.pipe(
+          switchMap(profile => this.music.uploadArtistImageFromUrl(profile!.id, url).pipe(
+            map(() => true),
+            catchError(() => of(false))
+          )),
+          catchError(() => of(false))
+        );
+      }),
+      catchError(() => of(false))
+    );
   }
 
   private profileImage(profile?: ArtistProfileDto): string {

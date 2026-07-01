@@ -138,8 +138,19 @@ public class MusicController {
         try {
             Path dir = musicService.getArtistAutoImageDir();
             Path file = dir.resolve(filename).normalize();
-            if (!file.startsWith(dir) || !Files.exists(file)) {
+            if (!file.startsWith(dir)) {
                 return ResponseEntity.notFound().build();
+            }
+            // Auto-regenera: si el fichero no existe (caché limpiada), deriva el nombre del
+            // artista del propio nombre de archivo y lo vuelve a resolver/cachear.
+            if (!Files.exists(file)) {
+                String name = filename.replaceAll("(?i)\\.[a-z0-9]{2,5}$", "").replace('_', ' ').trim();
+                if (!name.isBlank()) {
+                    try { musicService.lookupArtistImage(name); } catch (Exception ignored) {}
+                }
+                if (!Files.exists(file)) {
+                    return ResponseEntity.notFound().build();
+                }
             }
             String contentType = Files.probeContentType(file);
             if (contentType == null) contentType = "image/jpeg";

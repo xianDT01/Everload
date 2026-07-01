@@ -231,15 +231,24 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   }
 
   play(pl: any) {
+    this.playFromPlaylist(pl, 0);
+  }
+
+  /** Reproduce la playlist abierta empezando por la pista [index] (al pulsar una canción). */
+  playFrom(index: number) {
+    this.playFromPlaylist(this.selectedPlaylist, index);
+  }
+
+  private playFromPlaylist(pl: any, index: number) {
     const pid = this.state.pathId;
-    if (!pl.tracks?.length || pid == null) return;
+    if (!pl?.tracks?.length || pid == null) return;
     const tracks = pl.tracks.map((t: any) => ({
       name: t.title, path: t.trackPath, directory: false, size: 0,
       lastModified: '', title: t.title, artist: t.artist, album: t.album,
       duration: t.durationSeconds ?? 0, format: '', hasCover: false, bpm: 0,
       source: 'nas' as const, nasPathId: t.nasPathId ?? pid
     }));
-    this.music.setQueue(pid, tracks, 0);
+    this.music.setQueue(pid, tracks, Math.min(Math.max(index, 0), tracks.length - 1));
   }
 
   removeTrack(trackId: number) {
