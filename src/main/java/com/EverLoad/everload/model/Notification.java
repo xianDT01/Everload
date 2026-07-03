@@ -33,6 +33,7 @@ public class Notification {
     @Column(length = 1000)
     private String message;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean read = false;
 

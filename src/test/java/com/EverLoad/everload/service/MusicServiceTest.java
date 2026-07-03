@@ -31,7 +31,8 @@ class MusicServiceTest {
     @BeforeEach
     void setUp() {
         nasService = mock(NasService.class);
-        musicService = new MusicService(nasService, mock(NasPathRepository.class), mock(TrackMetadataCacheRepository.class));
+        musicService = new MusicService(nasService, mock(NasPathRepository.class), mock(TrackMetadataCacheRepository.class),
+                new org.springframework.web.client.RestTemplate());
     }
 
     private void stubResolvedFile(String fileName, byte[] content) throws Exception {

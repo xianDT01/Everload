@@ -39,6 +39,35 @@ build/
 # Variables de entorno — contienen secretos, NUNCA comitear
 .env
 
+# Config de admin con API keys (Spotify, Google, AcoustID) — NUNCA comitear
+config.json
+
 # Logs locales
-everload.log
+*.log
+logs/
+
+# Base de datos H2 (contiene usuarios y hashes de contraseñas)
+*.mv.db
+*.trace.db
+
+# Estado y datos generados en runtime
+descargas.json
+downloads_history.json
+downloads/
+hls-cache/
+avatars/
+
+# Binarios descargados (el Dockerfile instala yt-dlp en la imagen)
+yt-dlp
+yt-dlp.exe
+
+# Build del frontend embebido (lo genera el Dockerfile en cada build)
+src/main/resources/everload-front/
+src/main/resources/static/
+
+# Backups locales
+Caddyfile.bak*
+
+# Estado interno de Claude Code
+.claude/scheduled_tasks.lock
 

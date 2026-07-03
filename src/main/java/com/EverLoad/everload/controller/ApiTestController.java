@@ -17,10 +17,13 @@ public class ApiTestController {
 
     private final AdminConfigService configService;
     private final SpotifyService spotifyService;
+    private final RestTemplate restTemplate;
 
-    public ApiTestController(AdminConfigService configService, SpotifyService spotifyService) {
+    public ApiTestController(AdminConfigService configService, SpotifyService spotifyService,
+                             RestTemplate restTemplate) {
         this.configService = configService;
         this.spotifyService = spotifyService;
+        this.restTemplate = restTemplate;
     }
 
     @GetMapping("/youtube")
@@ -31,7 +34,6 @@ public class ApiTestController {
         try {
             String apiKey = configService.getApiKey();
             String url = "https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&type=video&maxResults=1&key=" + apiKey;
-            RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<String> apiResponse = restTemplate.getForEntity(url, String.class);
 
             if (apiResponse.getStatusCode().is2xxSuccessful()) {
@@ -73,8 +75,7 @@ public class ApiTestController {
         response.put("platform", "TikTok");
 
         try {
-            RestTemplate rest = new RestTemplate();
-            ResponseEntity<String> resp = rest.getForEntity("https://www.tiktok.com/", String.class);
+            ResponseEntity<String> resp = restTemplate.getForEntity("https://www.tiktok.com/", String.class);
 
             response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
             if (!resp.getStatusCode().is2xxSuccessful()) {
@@ -96,8 +97,7 @@ public class ApiTestController {
         response.put("platform", "Facebook");
 
         try {
-            RestTemplate rest = new RestTemplate();
-            ResponseEntity<String> resp = rest.getForEntity("https://www.facebook.com/", String.class);
+            ResponseEntity<String> resp = restTemplate.getForEntity("https://www.facebook.com/", String.class);
 
             response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
             if (!resp.getStatusCode().is2xxSuccessful()) {
@@ -119,8 +119,7 @@ public class ApiTestController {
         response.put("platform", "Instagram");
 
         try {
-            RestTemplate rest = new RestTemplate();
-            ResponseEntity<String> resp = rest.getForEntity("https://www.instagram.com/", String.class);
+            ResponseEntity<String> resp = restTemplate.getForEntity("https://www.instagram.com/", String.class);
 
             response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
             if (!resp.getStatusCode().is2xxSuccessful()) {

@@ -8,7 +8,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
@@ -97,22 +96,6 @@ public class DownloadController {
     @GetMapping("/downloadTikTok")
     public ResponseEntity<FileSystemResource> downloadTikTokVideo(@RequestParam String url) {
         return downloadService.downloadTikTokVideo(url);
-    }
-
-    @Operation(summary = "Guardar música directamente en el NAS (sin descarga al navegador)")
-    @PostMapping("/saveMusicToNas")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<Map<String, String>> saveMusicToNas(
-            @RequestParam String videoId,
-            @RequestParam(defaultValue = "mp3") String format,
-            @RequestParam Long nasPathId,
-            @RequestParam(required = false, defaultValue = "") String subPath) {
-        try {
-            Map<String, String> result = downloadService.saveMusicToNas(videoId, format, nasPathId, subPath);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
-        }
     }
 
     @Operation(summary = "Encolar guardado de música en el NAS (asíncrono, para audios largos)")

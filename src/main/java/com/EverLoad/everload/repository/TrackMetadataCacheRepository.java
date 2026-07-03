@@ -29,4 +29,22 @@ public interface TrackMetadataCacheRepository extends JpaRepository<TrackMetadat
                          @Param("likePrefix") String likePrefix,
                          @Param("cutLen") int cutLen,
                          @Param("newPrefix") String newPrefix);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM TrackMetadataCache c " +
+           "WHERE c.nasPathId = :nasPathId " +
+           "AND (c.relativePath = :exactPath OR c.relativePath LIKE :likePrefix)")
+    int deleteByPathPrefix(@Param("nasPathId") Long nasPathId,
+                           @Param("exactPath") String exactPath,
+                           @Param("likePrefix") String likePrefix);
+
+    /** Página del overview ordenada en SQL — antes se cargaba la tabla entera y se ordenaba en Java. */
+    @Query("SELECT c FROM TrackMetadataCache c WHERE c.nasPathId = :nasPathId " +
+           "ORDER BY LOWER(COALESCE(c.artist, '')), LOWER(COALESCE(c.album, '')), LOWER(COALESCE(c.title, ''))")
+    List<TrackMetadataCache> findOverviewSlice(@Param("nasPathId") Long nasPathId,
+                                               org.springframework.data.domain.Pageable pageable);
+
+    List<TrackMetadataCache> findByNasPathIdOrderByLastModifiedDesc(Long nasPathId,
+                                                                    org.springframework.data.domain.Pageable pageable);
 }

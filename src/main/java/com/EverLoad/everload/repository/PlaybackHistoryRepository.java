@@ -53,4 +53,13 @@ public interface PlaybackHistoryRepository extends JpaRepository<PlaybackHistory
                          @Param("likePrefix") String likePrefix,
                          @Param("cutLen") int cutLen,
                          @Param("newPrefix") String newPrefix);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM PlaybackHistory h " +
+           "WHERE h.nasPathId = :nasPathId " +
+           "AND (h.trackPath = :exactPath OR h.trackPath LIKE :likePrefix)")
+    int deleteByPathPrefix(@Param("nasPathId") Long nasPathId,
+                           @Param("exactPath") String exactPath,
+                           @Param("likePrefix") String likePrefix);
 }

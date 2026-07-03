@@ -1,80 +1,35 @@
 package com.EverLoad.everload.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.EverLoad.everload.service.YouTubeSearchService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Tag(name = "YouTube", description = "Búsquedas en YouTube")
 @RestController
 @RequestMapping("/api/youtube")
 @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+@RequiredArgsConstructor
 public class YouTubeController {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final YouTubeSearchService youTubeSearchService;
 
-    /**
-     * Searches YouTube using yt-dlp (ytsearch), bypassing the YouTube Data API quota.
-     * Returns a structure compatible with the YouTube Data API v3 response so the
-     * frontend doesn't need any changes.
-     */
     @GetMapping("/search")
     public ResponseEntity<?> searchVideos(@RequestParam String query,
                                           @RequestParam(defaultValue = "10") int maxResults) {
-        // Sanitize inputs before passing to subprocess
         if (query == null || query.isBlank() || query.length() > 200) {
             return ResponseEntity.badRequest().body(Map.of("error", "Consulta inválida"));
         }
         maxResults = Math.max(1, Math.min(maxResults, 50)); // clamp 1–50
         try {
-            // ytSearch is passed as a SINGLE argument to ProcessBuilder — no shell injection
-            String ytSearch = "ytsearch" + maxResults + ":" + query;
-            ProcessBuilder pb = new ProcessBuilder(
-                    "yt-dlp",
-                    "--flat-playlist",
-                    "--print", "%(id)s\t%(title)s\t%(uploader)s\t%(duration)s\t%(thumbnails.0.url)s",
-                    "--no-warnings",
-                    ytSearch
-            );
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            List<Map<String, Object>> items = new ArrayList<>();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String[] parts = line.split("\t", 5);
-                    if (parts.length < 2) continue;
-                    String id       = parts[0].trim();
-                    String title    = parts[1].trim();
-                    String uploader = parts.length > 2 ? parts[2].trim() : "";
-                    String thumbUrl = parts.length > 4 ? parts[4].trim() : "https://img.youtube.com/vi/" + id + "/mqdefault.jpg";
-
-                    // Build a response shape compatible with YouTube Data API v3
-                    items.add(Map.of(
-                        "id", Map.of("videoId", id),
-                        "snippet", Map.of(
-                            "title", title,
-                            "channelTitle", uploader,
-                            "thumbnails", Map.of(
-                                "default", Map.of("url", "https://img.youtube.com/vi/" + id + "/default.jpg"),
-                                "medium",  Map.of("url", "https://img.youtube.com/vi/" + id + "/mqdefault.jpg"),
-                                "high",    Map.of("url", "https://img.youtube.com/vi/" + id + "/hqdefault.jpg")
-                            )
-                        )
-                    ));
-                }
-            }
-            process.waitFor();
-
-            return ResponseEntity.ok(Map.of("items", items));
+            return ResponseEntity.ok(Map.of("items", youTubeSearchService.search(query, maxResults)));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.internalServerError().body(Map.of("error", "Búsqueda interrumpida"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Error al buscar en YouTube: " + e.getMessage()));

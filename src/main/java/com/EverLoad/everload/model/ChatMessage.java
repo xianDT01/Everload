@@ -54,6 +54,7 @@ public class ChatMessage {
     @Column(nullable = false)
     private LocalDateTime sentAt;
 
+    @Builder.Default
     private boolean edited = false;
 
     @PrePersist

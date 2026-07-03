@@ -2,6 +2,7 @@ package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.security.JwtUtil;
 import com.EverLoad.everload.security.UserDetailsServiceImpl;
+import com.EverLoad.everload.service.HlsStreamService;
 import com.EverLoad.everload.service.MaintenanceService;
 import com.EverLoad.everload.service.MusicService;
 import com.EverLoad.everload.service.TokenRevocationService;
@@ -40,6 +41,12 @@ class MusicControllerTest {
 
     @MockBean
     MusicService musicService;
+
+    @MockBean
+    HlsStreamService hlsStreamService;
+
+    @MockBean
+    org.springframework.web.client.RestTemplate restTemplate;
 
     @Autowired
     MockMvc mvc;

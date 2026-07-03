@@ -21,6 +21,8 @@ import java.util.regex.Pattern;
 @Service
 public class SpotifyService {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SpotifyService.class);
+
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
@@ -127,7 +129,7 @@ public class SpotifyService {
                 }
             }
         } catch (Exception e) {
-            System.out.println("❌ Error buscando en YouTube: " + e.getMessage());
+            logger.warn("Error buscando en YouTube: {}", e.getMessage());
         }
         return null;
     }
@@ -154,7 +156,7 @@ public class SpotifyService {
                 return idWithParams.split("[?&]")[0];
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.warn("URL de playlist de Spotify no reconocida: {}", url);
         }
         throw new IllegalArgumentException("URL de playlist inválida");
     }

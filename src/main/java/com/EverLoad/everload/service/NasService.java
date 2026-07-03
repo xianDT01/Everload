@@ -246,9 +246,19 @@ public class NasService {
 
         try {
             deleteRecursively(target);
+            String relative = basePath.relativize(target).toString().replace("\\", "/");
+            cascadeDeleteInDb(pathId, relative);
         } catch (IOException e) {
             throw new RuntimeException("No se pudo eliminar: " + e.getMessage());
         }
+    }
+
+    /** Al eliminar un archivo/carpeta, limpia favoritos, historial y caché que apuntaban a él. */
+    private void cascadeDeleteInDb(Long nasPathId, String deletedPath) {
+        String likePrefix = deletedPath + "/%";
+        favoriteTrackRepository.deleteByPathPrefix(nasPathId, deletedPath, likePrefix);
+        playbackHistoryRepository.deleteByPathPrefix(nasPathId, deletedPath, likePrefix);
+        trackMetadataCacheRepository.deleteByPathPrefix(nasPathId, deletedPath, likePrefix);
     }
 
     /**

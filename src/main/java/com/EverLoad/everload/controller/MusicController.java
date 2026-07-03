@@ -2,6 +2,7 @@ package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.dto.MusicMetadataDto;
 import com.EverLoad.everload.dto.PagedMusicResult;
+import com.EverLoad.everload.service.HlsStreamService;
 import com.EverLoad.everload.service.MusicService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,6 +32,8 @@ import java.util.Map;
 public class MusicController {
 
     private final MusicService musicService;
+    private final HlsStreamService hlsStreamService;
+    private final RestTemplate restTemplate;
 
     // ── Metadata ──────────────────────────────────────────────────────────────
 
@@ -303,7 +306,7 @@ public class MusicController {
     public ResponseEntity<?> prepareHls(@RequestParam Long pathId,
                                         @RequestParam String subPath) {
         try {
-            return ResponseEntity.ok(musicService.prepareHlsStream(pathId, subPath));
+            return ResponseEntity.ok(hlsStreamService.prepareHlsStream(pathId, subPath));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -317,7 +320,7 @@ public class MusicController {
     public ResponseEntity<?> hlsStatus(@RequestParam Long pathId,
                                        @RequestParam String subPath) {
         try {
-            return ResponseEntity.ok(musicService.getHlsStatus(pathId, subPath));
+            return ResponseEntity.ok(hlsStreamService.getHlsStatus(pathId, subPath));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -332,7 +335,7 @@ public class MusicController {
                                               @RequestParam String subPath,
                                               HttpServletRequest request) {
         try {
-            String playlist = musicService.getHlsPlaylist(pathId, subPath, request.getParameter("token"));
+            String playlist = hlsStreamService.getHlsPlaylist(pathId, subPath, request.getParameter("token"));
             HttpHeaders headers = new HttpHeaders();
             headers.setCacheControl("private, max-age=30");
             return new ResponseEntity<>(playlist, headers, HttpStatus.OK);
@@ -353,7 +356,7 @@ public class MusicController {
                            @RequestParam String segment,
                            HttpServletResponse response) {
         try {
-            musicService.streamHlsSegmentToResponse(pathId, subPath, segment, response);
+            hlsStreamService.streamHlsSegmentToResponse(pathId, subPath, segment, response);
         } catch (SecurityException e) {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         } catch (Exception e) {
@@ -483,7 +486,7 @@ public class MusicController {
     }
 
     private Map<String, Object> fetchLrclibLyrics(String title, String artist, int duration) {
-        RestTemplate rt = new RestTemplate();
+        RestTemplate rt = restTemplate;
         HttpHeaders h = new HttpHeaders();
         h.set("User-Agent", "EverLoad/1.0 (https://github.com/everload)");
 
@@ -551,7 +554,7 @@ public class MusicController {
 
     private Map<String, Object> fetchLyricsOvh(String title, String artist) {
         try {
-            RestTemplate rt = new RestTemplate();
+            RestTemplate rt = restTemplate;
             HttpHeaders h = new HttpHeaders();
             h.set("User-Agent", "EverLoad/1.0 (https://github.com/everload)");
             String url = "https://lyrics.ovh/v1/"

@@ -32,4 +32,13 @@ public interface FavoriteTrackRepository extends JpaRepository<FavoriteTrack, Lo
                          @Param("likePrefix") String likePrefix,
                          @Param("cutLen") int cutLen,
                          @Param("newPrefix") String newPrefix);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM FavoriteTrack f " +
+           "WHERE f.nasPathId = :nasPathId " +
+           "AND (f.trackPath = :exactPath OR f.trackPath LIKE :likePrefix)")
+    int deleteByPathPrefix(@Param("nasPathId") Long nasPathId,
+                           @Param("exactPath") String exactPath,
+                           @Param("likePrefix") String likePrefix);
 }

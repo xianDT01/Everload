@@ -21,7 +21,7 @@ describe('ModernBottombarComponent — stream quality selector', () => {
   afterEach(() => localStorage.clear());
 
   function createComponent(): ModernBottombarComponent {
-    return new ModernBottombarComponent(musicSpy as any, {} as any, {} as any);
+    return new ModernBottombarComponent(musicSpy as any, {} as any, {} as any, {} as any, {} as any);
   }
 
   it('exposes MusicService.QUALITY_OPTIONS as the selectable presets', () => {

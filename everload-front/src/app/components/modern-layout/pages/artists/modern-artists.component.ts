@@ -132,19 +132,19 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
           return !g || g.tracks.length === 0;
         });
 
-        if (!unresolvedProfiles.length) {
-          this.finishLoad(map);
-          return;
-        }
+        // Pinta la cuadrícula ya con lo que da el overview: antes el spinner esperaba
+        // también a una petición por cada perfil sin match, duplicando el tiempo de carga.
+        this.finishLoad(map);
 
-        forkJoin(unresolvedProfiles.map(profile => this.searchProfileTracks(pathId, profile))).subscribe({
-          next: resolvedLists => {
-            resolvedLists.forEach((tracks, index) => {
-              this.mergeProfileTracks(map, pathId, unresolvedProfiles[index], tracks);
-            });
-            this.finishLoad(map);
-          },
-          error: () => this.finishLoad(map)
+        if (!unresolvedProfiles.length) return;
+
+        forkJoin(unresolvedProfiles.map(profile =>
+          this.searchProfileTracks(pathId, profile).pipe(catchError(() => of([] as MusicMetadataDto[])))
+        )).subscribe(resolvedLists => {
+          resolvedLists.forEach((tracks, index) => {
+            this.mergeProfileTracks(map, pathId, unresolvedProfiles[index], tracks);
+          });
+          this.finishLoad(map);
         });
       },
       error: () => { this.loading = false; }

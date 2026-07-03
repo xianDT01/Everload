@@ -41,8 +41,10 @@ services:
     expose:
       - "8080"
     environment:
-      # --- Security: CHANGE JWT_SECRET IN PRODUCTION ---
-      JWT_SECRET: ${JWT_SECRET:-EverloadSecretKey2024!SuperSeguro_CambiarEnProduccion_32chars+}
+      # --- Security: obligatorio definir JWT_SECRET en .env ---
+      # Sin fallback a propósito: `docker compose up` falla si no está definida
+      # (antes había una clave por defecto publicada en el repo).
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env (p. ej. openssl rand -base64 48)}
 
       # H2 database on persistent volume
       SPRING_DATASOURCE_URL: "jdbc:h2:file:/app/data/everload-db;DB_CLOSE_ON_EXIT=FALSE"

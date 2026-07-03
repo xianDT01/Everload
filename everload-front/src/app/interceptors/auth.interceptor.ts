@@ -3,14 +3,26 @@ import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { ApiBaseService } from '../services/api-base.service';
 import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(
+    private authService: AuthService,
+    private apiBase: ApiBaseService,
+    private router: Router
+  ) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // El token solo viaja al backend propio. Sin este filtro, las llamadas a APIs
+    // externas (iTunes, radio-browser…) se llevaban el JWT del usuario, y un 401
+    // de cualquiera de ellas cerraba la sesión.
+    if (!this.isBackendRequest(req.url)) {
+      return next.handle(req);
+    }
+
     // Detect expired token before making the request to avoid mid-flight 401s
     if (this.authService.getToken() && this.authService.isTokenExpired()) {
       this.authService.logout();
@@ -33,5 +45,12 @@ export class AuthInterceptor implements HttpInterceptor {
         return throwError(() => error);
       })
     );
+  }
+
+  /** True si la URL es relativa (misma origin) o apunta al backendUrl configurado. */
+  private isBackendRequest(url: string): boolean {
+    if (!/^https?:\/\//i.test(url)) return true;
+    const base = this.apiBase.backendUrl;
+    return !!base && url.startsWith(base);
   }
 }
