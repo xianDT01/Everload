@@ -19,32 +19,35 @@ import java.util.List;
 @Service
 public class DownloadHistoryService {
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DownloadHistoryService.class);
-    private static final String LEGACY_HISTORY_PATH = "downloads_history.json";
 
     private final DownloadRepository downloadRepository;
     private final ObjectMapper mapper;
+    private final String legacyHistoryPath;
 
-    public DownloadHistoryService(DownloadRepository downloadRepository, ObjectMapper mapper) {
+    public DownloadHistoryService(DownloadRepository downloadRepository, ObjectMapper mapper,
+                                  @org.springframework.beans.factory.annotation.Value("${app.downloads.legacy-history-path:downloads_history.json}")
+                                  String legacyHistoryPath) {
         this.downloadRepository = downloadRepository;
         this.mapper = mapper;
+        this.legacyHistoryPath = legacyHistoryPath;
     }
 
     /** Importa una sola vez el historial del antiguo downloads_history.json a la BD. */
     @PostConstruct
     void importLegacyJsonHistory() {
-        File legacy = new File(LEGACY_HISTORY_PATH);
+        File legacy = new File(legacyHistoryPath);
         if (!legacy.exists() || downloadRepository.count() > 0) return;
         try {
             List<Download> history = mapper.readValue(legacy, new TypeReference<List<Download>>() {});
             if (!history.isEmpty()) {
                 downloadRepository.saveAll(history);
-                logger.info("Historial de descargas migrado a BD: {} entradas desde {}", history.size(), LEGACY_HISTORY_PATH);
+                logger.info("Historial de descargas migrado a BD: {} entradas desde {}", history.size(), legacyHistoryPath);
             }
-            if (!legacy.renameTo(new File(LEGACY_HISTORY_PATH + ".imported"))) {
-                logger.warn("No se pudo renombrar {} tras la importación", LEGACY_HISTORY_PATH);
+            if (!legacy.renameTo(new File(legacyHistoryPath + ".imported"))) {
+                logger.warn("No se pudo renombrar {} tras la importación", legacyHistoryPath);
             }
         } catch (Exception e) {
-            logger.warn("No se pudo importar el historial legado {}: {}", LEGACY_HISTORY_PATH, e.getMessage());
+            logger.warn("No se pudo importar el historial legado {}: {}", legacyHistoryPath, e.getMessage());
         }
     }
 
