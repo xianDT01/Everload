@@ -302,7 +302,7 @@
                 <img *ngIf="m.avatarUrl" [src]="resolveAvatarUrl(m.avatarUrl)" [alt]="m.username" />
                 <span *ngIf="!m.avatarUrl" class="mention-initial">{{ getInitials(m.username) }}</span>
               </div>
-              <span class="mention-name">@{{ m.username }}</span>
+              <span class="mention-name">&#64;{{ m.username }}</span>
             </div>
           </div>
 
