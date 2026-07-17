@@ -83,12 +83,6 @@ El proyecto comenzó como un descargador de vídeo y ha crecido hasta convertirs
   </tr>
 </table>
 
-### Cabina DJ
-
-<p align="center">
-  <img src="docs/assets/everload-dj-decks.png" alt="Cabina DJ de dos decks" width="900">
-</p>
-
 ### Herramientas de audio
 
 <p align="center">
