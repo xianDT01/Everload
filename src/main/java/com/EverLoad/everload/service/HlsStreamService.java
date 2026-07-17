@@ -45,6 +45,8 @@ public class HlsStreamService {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(HlsStreamService.class);
     private static final Pattern HLS_SEGMENT_NAME = Pattern.compile("[A-Za-z0-9._-]+\\.(ts|m4s|aac|vtt)");
+    private static final String STATUS_READY = "READY";
+    private static final String HLS_PLAYLIST_FILE = "index.m3u8";
 
     private final NasService nasService;
 
@@ -56,6 +58,9 @@ public class HlsStreamService {
 
     @Value("${music.hls.min-size-bytes:83886080}")
     private long hlsMinSizeBytes;
+
+    @Value("${everload.ffmpeg.path:ffmpeg}")
+    private String ffmpegPath;
 
     private final Map<String, HlsCacheJob> hlsJobs = new ConcurrentHashMap<>();
     private final ExecutorService hlsExecutor = Executors.newSingleThreadExecutor(r -> {
@@ -75,7 +80,7 @@ public class HlsStreamService {
         }
 
         if (isHlsReady(job)) {
-            job.status = "READY";
+            job.status = STATUS_READY;
             job.progress = 100;
             job.error = null;
             return hlsJobResponse(job);
@@ -92,7 +97,7 @@ public class HlsStreamService {
         File file = resolveFile(pathId, relativePath);
         HlsCacheJob job = buildHlsJob(pathId, relativePath, file);
         if (isHlsReady(job)) {
-            job.status = "READY";
+            job.status = STATUS_READY;
             job.progress = 100;
             job.error = null;
         }
@@ -106,7 +111,7 @@ public class HlsStreamService {
             throw new IllegalStateException("HLS todavia no esta preparado");
         }
 
-        String playlist = Files.readString(job.dir.resolve("index.m3u8"), StandardCharsets.UTF_8);
+        String playlist = Files.readString(job.dir.resolve(HLS_PLAYLIST_FILE), StandardCharsets.UTF_8);
         String pathIdParam = String.valueOf(pathId);
         String subPathParam = encodeUrl(relativePath);
         String tokenParam = token != null && !token.isBlank() ? "&token=" + encodeUrl(token) : "";
@@ -165,10 +170,15 @@ public class HlsStreamService {
             job.durationSeconds = duration;
             job.fileSizeBytes = file.length();
             job.eligible = eligible;
-            job.status = eligible ? (Files.exists(dir.resolve("index.m3u8")) ? "READY" : "IDLE") : "DIRECT";
-            job.progress = "READY".equals(job.status) ? 100 : 0;
+            job.status = initialHlsStatus(eligible, dir);
+            job.progress = STATUS_READY.equals(job.status) ? 100 : 0;
             return job;
         });
+    }
+
+    private String initialHlsStatus(boolean eligible, Path dir) {
+        if (!eligible) return "DIRECT";
+        return Files.exists(dir.resolve(HLS_PLAYLIST_FILE)) ? STATUS_READY : "IDLE";
     }
 
     private Map<String, Object> hlsJobResponse(HlsCacheJob job) {
@@ -176,7 +186,7 @@ public class HlsStreamService {
         body.put("key", job.key);
         body.put("eligible", job.eligible);
         body.put("status", job.status);
-        body.put("ready", "READY".equals(job.status));
+        body.put("ready", STATUS_READY.equals(job.status));
         body.put("progress", job.progress);
         body.put("durationSeconds", job.durationSeconds);
         body.put("fileSizeBytes", job.fileSizeBytes);
@@ -185,7 +195,7 @@ public class HlsStreamService {
     }
 
     private boolean isHlsReady(HlsCacheJob job) {
-        return job.eligible && Files.exists(job.dir.resolve("index.m3u8"));
+        return job.eligible && Files.exists(job.dir.resolve(HLS_PLAYLIST_FILE));
     }
 
     private void startHlsJob(HlsCacheJob job, File file) {
@@ -199,10 +209,10 @@ public class HlsStreamService {
                 deleteDirectory(tmpDir);
                 Files.createDirectories(tmpDir);
 
-                Path playlist = tmpDir.resolve("index.m3u8");
+                Path playlist = tmpDir.resolve(HLS_PLAYLIST_FILE);
                 Path segmentPattern = tmpDir.resolve("seg_%05d.ts");
                 List<String> cmd = Arrays.asList(
-                        "ffmpeg", "-y",
+                        ffmpegPath, "-y",
                         "-i", file.getAbsolutePath(),
                         "-vn",
                         "-map", "0:a:0",
@@ -227,13 +237,24 @@ public class HlsStreamService {
                 deleteDirectory(job.dir);
                 Files.createDirectories(job.dir.getParent());
                 Files.move(tmpDir, job.dir, StandardCopyOption.REPLACE_EXISTING);
-                job.status = "READY";
+                job.status = STATUS_READY;
                 job.progress = 100;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                job.status = "FAILED";
+                job.progress = 0;
+                job.error = "Preparacion HLS interrumpida";
+                try { deleteDirectory(tmpDir); } catch (IOException cleanupError) {
+                    log.debug("Could not clean interrupted HLS temp dir {}", tmpDir, cleanupError);
+                }
+                log.warn("HLS cache interrupted for {}", file.getName());
             } catch (Exception e) {
                 job.status = "FAILED";
                 job.progress = 0;
                 job.error = e.getMessage();
-                try { deleteDirectory(tmpDir); } catch (IOException ignored) {}
+                try { deleteDirectory(tmpDir); } catch (IOException cleanupError) {
+                    log.debug("Could not clean failed HLS temp dir {}", tmpDir, cleanupError);
+                }
                 log.warn("HLS cache failed for {}: {}", file.getName(), e.getMessage());
             }
         });
@@ -253,7 +274,13 @@ public class HlsStreamService {
             }
         }
 
-        int exit = process.waitFor();
+        int exit;
+        try {
+            exit = process.waitFor();
+        } catch (InterruptedException e) {
+            process.destroyForcibly();
+            throw e;
+        }
         if (exit != 0) {
             throw new IOException("ffmpeg termino con codigo " + exit);
         }
@@ -325,7 +352,7 @@ public class HlsStreamService {
         try (var paths = Files.walk(dir)) {
             List<Path> sorted = paths
                     .sorted(Comparator.reverseOrder())
-                    .collect(Collectors.toList());
+                    .toList();
             for (Path path : sorted) {
                 Files.deleteIfExists(path);
             }

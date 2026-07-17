@@ -4,12 +4,12 @@
     <!-- Cabecera -->
     <div class="acct-head">
       <div>
-        <div class="acct-eyebrow">Mi cuenta</div>
-        <h1 class="acct-title">Ajustes</h1>
-        <p class="acct-sub">Administra tu perfil, privacidad y seguridad.</p>
+        <div class="acct-eyebrow">{{ 'PROFILE.MY_ACCOUNT' | translate }}</div>
+        <h1 class="acct-title">{{ 'PROFILE.SETTINGS' | translate }}</h1>
+        <p class="acct-sub">{{ 'PROFILE.SUBTITLE' | translate }}</p>
       </div>
       <button class="acct-back" (click)="goBack()">
-        <span class="dot"></span> Volver a EverLoad
+        <span class="dot"></span> {{ 'PROFILE.BACK_TO_EVERLOAD' | translate }}
       </button>
     </div>
 
@@ -21,7 +21,7 @@
         <div class="profile-card">
           <div class="avatar-ring">
             <div class="avatar-inner">
-              <img *ngIf="avatarUrl" [src]="avatarUrl" alt="avatar">
+              <img *ngIf="avatarUrl" [src]="avatarUrl" [alt]="'PROFILE.AVATAR_ALT' | translate">
               <span *ngIf="!avatarUrl">{{ initials }}</span>
             </div>
           </div>
@@ -33,19 +33,19 @@
 
           <div class="profile-actions">
             <button class="btn-primary" (click)="openAvatarPicker()" [disabled]="avatarLoading">
-              {{ avatarLoading ? 'Subiendo…' : 'Cambiar foto' }}
+              {{ avatarLoading ? ('PROFILE.UPLOADING' | translate) : ('PROFILE.CHANGE_PHOTO' | translate) }}
             </button>
             <button class="btn-danger-outline" (click)="removeAvatar()" [disabled]="avatarLoading || !avatarUrl">
-              Eliminar
+              {{ 'PROFILE.REMOVE' | translate }}
             </button>
           </div>
           <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarFileSelected($event)">
         </div>
 
         <nav class="acct-nav">
-          <button type="button" class="nav-item" [class.active]="activeSection==='datos'" (click)="scrollTo('datos')">Datos de la cuenta</button>
-          <button type="button" class="nav-item" [class.active]="activeSection==='privacidad'" (click)="scrollTo('privacidad')">Privacidad</button>
-          <button type="button" class="nav-item" [class.active]="activeSection==='seguridad'" (click)="scrollTo('seguridad')">Cambiar contraseña</button>
+          <button type="button" class="nav-item" [class.active]="activeSection==='datos'" (click)="scrollTo('datos')">{{ 'PROFILE.ACCOUNT_DETAILS' | translate }}</button>
+          <button type="button" class="nav-item" [class.active]="activeSection==='privacidad'" (click)="scrollTo('privacidad')">{{ 'PROFILE.PRIVACY' | translate }}</button>
+          <button type="button" class="nav-item" [class.active]="activeSection==='seguridad'" (click)="scrollTo('seguridad')">{{ 'PROFILE.CHANGE_PASSWORD' | translate }}</button>
         </nav>
       </aside>
 
@@ -56,17 +56,17 @@
         <section id="datos" class="acct-card">
           <div class="sec-head">
             <span class="sec-dot"></span>
-            <h2>Datos de la cuenta</h2>
+            <h2>{{ 'PROFILE.ACCOUNT_DETAILS' | translate }}</h2>
           </div>
-          <p class="sec-sub">Tu información pública dentro de la plataforma.</p>
+          <p class="sec-sub">{{ 'PROFILE.ACCOUNT_DETAILS_DESC' | translate }}</p>
 
           <div class="field-grid">
             <label class="field">
-              <span>Nombre de usuario</span>
-              <input type="text" [(ngModel)]="editUsername" placeholder="Nombre de usuario">
+              <span>{{ 'PROFILE.USERNAME' | translate }}</span>
+              <input type="text" [(ngModel)]="editUsername" [placeholder]="'PROFILE.USERNAME' | translate">
             </label>
             <label class="field">
-              <span>Email</span>
+              <span>{{ 'PROFILE.EMAIL' | translate }}</span>
               <input type="email" [(ngModel)]="editEmail" placeholder="tu@email.com">
             </label>
           </div>
@@ -76,7 +76,7 @@
 
           <div class="sec-actions">
             <button class="btn-primary" (click)="saveProfile()" [disabled]="savingProfile">
-              {{ savingProfile ? 'Guardando…' : 'Guardar cambios' }}
+              {{ savingProfile ? ('PROFILE.SAVING' | translate) : ('PROFILE.SAVE_CHANGES' | translate) }}
             </button>
           </div>
         </section>
@@ -85,14 +85,14 @@
         <section id="privacidad" class="acct-card">
           <div class="sec-head">
             <span class="sec-dot"></span>
-            <h2>Privacidad</h2>
+            <h2>{{ 'PROFILE.PRIVACY' | translate }}</h2>
           </div>
-          <p class="sec-sub">Controla qué pueden ver otros usuarios.</p>
+          <p class="sec-sub">{{ 'PROFILE.PRIVACY_DESC' | translate }}</p>
 
           <div class="toggle-row">
             <div>
-              <div class="toggle-title">Mostrar última vez conectado</div>
-              <div class="toggle-desc">Otros usuarios podrán ver cuándo fue tu última actividad.</div>
+              <div class="toggle-title">{{ 'PROFILE.SHOW_LAST_SEEN' | translate }}</div>
+              <div class="toggle-desc">{{ 'PROFILE.SHOW_LAST_SEEN_DESC' | translate }}</div>
             </div>
             <button type="button" class="switch" [class.on]="showLastSeen" (click)="showLastSeen = !showLastSeen">
               <span class="knob"></span>
@@ -103,7 +103,7 @@
 
           <div class="sec-actions">
             <button class="btn-primary" (click)="savePrivacy()" [disabled]="savingPrivacy">
-              {{ savingPrivacy ? 'Guardando…' : 'Guardar privacidad' }}
+              {{ savingPrivacy ? ('PROFILE.SAVING' | translate) : ('PROFILE.SAVE_PRIVACY' | translate) }}
             </button>
           </div>
         </section>
@@ -112,23 +112,23 @@
         <section id="seguridad" class="acct-card">
           <div class="sec-head">
             <span class="sec-dot"></span>
-            <h2>Cambiar contraseña</h2>
+            <h2>{{ 'PROFILE.CHANGE_PASSWORD' | translate }}</h2>
           </div>
-          <p class="sec-sub">Usa una contraseña segura que no utilices en otros sitios.</p>
+          <p class="sec-sub">{{ 'PROFILE.PASSWORD_DESC' | translate }}</p>
 
           <label class="field full">
-            <span>Contraseña actual</span>
-            <input type="password" [(ngModel)]="currentPassword" placeholder="Contraseña actual">
+            <span>{{ 'PROFILE.CURRENT_PASSWORD' | translate }}</span>
+            <input type="password" [(ngModel)]="currentPassword" [placeholder]="'PROFILE.CURRENT_PASSWORD' | translate">
           </label>
 
           <div class="field-grid">
             <label class="field">
-              <span>Nueva contraseña</span>
-              <input type="password" [(ngModel)]="newPassword" placeholder="Mín. 6 caracteres">
+              <span>{{ 'PROFILE.NEW_PASSWORD' | translate }}</span>
+              <input type="password" [(ngModel)]="newPassword" [placeholder]="'PROFILE.PASSWORD_MIN_LENGTH' | translate">
             </label>
             <label class="field">
-              <span>Confirmar nueva contraseña</span>
-              <input type="password" [(ngModel)]="confirmPassword" placeholder="Repite la nueva contraseña">
+              <span>{{ 'PROFILE.CONFIRM_NEW_PASSWORD' | translate }}</span>
+              <input type="password" [(ngModel)]="confirmPassword" [placeholder]="'PROFILE.REPEAT_NEW_PASSWORD' | translate">
             </label>
           </div>
 
@@ -137,7 +137,7 @@
 
           <div class="sec-actions">
             <button class="btn-primary" (click)="changePassword()" [disabled]="savingPassword">
-              {{ savingPassword ? 'Cambiando…' : 'Cambiar contraseña' }}
+              {{ savingPassword ? ('PROFILE.CHANGING' | translate) : ('PROFILE.CHANGE_PASSWORD' | translate) }}
             </button>
           </div>
         </section>

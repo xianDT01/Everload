@@ -141,6 +141,7 @@ public class YtMusicStreamService {
             try {
                 response.setContentLengthLong(Long.parseLong(v));
             } catch (NumberFormatException ignored) {
+                // A malformed optional length must not prevent streaming the upstream body.
             }
         });
 
@@ -187,6 +188,7 @@ public class YtMusicStreamService {
         try {
             if (in != null) in.close();
         } catch (IOException ignored) {
+            // Closing a rejected upstream response is best effort.
         }
     }
 }

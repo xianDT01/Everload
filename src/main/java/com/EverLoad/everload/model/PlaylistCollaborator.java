@@ -43,5 +43,5 @@ public class PlaylistCollaborator {
     }
 
     @PrePersist
-    protected void onAdd() { addedAt = LocalDateTime.now(); }
+    protected void onAdd() { addedAt = LocalDateTime.now(java.time.ZoneId.systemDefault()); }
 }

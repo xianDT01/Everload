@@ -1,5 +1,6 @@
 package com.EverLoad.everload.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -21,10 +22,16 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class YouTubeSearchService {
 
+    private static final String THUMBNAIL_BASE_URL = "https://img.youtube.com/vi/";
+
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(YouTubeSearchService.class);
 
     /** Si yt-dlp no responde en este tiempo se mata el proceso (antes colgaba el hilo HTTP). */
     private static final long SEARCH_TIMEOUT_SECONDS = 30;
+
+    /** Docker configures an absolute, trusted binary path; local development keeps the PATH fallback. */
+    @Value("${everload.ytdlp.path:yt-dlp}")
+    private String ytDlpPath;
 
     private final ScheduledExecutorService watchdog = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "ytsearch-watchdog");
@@ -36,7 +43,7 @@ public class YouTubeSearchService {
         // ytSearch se pasa como argumento ÚNICO a ProcessBuilder — sin shell, sin inyección
         String ytSearch = "ytsearch" + maxResults + ":" + query;
         ProcessBuilder pb = new ProcessBuilder(
-                "yt-dlp",
+                ytDlpPath,
                 "--flat-playlist",
                 "--print", "%(id)s\t%(title)s\t%(uploader)s\t%(duration)s\t%(thumbnails.0.url)s",
                 "--no-warnings",
@@ -71,9 +78,9 @@ public class YouTubeSearchService {
                             "title", title,
                             "channelTitle", uploader,
                             "thumbnails", Map.of(
-                                "default", Map.of("url", "https://img.youtube.com/vi/" + id + "/default.jpg"),
-                                "medium",  Map.of("url", "https://img.youtube.com/vi/" + id + "/mqdefault.jpg"),
-                                "high",    Map.of("url", "https://img.youtube.com/vi/" + id + "/hqdefault.jpg")
+                                "default", Map.of("url", THUMBNAIL_BASE_URL + id + "/default.jpg"),
+                                "medium",  Map.of("url", THUMBNAIL_BASE_URL + id + "/mqdefault.jpg"),
+                                "high",    Map.of("url", THUMBNAIL_BASE_URL + id + "/hqdefault.jpg")
                             )
                         )
                     ));

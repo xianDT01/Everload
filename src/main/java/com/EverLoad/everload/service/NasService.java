@@ -30,6 +30,8 @@ import java.util.zip.ZipOutputStream;
 @RequiredArgsConstructor
 public class NasService {
 
+    private static final String NAS_PATH_NOT_FOUND = "Ruta NAS no encontrada";
+
     private static final Set<String> ALLOWED_AUDIO_EXTENSIONS = Set.of(
             "mp3", "flac", "m4a", "wav", "ogg", "aac", "opus", "wma", "alac", "webm"
     );
@@ -47,7 +49,7 @@ public class NasService {
     public List<NasPathDto> getAllPaths() {
         return nasPathRepository.findAll().stream()
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public NasPathDto createPath(NasPathDto dto) {
@@ -74,7 +76,7 @@ public class NasService {
 
     public List<NasFileDto> listFiles(Long pathId, String subPath) {
         NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
 
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path targetPath = subPath != null && !subPath.isBlank()
@@ -109,12 +111,12 @@ public class NasService {
                     if (a.isDirectory() != b.isDirectory()) return a.isDirectory() ? -1 : 1;
                     return a.getName().compareToIgnoreCase(b.getName());
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public void createFolder(Long pathId, String subPath, String folderName) {
         NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
 
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path parentPath = subPath != null && !subPath.isBlank()
@@ -139,7 +141,7 @@ public class NasService {
 
     public String renameFileOrFolder(Long pathId, String relativePath, String newName) {
         NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path target = basePath.resolve(relativePath).normalize();
 
@@ -186,7 +188,7 @@ public class NasService {
 
     public void moveFileOrFolder(Long pathId, String sourcePath, String targetFolderPath) {
         NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path source = basePath.resolve(sourcePath).normalize();
         Path targetDir = (targetFolderPath != null && !targetFolderPath.isBlank())
@@ -212,7 +214,7 @@ public class NasService {
 
     public void saveFolderCover(Long pathId, String folderPath, byte[] imageData, String contentType) {
         NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path folder = (folderPath != null && !folderPath.isBlank())
                 ? basePath.resolve(folderPath).normalize()
@@ -232,7 +234,7 @@ public class NasService {
 
     public void deleteFileOrFolder(Long pathId, String relativePath) {
         NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
 
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path target = basePath.resolve(relativePath).normalize();
@@ -266,7 +268,7 @@ public class NasService {
      */
     public String saveToNas(Long pathId, String subPath, Path tempFile, String fileName) {
         NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
 
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path destDir = subPath != null && !subPath.isBlank()
@@ -306,7 +308,7 @@ public class NasService {
                                                        List<MultipartFile> files,
                                                        List<String> paths) {
         NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada"));
+                .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path destDir = subPath != null && !subPath.isBlank()
                 ? basePath.resolve(subPath).normalize()

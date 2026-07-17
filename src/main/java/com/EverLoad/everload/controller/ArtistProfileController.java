@@ -251,7 +251,9 @@ public class ArtistProfileController {
         if (filename == null || filename.isBlank()) return;
         try {
             Files.deleteIfExists(artistImageDir().resolve(filename).normalize());
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+            // Profile updates remain valid even if the previous image cannot be removed.
+        }
     }
 
     private Path artistImageDir() {

@@ -139,7 +139,7 @@ public class AvatarService {
     private long lastModifiedMillis(Path path) {
         try {
             return Files.getLastModifiedTime(path).toMillis();
-        } catch (IOException e) {
+        } catch (IOException ignored) {
             return 0L;
         }
     }
@@ -186,7 +186,9 @@ public class AvatarService {
         try {
             Path path = Path.of(storagePath).resolve(filename).normalize();
             Files.deleteIfExists(path);
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+            // Avatar replacement should succeed even when an obsolete file cannot be removed.
+        }
     }
 
     private String getExtension(String filename) {

@@ -12,7 +12,6 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.*;
-import java.util.stream.Collectors;
 
 @Service
 public class NasYtDlpService {
@@ -23,6 +22,9 @@ public class NasYtDlpService {
 
     @Value("${app.downloads.max-concurrent:3}")
     private int maxConcurrent;
+
+    @Value("${everload.ytdlp.path:yt-dlp}")
+    private String ytDlpPath;
 
     private final ConcurrentHashMap<String, YtDlpJob> jobs = new ConcurrentHashMap<>();
     private ExecutorService executor;
@@ -48,8 +50,8 @@ public class NasYtDlpService {
     public String queue(String videoId, String title, Long nasPathId, String subPath, String format) {
         String jobId = UUID.randomUUID().toString();
         String safeTitle = (title != null && !title.isBlank()) ? title : videoId;
-        java.util.Set<String> VALID_FORMATS = java.util.Set.of("mp3","m4a","flac","opus","ogg","wav","aac");
-        String safeFormat = (format != null && VALID_FORMATS.contains(format.toLowerCase())) ? format.toLowerCase() : "mp3";
+        java.util.Set<String> validFormats = java.util.Set.of("mp3","m4a","flac","opus","ogg","wav","aac");
+        String safeFormat = (format != null && validFormats.contains(format.toLowerCase())) ? format.toLowerCase() : "mp3";
         String safeSub = (subPath != null) ? subPath : "";
         YtDlpJob job = new YtDlpJob(jobId, videoId, safeTitle, nasPathId, safeSub, safeFormat);
         jobs.put(jobId, job);
@@ -78,7 +80,7 @@ public class NasYtDlpService {
         return jobs.values().stream()
                 .filter(j -> j.createdAt > cutoff)
                 .sorted(Comparator.comparingLong((YtDlpJob j) -> j.createdAt).reversed())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // ── Execution ─────────────────────────────────────────────────────────────
@@ -89,7 +91,7 @@ public class NasYtDlpService {
         new File(tempDir).mkdirs();
         try {
             String[] cmd = {
-                "yt-dlp",
+                ytDlpPath,
                 "--js-runtimes", "node",
                 "--ignore-errors",
                 "--print", "after_move:filepath",
@@ -115,10 +117,14 @@ public class NasYtDlpService {
                         Matcher m = PCT.matcher(line);
                         if (m.find()) {
                             try { job.progress = Math.min((int) Double.parseDouble(m.group(1)), 94); }
-                            catch (NumberFormatException ignored) {}
+                            catch (NumberFormatException e) {
+                                log.debug("Invalid yt-dlp progress for {}: {}", job.jobId, m.group(1));
+                            }
                         }
                     }
-                } catch (IOException ignored) {}
+                } catch (IOException e) {
+                    log.debug("Could not read yt-dlp progress for {}: {}", job.jobId, e.getMessage());
+                }
             });
             stderrThread.start();
 
@@ -164,6 +170,10 @@ public class NasYtDlpService {
             job.status = YtDlpJob.Status.DONE;
             log.info("✅ job {} → {}", job.jobId, saved);
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fail(job, "Descarga interrumpida");
+            log.warn("NAS download interrupted for {}", job.jobId);
         } catch (Exception e) {
             fail(job, e.getMessage());
             log.error("❌ job {} failed: {}", job.jobId, e.getMessage());
@@ -178,7 +188,7 @@ public class NasYtDlpService {
         new File(tempDir).mkdirs();
         try {
             String[] cmd = {
-                "yt-dlp",
+                ytDlpPath,
                 "--js-runtimes", "node",
                 "--print", "after_move:filepath",
                 "-f", "bestvideo+bestaudio/best",
@@ -191,18 +201,7 @@ public class NasYtDlpService {
             ProcessBuilder pb = new ProcessBuilder(cmd);
             Process process = pb.start();
 
-            Thread stderrThread = new Thread(() -> {
-                try (BufferedReader r = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                    String line;
-                    while ((line = r.readLine()) != null) {
-                        Matcher m = PCT.matcher(line);
-                        if (m.find()) {
-                            try { job.progress = Math.min((int) Double.parseDouble(m.group(1)), 94); }
-                            catch (NumberFormatException ignored) {}
-                        }
-                    }
-                } catch (IOException ignored) {}
-            });
+            Thread stderrThread = createProgressReader(process, job);
             stderrThread.start();
 
             String finalPath;
@@ -231,11 +230,36 @@ public class NasYtDlpService {
             job.status = YtDlpJob.Status.DONE;
             log.info("✅ url job {} → {}", job.jobId, saved);
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fail(job, "Descarga interrumpida");
+            log.warn("NAS URL download interrupted for {}", job.jobId);
         } catch (Exception e) {
             fail(job, e.getMessage());
             log.error("❌ url job {} failed: {}", job.jobId, e.getMessage());
         } finally {
             cleanup(tempDir);
+        }
+    }
+
+    private Thread createProgressReader(Process process, YtDlpJob job) {
+        return new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) updateProgress(job, line);
+            } catch (IOException e) {
+                log.debug("Could not read yt-dlp progress for {}", job.jobId, e);
+            }
+        }, "yt-dlp-progress-" + job.jobId);
+    }
+
+    private void updateProgress(YtDlpJob job, String line) {
+        Matcher matcher = PCT.matcher(line);
+        if (!matcher.find()) return;
+        try {
+            job.progress = Math.min((int) Double.parseDouble(matcher.group(1)), 94);
+        } catch (NumberFormatException e) {
+            log.debug("Invalid yt-dlp progress for {}: {}", job.jobId, matcher.group(1));
         }
     }
 
@@ -248,9 +272,14 @@ public class NasYtDlpService {
     private void cleanup(String dir) {
         try {
             Path p = Path.of(dir);
-            if (Files.exists(p))
-                Files.walk(p).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
-        } catch (IOException ignored) {}
+            if (Files.exists(p)) {
+                try (var paths = Files.walk(p)) {
+                    paths.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+                }
+            }
+        } catch (IOException e) {
+            log.debug("Could not fully clean temporary directory {}: {}", dir, e.getMessage());
+        }
     }
 
     // ── Job model ─────────────────────────────────────────────────────────────

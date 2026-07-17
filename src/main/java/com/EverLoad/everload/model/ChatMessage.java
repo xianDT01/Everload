@@ -59,6 +59,6 @@ public class ChatMessage {
 
     @PrePersist
     protected void onSend() {
-        sentAt = LocalDateTime.now();
+        sentAt = LocalDateTime.now(java.time.ZoneId.systemDefault());
     }
 }

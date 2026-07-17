@@ -47,6 +47,6 @@ public class FavoriteTrack {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now(java.time.ZoneId.systemDefault());
     }
 }

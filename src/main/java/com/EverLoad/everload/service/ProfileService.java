@@ -16,18 +16,20 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProfileService {
 
+    private static final String USER_NOT_FOUND = "Usuario no encontrado";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
     public UserDto getProfile(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
         return toDto(user);
     }
 
     public UserDto updateProfile(String username, UpdateProfileRequest request) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
 
         if (request.getUsername() != null && !request.getUsername().isBlank()) {
             String newUsername = request.getUsername().trim();
@@ -58,7 +60,7 @@ public class ProfileService {
 
     public void changePassword(String username, ChangePasswordRequest request) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("La contraseña actual no es correcta");

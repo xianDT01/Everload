@@ -25,6 +25,13 @@ import java.util.regex.Pattern;
 public class DownloadService {
 
     private static final String DOWNLOADS_DIR = "./downloads/";
+    private static final String JS_RUNTIMES_OPTION = "--js-runtimes";
+    private static final String PRINT_OPTION = "--print";
+    private static final String FINAL_PATH_TEMPLATE = "after_move:filepath";
+    private static final String OUTPUT_TEMPLATE = "%(title)s.%(ext)s";
+    private static final String MUSIC_CATEGORY = "music";
+    private static final String VIDEO_CATEGORY = "vídeo";
+    private static final String YOUTUBE_SOURCE = "YouTube";
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DownloadService.class);
     private static final Pattern YT_DLP_PROGRESS = Pattern.compile("(\\d+\\.?\\d*)%");
 
@@ -35,6 +42,9 @@ public class DownloadService {
 
     @Value("${app.downloads.max-concurrent:3}")
     private int maxConcurrent;
+
+    @Value("${everload.ytdlp.path:yt-dlp}")
+    private String ytDlpPath;
 
     private Semaphore downloadSemaphore;
     private ExecutorService directDownloadExecutor;
@@ -137,15 +147,15 @@ public class DownloadService {
         }
         String tempDir = createTempDownloadDir();
         String[] cmd = {
-            "yt-dlp",
-            "--js-runtimes", "node",
-            "--print", "after_move:filepath",
+            ytDlpPath,
+            JS_RUNTIMES_OPTION, "node",
+            PRINT_OPTION, FINAL_PATH_TEMPLATE,
             "-f", "bestvideo[height=" + resolution + "]+bestaudio/best",
-            "-o", tempDir + "%(title)s.%(ext)s",
+            "-o", tempDir + OUTPUT_TEMPLATE,
             "https://www.youtube.com/watch?v=" + videoId
         };
-        downloadHistoryService.recordDownload(new Download("videoId=" + videoId, "vídeo", "YouTube"));
-        return executeCommand(cmd, "vídeo", "YouTube");
+        downloadHistoryService.recordDownload(new Download("videoId=" + videoId, VIDEO_CATEGORY, YOUTUBE_SOURCE));
+        return executeCommand(cmd, VIDEO_CATEGORY, YOUTUBE_SOURCE);
     }
 
     public ResponseEntity<FileSystemResource> downloadMusic(String videoId, String format) {
@@ -158,8 +168,8 @@ public class DownloadService {
             return ResponseEntity.badRequest().build();
         }
         String tempDir = createTempDownloadDir();
-        downloadHistoryService.recordDownload(new Download("videoId=" + videoId, "music", "YouTube"));
-        return executeCommand(buildAudioCommand(videoId, format, tempDir), "music", "YouTube");
+        downloadHistoryService.recordDownload(new Download("videoId=" + videoId, MUSIC_CATEGORY, YOUTUBE_SOURCE));
+        return executeCommand(buildAudioCommand(videoId, format, tempDir), MUSIC_CATEGORY, YOUTUBE_SOURCE);
     }
 
     public DirectDownloadJob queueMusicDownload(String videoId, String format) {
@@ -218,7 +228,7 @@ public class DownloadService {
         try {
             // ProcessBuilder with explicit args — URL is a single argument, no shell injection possible
             ProcessBuilder pb = new ProcessBuilder(
-                "yt-dlp", "--js-runtimes", "node", "--flat-playlist", "--print", "%(title)s|%(id)s", playlistUrl
+                ytDlpPath, JS_RUNTIMES_OPTION, "node", "--flat-playlist", PRINT_OPTION, "%(title)s|%(id)s", playlistUrl
             );
             pb.redirectErrorStream(false);
             Process process = pb.start();
@@ -251,22 +261,22 @@ public class DownloadService {
     }
 
     public ResponseEntity<FileSystemResource> downloadTwitterVideo(String tweetUrl) {
-        return downloadMediaUrl(tweetUrl, "vídeo", "Twitter",
+        return downloadMediaUrl(tweetUrl, VIDEO_CATEGORY, "Twitter",
                 "twitter.com", "x.com", "t.co");
     }
 
     public ResponseEntity<FileSystemResource> downloadFacebookVideo(String videoUrl) {
-        return downloadMediaUrl(videoUrl, "vídeo", "Facebook",
+        return downloadMediaUrl(videoUrl, VIDEO_CATEGORY, "Facebook",
                 "facebook.com", "fb.watch", "fb.com");
     }
 
     public ResponseEntity<FileSystemResource> downloadInstagramVideo(String videoUrl) {
-        return downloadMediaUrl(videoUrl, "vídeo", "Instagram",
+        return downloadMediaUrl(videoUrl, VIDEO_CATEGORY, "Instagram",
                 "instagram.com", "instagr.am");
     }
 
     public ResponseEntity<FileSystemResource> downloadTikTokVideo(String videoUrl) {
-        return downloadMediaUrl(videoUrl, "vídeo", "TikTok",
+        return downloadMediaUrl(videoUrl, VIDEO_CATEGORY, "TikTok",
                 "tiktok.com", "vm.tiktok.com");
     }
 
@@ -309,11 +319,16 @@ public class DownloadService {
             job.status = DirectDownloadStatus.RUNNING;
             job.progress = 5;
             File finalFile = runAudioDownload(job, tempDirPath);
-            downloadHistoryService.recordDownload(new Download(finalFile.getName(), "music", "YouTube"));
+            downloadHistoryService.recordDownload(new Download(finalFile.getName(), MUSIC_CATEGORY, YOUTUBE_SOURCE));
 
             job.filename = finalFile.getName();
             job.filePath = finalFile.getAbsolutePath();
             completeJob(job);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            failJob(job, "Descarga interrumpida");
+            logger.warn("Queued music download interrupted for {}", job.videoId);
+            cleanupTempDir(tempDirPath);
         } catch (Exception e) {
             failJob(job, e.getMessage());
             logger.error("Queued music download failed for {}: {}", job.videoId, e.getMessage());
@@ -336,11 +351,15 @@ public class DownloadService {
 
             String fileName = tmpFile.getName();
             String savedPath = nasService.saveToNas(job.nasPathId, job.nasSubPath, tmpFile.toPath(), fileName);
-            downloadHistoryService.recordDownload(new Download(fileName, "music (NAS)", "YouTube"));
+            downloadHistoryService.recordDownload(new Download(fileName, "music (NAS)", YOUTUBE_SOURCE));
             logger.info("✅ [NAS] Guardado en: {}", savedPath);
 
             job.filename = fileName;
             completeJob(job);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            failJob(job, "Descarga interrumpida");
+            logger.warn("Queued NAS save interrupted for {}", job.videoId);
         } catch (Exception e) {
             failJob(job, e.getMessage());
             logger.error("Queued NAS save failed for {}: {}", job.videoId, e.getMessage());
@@ -367,17 +386,17 @@ public class DownloadService {
     /** Comando yt-dlp compartido para extraer audio con metadatos y carátula embebidos. */
     private String[] buildAudioCommand(String videoId, String format, String tempDirPath) {
         return new String[]{
-            "yt-dlp",
-            "--js-runtimes", "node",
+            ytDlpPath,
+            JS_RUNTIMES_OPTION, "node",
             "--ignore-errors",
-            "--print", "after_move:filepath",
+            PRINT_OPTION, FINAL_PATH_TEMPLATE,
             "-x", "--audio-format", format, "--audio-quality", "0",
             "--embed-thumbnail",
             "--embed-metadata",
             "--parse-metadata", "%(title)s:%(meta_title)s",
             "--parse-metadata", "%(uploader)s:%(meta_artist)s",
             "--no-playlist",
-            "-o", tempDirPath + "%(title)s.%(ext)s",
+            "-o", tempDirPath + OUTPUT_TEMPLATE,
             "https://www.youtube.com/watch?v=" + videoId
         };
     }
@@ -405,12 +424,16 @@ public class DownloadService {
                     if (matcher.find()) {
                         try {
                             onProgress.accept(Math.min((int) Double.parseDouble(matcher.group(1)), 94));
-                        } catch (NumberFormatException ignored) {}
+                        } catch (NumberFormatException e) {
+                            logger.debug("Invalid yt-dlp progress value: {}", matcher.group(1));
+                        }
                     } else {
                         logger.info("yt-dlp: {}", line);
                     }
                 }
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+                logger.debug("Could not read yt-dlp progress output: {}", e.getMessage());
+            }
         });
         stderrThread.start();
 
@@ -418,7 +441,13 @@ public class DownloadService {
         try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             finalPath = outReader.readLine();
         }
-        int exit = process.waitFor();
+        int exit;
+        try {
+            exit = process.waitFor();
+        } catch (InterruptedException e) {
+            process.destroyForcibly();
+            throw e;
+        }
         stderrThread.join(5000);
 
         if (exit != 0 || finalPath == null || finalPath.isBlank()) {
@@ -474,10 +503,10 @@ public class DownloadService {
         }
         String tempDir = createTempDownloadDir();
         String[] cmd = {
-            "yt-dlp",
-            "--js-runtimes", "node",
-            "--print", "after_move:filepath",
-            "-o", tempDir + "%(title)s.%(ext)s",
+            ytDlpPath,
+            JS_RUNTIMES_OPTION, "node",
+            PRINT_OPTION, FINAL_PATH_TEMPLATE,
+            "-o", tempDir + OUTPUT_TEMPLATE,
             url   // single argument — no shell, no injection
         };
         return executeCommand(cmd, tipo, origen);
@@ -524,7 +553,9 @@ public class DownloadService {
                         .map(Path::toFile)
                         .forEach(File::delete);
             }
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+            logger.debug("Could not fully clean temporary directory {}: {}", tempDirPath, e.getMessage());
+        }
     }
 
     private String makeAsciiSafe(String input) {

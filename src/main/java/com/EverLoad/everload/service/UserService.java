@@ -10,33 +10,34 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final String USER_NOT_FOUND = "Usuario no encontrado";
 
     private final UserRepository userRepository;
     private final PresenceService presenceService;
 
     public List<UserDto> getPendingUsers() {
         return userRepository.findByStatus(UserStatus.PENDING)
-                .stream().map(this::toDto).collect(Collectors.toList());
+                .stream().map(this::toDto).toList();
     }
 
     public List<UserDto> getActiveUsers() {
         return userRepository.findByStatus(UserStatus.ACTIVE)
-                .stream().map(this::toDto).collect(Collectors.toList());
+                .stream().map(this::toDto).toList();
     }
 
     public List<UserDto> getAllUsers() {
         return userRepository.findAll()
-                .stream().map(this::toDto).collect(Collectors.toList());
+                .stream().map(this::toDto).toList();
     }
 
     public UserDto updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
 
         if (request.getRole() != null) {
             user.setRole(request.getRole());
@@ -50,7 +51,7 @@ public class UserService {
 
     public void revokeAccess(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
         user.setStatus(UserStatus.REJECTED);
         userRepository.save(user);
     }
@@ -58,13 +59,13 @@ public class UserService {
     public String getUsernameById(Long id) {
         return userRepository.findById(id)
                 .map(User::getUsername)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
     }
 
     @Transactional
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new IllegalArgumentException("Usuario no encontrado");
+            throw new IllegalArgumentException(USER_NOT_FOUND);
         }
         // Usamos JPQL directo para evitar problemas de caché JPA de primer nivel
         userRepository.hardDeleteById(id);

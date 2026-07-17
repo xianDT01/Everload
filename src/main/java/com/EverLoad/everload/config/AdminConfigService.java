@@ -16,6 +16,8 @@ import java.util.Map;
 @Service
 public class AdminConfigService {
 
+    private static final String ACOUSTID_API_KEY = "acoustidApiKey";
+
     public static final String DEFAULT_AUTH_HERO_IMAGES = String.join("\n",
             "/api/music/artist-auto-image/david_guetta.jpg",
             "/api/music/artist-auto-image/aitana.jpg",
@@ -51,7 +53,7 @@ public class AdminConfigService {
         File f = new File(configPath);
         if (!f.exists()) return defaultConfig();
         Map<String, String> cfg = new HashMap<>(mapper.readValue(f, Map.class));
-        cfg.putIfAbsent("acoustidApiKey", "");
+        cfg.putIfAbsent(ACOUSTID_API_KEY, "");
         cfg.putIfAbsent("githubToken", "");
         cfg.putIfAbsent("authHeroImages", DEFAULT_AUTH_HERO_IMAGES);
         return cfg;
@@ -62,7 +64,7 @@ public class AdminConfigService {
         cfg.put("clientId", "");
         cfg.put("clientSecret", "");
         cfg.put("apiKey", "");
-        cfg.put("acoustidApiKey", "");
+        cfg.put(ACOUSTID_API_KEY, "");
         cfg.put("githubToken", "");
         cfg.put("authHeroImages", DEFAULT_AUTH_HERO_IMAGES);
         return cfg;
@@ -88,6 +90,6 @@ public class AdminConfigService {
     }
 
     public String getAcoustidApiKey() throws IOException {
-        return getConfig().getOrDefault("acoustidApiKey", "");
+        return getConfig().getOrDefault(ACOUSTID_API_KEY, "");
     }
 }

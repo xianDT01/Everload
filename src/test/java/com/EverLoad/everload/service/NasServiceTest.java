@@ -147,4 +147,29 @@ class NasServiceTest {
         assertEquals("ok", results.get(0).get("status"));
         assertTrue(Files.exists(nasRoot.resolve("tema.mp3")));
     }
+
+    @Test
+    void pathAndFileListingsMapRepositoryAndFilesystemEntries() throws Exception {
+        NasPath path = NasPath.builder().id(1L).name("Music").path(nasRoot.toString()).build();
+        when(nasPathRepository.findAll()).thenReturn(List.of(path));
+        Files.createDirectory(nasRoot.resolve("Album"));
+        Files.writeString(nasRoot.resolve("track.mp3"), "audio");
+
+        assertEquals(1, nasService.getAllPaths().size());
+        var files = nasService.listFiles(1L, "");
+
+        assertEquals(2, files.size());
+        assertTrue(files.get(0).isDirectory());
+        assertEquals("track.mp3", files.get(1).getName());
+    }
+
+    @Test
+    void mutatingOperationsRejectUnknownNasPath() {
+        when(nasPathRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> nasService.createFolder(99L, "", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> nasService.moveFileOrFolder(99L, "a", "b"));
+        assertThrows(IllegalArgumentException.class,
+                () -> nasService.saveFolderCover(99L, "", new byte[]{1}, "image/jpeg"));
+    }
 }

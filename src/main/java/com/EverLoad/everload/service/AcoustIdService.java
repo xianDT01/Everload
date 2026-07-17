@@ -11,12 +11,14 @@ import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.images.Artwork;
 import org.jaudiotagger.tag.images.ArtworkFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.net.URI;
 import java.net.http.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 
@@ -27,6 +29,9 @@ public class AcoustIdService {
 
     private final AdminConfigService adminConfigService;
     private final NasService nasService;
+
+    @Value("${everload.fpcalc.path:fpcalc}")
+    private String fpcalcPath;
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -120,7 +125,7 @@ public class AcoustIdService {
 
     private FpcalcResult runFpcalc(File file) {
         try {
-            Process p = new ProcessBuilder("fpcalc", "-json", file.getAbsolutePath())
+            Process p = new ProcessBuilder(fpcalcPath, "-json", file.getAbsolutePath())
                     .redirectErrorStream(true)
                     .start();
             String output;
@@ -134,6 +139,10 @@ public class AcoustIdService {
             int    dur = json.path("duration").asInt(0);
             if (fp == null || dur == 0) return null;
             return new FpcalcResult(fp, dur);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("[AcoustID] fpcalc interrumpido");
+            return null;
         } catch (Exception e) {
             log.warn("[AcoustID] fpcalc error: {}", e.getMessage());
             return null;
@@ -153,6 +162,10 @@ public class AcoustIdService {
                     .GET().timeout(Duration.ofSeconds(15)).build();
             HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
             return mapper.readTree(resp.body());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("[AcoustID] consulta API interrumpida");
+            return null;
         } catch (Exception e) {
             log.warn("[AcoustID] API error: {}", e.getMessage());
             return null;
@@ -174,19 +187,25 @@ public class AcoustIdService {
             Tag tag = af.getTagOrCreateDefault();
 
             // Crear artwork desde bytes
-            File tmpImg = File.createTempFile("cover-", ".jpg");
+            Path artworkDir = Path.of("./downloads/.artwork-tmp").toAbsolutePath().normalize();
+            Files.createDirectories(artworkDir);
+            File tmpImg = Files.createTempFile(artworkDir, "cover-", ".jpg").toFile();
             try {
                 Files.write(tmpImg.toPath(), imageBytes);
                 Artwork artwork = ArtworkFactory.createArtworkFromFile(tmpImg);
                 tag.deleteArtworkField();
                 tag.setField(artwork);
             } finally {
-                tmpImg.delete();
+                Files.deleteIfExists(tmpImg.toPath());
             }
 
             af.setTag(tag);
             AudioFileIO.write(af);
             return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("[AcoustID] descarga de portada interrumpida para {}", releaseGroupId);
+            return false;
         } catch (Exception e) {
             log.warn("[AcoustID] No se pudo embeber portada para release-group {}: {}", releaseGroupId, e.getMessage());
             return false;

@@ -29,14 +29,14 @@ public class Download {
     private LocalDateTime createdAt;
 
     public Download() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(java.time.ZoneId.systemDefault());
     }
 
     public Download(String title, String type, String platform) {
         this.title = title;
         this.type = type;
         this.platform = platform;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now(java.time.ZoneId.systemDefault());
     }
 
     public Long getId() { return id; }

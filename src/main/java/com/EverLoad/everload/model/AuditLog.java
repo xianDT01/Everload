@@ -53,6 +53,6 @@ public class AuditLog {
 
     @PrePersist
     protected void onCreate() {
-        if (timestamp == null) timestamp = LocalDateTime.now();
+        if (timestamp == null) timestamp = LocalDateTime.now(java.time.ZoneId.systemDefault());
     }
 }

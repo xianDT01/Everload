@@ -464,7 +464,9 @@ public class YtMusicDiscoverService {
                 }
                 case ARTIST -> { if (rowArtist == null) rowArtist = c.text(); }
                 case DURATION -> { if (flexDuration == null) flexDuration = c.durationSecs(); }
-                default -> {}
+                default -> {
+                    // Other column kinds do not contribute to an album track.
+                }
             }
         }
         if (videoId == null) {
@@ -473,7 +475,8 @@ public class YtMusicDiscoverService {
         if (videoId == null || title.isEmpty()) {
             return null;
         }
-        String primaryArtist = rowArtist != null ? rowArtist : (albumArtist != null ? albumArtist : "");
+        String primaryArtist = rowArtist != null ? rowArtist : albumArtist;
+        if (primaryArtist == null) primaryArtist = "";
         int duration = fixedColumnsDuration(row);
         if (duration == 0 && flexDuration != null) duration = flexDuration;
 
@@ -594,7 +597,9 @@ public class YtMusicDiscoverService {
                 case ARTIST -> { if (artist.isEmpty()) artist = c.text(); }
                 case ALBUM -> { if (album.isEmpty()) album = c.text(); }
                 case DURATION -> { if (flexDuration == null) flexDuration = c.durationSecs(); }
-                default -> {}
+                default -> {
+                    // Other column kinds do not contribute to an artist track.
+                }
             }
         }
         if (videoId == null) {

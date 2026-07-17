@@ -45,6 +45,6 @@ public class PlaybackHistory {
 
     @PrePersist
     protected void onCreate() {
-        playedAt = LocalDateTime.now();
+        playedAt = LocalDateTime.now(java.time.ZoneId.systemDefault());
     }
 }

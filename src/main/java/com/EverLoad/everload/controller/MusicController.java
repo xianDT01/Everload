@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/music")
 @RequiredArgsConstructor
+@Slf4j
 public class MusicController {
 
     private final MusicService musicService;
@@ -147,10 +149,7 @@ public class MusicController {
             // Auto-regenera: si el fichero no existe (caché limpiada), deriva el nombre del
             // artista del propio nombre de archivo y lo vuelve a resolver/cachear.
             if (!Files.exists(file)) {
-                String name = filename.replaceAll("(?i)\\.[a-z0-9]{2,5}$", "").replace('_', ' ').trim();
-                if (!name.isBlank()) {
-                    try { musicService.lookupArtistImage(name); } catch (Exception ignored) {}
-                }
+                refreshArtistImage(filename);
                 if (!Files.exists(file)) {
                     return ResponseEntity.notFound().build();
                 }
@@ -162,6 +161,16 @@ public class MusicController {
                     .body(new FileSystemResource(file));
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    private void refreshArtistImage(String filename) {
+        String name = filename.replaceAll("(?i)\\.[a-z0-9]{2,5}$", "").replace('_', ' ').trim();
+        if (name.isBlank()) return;
+        try {
+            musicService.lookupArtistImage(name);
+        } catch (Exception e) {
+            log.debug("Could not refresh artist image for {}: {}", name, e.getMessage());
         }
     }
 
@@ -473,13 +482,13 @@ public class MusicController {
         // 2. LRCLIB (synced lyrics preferred, free, no key required).
         if (title != null && !title.isBlank()) {
             Map<String, Object> lyrics = fetchLrclibLyrics(title, artist, duration);
-            if (lyrics != null) return ResponseEntity.ok(lyrics);
+            if (!lyrics.isEmpty()) return ResponseEntity.ok(lyrics);
         }
 
         // 3. lyrics.ovh (plain text, broader coverage of popular songs).
         if (title != null && !title.isBlank() && artist != null && !artist.isBlank()) {
             Map<String, Object> lyrics = fetchLyricsOvh(title, artist);
-            if (lyrics != null) return ResponseEntity.ok(lyrics);
+            if (!lyrics.isEmpty()) return ResponseEntity.ok(lyrics);
         }
 
         return ResponseEntity.ok(Map.of("source", "none"));
@@ -496,12 +505,14 @@ public class MusicController {
                     (duration > 0 ? "&duration=" + duration : "");
             ResponseEntity<Map> resp = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class);
             Map<String, Object> mapped = mapLrclibBody(resp.getBody());
-            if (mapped != null) return mapped;
-        } catch (Exception ignored) {}
+            if (!mapped.isEmpty()) return mapped;
+        } catch (Exception e) {
+            log.debug("Direct LRCLIB lookup failed for '{}': {}", title, e.getMessage());
+        }
 
         try {
             String query = cleanLyricsTerm(title + " " + (artist == null ? "" : artist)).trim();
-            if (query.isBlank()) return null;
+            if (query.isBlank()) return Map.of();
             ResponseEntity<Map[]> resp = rt.exchange(
                     "https://lrclib.net/api/search?q=" + enc(query),
                     HttpMethod.GET,
@@ -509,19 +520,19 @@ public class MusicController {
                     Map[].class
             );
             Map[] body = resp.getBody();
-            if (body == null || body.length == 0) return null;
+            if (body == null || body.length == 0) return Map.of();
             return java.util.Arrays.stream(body)
                     .filter(item -> item != null && hasAnyLyrics(item))
                     .min(Comparator.comparingInt(item -> lyricsDistance(item, title, artist, duration)))
                     .map(this::mapLrclibBody)
-                    .orElse(null);
+                    .orElseGet(Map::of);
         } catch (Exception ignored) {
-            return null;
+            return Map.of();
         }
     }
 
     private Map<String, Object> mapLrclibBody(Map body) {
-        if (body == null) return null;
+        if (body == null) return Map.of();
         Object syncedLyrics = body.get("syncedLyrics");
         Object plainLyrics = body.get("plainLyrics");
         if (syncedLyrics instanceof String synced && !synced.isBlank()) {
@@ -530,7 +541,7 @@ public class MusicController {
         if (plainLyrics instanceof String plain && !plain.isBlank()) {
             return Map.of("source", "lrclib_plain", "plain", plain);
         }
-        return null;
+        return Map.of();
     }
 
     private boolean hasAnyLyrics(Map item) {
@@ -561,11 +572,14 @@ public class MusicController {
                     + enc(cleanLyricsTerm(artist)).replace("+", "%20")
                     + "/" + enc(cleanLyricsTerm(title)).replace("+", "%20");
             ResponseEntity<Map> resp = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class);
-            if (resp.getBody() != null && resp.getBody().get("lyrics") instanceof String lyrics && !lyrics.isBlank()) {
+            Map body = resp.getBody();
+            if (body != null && body.get("lyrics") instanceof String lyrics && !lyrics.isBlank()) {
                 return Map.of("source", "lyrics_ovh", "plain", lyrics);
             }
-        } catch (Exception ignored) {}
-        return null;
+        } catch (Exception e) {
+            log.debug("lyrics.ovh lookup failed for '{} - {}': {}", artist, title, e.getMessage());
+        }
+        return Map.of();
     }
 
     private String cleanLyricsTerm(String value) {

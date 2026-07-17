@@ -1,7 +1,8 @@
 package com.EverLoad.everload.controller;
 
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * Forwards any GET request that doesn't match an API endpoint or a static
@@ -13,13 +14,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class SpaController {
 
-    @RequestMapping(value = {
+    @GetMapping(value = {
         "/",
         "/{path:[^\\.]*}",
         "/{path:[^\\.]*}/{sub:[^\\.]*}",
         "/{path:[^\\.]*}/{sub:[^\\.]*}/{deep:[^\\.]*}"
     })
-    public String forwardToAngular() {
+    public String forwardToAngular(
+            @PathVariable(required = false) String path,
+            @PathVariable(required = false) String sub,
+            @PathVariable(required = false) String deep) {
         return "forward:/index.html";
     }
 }

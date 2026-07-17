@@ -4,6 +4,7 @@ import com.EverLoad.everload.dto.AudioInfoDto;
 import com.EverLoad.everload.model.Download;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,8 @@ import java.util.*;
 public class AudioToolsService {
 
     private static final String DOWNLOADS_DIR = "./downloads/";
+    private static final String AUDIO_LABEL = "audio";
+    private static final String AUDIO_CODEC_OPTION = "-acodec";
     private static final long MAX_FILE_SIZE_BYTES = 500L * 1024 * 1024; // 500 MB
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "mp3", "m4a", "wav", "ogg", "aac", "flac", "opus", "wma", "mp4"
@@ -34,9 +37,15 @@ public class AudioToolsService {
 
     private final DownloadHistoryService downloadHistoryService;
 
+    @Value("${everload.ffmpeg.path:ffmpeg}")
+    private String ffmpegPath;
+
+    @Value("${everload.ffprobe.path:ffprobe}")
+    private String ffprobePath;
+
     // ── Public API ────────────────────────────────────────────────────────────
 
-    public AudioInfoDto getAudioInfo(MultipartFile file) throws IOException {
+    public AudioInfoDto getAudioInfo(MultipartFile file) {
         validateFile(file);
         String tempDir = createTempDir();
         File tempFile = saveToTempDir(file, tempDir);
@@ -59,13 +68,13 @@ public class AudioToolsService {
         File outputFile = new File(tempDir + outputName);
 
         List<String> cmd = buildConvertCommand(inputFile, outputFile, targetFormat, bitrate);
-        int exitCode = runFfmpeg(cmd, tempDir);
+        int exitCode = runFfmpeg(cmd);
         if (exitCode != 0 || !outputFile.exists()) {
             scheduleCleanup(tempDir);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
-        downloadHistoryService.recordDownload(new Download(outputName, "audio", "AudioTools"));
+        downloadHistoryService.recordDownload(new Download(outputName, AUDIO_LABEL, "AudioTools"));
         return sendFile(outputFile);
     }
 
@@ -86,44 +95,46 @@ public class AudioToolsService {
         File outputFile   = new File(tempDir + outputName);
 
         List<String> cmd = buildTrimCommand(inputFile, outputFile, startSec, endSec);
-        int exitCode = runFfmpeg(cmd, tempDir);
+        int exitCode = runFfmpeg(cmd);
         if (exitCode != 0 || !outputFile.exists()) {
             scheduleCleanup(tempDir);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
-        downloadHistoryService.recordDownload(new Download(outputName, "audio", "AudioTools"));
+        downloadHistoryService.recordDownload(new Download(outputName, AUDIO_LABEL, "AudioTools"));
         return sendFile(outputFile);
     }
 
     // ── Commands ──────────────────────────────────────────────────────────────
 
     private List<String> buildConvertCommand(File input, File output, String format, String bitrate) {
-        List<String> cmd = new ArrayList<>(Arrays.asList("ffmpeg", "-y", "-i", input.getAbsolutePath(), "-vn"));
+        List<String> cmd = new ArrayList<>(Arrays.asList(ffmpegPath, "-y", "-i", input.getAbsolutePath(), "-vn"));
 
         switch (format) {
             case "mp3":
-                cmd.addAll(Arrays.asList("-acodec", "libmp3lame"));
+                cmd.addAll(Arrays.asList(AUDIO_CODEC_OPTION, "libmp3lame"));
                 addBitrate(cmd, bitrate);
                 break;
             case "m4a":
-                cmd.addAll(Arrays.asList("-acodec", "aac"));
+                cmd.addAll(Arrays.asList(AUDIO_CODEC_OPTION, "aac"));
                 addBitrate(cmd, bitrate);
                 break;
             case "aac":
-                cmd.addAll(Arrays.asList("-acodec", "aac", "-f", "adts"));
+                cmd.addAll(Arrays.asList(AUDIO_CODEC_OPTION, "aac", "-f", "adts"));
                 addBitrate(cmd, bitrate);
                 break;
             case "ogg":
-                cmd.addAll(Arrays.asList("-acodec", "libvorbis"));
+                cmd.addAll(Arrays.asList(AUDIO_CODEC_OPTION, "libvorbis"));
                 addBitrate(cmd, bitrate);
                 break;
             case "wav":
-                cmd.addAll(Arrays.asList("-acodec", "pcm_s16le"));
+                cmd.addAll(Arrays.asList(AUDIO_CODEC_OPTION, "pcm_s16le"));
                 break;
             case "flac":
-                cmd.addAll(Arrays.asList("-acodec", "flac"));
+                cmd.addAll(Arrays.asList(AUDIO_CODEC_OPTION, "flac"));
                 break;
+            default:
+                throw new IllegalArgumentException("Unsupported output format: " + format);
         }
 
         cmd.add(output.getAbsolutePath());
@@ -132,7 +143,7 @@ public class AudioToolsService {
 
     private List<String> buildTrimCommand(File input, File output, double start, double end) {
         return Arrays.asList(
-                "ffmpeg", "-y",
+                ffmpegPath, "-y",
                 "-i", input.getAbsolutePath(),
                 "-ss", String.valueOf(start),
                 "-to", String.valueOf(end),
@@ -153,7 +164,7 @@ public class AudioToolsService {
     private AudioInfoDto probeAudioInfo(File file, String originalFilename) {
         try {
             ProcessBuilder pb = new ProcessBuilder(
-                    "ffprobe", "-v", "error",
+                    ffprobePath, "-v", "error",
                     "-show_entries", "format=duration,size,bit_rate,format_name",
                     "-show_entries", "stream=codec_name,sample_rate,channels",
                     "-of", "default=noprint_wrappers=1",
@@ -191,6 +202,14 @@ public class AudioToolsService {
                     .channels(channels)
                     .build();
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("ffprobe interrupted for file {}", file.getName());
+            return AudioInfoDto.builder()
+                    .filename(sanitizeName(originalFilename))
+                    .extension(getExtension(originalFilename))
+                    .fileSizeBytes(file.length())
+                    .build();
         } catch (Exception e) {
             log.error("ffprobe error for file {}: {}", file.getName(), e.getMessage());
             return AudioInfoDto.builder()
@@ -203,7 +222,7 @@ public class AudioToolsService {
 
     // ── FFmpeg runner ─────────────────────────────────────────────────────────
 
-    private int runFfmpeg(List<String> cmd, String tempDir) {
+    private int runFfmpeg(List<String> cmd) {
         log.info("▶ ffmpeg: {}", String.join(" ", cmd));
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
@@ -216,13 +235,19 @@ public class AudioToolsService {
                     while ((line = br.readLine()) != null) {
                         log.debug("ffmpeg: {}", line);
                     }
-                } catch (IOException ignored) {}
+                } catch (IOException e) {
+                    log.debug("Could not read ffmpeg output: {}", e.getMessage());
+                }
             }).start();
 
             int exit = proc.waitFor();
             if (exit != 0) log.warn("ffmpeg exited with code {}", exit);
             return exit;
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("ffmpeg interrupted");
+            return -1;
+        } catch (IOException e) {
             log.error("Error running ffmpeg: {}", e.getMessage());
             return -1;
         }
@@ -342,7 +367,10 @@ public class AudioToolsService {
                         .forEach(f -> {
                             if (!f.delete()) log.debug("Could not delete: {}", f.getAbsolutePath());
                         });
-            } catch (InterruptedException | IOException e) {
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Cleanup interrupted for {}", dirPath);
+            } catch (IOException e) {
                 log.warn("Cleanup failed for {}: {}", dirPath, e.getMessage());
             }
         }).start();
@@ -351,20 +379,20 @@ public class AudioToolsService {
     // ── String helpers ────────────────────────────────────────────────────────
 
     private String getExtension(String filename) {
-        if (filename == null) return "audio";
+        if (filename == null) return AUDIO_LABEL;
         int dot = filename.lastIndexOf('.');
-        return dot >= 0 ? filename.substring(dot + 1).toLowerCase() : "audio";
+        return dot >= 0 ? filename.substring(dot + 1).toLowerCase() : AUDIO_LABEL;
     }
 
     private String getBaseName(String filename) {
-        if (filename == null) return "audio";
+        if (filename == null) return AUDIO_LABEL;
         int dot = filename.lastIndexOf('.');
         String name = dot >= 0 ? filename.substring(0, dot) : filename;
         return sanitizeName(name);
     }
 
     private String sanitizeName(String name) {
-        if (name == null) return "audio";
+        if (name == null) return AUDIO_LABEL;
         return name.replaceAll("[^a-zA-Z0-9._\\-() ]", "_").trim();
     }
 

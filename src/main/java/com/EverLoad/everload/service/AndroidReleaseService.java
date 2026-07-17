@@ -22,6 +22,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AndroidReleaseService {
 
+    private static final String DEFAULT_APK_FILENAME = "everload.apk";
+    private static final String FILE_NAME_FIELD = "fileName";
+
     private final ObjectMapper objectMapper;
 
     @Value("${app.android.release-path:./android-release}")
@@ -34,7 +37,9 @@ public class AndroidReleaseService {
         long size = 0;
         try {
             if (available) size = Files.size(apk);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+            // Metadata remains usable even if the filesystem cannot report the APK size.
+        }
 
         return AndroidReleaseDto.builder()
                 .available(available)
@@ -42,7 +47,7 @@ public class AndroidReleaseService {
                 .versionCode(metadata.getOrDefault("versionCode", ""))
                 .minAndroidVersion(metadata.getOrDefault("minAndroidVersion", "Android 8.0+"))
                 .releaseNotes(metadata.getOrDefault("releaseNotes", ""))
-                .fileName(metadata.getOrDefault("fileName", available ? "everload.apk" : ""))
+                .fileName(metadata.getOrDefault(FILE_NAME_FIELD, available ? DEFAULT_APK_FILENAME : ""))
                 .sizeBytes(size)
                 .sizeFormatted(formatSize(size))
                 .uploadedAt(metadata.getOrDefault("uploadedAt", ""))
@@ -66,7 +71,7 @@ public class AndroidReleaseService {
         metadata.put("versionCode", safe(versionCode));
         metadata.put("minAndroidVersion", safe(minAndroidVersion).isBlank() ? "Android 8.0+" : safe(minAndroidVersion));
         metadata.put("releaseNotes", safe(releaseNotes));
-        metadata.put("fileName", originalName);
+        metadata.put(FILE_NAME_FIELD, originalName);
         metadata.put("uploadedAt", Instant.now().toString());
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(metadataPath().toFile(), metadata);
 
@@ -80,8 +85,8 @@ public class AndroidReleaseService {
     }
 
     public String getDownloadFileName() {
-        String fileName = sanitizeFileName(readMetadata().getOrDefault("fileName", "everload.apk"));
-        return fileName.toLowerCase().endsWith(".apk") ? fileName : "everload.apk";
+        String fileName = sanitizeFileName(readMetadata().getOrDefault(FILE_NAME_FIELD, DEFAULT_APK_FILENAME));
+        return fileName.toLowerCase().endsWith(".apk") ? fileName : DEFAULT_APK_FILENAME;
     }
 
     public void deleteRelease() throws IOException {
@@ -117,10 +122,10 @@ public class AndroidReleaseService {
 
     private String sanitizeFileName(String fileName) {
         String rawName = fileName == null ? "" : fileName.trim();
-        if (rawName.isBlank()) return "everload.apk";
+        if (rawName.isBlank()) return DEFAULT_APK_FILENAME;
         String safeName = Path.of(rawName).getFileName().toString().trim();
         safeName = safeName.replaceAll("[\\r\\n\\\"\\\\/]+", "-");
-        return safeName.isBlank() ? "everload.apk" : safeName;
+        return safeName.isBlank() ? DEFAULT_APK_FILENAME : safeName;
     }
 
     private String formatSize(long bytes) {

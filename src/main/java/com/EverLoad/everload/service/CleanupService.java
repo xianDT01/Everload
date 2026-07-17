@@ -99,14 +99,14 @@ public class CleanupService {
 
     @Transactional
     public Map<String, Object> trimPlaybackHistory(int daysToKeep) {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(daysToKeep);
+        LocalDateTime cutoff = LocalDateTime.now(java.time.ZoneId.systemDefault()).minusDays(daysToKeep);
         int removed = playbackHistoryRepo.deleteOlderThan(cutoff);
         return Map.of("removed", removed, "daysKept", daysToKeep);
     }
 
     @Transactional
     public Map<String, Object> trimAuditLogs(int daysToKeep) {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(daysToKeep);
+        LocalDateTime cutoff = LocalDateTime.now(java.time.ZoneId.systemDefault()).minusDays(daysToKeep);
         int removed = auditLogRepo.deleteOlderThan(cutoff);
         return Map.of("removed", removed, "daysKept", daysToKeep);
     }

@@ -3,6 +3,7 @@ package com.EverLoad.everload.service;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -27,12 +28,13 @@ class YtMusicCacheTest {
     }
 
     @Test
-    void getOrComputeReloadsExpiredEntries() throws Exception {
-        YtMusicCache<String, String> cache = new YtMusicCache<>(1, 10);
+    void getOrComputeReloadsExpiredEntries() {
+        AtomicLong now = new AtomicLong(1_000);
+        YtMusicCache<String, String> cache = new YtMusicCache<>(1, 10, now::get);
         AtomicInteger loads = new AtomicInteger();
 
         assertEquals("value-1", cache.getOrCompute("track", () -> "value-" + loads.incrementAndGet()));
-        Thread.sleep(5);
+        now.incrementAndGet();
 
         assertEquals("value-2", cache.getOrCompute("track", () -> "value-" + loads.incrementAndGet()));
         assertEquals(2, loads.get());

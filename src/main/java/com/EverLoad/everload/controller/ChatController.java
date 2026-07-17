@@ -20,7 +20,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -181,7 +180,7 @@ public class ChatController {
         User currentUser = getCurrentUser(userDetails);
         List<User> users = userRepository.findAll().stream()
                 .filter(u -> u.getStatus() == UserStatus.ACTIVE && !u.getId().equals(currentUser.getId()))
-                .collect(Collectors.toList());
+                .toList();
 
         List<Map<String, Object>> result = users.stream().map(u -> {
             Map<String, Object> info = new HashMap<>();
@@ -200,7 +199,7 @@ public class ChatController {
                 info.put("lastSeen", null);
             }
             return info;
-        }).collect(Collectors.toList());
+        }).toList();
 
         return ResponseEntity.ok(result);
     }

@@ -21,6 +21,8 @@ import java.time.Duration;
 @Service
 public class SystemInfoService {
 
+    private static final String UNKNOWN_COMMIT = "unknown";
+
     @Value("${app.version:1.0.0}")
     private String appVersion;
 
@@ -72,8 +74,7 @@ public class SystemInfoService {
         }
 
         try {
-            String githubToken = "";
-            try { githubToken = adminConfigService.getConfig().getOrDefault("githubToken", ""); } catch (Exception ignored) {}
+            String githubToken = loadGithubToken();
 
             HttpClient client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(8))
@@ -110,6 +111,15 @@ public class SystemInfoService {
                 return parseReleasesApiResponse(body);
             }
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("[UPDATE] Check interrupted");
+            return UpdateCheckDto.builder()
+                    .currentVersion(appVersion)
+                    .currentCommit(readDeployedCommit())
+                    .checkConfigured(true)
+                    .error("Comprobacion interrumpida")
+                    .build();
         } catch (Exception e) {
             log.warn("[UPDATE] Check failed: {}", e.getMessage());
             return UpdateCheckDto.builder()
@@ -118,6 +128,15 @@ public class SystemInfoService {
                     .checkConfigured(true)
                     .error(e.getMessage())
                     .build();
+        }
+    }
+
+    private String loadGithubToken() {
+        try {
+            return adminConfigService.getConfig().getOrDefault("githubToken", "");
+        } catch (Exception e) {
+            log.debug("GitHub token unavailable; checking updates anonymously: {}", e.getMessage());
+            return "";
         }
     }
 
@@ -149,7 +168,7 @@ public class SystemInfoService {
         if (shortMsg.length() > 80) shortMsg = shortMsg.substring(0, 80) + "…";
 
         boolean updateAvailable = !latestSha.isBlank()
-                && !deployedCommit.equals("unknown")
+                && !deployedCommit.equals(UNKNOWN_COMMIT)
                 && !latestSha.startsWith(deployedCommit)
                 && !deployedCommit.startsWith(latestShort);
 
@@ -198,10 +217,10 @@ public class SystemInfoService {
     private String readDeployedCommit() {
         try {
             ClassPathResource res = new ClassPathResource("git-commit.txt");
-            if (!res.exists()) return "unknown";
+            if (!res.exists()) return UNKNOWN_COMMIT;
             return new String(res.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
         } catch (Exception e) {
-            return "unknown";
+            return UNKNOWN_COMMIT;
         }
     }
 

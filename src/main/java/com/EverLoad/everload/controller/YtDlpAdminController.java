@@ -69,7 +69,11 @@ public class YtDlpAdminController {
                     "✅ yt-dlp actualizado.\n\nExit code: " + exitCode + "\n\nSalida:\n" + output
             );
 
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ResponseEntity.status(503)
+                    .body("Actualizacion de yt-dlp interrumpida");
+        } catch (IOException e) {
             return ResponseEntity.status(500)
                     .body("❌ Excepción al actualizar yt-dlp: " + e.getMessage());
         }

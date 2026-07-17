@@ -10,6 +10,7 @@ import com.EverLoad.everload.service.TokenRevocationService;
 import com.EverLoad.everload.service.YtMusicService;
 import com.EverLoad.everload.service.YtMusicTransportException;
 import com.EverLoad.everload.service.YtStreamUnavailableException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,10 +21,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -142,6 +146,19 @@ class YtMusicControllerTest {
                 .andExpect(jsonPath("$.url").value("https://example.test/audio"))
                 .andExpect(jsonPath("$.format").value("m4a"))
                 .andExpect(jsonPath("$.resolvedBy").value("test"));
+    }
+
+    @Test
+    void audioProxyReturns503AndRestoresInterruptFlag() throws Exception {
+        when(ytMusicService.isEnabled()).thenReturn(true);
+        doThrow(new InterruptedException("cancelled"))
+                .when(ytMusicService).streamAudioToResponse(
+                        eq("video_123"), isNull(), any(HttpServletResponse.class));
+
+        mvc.perform(get("/api/ytmusic/stream/video_123/audio"))
+                .andExpect(status().isServiceUnavailable());
+
+        assertTrue(Thread.interrupted());
     }
 
     private void verifyNoInteractionsExceptEnabled() {

@@ -35,12 +35,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MusicService {
+
+    private static final byte[] NO_COVER_ART = new byte[0];
 
     private final NasService nasService;
     private final NasPathRepository nasPathRepository;
@@ -66,9 +67,18 @@ public class MusicService {
     private static final long DIRECTORY_LISTING_CACHE_TTL_MS = 15_000L;
     private static final int DIRECTORY_LISTING_CACHE_MAX = 512;
     private static final int METADATA_WARMUP_LIMIT_PER_PAGE = 80;
+    private static final String INDEXING_FIELD = "indexing";
+    private static final String CONTENT_RANGE_HEADER = "Content-Range";
+    private static final String CACHE_KEY_SEPARATOR = "\u0000";
 
     @Value("${avatar.storage.path:./avatars}")
     private String avatarStoragePath;
+
+    @Value("${everload.ytdlp.path:yt-dlp}")
+    private String ytDlpPath;
+
+    @Value("${everload.ffmpeg.path:ffmpeg}")
+    private String ffmpegPath;
 
     private final Map<String, CachedDirectoryListing> directoryListingCache = new ConcurrentHashMap<>();
     private final Map<String, Optional<String>> artistImageLookupCache = new ConcurrentHashMap<>();
@@ -102,11 +112,11 @@ public class MusicService {
 
         List<MusicMetadataDto> withCovers = candidates.stream()
                 .filter(MusicMetadataDto::isHasCover)
-                .collect(Collectors.toList());
+                .toList();
 
         List<MusicMetadataDto> pool = withCovers.isEmpty() ? candidates : withCovers;
         Collections.shuffle(pool);
-        return pool.stream().limit(count).collect(Collectors.toList());
+        return pool.stream().limit(count).toList();
     }
 
     public Map<String, Object> getLibraryOverview(Long pathId, int limit) {
@@ -114,7 +124,7 @@ public class MusicService {
                 .findOverviewSlice(pathId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)))
                 .stream()
                 .map(this::dtoFromCache)
-                .collect(Collectors.toList());
+                .toList();
 
         if (tracks.isEmpty()) {
             startLibraryIndex(pathId);
@@ -122,7 +132,7 @@ public class MusicService {
 
         return Map.of(
                 "tracks", tracks,
-                "indexing", libraryIndexInFlight.contains(pathId)
+                INDEXING_FIELD, libraryIndexInFlight.contains(pathId)
         );
     }
 
@@ -131,7 +141,7 @@ public class MusicService {
                 .findByNasPathIdOrderByLastModifiedDesc(pathId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)))
                 .stream()
                 .map(this::dtoFromCache)
-                .collect(Collectors.toList());
+                .toList();
 
         if (tracks.isEmpty()) {
             startLibraryIndex(pathId);
@@ -147,7 +157,7 @@ public class MusicService {
         }
 
         if (!libraryIndexInFlight.add(pathId)) {
-            return Map.of("started", false, "indexing", true);
+            return Map.of("started", false, INDEXING_FIELD, true);
         }
 
         metadataExecutor.submit(() -> {
@@ -158,7 +168,7 @@ public class MusicService {
             }
         });
 
-        return Map.of("started", true, "indexing", true);
+        return Map.of("started", true, INDEXING_FIELD, true);
     }
 
     public List<MusicMetadataDto> getCachedTracksByArtist(Long pathId, String artist, List<String> aliases, int limit) {
@@ -171,7 +181,7 @@ public class MusicService {
                     .filter(a -> !a.isBlank())
                     .forEach(keys::add);
         }
-        keys = keys.stream().filter(k -> !k.isBlank()).distinct().collect(Collectors.toList());
+        keys = keys.stream().filter(k -> !k.isBlank()).distinct().toList();
         if (keys.isEmpty()) return Collections.emptyList();
 
         List<String> finalKeys = keys;
@@ -180,10 +190,10 @@ public class MusicService {
                 .sorted(Comparator
                         .comparing((TrackMetadataCache c) -> safeLower(c.getAlbum()))
                         .thenComparing(c -> safeLower(c.getTitle()))
-                        .thenComparing(c -> safeLower(c.getRelativePath())))
+                .thenComparing(c -> safeLower(c.getRelativePath())))
                 .limit(Math.max(1, limit))
                 .map(this::dtoFromCache)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Map<String, Object> clearMemoryCaches() {
@@ -207,8 +217,8 @@ public class MusicService {
             return Map.of("found", false);
         }
 
-        Optional<String> inCache = artistImageLookupCache.get(normalized);
-        if (inCache != null) {
+        if (artistImageLookupCache.containsKey(normalized)) {
+            Optional<String> inCache = artistImageLookupCache.getOrDefault(normalized, Optional.empty());
             return inCache.<Map<String, Object>>map(url -> Map.of("found", true, "imageUrl", url))
                     .orElseGet(() -> Map.of("found", false));
         }
@@ -262,7 +272,9 @@ public class MusicService {
                     }
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Automatic artist image lookup failed for {}: {}", normalized, e.getMessage());
+        }
 
         artistImageLookupFailures.put(normalized, System.currentTimeMillis());
         return Map.of("found", false);
@@ -277,7 +289,9 @@ public class MusicService {
             if (!target.startsWith(dir)) return "";
             Files.write(target, bytes);
             return "/api/music/artist-auto-image/" + filename;
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Could not persist artist image {}: {}", filename, e.getMessage());
+        }
         return "";
     }
 
@@ -329,9 +343,13 @@ public class MusicService {
                             String local = downloadAlbumCoverImage(bytes, safeFilename, coverDir);
                             if (!local.isBlank()) return Optional.of(local);
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception e) {
+                        log.debug("Local album cover lookup failed: {}", e.getMessage());
+                    }
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.debug("Album cover provider lookup failed: {}", e.getMessage());
+            }
             return Optional.empty();
         });
 
@@ -347,7 +365,9 @@ public class MusicService {
             if (!target.startsWith(dir)) return "";
             Files.write(target, bytes);
             return "/api/music/album-auto-cover/" + filename;
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Could not persist album cover {}: {}", filename, e.getMessage());
+        }
         return "";
     }
 
@@ -371,7 +391,9 @@ public class MusicService {
                     removed++;
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Automatic image cleanup was incomplete: {}", e.getMessage());
+        }
         return removed;
     }
 
@@ -393,9 +415,11 @@ public class MusicService {
         try {
             List<TrackMetadataCache> stale = metadataCacheRepo.findByNasPathId(pathId).stream()
                     .filter(entry -> !foundPaths.contains(entry.getRelativePath()))
-                    .collect(Collectors.toList());
+                    .toList();
             if (!stale.isEmpty()) metadataCacheRepo.deleteAll(stale);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Could not prune stale metadata for NAS path {}: {}", pathId, e.getMessage());
+        }
     }
 
     private void collectAudioFiles(File dir, Long pathId, Path base, List<MusicMetadataDto> out, int maxDepth, int maxFiles) {
@@ -476,24 +500,26 @@ public class MusicService {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    /** Returns raw bytes of the embedded cover art, or null if not present. */
+    /** Returns raw bytes of the embedded cover art, or an empty array if not present. */
     public byte[] getCoverArt(Long pathId, String relativePath) {
         File file = resolveFile(pathId, relativePath);
-        if (!isAudio(file)) return null;
+        if (!isAudio(file)) return NO_COVER_ART;
         try {
             AudioFile af = AudioFileIO.read(file);
             Tag tag = af.getTag();
             if (tag != null && tag.getFirstArtwork() != null) {
                 return tag.getFirstArtwork().getBinaryData();
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Embedded cover could not be read from {}: {}", file.getName(), e.getMessage());
+        }
         // Fallback: look for cover image in the same directory
         File dir = file.getParentFile();
         if (dir != null && dir.isDirectory()) {
             byte[] fallback = readCoverImageFile(dir);
             if (fallback != null) return fallback;
         }
-        return null;
+        return NO_COVER_ART;
     }
 
     /** Returns cover art bytes for a folder, with priority:
@@ -504,14 +530,14 @@ public class MusicService {
     public byte[] getFolderCoverArt(Long pathId, String relativePath) {
         Path target = nasService.resolveValidatedPath(pathId, relativePath);
         File dir = target.toFile();
-        if (!dir.exists() || !dir.isDirectory() || !dir.canRead()) return null;
+        if (!dir.exists() || !dir.isDirectory() || !dir.canRead()) return NO_COVER_ART;
 
         // 1. Explicit cover image file
         byte[] explicit = readCoverImageFile(dir);
-        if (explicit != null) return explicit;
+        if (explicit.length > 0) return explicit;
 
         File[] files = dir.listFiles();
-        if (files == null) return null;
+        if (files == null) return NO_COVER_ART;
 
         // 2. Embedded art from audio files at root of folder
         for (File f : files) {
@@ -526,7 +552,7 @@ public class MusicService {
         for (File sub : files) {
             if (!sub.isDirectory() || !sub.canRead()) continue;
             byte[] explicit2 = readCoverImageFile(sub);
-            if (explicit2 != null) return explicit2;
+            if (explicit2.length > 0) return explicit2;
             File[] subFiles = sub.listFiles();
             if (subFiles == null) continue;
             for (File f : subFiles) {
@@ -537,7 +563,7 @@ public class MusicService {
                 }
             }
         }
-        return null;
+        return NO_COVER_ART;
     }
 
     private byte[] readCoverImageFile(File dir) {
@@ -545,10 +571,12 @@ public class MusicService {
             File img = new File(dir, name);
             if (img.exists() && img.isFile() && img.canRead()) {
                 try { return java.nio.file.Files.readAllBytes(img.toPath()); }
-                catch (IOException ignored) {}
+                catch (IOException e) {
+                    log.debug("Cover image {} could not be read: {}", img.getName(), e.getMessage());
+                }
             }
         }
-        return null;
+        return NO_COVER_ART;
     }
 
     private String buildSubPath(String base, String name) {
@@ -575,7 +603,7 @@ public class MusicService {
         }
 
         String[] cmd = {
-            "yt-dlp",
+            ytDlpPath,
             "--js-runtimes", "nodejs",
             "--ignore-errors",
             "-x", "--audio-format", "mp3", "--audio-quality", "0",
@@ -627,7 +655,10 @@ public class MusicService {
 
             log.info("[DJ Cache] ✅ Listo: {} ({} bytes)", outputFile.getName(), outputFile.length());
 
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Descarga de DJ Cache interrumpida", e);
+        } catch (IOException e) {
             throw new RuntimeException("Fallo al ejecutar yt-dlp para DJ Cache", e);
         }
     }
@@ -667,20 +698,29 @@ public class MusicService {
             } else {
                 // Serve original immediately — start background transcode for next play
                 streamFileToResponse(file, rangeHeader, response);
-                String jobKey = cached.getName();
-                if (transcoding.add(jobKey)) {
-                    final int bps = bitrateKbps;
-                    transcodePool.submit(() -> {
-                        try { transcodeToOggOpus(file, cached, bps); }
-                        catch (Exception ex) { log.warn("Background transcode failed for {}: {}", file.getName(), ex.getMessage()); }
-                        finally { transcoding.remove(jobKey); }
-                    });
-                }
+                startBackgroundTranscode(file, cached, bitrateKbps);
             }
         } catch (Exception e) {
             log.warn("Stream with quality failed for {}, falling back to original: {}", file.getName(), e.getMessage());
             streamFileToResponse(file, rangeHeader, response);
         }
+    }
+
+    private void startBackgroundTranscode(File file, File cached, int bitrateKbps) {
+        String jobKey = cached.getName();
+        if (!transcoding.add(jobKey)) return;
+        transcodePool.submit(() -> {
+            try {
+                transcodeToOggOpus(file, cached, bitrateKbps);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                log.warn("Background transcode interrupted for {}", file.getName());
+            } catch (Exception ex) {
+                log.warn("Background transcode failed for {}: {}", file.getName(), ex.getMessage());
+            } finally {
+                transcoding.remove(jobKey);
+            }
+        });
     }
 
     private File getTranscodeCache(Long pathId, String relativePath, String quality) {
@@ -699,7 +739,7 @@ public class MusicService {
     private void transcodeToOggOpus(File input, File output, int bitrateKbps) throws IOException, InterruptedException {
         File tmp = new File(output.getPath() + ".tmp");
         String[] cmd = {
-            "ffmpeg", "-y",
+            ffmpegPath, "-y",
             "-i", input.getAbsolutePath(),
             "-vn",
             "-c:a", "libopus",
@@ -712,7 +752,10 @@ public class MusicService {
         Process p = new ProcessBuilder(cmd).redirectErrorStream(true).start();
         p.getInputStream().transferTo(OutputStream.nullOutputStream());
         int exit = p.waitFor();
-        if (exit != 0 || !tmp.exists()) { tmp.delete(); throw new IOException("ffmpeg exit=" + exit); }
+        if (exit != 0 || !tmp.exists()) {
+            Files.deleteIfExists(tmp.toPath());
+            throw new IOException("ffmpeg exit=" + exit);
+        }
         Files.move(tmp.toPath(), output.toPath(), StandardCopyOption.REPLACE_EXISTING);
         log.info("Transcoded {} → {}kbps Opus ({}MB)", input.getName(), bitrateKbps, output.length() / 1_048_576);
     }
@@ -730,8 +773,19 @@ public class MusicService {
         File[] files = dir.listFiles();
         if (files == null) return;
         int deleted = 0;
-        for (File f : files) { if (f.lastModified() < cutoff) { f.delete(); deleted++; } }
+        for (File f : files) {
+            if (f.lastModified() < cutoff && deleteCacheFile(f.toPath())) deleted++;
+        }
         if (deleted > 0) log.info("Transcode cache: deleted {} stale files", deleted);
+    }
+
+    private boolean deleteCacheFile(Path path) {
+        try {
+            return Files.deleteIfExists(path);
+        } catch (IOException e) {
+            log.debug("Could not delete stale transcode {}", path, e);
+            return false;
+        }
     }
 
     // ── Core streaming ────────────────────────────────────────────────────────
@@ -779,7 +833,7 @@ public class MusicService {
                 partial = true;
             } catch (NumberFormatException e) {
                 response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
-                response.setHeader("Content-Range", "bytes */" + fileLength);
+                response.setHeader(CONTENT_RANGE_HEADER, "bytes */" + fileLength);
                 response.setContentLengthLong(0);
                 return;
             }
@@ -787,14 +841,14 @@ public class MusicService {
 
         if (fileLength <= 0 || start < 0 || start >= fileLength || end < start) {
             response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
-            response.setHeader("Content-Range", "bytes */" + fileLength);
+            response.setHeader(CONTENT_RANGE_HEADER, "bytes */" + fileLength);
             response.setContentLengthLong(0);
             return;
         }
 
         if (partial) {
             response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-            response.setHeader("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
+            response.setHeader(CONTENT_RANGE_HEADER, "bytes " + start + "-" + end + "/" + fileLength);
         } else {
             response.setStatus(HttpServletResponse.SC_OK);
         }
@@ -891,9 +945,12 @@ public class MusicService {
                     continue;
                 }
 
-                String query = !existingTitle.isBlank()
-                        ? ((existingArtist.isBlank() || suspiciousArtist) ? existingTitle : existingArtist + " " + existingTitle)
-                        : stripExtension(file.getName());
+                String query = stripExtension(file.getName());
+                if (!existingTitle.isBlank()) {
+                    query = existingArtist.isBlank() || suspiciousArtist
+                            ? existingTitle
+                            : existingArtist + " " + existingTitle;
+                }
                 YoutubeMetadata metadata = lookupYoutubeMetadata(query);
                 if (metadata == null || metadata.title().isBlank()) {
                     skipped++;
@@ -971,7 +1028,7 @@ public class MusicService {
                     .trim();
 
             ProcessBuilder pb = new ProcessBuilder(
-                    "yt-dlp",
+                    ytDlpPath,
                     "--js-runtimes", "nodejs",
                     "--flat-playlist",
                     "--print", "%(title)s\t%(uploader)s\t%(id)s",
@@ -1008,6 +1065,9 @@ public class MusicService {
             parsedArtist = cleanYoutubeArtist(parsedArtist);
             String album = parsedArtist.isBlank() ? "YouTube" : parsedArtist;
             return new YoutubeMetadata(parsedTitle, parsedArtist, album, videoId, channelName, rawTitle);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         } catch (Exception e) {
             return null;
         }
@@ -1057,14 +1117,12 @@ public class MusicService {
             entry.setHasCover(tag != null && tag.getFirstArtwork() != null);
             if (tag != null) {
                 String bpmStr = tag.getFirst(FieldKey.BPM);
-                int bpm = 0;
-                if (bpmStr != null && !bpmStr.isBlank()) {
-                    try { bpm = Integer.parseInt(bpmStr.trim()); } catch (NumberFormatException ignored) {}
-                }
-                entry.setBpm(bpm);
+                entry.setBpm(parseBpm(bpmStr));
             }
             metadataCacheRepo.save(entry);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Metadata cache update failed for {}: {}", relativePath, e.getMessage());
+        }
     }
 
     private record YoutubeMetadata(String title, String artist, String album, String videoId, String channelName, String rawTitle) {}
@@ -1090,7 +1148,9 @@ public class MusicService {
                 af.setTag(tag);
                 AudioFileIO.write(af);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Could not write audio metadata to {}: {}", file.getName(), e.getMessage());
+        }
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
@@ -1118,7 +1178,7 @@ public class MusicService {
                 String tb = normalizeSearchText(b.getKey().getTitle() != null ? b.getKey().getTitle() : "");
                 return ta.compareTo(tb);
             });
-            return scored.stream().limit(Math.max(1, limit)).map(Map.Entry::getKey).collect(Collectors.toList());
+            return scored.stream().limit(Math.max(1, limit)).map(Map.Entry::getKey).toList();
         }
 
         // ── Slow fallback: filesystem scan (library not yet indexed) ──
@@ -1176,7 +1236,7 @@ public class MusicService {
                     dto.setNasPathId(pathId);
                     return dto;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void collectAudioFilesForSearch(File dir, List<File> results, int limit) {
@@ -1254,7 +1314,7 @@ public class MusicService {
         return Arrays.stream(normalized.split("\\s+"))
                 .filter(token -> token.length() > 1 || normalized.length() == 1)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private String normalizeSearchText(String text) {
@@ -1269,6 +1329,7 @@ public class MusicService {
     }
 
     private List<String> artistParts(String artist) {
+        if (artist == null) return Collections.emptyList();
         String full = normalizeSearchText(artist);
         if (full.isBlank()) return Collections.emptyList();
         List<String> parts = new ArrayList<>();
@@ -1277,7 +1338,7 @@ public class MusicService {
                 .map(this::normalizeSearchText)
                 .filter(part -> !part.isBlank())
                 .forEach(parts::add);
-        return parts.stream().distinct().collect(Collectors.toList());
+        return parts.stream().distinct().toList();
     }
 
     private String stringValue(Object value) {
@@ -1351,7 +1412,9 @@ public class MusicService {
             if (java.nio.file.Files.exists(lrcPath) && java.nio.file.Files.isReadable(lrcPath)) {
                 return java.nio.file.Files.readString(lrcPath, java.nio.charset.StandardCharsets.UTF_8);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.debug("Could not read lyrics sidecar: {}", e.getMessage());
+        }
         return null;
     }
 
@@ -1449,9 +1512,7 @@ public class MusicService {
                 String y  = tag.getFirst(FieldKey.YEAR);   if (y  != null) year   = y;
                 String bpmStr = tag.getFirst(FieldKey.BPM);
                 hasCover = tag.getFirstArtwork() != null;
-                if (bpmStr != null && !bpmStr.isBlank()) {
-                    try { bpm = Integer.parseInt(bpmStr.trim()); } catch (NumberFormatException ignored) {}
-                }
+                bpm = parseBpm(bpmStr);
             }
 
             String finalTitle = (title != null && !title.isBlank()) ? title : stripExtension(f.getName());
@@ -1470,7 +1531,7 @@ public class MusicService {
                 entry.setDuration(duration);
                 entry.setHasCover(hasCover);
                 entry.setBpm(bpm);
-                try { metadataCacheRepo.save(entry); } catch (Exception ignored) {}
+                saveScannedMetadata(entry);
             }
 
         } catch (Exception e) {
@@ -1478,6 +1539,23 @@ public class MusicService {
         }
 
         return b.build();
+    }
+
+    private int parseBpm(String bpm) {
+        if (bpm == null || bpm.isBlank()) return 0;
+        try {
+            return Integer.parseInt(bpm.trim());
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    private void saveScannedMetadata(TrackMetadataCache entry) {
+        try {
+            metadataCacheRepo.save(entry);
+        } catch (Exception e) {
+            log.debug("Could not cache scanned track metadata: {}", e.getMessage());
+        }
     }
 
     private CachedDirectoryListing getCachedDirectoryListing(Long pathId, String subPath, File dir) {
@@ -1529,7 +1607,7 @@ public class MusicService {
             TrackMetadataCache cached = cacheMap.get(relPath);
             if (validCache(cached, file) != null) continue;
 
-            String key = pathId + "\u0000" + relPath + "\u0000" + file.lastModified();
+            String key = pathId + CACHE_KEY_SEPARATOR + relPath + CACHE_KEY_SEPARATOR + file.lastModified();
             if (!metadataWarmupInFlight.add(key)) continue;
 
             scheduled++;
@@ -1544,7 +1622,8 @@ public class MusicService {
     }
 
     private String directoryListingKey(Long pathId, String subPath, File dir) {
-        return pathId + "\u0000" + (subPath == null ? "" : subPath) + "\u0000" + dir.getAbsolutePath();
+        return pathId + CACHE_KEY_SEPARATOR + (subPath == null ? "" : subPath)
+                + CACHE_KEY_SEPARATOR + dir.getAbsolutePath();
     }
 
     private void trimDirectoryListingCacheIfNeeded() {
@@ -1560,7 +1639,7 @@ public class MusicService {
     private Map<String, TrackMetadataCache> batchFetchCache(Long pathId, List<File> files, Path base) {
         List<String> paths = files.stream()
                 .map(f -> base.relativize(f.toPath()).toString().replace("\\", "/"))
-                .collect(Collectors.toList());
+                .toList();
         return metadataCacheRepo.findByNasPathIdAndRelativePathIn(pathId, paths)
                 .stream()
                 .collect(Collectors.toMap(TrackMetadataCache::getRelativePath, c -> c));

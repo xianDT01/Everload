@@ -1,6 +1,7 @@
 package com.EverLoad.everload.service;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 /**
@@ -25,14 +26,20 @@ public final class YtMusicCache<K, V> {
     private final ConcurrentHashMap<K, Entry<V>> store = new ConcurrentHashMap<>();
     private final long ttlMillis;
     private final int maxEntries;
+    private final LongSupplier currentTimeMillis;
 
     public YtMusicCache(long ttlMillis, int maxEntries) {
+        this(ttlMillis, maxEntries, System::currentTimeMillis);
+    }
+
+    YtMusicCache(long ttlMillis, int maxEntries, LongSupplier currentTimeMillis) {
         this.ttlMillis = ttlMillis;
         this.maxEntries = maxEntries;
+        this.currentTimeMillis = currentTimeMillis;
     }
 
     public V getOrCompute(K key, Supplier<V> loader) {
-        long now = System.currentTimeMillis();
+        long now = currentTimeMillis.getAsLong();
         Entry<V> existing = store.get(key);
         if (existing != null && !existing.isExpired(now)) {
             return existing.value();

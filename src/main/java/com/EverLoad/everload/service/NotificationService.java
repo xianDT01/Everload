@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +39,7 @@ public class NotificationService {
                 .stream()
                 .limit(50)
                 .map(this::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -67,7 +66,7 @@ public class NotificationService {
     public void createForAllActiveUsers(String type, String title, String message) {
         List<User> activeUsers = userRepository.findAll().stream()
                 .filter(u -> u.getStatus() == UserStatus.ACTIVE)
-                .collect(Collectors.toList());
+                .toList();
         for (User user : activeUsers) {
             createNotification(user, type, title, message, null);
         }

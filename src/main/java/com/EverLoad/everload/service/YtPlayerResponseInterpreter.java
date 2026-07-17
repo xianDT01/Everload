@@ -93,10 +93,10 @@ final class YtPlayerResponseInterpreter {
             if (mimeType == null || url == null || !mimeType.startsWith("audio/")) {
                 continue;
             }
-            if (mimeType.contains("webm")) {
-                if (webm == null) webm = format;
-            } else if (mimeType.contains("mp4")) {
-                if (m4a == null) m4a = format;
+            if (mimeType.contains("webm") && webm == null) {
+                webm = format;
+            } else if (mimeType.contains("mp4") && m4a == null) {
+                m4a = format;
             }
         }
         return webm != null ? webm : m4a;

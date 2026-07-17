@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { ApiBaseService } from '../../services/api-base.service';
 import { Router } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 
 interface ProfileData {
   id: number;
@@ -66,7 +67,8 @@ export class UserProfileComponent implements OnInit {
     private http: HttpClient,
     public authService: AuthService,
     private apiBase: ApiBaseService,
-    private router: Router
+    private router: Router,
+    private translate: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -81,7 +83,7 @@ export class UserProfileComponent implements OnInit {
         this.editEmail = data.email;
         this.showLastSeen = data.showLastSeen !== false; // default true
       },
-      error: () => this.profileError = 'Error al cargar el perfil'
+      error: () => this.profileError = this.translate.instant('PROFILE.ERROR_LOAD')
     });
   }
 
@@ -107,7 +109,7 @@ export class UserProfileComponent implements OnInit {
 
   saveProfile(): void {
     if (!this.editUsername.trim() || !this.editEmail.trim()) {
-      this.profileError = 'El nombre y el email no pueden estar vacíos';
+      this.profileError = this.translate.instant('PROFILE.ERROR_USERNAME_EMAIL_REQUIRED');
       return;
     }
     this.savingProfile = true;
@@ -120,15 +122,15 @@ export class UserProfileComponent implements OnInit {
     }).subscribe({
       next: res => {
         this.profile = { ...this.profile!, username: res.user.username, email: res.user.email };
-        this.profileMsg = 'Perfil actualizado correctamente';
+        this.profileMsg = this.translate.instant('PROFILE.UPDATED');
         this.savingProfile = false;
 
         // Update stored user and refresh JWT so subsequent requests work with the new username
         this.authService.updateStoredUser({ username: res.user.username, email: res.user.email });
         this.authService.updateToken(res.newToken);
       },
-      error: err => {
-        this.profileError = err.error?.error || 'Error al actualizar el perfil';
+      error: () => {
+        this.profileError = this.translate.instant('PROFILE.ERROR_UPDATE');
         this.savingProfile = false;
       }
     });
@@ -139,15 +141,15 @@ export class UserProfileComponent implements OnInit {
     this.passwordError = '';
 
     if (!this.currentPassword || !this.newPassword || !this.confirmPassword) {
-      this.passwordError = 'Rellena todos los campos';
+      this.passwordError = this.translate.instant('PROFILE.ERROR_ALL_FIELDS_REQUIRED');
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
-      this.passwordError = 'Las contraseñas nuevas no coinciden';
+      this.passwordError = this.translate.instant('PROFILE.ERROR_PASSWORDS_MISMATCH');
       return;
     }
     if (this.newPassword.length < 6) {
-      this.passwordError = 'La nueva contraseña debe tener al menos 6 caracteres';
+      this.passwordError = this.translate.instant('PROFILE.ERROR_PASSWORD_MIN_LENGTH');
       return;
     }
 
@@ -156,15 +158,15 @@ export class UserProfileComponent implements OnInit {
       currentPassword: this.currentPassword,
       newPassword: this.newPassword
     }).subscribe({
-      next: res => {
-        this.passwordMsg = res.message;
+      next: () => {
+        this.passwordMsg = this.translate.instant('PROFILE.PASSWORD_UPDATED');
         this.currentPassword = '';
         this.newPassword = '';
         this.confirmPassword = '';
         this.savingPassword = false;
       },
-      error: err => {
-        this.passwordError = err.error?.error || 'Error al cambiar la contraseña';
+      error: () => {
+        this.passwordError = this.translate.instant('PROFILE.ERROR_PASSWORD_UPDATE');
         this.savingPassword = false;
       }
     });
@@ -187,8 +189,8 @@ export class UserProfileComponent implements OnInit {
         this.avatarLoading = false;
         input.value = '';
       },
-      error: err => {
-        this.avatarError = err.error?.error || 'Error al subir la imagen';
+      error: () => {
+        this.avatarError = this.translate.instant('PROFILE.ERROR_AVATAR_UPLOAD');
         this.avatarLoading = false;
         input.value = '';
       }
@@ -203,7 +205,7 @@ export class UserProfileComponent implements OnInit {
         this.avatarLoading = false;
       },
       error: () => {
-        this.avatarError = 'Error al eliminar el avatar';
+        this.avatarError = this.translate.instant('PROFILE.ERROR_AVATAR_REMOVE');
         this.avatarLoading = false;
       }
     });
@@ -216,12 +218,12 @@ export class UserProfileComponent implements OnInit {
       showLastSeen: this.showLastSeen
     }).subscribe({
       next: () => {
-        this.privacyMsg = 'Privacidad actualizada correctamente';
+        this.privacyMsg = this.translate.instant('PROFILE.PRIVACY_UPDATED');
         this.savingPrivacy = false;
         if (this.profile) this.profile.showLastSeen = this.showLastSeen;
       },
       error: () => {
-        this.privacyMsg = 'Error al guardar la configuración';
+        this.privacyMsg = this.translate.instant('PROFILE.ERROR_PRIVACY_UPDATE');
         this.savingPrivacy = false;
       }
     });

@@ -22,6 +22,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class BackupController {
 
+    private static final String DATABASE_COMPONENT = "Database";
+
     private final BackupService backupService;
     private final AuditLogService auditLogService;
 
@@ -44,7 +46,7 @@ public class BackupController {
         try {
             BackupType type = parseBackupType(body != null ? body.get("type") : null);
             BackupDto dto = backupService.createBackup(type);
-            auditLogService.log("BACKUP_CREATED", "Database", dto.getName(),
+            auditLogService.log("BACKUP_CREATED", DATABASE_COMPONENT, dto.getName(),
                     "Tipo: " + dto.getType() + " | Tamano: " + dto.getSizeFormatted());
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
@@ -70,7 +72,7 @@ public class BackupController {
         }
         try {
             backupService.restore(filename);
-            auditLogService.log("BACKUP_RESTORED", "Database", filename,
+            auditLogService.log("BACKUP_RESTORED", DATABASE_COMPONENT, filename,
                     "Copia restaurada correctamente");
             log.warn("[BACKUP] Database restored from {}. Sessions may be stale — advise re-login.", filename);
             return ResponseEntity.ok(Map.of(
@@ -90,7 +92,7 @@ public class BackupController {
     public ResponseEntity<?> delete(@PathVariable String filename) {
         try {
             backupService.delete(filename);
-            auditLogService.log("BACKUP_DELETED", "Database", filename, null);
+            auditLogService.log("BACKUP_DELETED", DATABASE_COMPONENT, filename, null);
             return ResponseEntity.ok(Map.of("success", true));
         } catch (Exception e) {
             log.error("[BACKUP] Delete failed: {}", e.getMessage());

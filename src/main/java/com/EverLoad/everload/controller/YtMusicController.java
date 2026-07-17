@@ -203,6 +203,10 @@ public class YtMusicController {
         }
         try {
             ytMusicService.streamAudioToResponse(videoId, rangeHeader, response);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Stream proxy interrumpido para {}", videoId);
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         } catch (YtStreamUnavailableException e) {
             log.info("Stream proxy no disponible para {}: {}", videoId, e.resolverFailures());
             response.setStatus(HttpServletResponse.SC_CONFLICT);

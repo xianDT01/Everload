@@ -3,13 +3,17 @@ package com.EverLoad.everload.service;
 import com.EverLoad.everload.dto.BackupDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.h2.tools.RunScript;
+import org.h2.tools.Script;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Connection;
@@ -18,6 +22,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,11 +30,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 @Slf4j
 @Service
 public class BackupService {
+
+    private static final String BACKUP_PREFIX = "backup_";
 
     public enum BackupType {
         QUICK,
@@ -79,9 +87,10 @@ public class BackupService {
     public BackupDto createBackup(BackupType type) throws Exception {
         BackupType backupType = type == null ? BackupType.QUICK : type;
         Path dir = ensureBackupDir();
-        String filename = "backup_" + backupType.name().toLowerCase() + "_" + LocalDateTime.now().format(TS_FMT) + ".zip";
+        String filename = BACKUP_PREFIX + backupType.name().toLowerCase() + "_"
+                + LocalDateTime.now(java.time.ZoneId.systemDefault()).format(TS_FMT) + ".zip";
         Path dest = dir.resolve(filename);
-        Path tempDb = Files.createTempFile("everload-db-backup-", ".zip");
+        Path tempDb = Files.createTempFile(dir, ".everload-db-backup-", ".zip");
 
         try {
             createDatabaseScript(tempDb);
@@ -111,7 +120,7 @@ public class BackupService {
             return;
         }
 
-        Path tempDir = Files.createTempDirectory("everload-restore-");
+        Path tempDir = Files.createTempDirectory(ensureBackupDir(), ".everload-restore-");
         try {
             restoreCompositeBackup(backupFile, tempDir);
         } finally {
@@ -123,11 +132,11 @@ public class BackupService {
         Path dir = ensureBackupDir();
         try (var stream = Files.list(dir)) {
             return stream
-                    .filter(p -> p.getFileName().toString().startsWith("backup_")
+                    .filter(p -> p.getFileName().toString().startsWith(BACKUP_PREFIX)
                             && p.getFileName().toString().endsWith(".zip"))
                     .sorted(Comparator.reverseOrder())
                     .map(this::buildDto)
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
 
@@ -139,10 +148,8 @@ public class BackupService {
     }
 
     private void createDatabaseScript(Path dest) throws Exception {
-        String safePath = toSqlPath(dest.toAbsolutePath());
-        try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute("SCRIPT TO '" + safePath + "' COMPRESSION ZIP");
+        try (Connection conn = dataSource.getConnection()) {
+            Script.process(conn, dest.toAbsolutePath().toString(), "", "COMPRESSION ZIP");
         }
     }
 
@@ -184,11 +191,15 @@ public class BackupService {
     }
 
     private void restoreDatabaseScript(Path dbBackup) throws Exception {
-        String safePath = toSqlPath(dbBackup.toAbsolutePath());
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute("DROP ALL OBJECTS");
-            stmt.execute("RUNSCRIPT FROM '" + safePath + "' COMPRESSION ZIP");
+            try (ZipInputStream zip = new ZipInputStream(Files.newInputStream(dbBackup), StandardCharsets.UTF_8)) {
+                if (zip.getNextEntry() == null) {
+                    throw new IOException("La copia de base de datos esta vacia");
+                }
+                RunScript.execute(conn, new InputStreamReader(zip, StandardCharsets.UTF_8));
+            }
         }
     }
 
@@ -245,7 +256,7 @@ public class BackupService {
         if (!Files.isDirectory(source)) return;
         Path root = source.toAbsolutePath().normalize();
         try (var paths = Files.walk(root)) {
-            for (Path path : paths.filter(Files::isRegularFile).collect(Collectors.toList())) {
+            for (Path path : paths.filter(Files::isRegularFile).toList()) {
                 String relative = root.relativize(path).toString().replace("\\", "/");
                 addFile(zip, path, prefix + relative);
             }
@@ -314,10 +325,10 @@ public class BackupService {
     private void enforceRetention(Path dir) throws IOException {
         try (var stream = Files.list(dir)) {
             List<Path> backups = stream
-                    .filter(p -> p.getFileName().toString().startsWith("backup_")
+                    .filter(p -> p.getFileName().toString().startsWith(BACKUP_PREFIX)
                             && p.getFileName().toString().endsWith(".zip"))
                     .sorted()
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toCollection(ArrayList::new));
 
             while (backups.size() > retention) {
                 Path oldest = backups.remove(0);
@@ -333,16 +344,12 @@ public class BackupService {
         return dir;
     }
 
-    private String toSqlPath(Path absolute) {
-        return absolute.toString().replace("\\", "/").replace("'", "''");
-    }
-
     private void validateFilename(String filename) {
         if (filename == null
                 || filename.contains("..")
                 || filename.contains("/")
                 || filename.contains("\\")
-                || !filename.startsWith("backup_")
+                || !filename.startsWith(BACKUP_PREFIX)
                 || !filename.endsWith(".zip")) {
             throw new IllegalArgumentException("Invalid backup filename: " + filename);
         }
@@ -382,7 +389,7 @@ public class BackupService {
             throw new IOException("Ruta de restauracion demasiado amplia: " + dir);
         }
         try (var walk = Files.walk(dir)) {
-            List<Path> paths = walk.sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+            List<Path> paths = walk.sorted(Comparator.reverseOrder()).toList();
             for (Path path : paths) {
                 Files.deleteIfExists(path);
             }

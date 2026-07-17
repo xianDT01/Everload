@@ -68,15 +68,16 @@ public class DownloadHistoryService {
             Path tempDir = Paths.get("./downloads");
             if (!Files.exists(tempDir)) return true;
 
-            Files.walk(tempDir)
-                    .filter(path -> Files.isDirectory(path) && path.getFileName().toString().startsWith("tmp-"))
-                    .forEach(path -> {
-                        try {
-                            FileUtils.deleteDirectory(path.toFile());
-                        } catch (IOException e) {
-                            logger.warn("No se pudo borrar el directorio temporal {}", path, e);
-                        }
-                    });
+            try (var paths = Files.walk(tempDir)) {
+                paths.filter(path -> Files.isDirectory(path) && path.getFileName().toString().startsWith("tmp-"))
+                        .forEach(path -> {
+                            try {
+                                FileUtils.deleteDirectory(path.toFile());
+                            } catch (IOException e) {
+                                logger.warn("No se pudo borrar el directorio temporal {}", path, e);
+                            }
+                        });
+            }
             return true;
         } catch (IOException e) {
             logger.error("Error limpiando directorios temporales", e);

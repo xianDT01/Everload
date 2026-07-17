@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "playlists")
@@ -65,9 +64,9 @@ public class Playlist {
     public List<String> getCollaboratorUsernames() {
         return collaborators == null ? List.of() : collaborators.stream()
                 .map(c -> c.getUser().getUsername())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @PrePersist
-    protected void onCreate() { createdAt = LocalDateTime.now(); }
+    protected void onCreate() { createdAt = LocalDateTime.now(java.time.ZoneId.systemDefault()); }
 }

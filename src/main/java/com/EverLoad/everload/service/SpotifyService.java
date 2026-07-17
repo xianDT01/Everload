@@ -115,6 +115,9 @@ public class SpotifyService {
                     + encodedQuery + "&key=" + apiKey;
 
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response == null) {
+                return null;
+            }
             List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("items");
 
             if (items != null && !items.isEmpty()) {

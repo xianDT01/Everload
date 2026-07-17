@@ -15,6 +15,9 @@ import java.util.Map;
 @PreAuthorize("hasRole('ADMIN')")
 public class ApiTestController {
 
+    private static final String STATUS_CODE_PREFIX = "Código de estado: ";
+    private static final String MESSAGE_FIELD = "message";
+
     private final AdminConfigService configService;
     private final SpotifyService spotifyService;
     private final RestTemplate restTemplate;
@@ -40,12 +43,12 @@ public class ApiTestController {
                 response.put("status", "ok");
             } else {
                 response.put("status", "error");
-                response.put("message", "Código de estado: " + apiResponse.getStatusCode());
+                response.put(MESSAGE_FIELD, STATUS_CODE_PREFIX + apiResponse.getStatusCode());
             }
 
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("message", e.getMessage());
+            response.put(MESSAGE_FIELD, e.getMessage());
         }
 
         return ResponseEntity.ok(response);
@@ -62,7 +65,7 @@ public class ApiTestController {
             response.put("status", "ok");
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("message", e.getMessage());
+            response.put(MESSAGE_FIELD, e.getMessage());
         }
 
         return ResponseEntity.ok(response);
@@ -79,12 +82,12 @@ public class ApiTestController {
 
             response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
             if (!resp.getStatusCode().is2xxSuccessful()) {
-                response.put("message", "Código de estado: " + resp.getStatusCode());
+                response.put(MESSAGE_FIELD, STATUS_CODE_PREFIX + resp.getStatusCode());
             }
 
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("message", e.getMessage());
+            response.put(MESSAGE_FIELD, e.getMessage());
         }
 
         return ResponseEntity.ok(response);
@@ -101,12 +104,12 @@ public class ApiTestController {
 
             response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
             if (!resp.getStatusCode().is2xxSuccessful()) {
-                response.put("message", "Código de estado: " + resp.getStatusCode());
+                response.put(MESSAGE_FIELD, STATUS_CODE_PREFIX + resp.getStatusCode());
             }
 
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("message", e.getMessage());
+            response.put(MESSAGE_FIELD, e.getMessage());
         }
 
         return ResponseEntity.ok(response);
@@ -123,12 +126,12 @@ public class ApiTestController {
 
             response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
             if (!resp.getStatusCode().is2xxSuccessful()) {
-                response.put("message", "Código de estado: " + resp.getStatusCode());
+                response.put(MESSAGE_FIELD, STATUS_CODE_PREFIX + resp.getStatusCode());
             }
 
         } catch (Exception e) {
             response.put("status", "error");
-            response.put("message", e.getMessage());
+            response.put(MESSAGE_FIELD, e.getMessage());
         }
 
         return ResponseEntity.ok(response);

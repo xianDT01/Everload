@@ -3,6 +3,8 @@ package com.EverLoad.everload.controller;
 import com.EverLoad.everload.model.FavoriteTrack;
 import com.EverLoad.everload.model.PlaybackHistory;
 import com.EverLoad.everload.model.User;
+import com.EverLoad.everload.dto.FavoriteTrackRequest;
+import com.EverLoad.everload.dto.PlaybackHistoryRequest;
 import com.EverLoad.everload.repository.FavoriteTrackRepository;
 import com.EverLoad.everload.repository.PlaybackHistoryRepository;
 import com.EverLoad.everload.repository.UserRepository;
@@ -20,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Tag(name = "User Library", description = "Gestión de favoritos e historial del usuario")
 @RestController
@@ -52,17 +53,23 @@ public class UserLibraryController {
     @PostMapping("/favorites/toggle")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<?> toggleFavorite(@AuthenticationPrincipal UserDetails userDetails,
-                                            @RequestBody FavoriteTrack dto) {
+                                            @RequestBody FavoriteTrackRequest request) {
         User user = getAuthenticatedUser(userDetails);
-        var existing = favoriteTrackRepository.findByUserAndTrackPathAndNasPathId(user, dto.getTrackPath(), dto.getNasPathId());
+        var existing = favoriteTrackRepository.findByUserAndTrackPathAndNasPathId(user, request.trackPath(), request.nasPathId());
         
         if (existing.isPresent()) {
             favoriteTrackRepository.delete(existing.get());
             return ResponseEntity.ok(Map.of("message", "Removed from favorites", "isFavorite", false));
         } else {
-            dto.setId(null); // Ensure INSERT, not UPDATE of a deleted row
-            dto.setUser(user);
-            favoriteTrackRepository.save(dto);
+            FavoriteTrack favorite = FavoriteTrack.builder()
+                    .user(user)
+                    .trackPath(request.trackPath())
+                    .title(request.title())
+                    .artist(request.artist())
+                    .album(request.album())
+                    .nasPathId(request.nasPathId())
+                    .build();
+            favoriteTrackRepository.save(favorite);
             return ResponseEntity.ok(Map.of("message", "Added to favorites", "isFavorite", true));
         }
     }
@@ -94,10 +101,19 @@ public class UserLibraryController {
     @PostMapping("/history")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<?> addHistory(@AuthenticationPrincipal UserDetails userDetails,
-                                        @RequestBody PlaybackHistory dto) {
+                                        @RequestBody PlaybackHistoryRequest request) {
         User user = getAuthenticatedUser(userDetails);
-        dto.setUser(user);
-        playbackHistoryRepository.save(dto);
+        PlaybackHistory history = PlaybackHistory.builder()
+                .user(user)
+                .trackPath(request.trackPath())
+                .title(request.title())
+                .artist(request.artist())
+                .album(request.album())
+                .nasPathId(request.nasPathId())
+                .durationSeconds(request.durationSeconds())
+                .completed(request.completed())
+                .build();
+        playbackHistoryRepository.save(history);
         return ResponseEntity.ok(Map.of("message", "History recorded"));
     }
 
@@ -124,7 +140,7 @@ public class UserLibraryController {
             m.put("nasPathId", row[4]);
             m.put("playCount", row[5]);
             return m;
-        }).collect(Collectors.toList());
+        }).toList();
 
         return ResponseEntity.ok(Map.of(
                 "totalPlays", totalPlays,
@@ -145,7 +161,7 @@ public class UserLibraryController {
             m.put("artist",    row[0]);
             m.put("playCount", row[1]);
             return m;
-        }).collect(Collectors.toList());
+        }).toList();
         return ResponseEntity.ok(result);
     }
 }

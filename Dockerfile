@@ -62,7 +62,10 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Variables para que el backend sepa dónde están yt-dlp y rustypipe-botguard
-ENV everload.ytdlp.path=/usr/local/bin/yt-dlp
+ENV EVERLOAD_YTDLP_PATH=/usr/local/bin/yt-dlp
+ENV EVERLOAD_FFMPEG_PATH=/usr/bin/ffmpeg
+ENV EVERLOAD_FFPROBE_PATH=/usr/bin/ffprobe
+ENV EVERLOAD_FPCALC_PATH=/usr/bin/fpcalc
 ENV YTMUSIC_BOTGUARD_PATH=/usr/local/bin/rustypipe-botguard
 
 # Copia el .jar compilado desde la etapa anterior

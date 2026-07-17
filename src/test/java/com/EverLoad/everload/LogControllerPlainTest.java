@@ -11,7 +11,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class LogControllerPlainTest {
+class LogControllerPlainTest {
     private final Path logPath = Path.of("everload.log");
     private LogController controller;
 
@@ -31,7 +31,9 @@ public class LogControllerPlainTest {
         // works regardless and a failed cleanup must not fail the test itself.
         try {
             if (Files.exists(logPath)) Files.write(logPath, new byte[0], StandardOpenOption.TRUNCATE_EXISTING);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+            // Cleanup is best effort because Logback may still own the file on Windows.
+        }
     }
 
     @Test
