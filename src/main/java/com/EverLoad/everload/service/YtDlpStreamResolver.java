@@ -147,7 +147,9 @@ public class YtDlpStreamResolver implements YtStreamResolver {
             throw new YtMusicTransportException("yt-dlp agotó el tiempo de espera (" + timeoutSeconds + "s)");
         }
         if (process.exitValue() != 0) {
-            log.warn("yt-dlp salió con código {} para una resolución de stream: {}", process.exitValue(), truncate(output));
+            if (log.isWarnEnabled()) {
+                log.warn("yt-dlp salió con código {} para una resolución de stream: {}", process.exitValue(), truncate(output));
+            }
             throw new YtMusicTransportException("yt-dlp salió con código " + process.exitValue());
         }
         return output;

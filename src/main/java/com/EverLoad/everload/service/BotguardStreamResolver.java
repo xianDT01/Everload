@@ -128,12 +128,14 @@ public class BotguardStreamResolver implements YtStreamResolver {
         try {
             String output = runProcess(cmd, timeoutSeconds);
             String token = extractToken(output);
-            if (token == null) {
+            if (token == null && log.isWarnEnabled()) {
                 log.warn("Botguard no devolvió un PO token reconocible para {}: {}", videoId, truncate(output));
             }
             return token;
         } catch (Exception e) {
-            log.warn("Fallo minteando PO token de Botguard para {}: {}", videoId, rootMessage(e));
+            if (log.isWarnEnabled()) {
+                log.warn("Fallo minteando PO token de Botguard para {}: {}", videoId, rootMessage(e));
+            }
             return null;
         }
     }

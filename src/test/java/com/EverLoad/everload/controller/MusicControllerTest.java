@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 /**
  * Verifies the /api/music/stream endpoint forwards the "quality" parameter to
@@ -106,5 +107,30 @@ class MusicControllerTest {
 
         mvc.perform(get("/api/music/stream").param("pathId", "1").param("subPath", "song.mp3"))
                 .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void artistImage_providerFailure_returnsValidNotFoundResult() throws Exception {
+        when(musicService.lookupArtistImage("Unknown Artist")).thenThrow(new RuntimeException("provider unavailable"));
+
+        mvc.perform(get("/api/music/artist-image").param("artist", "Unknown Artist"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.found").value(false));
+    }
+
+    @Test
+    void coverArt_missingArtwork_returns404() throws Exception {
+        when(musicService.getCoverArt(1L, "song.mp3")).thenReturn(new byte[0]);
+
+        mvc.perform(get("/api/music/cover").param("pathId", "1").param("subPath", "song.mp3"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void folderCoverArt_missingArtwork_returns404() throws Exception {
+        when(musicService.getFolderCoverArt(1L, "album")).thenReturn(new byte[0]);
+
+        mvc.perform(get("/api/music/folder-cover").param("pathId", "1").param("subPath", "album"))
+                .andExpect(status().isNotFound());
     }
 }

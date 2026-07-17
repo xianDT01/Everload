@@ -21,6 +21,10 @@ public class NotificationService {
 
     @Transactional
     public NotificationDto createNotification(User user, String type, String title, String message, String actionUrl) {
+        return saveNotification(user, type, title, message, actionUrl);
+    }
+
+    private NotificationDto saveNotification(User user, String type, String title, String message, String actionUrl) {
         Notification notification = Notification.builder()
                 .user(user)
                 .type(type)
@@ -68,7 +72,7 @@ public class NotificationService {
                 .filter(u -> u.getStatus() == UserStatus.ACTIVE)
                 .toList();
         for (User user : activeUsers) {
-            createNotification(user, type, title, message, null);
+            saveNotification(user, type, title, message, null);
         }
     }
 

@@ -202,7 +202,8 @@ final class YtMusicJsonUtils {
         return "ytmusic:album:" + HEX.formatHex(key.getBytes(StandardCharsets.UTF_8));
     }
 
-    /** SHA-1 hex digest, used by {@code sapisidHash} equivalents elsewhere — kept here as the one shared impl. */
+    /** SHA-1 hex digest required by YouTube's SAPISIDHASH wire protocol. */
+    @SuppressWarnings("java:S4790") // Protocol compatibility only; never used for passwords or stored integrity data.
     static String sha1Hex(String input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-1");

@@ -29,6 +29,9 @@ public class SystemInfoController {
     private static final String UPDATE_FAILED_EVENT = "UPDATE_FAILED";
     private static final String AUDIT_SYSTEM = "System";
     private static final String AUDIT_UPDATE = "update";
+    private static final String MESSAGE_KEY = "message";
+    private static final String SUCCESS_KEY = "success";
+    private static final String BACKUP_KEY = "backup";
 
     private final SystemInfoService systemInfoService;
     private final BackupService backupService;
@@ -59,12 +62,12 @@ public class SystemInfoController {
     // ── Warn users before maintenance ─────────────────────────────────────────
 
     @PostMapping("/warn-maintenance")
-    public ResponseEntity<?> warnMaintenance(@RequestBody(required = false) Map<String, Object> body) {
+    public ResponseEntity<Object> warnMaintenance(@RequestBody(required = false) Map<String, Object> body) {
         int minutes = 1;
         String customMsg = null;
         if (body != null) {
             if (body.get("minutes") instanceof Number n) minutes = n.intValue();
-            if (body.get("message") instanceof String s && !s.isBlank()) customMsg = s;
+            if (body.get(MESSAGE_KEY) instanceof String s && !s.isBlank()) customMsg = s;
         }
         String minuteLabel = minutes == 1 ? "minuto" : "minutos";
         String defaultMessage = "⚠️ El sistema entrará en mantenimiento en " + minutes + " " + minuteLabel
@@ -73,7 +76,7 @@ public class SystemInfoController {
         notificationService.createForAllActiveUsers("admin_notice", "⚠️ Mantenimiento próximo", msg);
         auditLogService.log("MAINTENANCE_WARNING", AUDIT_SYSTEM, "maintenance",
                 "notified all active users | minutes=" + minutes);
-        return ResponseEntity.ok(Map.of("ok", true, "message", msg));
+        return ResponseEntity.ok(Map.of("ok", true, MESSAGE_KEY, msg));
     }
 
     // ── Prepare update ─────────────────────────────────────────────────────────
@@ -89,9 +92,9 @@ public class SystemInfoController {
      * <p>Body: {@code { "message": "Actualizando la app..." }}
      */
     @PostMapping("/prepare-update")
-    public ResponseEntity<?> prepareUpdate(@RequestBody(required = false) Map<String, String> body) {
-        String maintenanceMsg = (body != null && body.containsKey("message"))
-                ? body.get("message")
+    public ResponseEntity<Object> prepareUpdate(@RequestBody(required = false) Map<String, String> body) {
+        String maintenanceMsg = (body != null && body.containsKey(MESSAGE_KEY))
+                ? body.get(MESSAGE_KEY)
                 : "La aplicación está actualizándose. Vuelve en unos minutos.";
 
         // Step 1 — Auto backup
@@ -127,18 +130,18 @@ public class SystemInfoController {
                     auditLogService.log("UPDATE_COMPLETED", AUDIT_SYSTEM, AUDIT_UPDATE,
                             "script exitCode=0 | maintenance=OFF");
                     return ResponseEntity.ok(Map.of(
-                            "success", true,
-                            "backup", backupName,
+                            SUCCESS_KEY, true,
+                            BACKUP_KEY, backupName,
                             "scriptOutput", output,
-                            "message", "✅ Actualización completada. Mantenimiento desactivado."));
+                            MESSAGE_KEY, "✅ Actualización completada. Mantenimiento desactivado."));
                 } else {
                     auditLogService.log(UPDATE_FAILED_EVENT, AUDIT_SYSTEM, AUDIT_UPDATE,
                             "script exitCode=" + exitCode + " | maintenance=ON (manual reset needed)");
                     return ResponseEntity.ok(Map.of(
-                            "success", false,
-                            "backup", backupName,
+                            SUCCESS_KEY, false,
+                            BACKUP_KEY, backupName,
                             "scriptOutput", output,
-                            "message", "⚠️ El script de actualización falló (código " + exitCode + "). " +
+                            MESSAGE_KEY, "⚠️ El script de actualización falló (código " + exitCode + "). " +
                                        "El modo mantenimiento sigue activo. Revisa los logs y desactívalo manualmente."));
                 }
             } catch (InterruptedException e) {
@@ -147,28 +150,28 @@ public class SystemInfoController {
                 auditLogService.log(UPDATE_FAILED_EVENT, AUDIT_SYSTEM, AUDIT_UPDATE, "script interrupted");
                 return ResponseEntity.internalServerError()
                         .body(Map.of(
-                                "success", false,
-                                "backup", backupName,
-                                "message", "La actualizacion fue interrumpida. El mantenimiento sigue activo."));
+                                SUCCESS_KEY, false,
+                                BACKUP_KEY, backupName,
+                                MESSAGE_KEY, "La actualizacion fue interrumpida. El mantenimiento sigue activo."));
             } catch (Exception e) {
                 log.error("[UPDATE] Script execution failed: {}", e.getMessage());
                 auditLogService.log(UPDATE_FAILED_EVENT, AUDIT_SYSTEM, AUDIT_UPDATE,
                         "scriptError=" + e.getMessage());
                 return ResponseEntity.internalServerError()
                         .body(Map.of(
-                                "success", false,
-                                "backup", backupName,
-                                "message", "❌ Error al ejecutar el script: " + e.getMessage()
+                                SUCCESS_KEY, false,
+                                BACKUP_KEY, backupName,
+                                MESSAGE_KEY, "❌ Error al ejecutar el script: " + e.getMessage()
                                          + ". El mantenimiento sigue activo."));
             }
         }
 
         // No script configured — return instructions for manual update
         return ResponseEntity.ok(Map.of(
-                "success", true,
-                "backup", backupName,
+                SUCCESS_KEY, true,
+                BACKUP_KEY, backupName,
                 "maintenanceActive", true,
-                "message", "✅ Copia de seguridad creada y modo mantenimiento activado. " +
+                MESSAGE_KEY, "✅ Copia de seguridad creada y modo mantenimiento activado. " +
                            "Realiza la actualización manualmente (p. ej. docker pull + restart) " +
                            "y desactiva el mantenimiento desde el panel cuando termines."));
     }

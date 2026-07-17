@@ -479,7 +479,9 @@ public class DownloadService {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
         }
         try {
-            logger.info("🔵 Ejecutando comando: {}", String.join(" ", cmd));
+            if (logger.isInfoEnabled()) {
+                logger.info("🔵 Ejecutando comando: {}", String.join(" ", cmd));
+            }
             File finalFile = runYtDlp(cmd, p -> {});
             downloadHistoryService.recordDownload(new Download(finalFile.getName(), tipo, origen));
             return sendFile(finalFile);

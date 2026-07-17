@@ -126,6 +126,7 @@ public class MusicController {
     @Operation(summary = "Buscar imagen automática de artista")
     @GetMapping("/artist-image")
     @PreAuthorize("isAuthenticated()")
+    @SuppressWarnings("java:S6863") // Image lookup is optional; a failed provider lookup is a valid found=false result.
     public ResponseEntity<?> artistImage(@RequestParam String artist) {
         if (artist == null || artist.isBlank() || artist.length() > 160) {
             return ResponseEntity.badRequest().body(Map.of("error", "Artista inválido"));
@@ -133,6 +134,7 @@ public class MusicController {
         try {
             return ResponseEntity.ok(musicService.lookupArtistImage(artist));
         } catch (Exception e) {
+            log.debug("Artist image lookup failed for {}", artist, e);
             return ResponseEntity.ok(Map.of("found", false));
         }
     }
@@ -376,6 +378,7 @@ public class MusicController {
     @Operation(summary = "Carátula embebida en los tags ID3 del archivo de audio")
     @GetMapping("/cover")
     @PreAuthorize("isAuthenticated()")
+    @SuppressWarnings("java:S6863") // A successful lookup with no optional artwork is represented by HTTP 404.
     public ResponseEntity<byte[]> getCoverArt(@RequestParam Long pathId,
                                               @RequestParam String subPath) {
         try {
@@ -401,6 +404,7 @@ public class MusicController {
     @Operation(summary = "Carátula del primer archivo de audio encontrado en la carpeta")
     @GetMapping("/folder-cover")
     @PreAuthorize("isAuthenticated()")
+    @SuppressWarnings("java:S6863") // A successful lookup with no optional artwork is represented by HTTP 404.
     public ResponseEntity<byte[]> getFolderCoverArt(@RequestParam Long pathId,
                                                     @RequestParam(required = false, defaultValue = "") String subPath) {
         try {

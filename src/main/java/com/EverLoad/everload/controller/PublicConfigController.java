@@ -2,6 +2,7 @@ package com.EverLoad.everload.controller;
 
 import com.EverLoad.everload.config.AdminConfigService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -12,11 +13,13 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 public class PublicConfigController {
 
     private final AdminConfigService configService;
 
     @GetMapping("/api/public/auth-hero-images")
+    @SuppressWarnings("java:S6863") // A valid default configuration is returned when the optional file cannot be read.
     public ResponseEntity<Map<String, List<String>>> getAuthHeroImages() {
         try {
             String raw = configService.getConfig()
@@ -29,6 +32,7 @@ public class PublicConfigController {
                     .toList();
             return ResponseEntity.ok(Map.of("images", images));
         } catch (Exception e) {
+            log.warn("Could not read configured authentication hero images; using defaults", e);
             List<String> fallback = Arrays.stream(AdminConfigService.DEFAULT_AUTH_HERO_IMAGES.split("\\R"))
                     .toList();
             return ResponseEntity.ok(Map.of("images", fallback));

@@ -37,6 +37,7 @@ public class SecurityConfig {
     private boolean swaggerPublic;
 
     @Bean
+    @SuppressWarnings("java:S4502") // Stateless bearer-token API: no cookie-authenticated session exists to forge.
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())

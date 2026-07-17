@@ -261,7 +261,9 @@ public class HlsStreamService {
     }
 
     private void runHlsFfmpeg(List<String> cmd, HlsCacheJob job) throws IOException, InterruptedException {
-        log.info("Preparing HLS stream: {}", String.join(" ", cmd));
+        if (log.isInfoEnabled()) {
+            log.info("Preparing HLS stream: {}", String.join(" ", cmd));
+        }
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         Process process = pb.start();

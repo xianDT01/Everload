@@ -616,7 +616,9 @@ public class MusicService {
             "https://www.youtube.com/watch?v=" + videoId
         };
 
-        log.info("[DJ Cache] Ejecutando: {}", String.join(" ", cmd));
+        if (log.isInfoEnabled()) {
+            log.info("[DJ Cache] Ejecutando: {}", String.join(" ", cmd));
+        }
 
         try {
             ProcessBuilder djPb = new ProcessBuilder(cmd);

@@ -86,16 +86,22 @@ public class YtMusicStreamService {
                 result = resolver.resolve(videoId);
             } catch (Exception e) {
                 String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                log.warn("Resolver {} lanzó una excepción inesperada para {}: {}", resolver.name(), videoId, message);
+                if (log.isWarnEnabled()) {
+                    log.warn("Resolver {} lanzó una excepción inesperada para {}: {}", resolver.name(), videoId, message);
+                }
                 failures.add(resolver.name() + ": excepción inesperada (" + message + ")");
                 continue;
             }
             if (result.isSuccess()) {
-                log.info("Stream de {} resuelto por '{}'", videoId, resolver.name());
+                if (log.isInfoEnabled()) {
+                    log.info("Stream de {} resuelto por '{}'", videoId, resolver.name());
+                }
                 return result.streamInfo();
             }
-            log.debug("Resolver {} no pudo resolver {}: {} ({})",
-                    resolver.name(), videoId, result.status(), result.reason());
+            if (log.isDebugEnabled()) {
+                log.debug("Resolver {} no pudo resolver {}: {} ({})",
+                        resolver.name(), videoId, result.status(), result.reason());
+            }
             failures.add(result.describe(resolver.name()));
         }
         throw new YtStreamUnavailableException(videoId, failures);
