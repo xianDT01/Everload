@@ -1,7 +1,7 @@
-package com.EverLoad.everload.repository;
+package com.everload.everload.repository;
 
-import com.EverLoad.everload.model.PlaybackHistory;
-import com.EverLoad.everload.model.User;
+import com.everload.everload.model.PlaybackHistory;
+import com.everload.everload.model.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

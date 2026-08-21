@@ -1,8 +1,8 @@
-package com.EverLoad.everload.repository;
+package com.everload.everload.repository;
 
-import com.EverLoad.everload.model.Playlist;
-import com.EverLoad.everload.model.PlaylistCollaborator;
-import com.EverLoad.everload.model.User;
+import com.everload.everload.model.Playlist;
+import com.everload.everload.model.PlaylistCollaborator;
+import com.everload.everload.model.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

@@ -1,4 +1,4 @@
-package com.EverLoad.everload.dto;
+package com.everload.everload.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;

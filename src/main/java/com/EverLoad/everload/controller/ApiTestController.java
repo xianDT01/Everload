@@ -1,12 +1,13 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.config.AdminConfigService;
-import com.EverLoad.everload.service.SpotifyService;
+import com.everload.everload.config.AdminConfigService;
+import com.everload.everload.service.SpotifyService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,6 +18,9 @@ public class ApiTestController {
 
     private static final String STATUS_CODE_PREFIX = "Código de estado: ";
     private static final String MESSAGE_FIELD = "message";
+    private static final String PLATFORM_FIELD = "platform";
+    private static final String STATUS_FIELD = "status";
+    private static final String ERROR_STATUS = "error";
 
     private final AdminConfigService configService;
     private final SpotifyService spotifyService;
@@ -32,7 +36,7 @@ public class ApiTestController {
     @GetMapping("/youtube")
     public ResponseEntity<Map<String, String>> testYouTube() {
         Map<String, String> response = new HashMap<>();
-        response.put("platform", "YouTube");
+        response.put(PLATFORM_FIELD, "YouTube");
 
         try {
             String apiKey = configService.getApiKey();
@@ -40,14 +44,14 @@ public class ApiTestController {
             ResponseEntity<String> apiResponse = restTemplate.getForEntity(url, String.class);
 
             if (apiResponse.getStatusCode().is2xxSuccessful()) {
-                response.put("status", "ok");
+                response.put(STATUS_FIELD, "ok");
             } else {
-                response.put("status", "error");
+                response.put(STATUS_FIELD, ERROR_STATUS);
                 response.put(MESSAGE_FIELD, STATUS_CODE_PREFIX + apiResponse.getStatusCode());
             }
 
         } catch (Exception e) {
-            response.put("status", "error");
+            response.put(STATUS_FIELD, ERROR_STATUS);
             response.put(MESSAGE_FIELD, e.getMessage());
         }
 
@@ -58,13 +62,17 @@ public class ApiTestController {
     @GetMapping("/spotify")
     public ResponseEntity<Map<String, String>> testSpotify() {
         Map<String, String> response = new HashMap<>();
-        response.put("platform", "Spotify");
+        response.put(PLATFORM_FIELD, "Spotify");
 
         try {
             spotifyService.testConnection();
-            response.put("status", "ok");
-        } catch (Exception e) {
-            response.put("status", "error");
+            response.put(STATUS_FIELD, "ok");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            response.put(STATUS_FIELD, ERROR_STATUS);
+            response.put(MESSAGE_FIELD, e.getMessage());
+        } catch (IOException | RuntimeException e) {
+            response.put(STATUS_FIELD, ERROR_STATUS);
             response.put(MESSAGE_FIELD, e.getMessage());
         }
 
@@ -75,18 +83,18 @@ public class ApiTestController {
     @GetMapping("/tiktok")
     public ResponseEntity<Map<String, String>> testTikTok() {
         Map<String, String> response = new HashMap<>();
-        response.put("platform", "TikTok");
+        response.put(PLATFORM_FIELD, "TikTok");
 
         try {
             ResponseEntity<String> resp = restTemplate.getForEntity("https://www.tiktok.com/", String.class);
 
-            response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
+            response.put(STATUS_FIELD, resp.getStatusCode().is2xxSuccessful() ? "ok" : ERROR_STATUS);
             if (!resp.getStatusCode().is2xxSuccessful()) {
                 response.put(MESSAGE_FIELD, STATUS_CODE_PREFIX + resp.getStatusCode());
             }
 
         } catch (Exception e) {
-            response.put("status", "error");
+            response.put(STATUS_FIELD, ERROR_STATUS);
             response.put(MESSAGE_FIELD, e.getMessage());
         }
 
@@ -97,18 +105,18 @@ public class ApiTestController {
     @GetMapping("/facebook")
     public ResponseEntity<Map<String, String>> testFacebook() {
         Map<String, String> response = new HashMap<>();
-        response.put("platform", "Facebook");
+        response.put(PLATFORM_FIELD, "Facebook");
 
         try {
             ResponseEntity<String> resp = restTemplate.getForEntity("https://www.facebook.com/", String.class);
 
-            response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
+            response.put(STATUS_FIELD, resp.getStatusCode().is2xxSuccessful() ? "ok" : ERROR_STATUS);
             if (!resp.getStatusCode().is2xxSuccessful()) {
                 response.put(MESSAGE_FIELD, STATUS_CODE_PREFIX + resp.getStatusCode());
             }
 
         } catch (Exception e) {
-            response.put("status", "error");
+            response.put(STATUS_FIELD, ERROR_STATUS);
             response.put(MESSAGE_FIELD, e.getMessage());
         }
 
@@ -119,18 +127,18 @@ public class ApiTestController {
     @GetMapping("/instagram")
     public ResponseEntity<Map<String, String>> testInstagram() {
         Map<String, String> response = new HashMap<>();
-        response.put("platform", "Instagram");
+        response.put(PLATFORM_FIELD, "Instagram");
 
         try {
             ResponseEntity<String> resp = restTemplate.getForEntity("https://www.instagram.com/", String.class);
 
-            response.put("status", resp.getStatusCode().is2xxSuccessful() ? "ok" : "error");
+            response.put(STATUS_FIELD, resp.getStatusCode().is2xxSuccessful() ? "ok" : ERROR_STATUS);
             if (!resp.getStatusCode().is2xxSuccessful()) {
                 response.put(MESSAGE_FIELD, STATUS_CODE_PREFIX + resp.getStatusCode());
             }
 
         } catch (Exception e) {
-            response.put("status", "error");
+            response.put(STATUS_FIELD, ERROR_STATUS);
             response.put(MESSAGE_FIELD, e.getMessage());
         }
 

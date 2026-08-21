@@ -1,12 +1,12 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.AuthResponse;
-import com.EverLoad.everload.dto.LoginRequest;
-import com.EverLoad.everload.dto.RegisterRequest;
-import com.EverLoad.everload.security.JwtUtil;
-import com.EverLoad.everload.service.AuthService;
-import com.EverLoad.everload.service.PresenceService;
-import com.EverLoad.everload.service.TokenRevocationService;
+import com.everload.everload.dto.AuthResponse;
+import com.everload.everload.dto.LoginRequest;
+import com.everload.everload.dto.RegisterRequest;
+import com.everload.everload.security.JwtUtil;
+import com.everload.everload.service.AuthService;
+import com.everload.everload.service.PresenceService;
+import com.everload.everload.service.TokenRevocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +23,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final String ERROR_FIELD = "error";
+
     private final AuthService authService;
     private final JwtUtil jwtUtil;
     private final TokenRevocationService tokenRevocationService;
@@ -30,55 +32,55 @@ public class AuthController {
 
     @Operation(summary = "Registrar nuevo usuario")
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<Object> register(@Valid @RequestBody RegisterRequest request) {
         try {
             AuthResponse response = authService.register(request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_FIELD, e.getMessage()));
         }
     }
 
     @Operation(summary = "Iniciar sesión")
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest request) {
         try {
             AuthResponse response = authService.login(request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(401).body(Map.of(ERROR_FIELD, e.getMessage()));
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_FIELD, e.getMessage()));
         }
     }
 
     @Operation(summary = "Refrescar token JWT — emite un nuevo token sin requerir contraseña")
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(HttpServletRequest request) {
+    public ResponseEntity<Object> refresh(HttpServletRequest request) {
         org.springframework.security.core.Authentication auth =
             org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
 
         if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
-            return ResponseEntity.status(401).body(Map.of("error", "Token inválido o expirado"));
+            return ResponseEntity.status(401).body(Map.of(ERROR_FIELD, "Token inválido o expirado"));
         }
 
         try {
             AuthResponse response = authService.refreshToken(auth.getName());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(401).body(Map.of(ERROR_FIELD, e.getMessage()));
         }
     }
 
     @Operation(summary = "Cerrar sesión — invalida el token actual")
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
+    public ResponseEntity<Object> logout(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
                 String jti = jwtUtil.extractJti(token);
-                java.time.Instant expiresAt = jwtUtil.extractExpiration(token).toInstant();
+                java.time.Instant expiresAt = jwtUtil.extractExpiration(token);
                 tokenRevocationService.revoke(jti, expiresAt);
                 // Mark user offline immediately on logout
                 String username = jwtUtil.extractUsername(token);

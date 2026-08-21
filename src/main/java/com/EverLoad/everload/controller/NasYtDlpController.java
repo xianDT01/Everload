@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.service.NasYtDlpService;
-import com.EverLoad.everload.service.NasYtDlpService.YtDlpJob;
+import com.everload.everload.service.NasYtDlpService;
+import com.everload.everload.service.NasYtDlpService.YtDlpJob;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +37,7 @@ public class NasYtDlpController {
 
     @Operation(summary = "Encolar descarga de URL de red social al NAS (asíncrono)")
     @PostMapping("/queue-url")
-    public ResponseEntity<?> queueUrl(
+    public ResponseEntity<Object> queueUrl(
             @RequestParam String url,
             @RequestParam(required = false, defaultValue = "") String title,
             @RequestParam Long nasPathId,

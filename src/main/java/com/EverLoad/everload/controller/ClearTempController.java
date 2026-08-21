@@ -1,6 +1,6 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.service.DownloadHistoryService;
+import com.everload.everload.service.DownloadHistoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

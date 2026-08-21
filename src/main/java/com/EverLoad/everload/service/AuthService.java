@@ -1,16 +1,16 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.AuthResponse;
-import com.EverLoad.everload.dto.LoginRequest;
-import com.EverLoad.everload.dto.RegisterRequest;
-import com.EverLoad.everload.model.Role;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.model.UserStatus;
+import com.everload.everload.dto.AuthResponse;
+import com.everload.everload.dto.LoginRequest;
+import com.everload.everload.dto.RegisterRequest;
+import com.everload.everload.model.Role;
+import com.everload.everload.model.User;
+import com.everload.everload.model.UserStatus;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import com.EverLoad.everload.repository.UserRepository;
-import com.EverLoad.everload.security.JwtUtil;
+import com.everload.everload.repository.UserRepository;
+import com.everload.everload.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

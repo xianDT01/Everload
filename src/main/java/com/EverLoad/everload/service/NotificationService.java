@@ -1,11 +1,11 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.NotificationDto;
-import com.EverLoad.everload.model.Notification;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.model.UserStatus;
-import com.EverLoad.everload.repository.NotificationRepository;
-import com.EverLoad.everload.repository.UserRepository;
+import com.everload.everload.dto.NotificationDto;
+import com.everload.everload.model.Notification;
+import com.everload.everload.model.User;
+import com.everload.everload.model.UserStatus;
+import com.everload.everload.repository.NotificationRepository;
+import com.everload.everload.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

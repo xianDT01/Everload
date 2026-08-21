@@ -1,18 +1,20 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.security.JwtUtil;
-import com.EverLoad.everload.security.UserDetailsServiceImpl;
-import com.EverLoad.everload.service.HlsStreamService;
-import com.EverLoad.everload.service.MaintenanceService;
-import com.EverLoad.everload.service.MusicService;
-import com.EverLoad.everload.service.TokenRevocationService;
+import com.everload.everload.security.JwtUtil;
+import com.everload.everload.security.UserDetailsServiceImpl;
+import com.everload.everload.service.HlsStreamService;
+import com.everload.everload.service.MaintenanceService;
+import com.everload.everload.service.MusicService;
+import com.everload.everload.service.TokenRevocationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -28,29 +30,42 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class MusicControllerTest {
 
-    @MockBean
+    @MockitoBean
     JwtUtil jwtUtil;
 
-    @MockBean
+    @MockitoBean
     UserDetailsServiceImpl userDetailsService;
 
-    @MockBean
+    @MockitoBean
     TokenRevocationService tokenRevocationService;
 
-    @MockBean
+    @MockitoBean
     MaintenanceService maintenanceService;
 
-    @MockBean
+    @MockitoBean
     MusicService musicService;
 
-    @MockBean
+    @MockitoBean
     HlsStreamService hlsStreamService;
 
-    @MockBean
+    @MockitoBean
     org.springframework.web.client.RestTemplate restTemplate;
 
     @Autowired
     MockMvc mvc;
+
+    @Autowired
+    MusicController controller;
+
+    @Test
+    void cleanLyricsTermRemovesVideoAndFeaturedArtistSuffixes() {
+        assertEquals("Song", ReflectionTestUtils.invokeMethod(
+                controller, "cleanLyricsTerm", "Song (Official Music Video)"));
+        assertEquals("Song", ReflectionTestUtils.invokeMethod(
+                controller, "cleanLyricsTerm", "Song - Official Audio 2026"));
+        assertEquals("Song", ReflectionTestUtils.invokeMethod(
+                controller, "cleanLyricsTerm", "Song [ft. Guest]"));
+    }
 
     @Test
     void streamAudio_defaultsQualityToOriginal_whenParamOmitted() throws Exception {

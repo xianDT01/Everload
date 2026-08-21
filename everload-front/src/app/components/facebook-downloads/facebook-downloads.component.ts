@@ -47,7 +47,7 @@ export class FacebookDownloadsComponent {
     }
     this.error = null;
     this.loading = true;
-    this.http.get(`/api/downloadFacebook?url=${this.videoUrl}`, { responseType: 'blob', observe: 'response' }).subscribe({
+    this.http.get(`/api/downloadFacebook?url=${encodeURIComponent(this.videoUrl)}`, { responseType: 'blob', observe: 'response' }).subscribe({
       next: (response) => {
         const cd = response.headers.get('Content-Disposition');
         let fileName = 'facebook-video.mp4';

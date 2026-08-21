@@ -1,13 +1,13 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.AuthResponse;
-import com.EverLoad.everload.dto.LoginRequest;
-import com.EverLoad.everload.dto.RegisterRequest;
-import com.EverLoad.everload.model.Role;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.model.UserStatus;
-import com.EverLoad.everload.repository.UserRepository;
-import com.EverLoad.everload.security.JwtUtil;
+import com.everload.everload.dto.AuthResponse;
+import com.everload.everload.dto.LoginRequest;
+import com.everload.everload.dto.RegisterRequest;
+import com.everload.everload.model.Role;
+import com.everload.everload.model.User;
+import com.everload.everload.model.UserStatus;
+import com.everload.everload.repository.UserRepository;
+import com.everload.everload.security.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -89,8 +89,9 @@ class AuthServiceTest {
     @Test
     void register_rechazaUsernameYaEnUso() {
         when(userRepository.existsByUsernameAndStatusIn(eq("nuevo"), any())).thenReturn(true);
+        RegisterRequest request = registerRequest();
 
-        assertThrows(IllegalArgumentException.class, () -> authService.register(registerRequest()));
+        assertThrows(IllegalArgumentException.class, () -> authService.register(request));
         verify(userRepository, never()).save(any());
     }
 
@@ -98,8 +99,9 @@ class AuthServiceTest {
     void register_rechazaEmailYaRegistrado() {
         when(userRepository.existsByUsernameAndStatusIn(anyString(), any())).thenReturn(false);
         when(userRepository.existsByEmailAndStatusIn(eq("nuevo@test.local"), any())).thenReturn(true);
+        RegisterRequest request = registerRequest();
 
-        assertThrows(IllegalArgumentException.class, () -> authService.register(registerRequest()));
+        assertThrows(IllegalArgumentException.class, () -> authService.register(request));
         verify(userRepository, never()).save(any());
     }
 

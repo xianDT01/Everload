@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.YtStreamInfoDto;
+import com.everload.everload.dto.YtStreamInfoDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,6 +8,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
@@ -61,6 +62,9 @@ public class YtDlpStreamResolver implements YtStreamResolver {
         String output;
         try {
             output = runProcess(cmd);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return YtStreamResolution.failure(YtPlayabilityStatus.UNKNOWN, "yt-dlp fue interrumpido");
         } catch (Exception e) {
             return YtStreamResolution.failure(YtPlayabilityStatus.UNKNOWN, "yt-dlp falló: " + rootMessage(e));
         }
@@ -132,7 +136,7 @@ public class YtDlpStreamResolver implements YtStreamResolver {
 
     // ── Process execution ─────────────────────────────────────────────
 
-    private String runProcess(String[] cmd) throws Exception {
+    private String runProcess(String[] cmd) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         Process process = pb.start();

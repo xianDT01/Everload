@@ -1,6 +1,6 @@
-package com.EverLoad.everload.repository;
+package com.everload.everload.repository;
 
-import com.EverLoad.everload.model.RevokedToken;
+import com.everload.everload.model.RevokedToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

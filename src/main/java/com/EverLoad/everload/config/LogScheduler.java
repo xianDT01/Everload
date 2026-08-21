@@ -1,7 +1,7 @@
-package com.EverLoad.everload.config;
+package com.everload.everload.config;
 
-import com.EverLoad.everload.service.LogService;
-import com.EverLoad.everload.service.MusicService;
+import com.everload.everload.service.LogService;
+import com.everload.everload.service.MusicService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

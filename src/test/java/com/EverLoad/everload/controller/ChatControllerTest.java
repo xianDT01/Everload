@@ -1,10 +1,10 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.model.UserStatus;
-import com.EverLoad.everload.repository.UserRepository;
-import com.EverLoad.everload.service.ChatService;
-import com.EverLoad.everload.service.PresenceService;
+import com.everload.everload.model.User;
+import com.everload.everload.model.UserStatus;
+import com.everload.everload.repository.UserRepository;
+import com.everload.everload.service.ChatService;
+import com.everload.everload.service.PresenceService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.UserDetails;

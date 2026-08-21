@@ -1,6 +1,6 @@
-package com.EverLoad.everload.repository;
+package com.everload.everload.repository;
 
-import com.EverLoad.everload.model.NasPath;
+import com.everload.everload.model.NasPath;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NasPathRepository extends JpaRepository<NasPath, Long> {

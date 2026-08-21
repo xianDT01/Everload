@@ -1,8 +1,8 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.config.JacksonConfig;
-import com.EverLoad.everload.model.Download;
-import com.EverLoad.everload.repository.DownloadRepository;
+import com.everload.everload.config.JacksonConfig;
+import com.everload.everload.model.Download;
+import com.everload.everload.repository.DownloadRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.service.HlsStreamService;
-import com.EverLoad.everload.service.MusicService;
+import com.everload.everload.service.HlsStreamService;
+import com.everload.everload.service.MusicService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

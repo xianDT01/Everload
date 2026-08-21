@@ -1,4 +1,4 @@
-package com.EverLoad.everload.config;
+package com.everload.everload.config;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 /**
  * One strategy for turning a YouTube video id into a playable stream URL.

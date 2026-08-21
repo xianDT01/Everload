@@ -1,4 +1,4 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

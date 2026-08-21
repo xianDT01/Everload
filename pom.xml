@@ -8,7 +8,7 @@
 		<version>3.4.3</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.EverLoad</groupId>
+	<groupId>com.everload</groupId>
 	<artifactId>everload</artifactId>
 	<version>1.0.0</version>
 	<name>Everload</name>

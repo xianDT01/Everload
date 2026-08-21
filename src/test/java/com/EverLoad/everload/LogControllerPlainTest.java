@@ -1,5 +1,5 @@
-package com.EverLoad.everload;
-import com.EverLoad.everload.controller.LogController;
+package com.everload.everload;
+import com.everload.everload.controller.LogController;
 import org.junit.jupiter.api.*;
 import org.springframework.http.ResponseEntity;
 
@@ -17,7 +17,7 @@ class LogControllerPlainTest {
 
     @BeforeEach
     void setup() throws Exception {
-        controller = new LogController(new com.EverLoad.everload.service.LogService());
+        controller = new LogController(new com.everload.everload.service.LogService());
         // Crear log con contido
         Files.writeString(logPath,
                 "Linea 1\nLinea 2\nLinea 3 contiene ERROR\nLinea 4\nLinea 5\n");

@@ -1,13 +1,13 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.model.FavoriteTrack;
-import com.EverLoad.everload.model.PlaybackHistory;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.dto.FavoriteTrackRequest;
-import com.EverLoad.everload.dto.PlaybackHistoryRequest;
-import com.EverLoad.everload.repository.FavoriteTrackRepository;
-import com.EverLoad.everload.repository.PlaybackHistoryRepository;
-import com.EverLoad.everload.repository.UserRepository;
+import com.everload.everload.model.FavoriteTrack;
+import com.everload.everload.model.PlaybackHistory;
+import com.everload.everload.model.User;
+import com.everload.everload.dto.FavoriteTrackRequest;
+import com.everload.everload.dto.PlaybackHistoryRequest;
+import com.everload.everload.repository.FavoriteTrackRepository;
+import com.everload.everload.repository.PlaybackHistoryRepository;
+import com.everload.everload.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +28,9 @@ import java.util.Map;
 @RequestMapping("/api/library")
 @RequiredArgsConstructor
 public class UserLibraryController {
+
+    private static final String MESSAGE_KEY = "message";
+    private static final String IS_FAVORITE_KEY = "isFavorite";
 
     private final FavoriteTrackRepository favoriteTrackRepository;
     private final PlaybackHistoryRepository playbackHistoryRepository;
@@ -52,14 +55,14 @@ public class UserLibraryController {
     @Operation(summary = "Añadir o quitar pista de favoritos (toggle)")
     @PostMapping("/favorites/toggle")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> toggleFavorite(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<Object> toggleFavorite(@AuthenticationPrincipal UserDetails userDetails,
                                             @RequestBody FavoriteTrackRequest request) {
         User user = getAuthenticatedUser(userDetails);
         var existing = favoriteTrackRepository.findByUserAndTrackPathAndNasPathId(user, request.trackPath(), request.nasPathId());
         
         if (existing.isPresent()) {
             favoriteTrackRepository.delete(existing.get());
-            return ResponseEntity.ok(Map.of("message", "Removed from favorites", "isFavorite", false));
+            return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Removed from favorites", IS_FAVORITE_KEY, false));
         } else {
             FavoriteTrack favorite = FavoriteTrack.builder()
                     .user(user)
@@ -70,19 +73,19 @@ public class UserLibraryController {
                     .nasPathId(request.nasPathId())
                     .build();
             favoriteTrackRepository.save(favorite);
-            return ResponseEntity.ok(Map.of("message", "Added to favorites", "isFavorite", true));
+            return ResponseEntity.ok(Map.of(MESSAGE_KEY, "Added to favorites", IS_FAVORITE_KEY, true));
         }
     }
 
     @Operation(summary = "Comprobar si una pista es favorita")
     @GetMapping("/favorites/check")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> checkFavorite(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<Object> checkFavorite(@AuthenticationPrincipal UserDetails userDetails,
                                            @RequestParam String trackPath,
                                            @RequestParam Long nasPathId) {
         User user = getAuthenticatedUser(userDetails);
         boolean isFav = favoriteTrackRepository.existsByUserAndTrackPathAndNasPathId(user, trackPath, nasPathId);
-        return ResponseEntity.ok(Map.of("isFavorite", isFav));
+        return ResponseEntity.ok(Map.of(IS_FAVORITE_KEY, isFav));
     }
 
     // ── Playback History ─────────────────────────────────────────────────────
@@ -100,7 +103,7 @@ public class UserLibraryController {
     @Operation(summary = "Registrar reproducción en el historial")
     @PostMapping("/history")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> addHistory(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<Object> addHistory(@AuthenticationPrincipal UserDetails userDetails,
                                         @RequestBody PlaybackHistoryRequest request) {
         User user = getAuthenticatedUser(userDetails);
         PlaybackHistory history = PlaybackHistory.builder()
@@ -114,7 +117,7 @@ public class UserLibraryController {
                 .completed(request.completed())
                 .build();
         playbackHistoryRepository.save(history);
-        return ResponseEntity.ok(Map.of("message", "History recorded"));
+        return ResponseEntity.ok(Map.of(MESSAGE_KEY, "History recorded"));
     }
 
     // ── Stats ────────────────────────────────────────────────────────────────
@@ -122,7 +125,7 @@ public class UserLibraryController {
     @Operation(summary = "Estadísticas de escucha del usuario")
     @GetMapping("/stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> getStats(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<Object> getStats(@AuthenticationPrincipal UserDetails userDetails,
                                       @RequestParam(defaultValue = "10") int topLimit) {
         User user = getAuthenticatedUser(userDetails);
 
@@ -151,7 +154,7 @@ public class UserLibraryController {
     @Operation(summary = "Artistas más escuchados del usuario")
     @GetMapping("/top-artists")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> getTopArtists(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<Object> getTopArtists(@AuthenticationPrincipal UserDetails userDetails,
                                            @RequestParam(defaultValue = "20") int limit) {
         User user = getAuthenticatedUser(userDetails);
         List<Object[]> raw = playbackHistoryRepository.findTopArtistsByUser(

@@ -1,7 +1,7 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.repository.UserRepository;
+import com.everload.everload.model.User;
+import com.everload.everload.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

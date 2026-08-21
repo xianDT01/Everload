@@ -1,14 +1,14 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.model.Playlist;
-import com.EverLoad.everload.model.PlaylistCollaborator;
-import com.EverLoad.everload.model.PlaylistTrack;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.model.UserStatus;
-import com.EverLoad.everload.repository.PlaylistCollaboratorRepository;
-import com.EverLoad.everload.repository.PlaylistRepository;
-import com.EverLoad.everload.repository.PlaylistTrackRepository;
-import com.EverLoad.everload.repository.UserRepository;
+import com.everload.everload.model.Playlist;
+import com.everload.everload.model.PlaylistCollaborator;
+import com.everload.everload.model.PlaylistTrack;
+import com.everload.everload.model.User;
+import com.everload.everload.model.UserStatus;
+import com.everload.everload.repository.PlaylistCollaboratorRepository;
+import com.everload.everload.repository.PlaylistRepository;
+import com.everload.everload.repository.PlaylistTrackRepository;
+import com.everload.everload.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
@@ -29,6 +29,9 @@ import java.util.HashMap;
 @RequestMapping("/api/playlists")
 @RequiredArgsConstructor
 public class PlaylistController {
+
+    private static final String DELETED_KEY = "deleted";
+    private static final String ERROR_KEY = "error";
 
     private final PlaylistRepository playlistRepository;
     private final PlaylistTrackRepository playlistTrackRepository;
@@ -66,11 +69,11 @@ public class PlaylistController {
     @Operation(summary = "Cambiar visibilidad de la playlist (pública/privada)")
     @PatchMapping("/{id}/visibility")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> setVisibility(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> setVisibility(@AuthenticationPrincipal UserDetails ud,
                                            @PathVariable Long id,
                                            @RequestBody VisibilityDto dto) {
         return playlistRepository.findByIdAndUser(id, getUser(ud))
-                .map(pl -> { pl.setIsPublic(dto.getIsPublic()); return ResponseEntity.ok(playlistRepository.save(pl)); })
+                .map(pl -> { pl.setIsPublic(dto.getIsPublic()); return okResponse(playlistRepository.save(pl)); })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -89,20 +92,20 @@ public class PlaylistController {
     @Operation(summary = "Renombrar playlist")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> rename(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> rename(@AuthenticationPrincipal UserDetails ud,
                                     @PathVariable Long id,
                                     @RequestBody CreatePlaylistDto dto) {
         return playlistRepository.findByIdAndUser(id, getUser(ud))
-                .map(pl -> { pl.setName(dto.getName().trim()); return ResponseEntity.ok(playlistRepository.save(pl)); })
+                .map(pl -> { pl.setName(dto.getName().trim()); return okResponse(playlistRepository.save(pl)); })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @Operation(summary = "Eliminar playlist")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> delete(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
+    public ResponseEntity<Object> delete(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
         return playlistRepository.findByIdAndUser(id, getUser(ud))
-                .map(pl -> { playlistRepository.delete(pl); return ResponseEntity.ok(Map.of("deleted", true)); })
+                .map(pl -> { playlistRepository.delete(pl); return okResponse(Map.of(DELETED_KEY, true)); })
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -111,13 +114,13 @@ public class PlaylistController {
     @Operation(summary = "Añadir pista a playlist")
     @PostMapping("/{id}/tracks")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> addTrack(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> addTrack(@AuthenticationPrincipal UserDetails ud,
                                       @PathVariable Long id,
                                       @RequestBody PlaylistTrackDto dto) {
         return playlistRepository.findByIdAndEditableByUser(id, getUser(ud))
                 .map(pl -> {
                     if (playlistTrackRepository.existsByPlaylistAndTrackPathAndNasPathId(pl, dto.getTrackPath(), dto.getNasPathId())) {
-                        return ResponseEntity.ok(playlistTrackRepository
+                        return okResponse(playlistTrackRepository
                                 .findByPlaylistAndTrackPathAndNasPathId(pl, dto.getTrackPath(), dto.getNasPathId())
                                 .orElseThrow());
                     }
@@ -132,7 +135,7 @@ public class PlaylistController {
                             .durationSeconds(dto.getDurationSeconds())
                             .position(pos)
                             .build();
-                    return ResponseEntity.ok(playlistTrackRepository.save(pt));
+                    return okResponse(playlistTrackRepository.save(pt));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -140,13 +143,13 @@ public class PlaylistController {
     @Operation(summary = "Eliminar pista de playlist")
     @DeleteMapping("/{id}/tracks/{trackId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> removeTrack(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> removeTrack(@AuthenticationPrincipal UserDetails ud,
                                          @PathVariable Long id,
                                          @PathVariable Long trackId) {
         return playlistRepository.findByIdAndEditableByUser(id, getUser(ud))
                 .map(pl -> {
                     playlistTrackRepository.findByIdAndPlaylist(trackId, pl).ifPresent(playlistTrackRepository::delete);
-                    return ResponseEntity.ok(Map.of("deleted", true));
+                    return okResponse(Map.of(DELETED_KEY, true));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -154,7 +157,7 @@ public class PlaylistController {
     @Operation(summary = "Reordenar pistas de una playlist")
     @PutMapping("/{id}/tracks/order")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> reorderTracks(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> reorderTracks(@AuthenticationPrincipal UserDetails ud,
                                            @PathVariable Long id,
                                            @RequestBody ReorderTracksDto dto) {
         return playlistRepository.findByIdAndEditableByUser(id, getUser(ud))
@@ -176,7 +179,7 @@ public class PlaylistController {
                         ordered.get(position).setPosition(position);
                     }
                     playlistTrackRepository.saveAll(ordered);
-                    return ResponseEntity.ok(Map.of("reordered", ordered.size()));
+                    return okResponse(Map.of("reordered", ordered.size()));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -186,9 +189,9 @@ public class PlaylistController {
     @Operation(summary = "Listar colaboradores de la playlist")
     @GetMapping("/{id}/collaborators")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> listCollaborators(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
+    public ResponseEntity<Object> listCollaborators(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
         return playlistRepository.findByIdAndEditableByUser(id, getUser(ud))
-                .map(pl -> ResponseEntity.ok(pl.getCollaboratorUsernames()))
+                .map(pl -> okResponse(pl.getCollaboratorUsernames()))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -209,7 +212,7 @@ public class PlaylistController {
     @Operation(summary = "Añadir colaborador a la playlist (solo el dueño)")
     @PostMapping("/{id}/collaborators")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> addCollaborator(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> addCollaborator(@AuthenticationPrincipal UserDetails ud,
                                              @PathVariable Long id,
                                              @RequestBody CollaboratorDto dto) {
         Playlist pl = playlistRepository.findByIdAndUser(id, getUser(ud)).orElse(null);
@@ -218,13 +221,13 @@ public class PlaylistController {
         String username = dto.getUsername() == null ? "" : dto.getUsername().trim();
         User collaborator = userRepository.findByUsername(username).orElse(null);
         if (collaborator == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Usuario no encontrado"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Usuario no encontrado"));
         }
         if (collaborator.getId().equals(pl.getUser().getId())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "El dueño ya tiene acceso a la playlist"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "El dueño ya tiene acceso a la playlist"));
         }
         if (playlistCollaboratorRepository.existsByPlaylistAndUser(pl, collaborator)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "El usuario ya es colaborador"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "El usuario ya es colaborador"));
         }
         playlistCollaboratorRepository.save(PlaylistCollaborator.builder()
                 .playlist(pl)
@@ -239,7 +242,7 @@ public class PlaylistController {
     @Operation(summary = "Quitar colaborador de la playlist (solo el dueño)")
     @DeleteMapping("/{id}/collaborators/{username}")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> removeCollaborator(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> removeCollaborator(@AuthenticationPrincipal UserDetails ud,
                                                 @PathVariable Long id,
                                                 @PathVariable String username) {
         return playlistRepository.findByIdAndUser(id, getUser(ud))
@@ -248,7 +251,7 @@ public class PlaylistController {
                     if (collaborator != null) {
                         playlistCollaboratorRepository.deleteByPlaylistAndUser(pl, collaborator);
                     }
-                    return ResponseEntity.ok(Map.of("deleted", true));
+                    return okResponse(Map.of(DELETED_KEY, true));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -256,17 +259,21 @@ public class PlaylistController {
     @Operation(summary = "Abandonar una playlist colaborativa")
     @PostMapping("/{id}/leave")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> leave(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
+    public ResponseEntity<Object> leave(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
         User user = getUser(ud);
         return playlistRepository.findById(id)
                 .map(pl -> {
                     playlistCollaboratorRepository.deleteByPlaylistAndUser(pl, user);
-                    return ResponseEntity.ok(Map.of("left", true));
+                    return okResponse(Map.of("left", true));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     // ── DTOs ──────────────────────────────────────────────────────────────────
+
+    private static ResponseEntity<Object> okResponse(Object body) {
+        return ResponseEntity.ok(body);
+    }
 
     @Data static class CreatePlaylistDto { private String name; }
     @Data static class VisibilityDto { private Boolean isPublic; }
@@ -274,7 +281,10 @@ public class PlaylistController {
     @Data static class ReorderTracksDto { private List<Long> trackIds; }
 
     @Data static class PlaylistTrackDto {
-        private String trackPath, title, artist, album;
+        private String trackPath;
+        private String title;
+        private String artist;
+        private String album;
         private Long nasPathId;
         private Integer durationSeconds;
     }

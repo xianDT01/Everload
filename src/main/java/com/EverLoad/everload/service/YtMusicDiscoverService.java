@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.*;
+import com.everload.everload.dto.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -10,7 +10,7 @@ import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
+import static com.everload.everload.service.YtMusicJsonUtils.*;
 
 /**
  * Discover/browse surfaces: the YouTube Music home feed (and its
@@ -26,6 +26,24 @@ import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
  */
 @Service
 public class YtMusicDiscoverService {
+
+    private static final String TITLE_NODE = "title";
+    private static final String HEADER_NODE = "header";
+    private static final String CONTENTS_NODE = "contents";
+    private static final String SUBTITLE_NODE = "subtitle";
+    private static final String THUMBNAIL_NODE = "thumbnail";
+    private static final String THUMBNAILS_NODE = "thumbnails";
+    private static final String NAVIGATION_ENDPOINT = "navigationEndpoint";
+    private static final String BROWSE_ENDPOINT = "browseEndpoint";
+    private static final String BROWSE_ID_NODE = "browseId";
+    private static final String WATCH_ENDPOINT = "watchEndpoint";
+    private static final String VIDEO_ID_NODE = "videoId";
+    private static final String PLAYLIST_ID_NODE = "playlistId";
+    private static final String TAB_RENDERER = "tabRenderer";
+    private static final String CONTENT_NODE = "content";
+    private static final String SECTION_LIST_RENDERER = "sectionListRenderer";
+    private static final String SINGLE_COLUMN_RENDERER = "singleColumnBrowseResultsRenderer";
+    private static final String MUSIC_THUMBNAIL_RENDERER = "musicThumbnailRenderer";
 
     private final YtMusicInnertubeClient client;
     private YtMusicCache<String, YtDiscoverHomeDto> homeCache;
@@ -95,64 +113,72 @@ public class YtMusicDiscoverService {
     private YtDiscoverHomeDto parseMoods(JsonNode resp) {
         List<YtDiscoverShelfDto> shelves = new ArrayList<>();
         for (JsonNode section : albumSectionContents(resp)) {
-            JsonNode grid = section.get("gridRenderer");
-            if (grid == null) continue;
-            String title = runsText(at(grid, "header", "gridHeaderRenderer"), "title", "runs");
-            List<YtDiscoverItemDto> items = new ArrayList<>();
-            JsonNode gridItems = grid.get("items");
-            if (gridItems != null && gridItems.isArray()) {
-                for (JsonNode gi : gridItems) {
-                    JsonNode btn = gi.get("musicNavigationButtonRenderer");
-                    if (btn == null) continue;
-                    String label = runsText(btn, "buttonText", "runs");
-                    String browseId = textAt(btn, "clickCommand", "browseEndpoint", "browseId");
-                    String params = textAt(btn, "clickCommand", "browseEndpoint", "params");
-                    if (label == null || browseId == null) continue;
-                    items.add(YtDiscoverItemDto.builder()
-                            .type(YtDiscoverItemDto.Type.MOOD)
-                            .title(label)
-                            .moodBrowseId(browseId)
-                            .moodParams(params)
-                            .build());
-                }
-            }
-            if (!items.isEmpty()) {
-                shelves.add(YtDiscoverShelfDto.builder()
-                        .title(title == null ? "Moods" : title)
-                        .items(items)
-                        .build());
-            }
+            YtDiscoverShelfDto shelf = parseMoodShelf(section);
+            if (shelf != null) shelves.add(shelf);
         }
         return YtDiscoverHomeDto.builder().shelves(shelves).build();
+    }
+
+    private YtDiscoverShelfDto parseMoodShelf(JsonNode section) {
+        JsonNode grid = section.get("gridRenderer");
+        if (grid == null) return null;
+        String title = runsText(at(grid, HEADER_NODE, "gridHeaderRenderer"), TITLE_NODE, "runs");
+        List<YtDiscoverItemDto> items = new ArrayList<>();
+        JsonNode gridItems = grid.get("items");
+        if (gridItems != null && gridItems.isArray()) {
+            for (JsonNode gridItem : gridItems) {
+                YtDiscoverItemDto item = parseMoodButton(gridItem);
+                if (item != null) items.add(item);
+            }
+        }
+        if (items.isEmpty()) return null;
+        return YtDiscoverShelfDto.builder()
+                .title(title == null ? "Moods" : title)
+                .items(items)
+                .build();
+    }
+
+    private YtDiscoverItemDto parseMoodButton(JsonNode gridItem) {
+        JsonNode button = gridItem.get("musicNavigationButtonRenderer");
+        if (button == null) return null;
+        String label = runsText(button, "buttonText", "runs");
+        String browseId = textAt(button, "clickCommand", BROWSE_ENDPOINT, BROWSE_ID_NODE);
+        if (label == null || browseId == null) return null;
+        return YtDiscoverItemDto.builder()
+                .type(YtDiscoverItemDto.Type.MOOD)
+                .title(label)
+                .moodBrowseId(browseId)
+                .moodParams(textAt(button, "clickCommand", BROWSE_ENDPOINT, "params"))
+                .build();
     }
 
     private YtDiscoverHomeDto parseMoodCategory(JsonNode resp) {
         List<YtDiscoverShelfDto> shelves = new ArrayList<>();
         for (JsonNode section : albumSectionContents(resp)) {
-            YtDiscoverShelfDto carousel = parseShelf(section);
-            if (carousel != null) {
-                shelves.add(carousel);
-                continue;
-            }
-            JsonNode grid = section.get("gridRenderer");
-            if (grid == null) continue;
-            String title = runsText(at(grid, "header", "gridHeaderRenderer"), "title", "runs");
-            List<YtDiscoverItemDto> items = new ArrayList<>();
-            JsonNode gridItems = grid.get("items");
-            if (gridItems != null && gridItems.isArray()) {
-                for (JsonNode tile : gridItems) {
-                    YtDiscoverItemDto item = parseTile(tile);
-                    if (item != null) items.add(item);
-                }
-            }
-            if (!items.isEmpty()) {
-                shelves.add(YtDiscoverShelfDto.builder()
-                        .title(title == null ? "" : title)
-                        .items(items)
-                        .build());
-            }
+            YtDiscoverShelfDto shelf = parseShelf(section);
+            if (shelf == null) shelf = parseGridShelf(section);
+            if (shelf != null) shelves.add(shelf);
         }
         return YtDiscoverHomeDto.builder().shelves(shelves).build();
+    }
+
+    private YtDiscoverShelfDto parseGridShelf(JsonNode section) {
+        JsonNode grid = section.get("gridRenderer");
+        if (grid == null) return null;
+        String title = runsText(at(grid, HEADER_NODE, "gridHeaderRenderer"), TITLE_NODE, "runs");
+        List<YtDiscoverItemDto> items = new ArrayList<>();
+        JsonNode gridItems = grid.get("items");
+        if (gridItems != null && gridItems.isArray()) {
+            for (JsonNode tile : gridItems) {
+                YtDiscoverItemDto item = parseTile(tile);
+                if (item != null) items.add(item);
+            }
+        }
+        if (items.isEmpty()) {
+            return null;
+        }
+        String shelfTitle = title == null ? "" : title;
+        return YtDiscoverShelfDto.builder().title(shelfTitle).items(items).build();
     }
 
     public YtDiscoverHomeDto fetchContinuation(String token) {
@@ -164,13 +190,13 @@ public class YtMusicDiscoverService {
 
     private YtDiscoverHomeDto parseInitial(JsonNode resp) {
         List<JsonNode> sections = tabSectionContents(resp,
-                "contents", "singleColumnBrowseResultsRenderer", "tabs");
+                CONTENTS_NODE, SINGLE_COLUMN_RENDERER, "tabs");
         String continuation = null;
-        JsonNode tabs = at(resp, "contents", "singleColumnBrowseResultsRenderer", "tabs");
+        JsonNode tabs = at(resp, CONTENTS_NODE, SINGLE_COLUMN_RENDERER, "tabs");
         if (tabs.isArray()) {
             for (JsonNode tab : tabs) {
-                String token = firstContinuation(at(tab, "tabRenderer", "content",
-                        "sectionListRenderer", "continuations"));
+                String token = firstContinuation(at(tab, TAB_RENDERER, CONTENT_NODE,
+                        SECTION_LIST_RENDERER, "continuations"));
                 if (token != null) {
                     continuation = token;
                     break;
@@ -186,7 +212,7 @@ public class YtMusicDiscoverService {
     }
 
     private YtDiscoverHomeDto parseContinuation(JsonNode resp) {
-        JsonNode contents = at(resp, "continuationContents", "sectionListContinuation", "contents");
+        JsonNode contents = at(resp, "continuationContents", "sectionListContinuation", CONTENTS_NODE);
         String continuation = firstContinuation(at(resp, "continuationContents",
                 "sectionListContinuation", "continuations"));
         List<YtDiscoverShelfDto> shelves = new ArrayList<>();
@@ -204,17 +230,17 @@ public class YtMusicDiscoverService {
         if (shelf == null) {
             return null;
         }
-        JsonNode header = at(shelf, "header", "musicCarouselShelfBasicHeaderRenderer");
-        String title = runsText(header, "title", "runs");
+        JsonNode header = at(shelf, HEADER_NODE, "musicCarouselShelfBasicHeaderRenderer");
+        String title = runsText(header, TITLE_NODE, "runs");
         if (title == null) {
             return null;
         }
         String strapline = runsText(header, "strapline", "runs");
         String moreBrowseId = textAt(header, "moreContentButton", "buttonRenderer",
-                "navigationEndpoint", "browseEndpoint", "browseId");
+                NAVIGATION_ENDPOINT, BROWSE_ENDPOINT, BROWSE_ID_NODE);
 
         List<YtDiscoverItemDto> items = new ArrayList<>();
-        JsonNode contents = shelf.get("contents");
+        JsonNode contents = shelf.get(CONTENTS_NODE);
         if (contents != null && contents.isArray()) {
             for (JsonNode tile : contents) {
                 YtDiscoverItemDto item = parseTile(tile);
@@ -233,16 +259,16 @@ public class YtMusicDiscoverService {
         if (r == null) {
             return null;
         }
-        String title = runsText(r, "title", "runs");
+        String title = runsText(r, TITLE_NODE, "runs");
         if (title == null) {
             return null;
         }
-        String subtitle = runsText(r, "subtitle", "runs");
+        String subtitle = runsText(r, SUBTITLE_NODE, "runs");
         if (subtitle == null) subtitle = "";
         String thumbnail = normalizeThumbnail(bestThumbnailAt(r,
-                "thumbnailRenderer", "musicThumbnailRenderer", "thumbnail", "thumbnails"));
+                "thumbnailRenderer", MUSIC_THUMBNAIL_RENDERER, THUMBNAIL_NODE, THUMBNAILS_NODE));
 
-        String videoId = textAt(r, "navigationEndpoint", "watchEndpoint", "videoId");
+        String videoId = textAt(r, NAVIGATION_ENDPOINT, WATCH_ENDPOINT, VIDEO_ID_NODE);
         if (videoId != null) {
             return YtDiscoverItemDto.builder()
                     .type(YtDiscoverItemDto.Type.SONG)
@@ -251,12 +277,12 @@ public class YtMusicDiscoverService {
                     .build();
         }
 
-        String playlistId = textAt(r, "navigationEndpoint", "watchPlaylistEndpoint", "playlistId");
+        String playlistId = textAt(r, NAVIGATION_ENDPOINT, "watchPlaylistEndpoint", PLAYLIST_ID_NODE);
         if (playlistId != null) {
             return playlistItem(playlistId, title, subtitle, thumbnail);
         }
 
-        String browseId = textAt(r, "navigationEndpoint", "browseEndpoint", "browseId");
+        String browseId = textAt(r, NAVIGATION_ENDPOINT, BROWSE_ENDPOINT, BROWSE_ID_NODE);
         if (browseId != null) {
             if (browseId.startsWith("VL")) {
                 return playlistItem(browseId.substring(2), title, subtitle, thumbnail);
@@ -314,7 +340,7 @@ public class YtMusicDiscoverService {
             return out;
         }
         for (JsonNode tab : tabs) {
-            JsonNode contents = at(tab, "tabRenderer", "content", "sectionListRenderer", "contents");
+            JsonNode contents = at(tab, TAB_RENDERER, CONTENT_NODE, SECTION_LIST_RENDERER, CONTENTS_NODE);
             if (contents.isArray()) {
                 contents.forEach(out::add);
             }
@@ -336,7 +362,7 @@ public class YtMusicDiscoverService {
         List<JsonNode> sections = albumSectionContents(resp);
         JsonNode header = findAlbumHeader(resp, sections);
 
-        String title = runsText(header, "title", "runs");
+        String title = runsText(header, TITLE_NODE, "runs");
         if (title == null) title = "";
         String artist = pickAlbumArtist(header);
         String year = pickAlbumYear(header);
@@ -344,7 +370,7 @@ public class YtMusicDiscoverService {
 
         List<YtTrackDto> tracks = new ArrayList<>();
         for (JsonNode section : sections) {
-            JsonNode items = at(section, "musicShelfRenderer", "contents");
+            JsonNode items = at(section, "musicShelfRenderer", CONTENTS_NODE);
             if (!items.isArray()) continue;
             for (JsonNode item : items) {
                 JsonNode row = item.get("musicResponsiveListItemRenderer");
@@ -363,17 +389,17 @@ public class YtMusicDiscoverService {
     /** Merges {@code tabs[].sectionListRenderer.contents} with {@code secondaryContents} (two-column layout). */
     private List<JsonNode> albumSectionContents(JsonNode resp) {
         List<JsonNode> out = new ArrayList<>();
-        for (String root : new String[]{"twoColumnBrowseResultsRenderer", "singleColumnBrowseResultsRenderer"}) {
-            JsonNode tabs = at(resp, "contents", root, "tabs");
+        for (String root : new String[]{"twoColumnBrowseResultsRenderer", SINGLE_COLUMN_RENDERER}) {
+            JsonNode tabs = at(resp, CONTENTS_NODE, root, "tabs");
             if (tabs.isArray()) {
                 for (JsonNode tab : tabs) {
-                    JsonNode contents = at(tab, "tabRenderer", "content", "sectionListRenderer", "contents");
+                    JsonNode contents = at(tab, TAB_RENDERER, CONTENT_NODE, SECTION_LIST_RENDERER, CONTENTS_NODE);
                     if (contents.isArray()) contents.forEach(out::add);
                 }
             }
         }
-        JsonNode secondary = at(resp, "contents", "twoColumnBrowseResultsRenderer",
-                "secondaryContents", "sectionListRenderer", "contents");
+        JsonNode secondary = at(resp, CONTENTS_NODE, "twoColumnBrowseResultsRenderer",
+                "secondaryContents", SECTION_LIST_RENDERER, CONTENTS_NODE);
         if (secondary.isArray()) secondary.forEach(out::add);
         return out;
     }
@@ -385,7 +411,7 @@ public class YtMusicDiscoverService {
         for (JsonNode s : sections) {
             if (s.has("musicDetailHeaderRenderer")) return s.get("musicDetailHeaderRenderer");
         }
-        JsonNode headerObj = resp.get("header");
+        JsonNode headerObj = resp.get(HEADER_NODE);
         if (headerObj != null && headerObj.isObject()) {
             var fields = headerObj.fields();
             while (fields.hasNext()) {
@@ -411,78 +437,69 @@ public class YtMusicDiscoverService {
                 }
             }
         }
-        JsonNode subtitleRuns = at(header, "subtitle", "runs");
+        JsonNode subtitleRuns = at(header, SUBTITLE_NODE, "runs");
         if (subtitleRuns.isArray()) {
             for (JsonNode r : subtitleRuns) {
                 String t = textOf(r);
-                if (t == null) continue;
-                t = t.trim();
-                if (t.isEmpty() || t.equals("•")) continue;
-                if (t.length() == 4 && t.chars().allMatch(Character::isDigit)) continue;
-                if (ALBUM_KIND_LABELS.contains(t)) continue;
-                return t;
+                if (isAlbumArtistLabel(t)) return t.trim();
             }
         }
         return null;
     }
 
+    private boolean isAlbumArtistLabel(String value) {
+        if (value == null) return false;
+        String label = value.trim();
+        return !label.isEmpty() && !label.equals("•")
+                && !(label.length() == 4 && label.chars().allMatch(Character::isDigit))
+                && !ALBUM_KIND_LABELS.contains(label);
+    }
+
     private String pickAlbumYear(JsonNode header) {
-        for (String key : new String[]{"subtitle", "secondSubtitle"}) {
+        for (String key : new String[]{SUBTITLE_NODE, "secondSubtitle"}) {
             JsonNode runs = at(header, key, "runs");
             if (runs.isArray()) {
                 for (JsonNode r : runs) {
-                    String t = textOf(r);
-                    if (t != null) {
-                        t = t.trim();
-                        if (t.length() == 4 && t.chars().allMatch(Character::isDigit)) {
-                            return t;
-                        }
-                    }
+                    String year = normalizeYear(textOf(r));
+                    if (year != null) return year;
                 }
             }
         }
         return null;
     }
 
+    private String normalizeYear(String value) {
+        if (value == null) return null;
+        String candidate = value.trim();
+        return candidate.length() == 4 && candidate.chars().allMatch(Character::isDigit)
+                ? candidate : null;
+    }
+
     private String bestAlbumThumbnail(JsonNode header) {
-        for (String renderer : new String[]{"musicThumbnailRenderer", "croppedSquareThumbnailRenderer"}) {
-            String url = bestThumbnailAt(header, "thumbnail", renderer, "thumbnail", "thumbnails");
+        for (String renderer : new String[]{MUSIC_THUMBNAIL_RENDERER, "croppedSquareThumbnailRenderer"}) {
+            String url = bestThumbnailAt(header, THUMBNAIL_NODE, renderer, THUMBNAIL_NODE, THUMBNAILS_NODE);
             if (url != null) return url;
         }
         return null;
     }
 
     private YtTrackDto parseAlbumRow(JsonNode row, String albumTitle, String albumArtist, String albumThumbnail) {
-        List<FlexColumn> cols = classifyFlexColumns(row);
-        String videoId = null, title = "", rowArtist = null;
-        Integer flexDuration = null;
-        for (FlexColumn c : cols) {
-            switch (c.kind()) {
-                case TITLE -> {
-                    if (title.isEmpty()) title = c.text();
-                    if (videoId == null && c.videoId() != null) videoId = c.videoId();
-                }
-                case ARTIST -> { if (rowArtist == null) rowArtist = c.text(); }
-                case DURATION -> { if (flexDuration == null) flexDuration = c.durationSecs(); }
-                default -> {
-                    // Other column kinds do not contribute to an album track.
-                }
-            }
-        }
+        FlexColumnValues values = collectFlexColumnValues(row);
+        String videoId = values.videoId;
         if (videoId == null) {
-            videoId = textAt(row, "playlistItemData", "videoId");
+            videoId = textAt(row, "playlistItemData", VIDEO_ID_NODE);
         }
-        if (videoId == null || title.isEmpty()) {
+        if (videoId == null || values.title.isEmpty()) {
             return null;
         }
-        String primaryArtist = rowArtist != null ? rowArtist : albumArtist;
+        String primaryArtist = values.artist != null ? values.artist : albumArtist;
         if (primaryArtist == null) primaryArtist = "";
         int duration = fixedColumnsDuration(row);
-        if (duration == 0 && flexDuration != null) duration = flexDuration;
+        if (duration == 0 && values.duration != null) duration = values.duration;
 
         return YtTrackDto.builder()
                 .videoId(videoId)
-                .title(title)
+                .title(values.title)
                 .artist(primaryArtist)
                 .artists(primaryArtist.isBlank() ? List.of() : List.of(primaryArtist))
                 .album(albumTitle == null ? "" : albumTitle)
@@ -500,7 +517,7 @@ public class YtMusicDiscoverService {
 
     private YtArtistDto parseArtist(String channelId, JsonNode resp) {
         JsonNode header = findArtistHeader(resp);
-        String name = runsText(header, "title", "runs");
+        String name = runsText(header, TITLE_NODE, "runs");
         String description = runsText(header, "description", "runs");
         String banner = bestArtistBanner(header);
 
@@ -508,27 +525,7 @@ public class YtMusicDiscoverService {
         List<YtAlbumDto> albums = new ArrayList<>();
         List<YtAlbumDto> singles = new ArrayList<>();
         for (JsonNode section : albumSectionContents(resp)) {
-            JsonNode carousel = section.get("musicCarouselShelfRenderer");
-            if (carousel != null) {
-                // hl=en in the innertube context makes the carousel titles stable.
-                String carouselTitle = safe(runsText(at(carousel, "header",
-                        "musicCarouselShelfBasicHeaderRenderer"), "title", "runs")).toLowerCase();
-                boolean isSingles = carouselTitle.contains("single") || carouselTitle.contains("sencillo");
-                collectCarouselAlbums(carousel, isSingles ? singles : albums);
-                continue;
-            }
-            JsonNode shelf = section.get("musicShelfRenderer");
-            if (shelf != null && "Top songs".equalsIgnoreCase(safe(runsText(shelf, "title", "runs")))) {
-                JsonNode items = shelf.get("contents");
-                if (items != null && items.isArray()) {
-                    for (JsonNode item : items) {
-                        JsonNode row = item.get("musicResponsiveListItemRenderer");
-                        if (row == null) continue;
-                        YtTrackDto track = parseArtistSongRow(row);
-                        if (track != null) topSongs.add(track);
-                    }
-                }
-            }
+            collectArtistSection(section, topSongs, albums, singles);
         }
 
         return YtArtistDto.builder()
@@ -542,80 +539,94 @@ public class YtMusicDiscoverService {
                 .build();
     }
 
+    private void collectArtistSection(JsonNode section, List<YtTrackDto> topSongs,
+                                      List<YtAlbumDto> albums, List<YtAlbumDto> singles) {
+        JsonNode carousel = section.get("musicCarouselShelfRenderer");
+        if (carousel != null) {
+            String carouselTitle = safe(runsText(at(carousel, HEADER_NODE,
+                    "musicCarouselShelfBasicHeaderRenderer"), TITLE_NODE, "runs")).toLowerCase();
+            boolean isSingles = carouselTitle.contains("single") || carouselTitle.contains("sencillo");
+            collectCarouselAlbums(carousel, isSingles ? singles : albums);
+            return;
+        }
+        JsonNode shelf = section.get("musicShelfRenderer");
+        if (shelf == null || !"Top songs".equalsIgnoreCase(safe(runsText(shelf, TITLE_NODE, "runs")))) {
+            return;
+        }
+        JsonNode items = shelf.get(CONTENTS_NODE);
+        if (items == null || !items.isArray()) return;
+        for (JsonNode item : items) {
+            JsonNode row = item.get("musicResponsiveListItemRenderer");
+            if (row == null) continue;
+            YtTrackDto track = parseArtistSongRow(row);
+            if (track != null) topSongs.add(track);
+        }
+    }
+
     private String safe(String s) {
         return s == null ? "" : s;
     }
 
     private void collectCarouselAlbums(JsonNode carousel, List<YtAlbumDto> out) {
-        JsonNode contents = carousel.get("contents");
+        JsonNode contents = carousel.get(CONTENTS_NODE);
         if (contents == null || !contents.isArray()) return;
         for (JsonNode tile : contents) {
-            JsonNode r = tile.get("musicTwoRowItemRenderer");
-            if (r == null) continue;
-            String browseId = textAt(r, "navigationEndpoint", "browseEndpoint", "browseId");
-            if (browseId == null || !browseId.startsWith("MPRE")) continue;
-            String title = runsText(r, "title", "runs");
-            String subtitle = runsText(r, "subtitle", "runs");
-            String thumbnail = normalizeThumbnail(bestThumbnailAt(r,
-                    "thumbnailRenderer", "musicThumbnailRenderer", "thumbnail", "thumbnails"));
-            out.add(YtAlbumDto.builder()
-                    .browseId(browseId)
-                    .title(title == null ? "" : title)
-                    .artist(subtitle)
-                    .thumbnailUrl(thumbnail)
-                    .tracks(List.of())
-                    .build());
+            YtAlbumDto album = parseCarouselAlbum(tile);
+            if (album != null) out.add(album);
         }
     }
 
+    private YtAlbumDto parseCarouselAlbum(JsonNode tile) {
+        JsonNode renderer = tile.get("musicTwoRowItemRenderer");
+        if (renderer == null) return null;
+        String browseId = textAt(renderer, NAVIGATION_ENDPOINT, BROWSE_ENDPOINT, BROWSE_ID_NODE);
+        if (browseId == null || !browseId.startsWith("MPRE")) return null;
+        String title = runsText(renderer, TITLE_NODE, "runs");
+        return YtAlbumDto.builder()
+                .browseId(browseId)
+                .title(title == null ? "" : title)
+                .artist(runsText(renderer, SUBTITLE_NODE, "runs"))
+                .thumbnailUrl(normalizeThumbnail(bestThumbnailAt(renderer,
+                        "thumbnailRenderer", MUSIC_THUMBNAIL_RENDERER, THUMBNAIL_NODE, THUMBNAILS_NODE)))
+                .tracks(List.of())
+                .build();
+    }
+
     private JsonNode findArtistHeader(JsonNode resp) {
-        JsonNode immersive = at(resp, "header", "musicImmersiveHeaderRenderer");
+        JsonNode immersive = at(resp, HEADER_NODE, "musicImmersiveHeaderRenderer");
         if (!immersive.isMissingNode()) return immersive;
-        JsonNode visual = at(resp, "header", "musicVisualHeaderRenderer");
+        JsonNode visual = at(resp, HEADER_NODE, "musicVisualHeaderRenderer");
         if (!visual.isMissingNode()) return visual;
         return com.fasterxml.jackson.databind.node.MissingNode.getInstance();
     }
 
     private String bestArtistBanner(JsonNode header) {
-        for (String renderer : new String[]{"thumbnail", "foregroundThumbnail"}) {
-            String url = bestThumbnailAt(header, renderer, "musicThumbnailRenderer", "thumbnail", "thumbnails");
+        for (String renderer : new String[]{THUMBNAIL_NODE, "foregroundThumbnail"}) {
+            String url = bestThumbnailAt(header, renderer, MUSIC_THUMBNAIL_RENDERER, THUMBNAIL_NODE, THUMBNAILS_NODE);
             if (url != null) return normalizeThumbnail(url);
         }
         return null;
     }
 
     private YtTrackDto parseArtistSongRow(JsonNode row) {
-        List<FlexColumn> cols = classifyFlexColumns(row);
-        String videoId = null, title = "", artist = "", album = "";
-        Integer flexDuration = null;
-        for (FlexColumn c : cols) {
-            switch (c.kind()) {
-                case TITLE -> {
-                    if (title.isEmpty()) title = c.text();
-                    if (videoId == null && c.videoId() != null) videoId = c.videoId();
-                }
-                case ARTIST -> { if (artist.isEmpty()) artist = c.text(); }
-                case ALBUM -> { if (album.isEmpty()) album = c.text(); }
-                case DURATION -> { if (flexDuration == null) flexDuration = c.durationSecs(); }
-                default -> {
-                    // Other column kinds do not contribute to an artist track.
-                }
-            }
-        }
+        FlexColumnValues values = collectFlexColumnValues(row);
+        String videoId = values.videoId;
         if (videoId == null) {
-            videoId = textAt(row, "playlistItemData", "videoId");
+            videoId = textAt(row, "playlistItemData", VIDEO_ID_NODE);
         }
-        if (videoId == null || title.isEmpty()) {
+        if (videoId == null || values.title.isEmpty()) {
             return null;
         }
         int duration = fixedColumnsDuration(row);
-        if (duration == 0 && flexDuration != null) duration = flexDuration;
+        if (duration == 0 && values.duration != null) duration = values.duration;
+        String artist = values.artist == null ? "" : values.artist;
+        String album = values.album == null ? "" : values.album;
         String thumbnail = normalizeThumbnail(bestThumbnailAt(row,
-                "thumbnail", "musicThumbnailRenderer", "thumbnail", "thumbnails"));
+                THUMBNAIL_NODE, MUSIC_THUMBNAIL_RENDERER, THUMBNAIL_NODE, THUMBNAILS_NODE));
 
         return YtTrackDto.builder()
                 .videoId(videoId)
-                .title(title)
+                .title(values.title)
                 .artist(artist)
                 .artists(artist.isBlank() ? List.of() : List.of(artist))
                 .album(album)
@@ -629,6 +640,37 @@ public class YtMusicDiscoverService {
 
     private record FlexColumn(Kind kind, String text, String videoId, String playlistId, int durationSecs) {
         enum Kind { TITLE, ARTIST, ALBUM, DURATION, PLAY_COUNT, OTHER, EMPTY }
+    }
+
+    private static final class FlexColumnValues {
+        private String videoId;
+        private String title = "";
+        private String artist;
+        private String album;
+        private Integer duration;
+
+        private void accept(FlexColumn column) {
+            switch (column.kind()) {
+                case TITLE -> {
+                    if (title.isEmpty()) title = column.text();
+                    if (videoId == null && column.videoId() != null) videoId = column.videoId();
+                }
+                case ARTIST -> { if (artist == null) artist = column.text(); }
+                case ALBUM -> { if (album == null) album = column.text(); }
+                case DURATION -> { if (duration == null) duration = column.durationSecs(); }
+                default -> {
+                    // Other column kinds do not contribute to track metadata.
+                }
+            }
+        }
+    }
+
+    private FlexColumnValues collectFlexColumnValues(JsonNode row) {
+        FlexColumnValues values = new FlexColumnValues();
+        for (FlexColumn column : classifyFlexColumns(row)) {
+            values.accept(column);
+        }
+        return values;
     }
 
     /**
@@ -645,65 +687,61 @@ public class YtMusicDiscoverService {
             return out;
         }
         for (JsonNode col : cols) {
-            JsonNode runs = at(col, "musicResponsiveListItemFlexColumnRenderer", "text", "runs");
-            if (!runs.isArray() || runs.isEmpty()) {
-                out.add(new FlexColumn(FlexColumn.Kind.EMPTY, "", null, null, 0));
-                continue;
-            }
-            StringBuilder sb = new StringBuilder();
-            for (JsonNode r : runs) {
-                JsonNode text = r.get("text");
-                if (text != null && text.isTextual()) sb.append(text.asText());
-            }
-            String text = sb.toString();
-            if (text.isBlank()) {
-                out.add(new FlexColumn(FlexColumn.Kind.EMPTY, "", null, null, 0));
-                continue;
-            }
-
-            // Title check first, against runs[0] specifically — that's where
-            // the watchEndpoint lives. Scanning every run's navigationEndpoint
-            // can hand a multi-run "Title feat. Artist" column to the Artist
-            // branch via run[1]'s browseEndpoint, dropping the row.
-            JsonNode firstNav = runs.get(0).get("navigationEndpoint");
-            String vid = firstNav == null ? null : textAt(firstNav, "watchEndpoint", "videoId");
-            if (vid != null) {
-                String pid = textAt(firstNav, "watchEndpoint", "playlistId");
-                out.add(new FlexColumn(FlexColumn.Kind.TITLE, text, vid, pid, 0));
-                continue;
-            }
-
-            FlexColumn classified = classifyByEndpoint(runs, text);
-            if (classified != null) {
-                out.add(classified);
-                continue;
-            }
-            int secs = parseMmSs(text.trim());
-            if (secs > 0 || text.trim().matches("\\d{1,2}:\\d{2}(:\\d{2})?")) {
-                out.add(new FlexColumn(FlexColumn.Kind.DURATION, text, null, null, secs));
-            } else if (isPlayCountText(text)) {
-                out.add(new FlexColumn(FlexColumn.Kind.PLAY_COUNT, text, null, null, 0));
-            } else {
-                out.add(new FlexColumn(FlexColumn.Kind.OTHER, text, null, null, 0));
-            }
+            out.add(classifyFlexColumn(col));
         }
         return out;
     }
 
+    private FlexColumn classifyFlexColumn(JsonNode column) {
+        JsonNode runs = at(column, "musicResponsiveListItemFlexColumnRenderer", "text", "runs");
+        if (!runs.isArray() || runs.isEmpty()) return new FlexColumn(FlexColumn.Kind.EMPTY, "", null, null, 0);
+        StringBuilder combinedText = new StringBuilder();
+        for (JsonNode run : runs) {
+            JsonNode textNode = run.get("text");
+            if (textNode != null && textNode.isTextual()) combinedText.append(textNode.asText());
+        }
+        String text = combinedText.toString();
+        if (text.isBlank()) return new FlexColumn(FlexColumn.Kind.EMPTY, "", null, null, 0);
+
+        JsonNode firstNavigation = runs.get(0).get(NAVIGATION_ENDPOINT);
+        String videoId = firstNavigation == null ? null : textAt(firstNavigation, WATCH_ENDPOINT, VIDEO_ID_NODE);
+        if (videoId != null) {
+            String playlistId = textAt(firstNavigation, WATCH_ENDPOINT, PLAYLIST_ID_NODE);
+            return new FlexColumn(FlexColumn.Kind.TITLE, text, videoId, playlistId, 0);
+        }
+        FlexColumn classified = classifyByEndpoint(runs, text);
+        if (classified != null) return classified;
+        int seconds = parseMmSs(text.trim());
+        if (seconds > 0 || text.trim().matches("\\d{1,2}:\\d{2}(:\\d{2})?")) {
+            return new FlexColumn(FlexColumn.Kind.DURATION, text, null, null, seconds);
+        }
+        FlexColumn.Kind kind = isPlayCountText(text) ? FlexColumn.Kind.PLAY_COUNT : FlexColumn.Kind.OTHER;
+        return new FlexColumn(kind, text, null, null, 0);
+    }
+
     private FlexColumn classifyByEndpoint(JsonNode runs, String text) {
         for (JsonNode r : runs) {
-            JsonNode nav = r.get("navigationEndpoint");
+            JsonNode nav = r.get(NAVIGATION_ENDPOINT);
             if (nav == null) continue;
-            String browseId = textAt(nav, "browseEndpoint", "browseId");
-            if (browseId != null) {
-                if (browseId.startsWith("UC")) return new FlexColumn(FlexColumn.Kind.ARTIST, text, null, null, 0);
-                if (browseId.startsWith("MPRE")) return new FlexColumn(FlexColumn.Kind.ALBUM, text, null, null, 0);
-            }
-            String playlistId = textAt(nav, "watchPlaylistEndpoint", "playlistId");
-            if (playlistId == null) playlistId = textAt(nav, "watchEndpoint", "playlistId");
+            String browseId = textAt(nav, BROWSE_ENDPOINT, BROWSE_ID_NODE);
+            FlexColumn endpointColumn = classifyBrowseEndpoint(browseId, text);
+            if (endpointColumn != null) return endpointColumn;
+            String playlistId = textAt(nav, "watchPlaylistEndpoint", PLAYLIST_ID_NODE);
+            if (playlistId == null) playlistId = textAt(nav, WATCH_ENDPOINT, PLAYLIST_ID_NODE);
             if (playlistId != null && playlistId.startsWith("OLAK5uy_")) {
                 return new FlexColumn(FlexColumn.Kind.ALBUM, text, null, null, 0);
             }
+        }
+        return null;
+    }
+
+    private FlexColumn classifyBrowseEndpoint(String browseId, String text) {
+        if (browseId == null) return null;
+        if (browseId.startsWith("UC")) {
+            return new FlexColumn(FlexColumn.Kind.ARTIST, text, null, null, 0);
+        }
+        if (browseId.startsWith("MPRE")) {
+            return new FlexColumn(FlexColumn.Kind.ALBUM, text, null, null, 0);
         }
         return null;
     }

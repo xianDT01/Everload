@@ -1,4 +1,4 @@
-package com.EverLoad.everload.security;
+package com.everload.everload.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,7 +46,7 @@ public class SecurityConfig {
                 java.util.List<String> origins = java.util.Arrays.stream(corsAllowedOrigins.split(","))
                         .map(String::trim)
                         .filter(s -> !s.isEmpty())
-                        .collect(java.util.stream.Collectors.toList());
+                        .toList();
                 config.setAllowedOriginPatterns(origins);
                 config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Range"));

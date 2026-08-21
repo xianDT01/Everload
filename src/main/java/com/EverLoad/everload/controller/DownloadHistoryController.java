@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.model.Download;
-import com.EverLoad.everload.service.DownloadHistoryService;
+import com.everload.everload.model.Download;
+import com.everload.everload.service.DownloadHistoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;

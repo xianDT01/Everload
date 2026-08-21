@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.config.AdminConfigService;
+import com.everload.everload.config.AdminConfigService;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;

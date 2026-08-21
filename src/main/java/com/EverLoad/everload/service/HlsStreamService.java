@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

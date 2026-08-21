@@ -1,18 +1,18 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.security.JwtUtil;
-import com.EverLoad.everload.security.UserDetailsServiceImpl;
-import com.EverLoad.everload.service.MaintenanceService;
-import com.EverLoad.everload.service.NasYtDlpService;
-import com.EverLoad.everload.service.TokenRevocationService;
-import com.EverLoad.everload.service.NasYtDlpService.YtDlpJob;
+import com.everload.everload.security.JwtUtil;
+import com.everload.everload.security.UserDetailsServiceImpl;
+import com.everload.everload.service.MaintenanceService;
+import com.everload.everload.service.NasYtDlpService;
+import com.everload.everload.service.TokenRevocationService;
+import com.everload.everload.service.NasYtDlpService.YtDlpJob;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -30,19 +30,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class NasYtDlpControllerTest {
 
-    @MockBean
+    @MockitoBean
     JwtUtil jwtUtil;
 
-    @MockBean
+    @MockitoBean
     UserDetailsServiceImpl userDetailsService;
 
-    @MockBean
+    @MockitoBean
     TokenRevocationService tokenRevocationService;
 
-    @MockBean
+    @MockitoBean
     MaintenanceService maintenanceService;
 
-    @MockBean
+    @MockitoBean
     NasYtDlpService service;
 
     @Autowired
@@ -85,7 +85,7 @@ class NasYtDlpControllerTest {
             "https://x.com/user/status/123"
     })
     void queueUrl_allowedDomain_queuesJobAndReturnsId(String url) throws Exception {
-        when(service.queueUrl(eq(url), eq("Mi video"), eq(5L), eq("Reels")))
+        when(service.queueUrl(url, "Mi video", 5L, "Reels"))
                 .thenReturn("job-123");
 
         mvc.perform(post("/api/nas/ytdlp/queue-url")

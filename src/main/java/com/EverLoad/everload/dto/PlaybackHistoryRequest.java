@@ -1,4 +1,4 @@
-package com.EverLoad.everload.dto;
+package com.everload.everload.dto;
 
 /** Input accepted when a user records playback. Ownership and timestamps stay server-controlled. */
 public record PlaybackHistoryRequest(

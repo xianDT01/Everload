@@ -1,4 +1,4 @@
-package com.EverLoad.everload.model;
+package com.everload.everload.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;

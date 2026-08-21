@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.model.Download;
+import com.everload.everload.model.Download;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,13 +11,11 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.regex.*;
 
 @Service
 public class NasYtDlpService {
 
     private static final Logger log = LoggerFactory.getLogger(NasYtDlpService.class);
-    private static final Pattern PCT = Pattern.compile("(\\d+\\.?\\d*)%");
     private static final String TEMP_BASE = "./downloads/ytdlp-nas/";
 
     @Value("${app.downloads.max-concurrent:3}")
@@ -114,13 +112,8 @@ public class NasYtDlpService {
                     String line;
                     while ((line = r.readLine()) != null) {
                         if (line.contains("nsig extraction failed")) continue;
-                        Matcher m = PCT.matcher(line);
-                        if (m.find()) {
-                            try { job.progress = Math.min((int) Double.parseDouble(m.group(1)), 94); }
-                            catch (NumberFormatException e) {
-                                log.debug("Invalid yt-dlp progress for {}: {}", job.jobId, m.group(1));
-                            }
-                        }
+                        YtDlpProgressParser.parse(line)
+                                .ifPresent(progress -> job.progress = Math.min(progress, 94));
                     }
                 } catch (IOException e) {
                     log.debug("Could not read yt-dlp progress for {}: {}", job.jobId, e.getMessage());
@@ -156,11 +149,7 @@ public class NasYtDlpService {
 
             job.progress = 97;
             String saved = nasService.saveToNas(job.nasPathId, job.subPath, tmp.toPath(), tmp.getName());
-            try {
-                musicService.startLibraryIndex(job.nasPathId);
-            } catch (Exception indexError) {
-                log.warn("No se pudo refrescar la biblioteca tras descargar {}: {}", saved, indexError.getMessage());
-            }
+            refreshLibrary(job.nasPathId, saved);
             downloadHistoryService.recordDownload(new Download(tmp.getName(), "music (NAS)", "YouTube"));
 
             job.resultFilename = tmp.getName();
@@ -179,6 +168,14 @@ public class NasYtDlpService {
             log.error("❌ job {} failed: {}", job.jobId, e.getMessage());
         } finally {
             cleanup(tempDir);
+        }
+    }
+
+    private void refreshLibrary(Long nasPathId, String savedPath) {
+        try {
+            musicService.startLibraryIndex(nasPathId);
+        } catch (Exception indexError) {
+            log.warn("No se pudo refrescar la biblioteca tras descargar {}: {}", savedPath, indexError.getMessage());
         }
     }
 
@@ -254,13 +251,8 @@ public class NasYtDlpService {
     }
 
     private void updateProgress(YtDlpJob job, String line) {
-        Matcher matcher = PCT.matcher(line);
-        if (!matcher.find()) return;
-        try {
-            job.progress = Math.min((int) Double.parseDouble(matcher.group(1)), 94);
-        } catch (NumberFormatException e) {
-            log.debug("Invalid yt-dlp progress for {}: {}", job.jobId, matcher.group(1));
-        }
+        YtDlpProgressParser.parse(line)
+                .ifPresent(progress -> job.progress = Math.min(progress, 94));
     }
 
     private void fail(YtDlpJob job, String error) {

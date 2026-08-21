@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.YtStreamInfoDto;
+import com.everload.everload.dto.YtStreamInfoDto;
 
 /**
  * Outcome of a single {@link YtStreamResolver} attempt. Modeled explicitly
@@ -50,7 +50,7 @@ public final class YtStreamResolution {
         if (isSuccess()) {
             return resolverName + ": ok";
         }
-        return reason() == null || reason().isBlank()
+        return reason().isBlank()
                 ? resolverName + ": " + status
                 : resolverName + ": " + status + " (" + reason() + ")";
     }

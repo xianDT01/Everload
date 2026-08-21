@@ -1,9 +1,9 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.*;
-import com.EverLoad.everload.service.YtMusicService;
-import com.EverLoad.everload.service.YtMusicTransportException;
-import com.EverLoad.everload.service.YtStreamUnavailableException;
+import com.everload.everload.dto.*;
+import com.everload.everload.service.YtMusicService;
+import com.everload.everload.service.YtMusicTransportException;
+import com.everload.everload.service.YtStreamUnavailableException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -31,6 +31,9 @@ import java.util.regex.Pattern;
 @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
 public class YtMusicController {
 
+    private static final String ITEMS_KEY = "items";
+    private static final String ERROR_KEY = "error";
+
     private static final Logger log = LoggerFactory.getLogger(YtMusicController.class);
 
     /** YouTube video / browse / channel / playlist ids are short alphanumeric-ish tokens — never free text. */
@@ -45,22 +48,22 @@ public class YtMusicController {
     // ── Search ────────────────────────────────────────────────────────
 
     @GetMapping("/search")
-    public ResponseEntity<?> search(@RequestParam String query) {
-        ResponseEntity<?> gate = checkEnabledAndQuery(query);
+    public ResponseEntity<Object> search(@RequestParam String query) {
+        ResponseEntity<Object> gate = checkEnabledAndQuery(query);
         if (gate != null) return gate;
-        return handle(() -> Map.of("items", ytMusicService.search(query.trim())), "buscar \"" + query + "\"");
+        return handle(() -> Map.of(ITEMS_KEY, ytMusicService.search(query.trim())), "buscar \"" + query + "\"");
     }
 
     @GetMapping("/suggestions")
-    public ResponseEntity<?> suggestions(@RequestParam String query) {
-        ResponseEntity<?> gate = checkEnabledAndQuery(query);
+    public ResponseEntity<Object> suggestions(@RequestParam String query) {
+        ResponseEntity<Object> gate = checkEnabledAndQuery(query);
         if (gate != null) return gate;
-        return handle(() -> Map.of("items", ytMusicService.suggestions(query.trim())), "sugerencias \"" + query + "\"");
+        return handle(() -> Map.of(ITEMS_KEY, ytMusicService.suggestions(query.trim())), "sugerencias \"" + query + "\"");
     }
 
     @GetMapping("/artist/resolve")
-    public ResponseEntity<?> resolveArtistChannel(@RequestParam String name) {
-        ResponseEntity<?> gate = checkEnabledAndQuery(name);
+    public ResponseEntity<Object> resolveArtistChannel(@RequestParam String name) {
+        ResponseEntity<Object> gate = checkEnabledAndQuery(name);
         if (gate != null) return gate;
         return handle(() -> {
             String channelId = ytMusicService.resolveArtistChannelId(name.trim());
@@ -73,68 +76,68 @@ public class YtMusicController {
     // ── Discover ──────────────────────────────────────────────────────
 
     @GetMapping("/discover/home")
-    public ResponseEntity<?> discoverHome() {
-        ResponseEntity<?> gate = checkEnabled();
+    public ResponseEntity<Object> discoverHome() {
+        ResponseEntity<Object> gate = checkEnabled();
         if (gate != null) return gate;
         return handle(ytMusicService::discoverHome, "cargar la página de inicio de YT Music");
     }
 
     @GetMapping("/discover/new-releases")
-    public ResponseEntity<?> discoverNewReleases() {
-        ResponseEntity<?> gate = checkEnabled();
+    public ResponseEntity<Object> discoverNewReleases() {
+        ResponseEntity<Object> gate = checkEnabled();
         if (gate != null) return gate;
         return handle(ytMusicService::discoverNewReleases, "cargar los nuevos lanzamientos de YT Music");
     }
 
     @GetMapping("/discover/charts")
-    public ResponseEntity<?> discoverCharts() {
-        ResponseEntity<?> gate = checkEnabled();
+    public ResponseEntity<Object> discoverCharts() {
+        ResponseEntity<Object> gate = checkEnabled();
         if (gate != null) return gate;
         return handle(ytMusicService::discoverCharts, "cargar los charts de YT Music");
     }
 
     @GetMapping("/discover/moods")
-    public ResponseEntity<?> discoverMoods() {
-        ResponseEntity<?> gate = checkEnabled();
+    public ResponseEntity<Object> discoverMoods() {
+        ResponseEntity<Object> gate = checkEnabled();
         if (gate != null) return gate;
         return handle(ytMusicService::discoverMoods, "cargar los moods de YT Music");
     }
 
     @GetMapping("/discover/moods/category")
-    public ResponseEntity<?> discoverMoodCategory(@RequestParam(required = false) String browseId,
+    public ResponseEntity<Object> discoverMoodCategory(@RequestParam(required = false) String browseId,
                                                   @RequestParam String params) {
-        ResponseEntity<?> gate = checkEnabled();
+        ResponseEntity<Object> gate = checkEnabled();
         if (gate != null) return gate;
         if (params == null || params.isBlank() || params.length() > 1000) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Parámetros de mood inválidos"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Parámetros de mood inválidos"));
         }
         if (browseId != null && !browseId.isBlank() && !SAFE_ID.matcher(browseId).matches()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "browseId inválido"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "browseId inválido"));
         }
         return handle(() -> ytMusicService.discoverMoodCategory(browseId, params),
                 "cargar la categoría de mood");
     }
 
     @GetMapping("/discover/continuation")
-    public ResponseEntity<?> discoverContinuation(@RequestParam String token) {
-        ResponseEntity<?> gate = checkEnabled();
+    public ResponseEntity<Object> discoverContinuation(@RequestParam String token) {
+        ResponseEntity<Object> gate = checkEnabled();
         if (gate != null) return gate;
         if (token == null || token.isBlank() || token.length() > 4000) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Token de continuación inválido"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Token de continuación inválido"));
         }
         return handle(() -> ytMusicService.discoverContinuation(token), "cargar más contenido");
     }
 
     @GetMapping("/album/{browseId}")
-    public ResponseEntity<?> getAlbum(@PathVariable String browseId) {
-        ResponseEntity<?> gate = checkEnabledAndId(browseId);
+    public ResponseEntity<Object> getAlbum(@PathVariable String browseId) {
+        ResponseEntity<Object> gate = checkEnabledAndId(browseId);
         if (gate != null) return gate;
         return handle(() -> ytMusicService.getAlbum(browseId), "cargar el álbum " + browseId);
     }
 
     @GetMapping("/artist/{channelId}")
-    public ResponseEntity<?> getArtist(@PathVariable String channelId) {
-        ResponseEntity<?> gate = checkEnabledAndId(channelId);
+    public ResponseEntity<Object> getArtist(@PathVariable String channelId) {
+        ResponseEntity<Object> gate = checkEnabledAndId(channelId);
         if (gate != null) return gate;
         return handle(() -> ytMusicService.getArtist(channelId), "cargar el artista " + channelId);
     }
@@ -142,8 +145,8 @@ public class YtMusicController {
     // ── Playlists ─────────────────────────────────────────────────────
 
     @GetMapping("/playlist/{playlistId}")
-    public ResponseEntity<?> getPlaylist(@PathVariable String playlistId) {
-        ResponseEntity<?> gate = checkEnabledAndId(playlistId);
+    public ResponseEntity<Object> getPlaylist(@PathVariable String playlistId) {
+        ResponseEntity<Object> gate = checkEnabledAndId(playlistId);
         if (gate != null) return gate;
         return handle(() -> {
             YtPlaylistSummaryDto summary = ytMusicService.getPlaylistSummary(playlistId);
@@ -160,33 +163,33 @@ public class YtMusicController {
     // ── Mixes / radio ─────────────────────────────────────────────────
 
     @GetMapping("/mix/{videoId}")
-    public ResponseEntity<?> startMix(@PathVariable String videoId) {
-        ResponseEntity<?> gate = checkEnabledAndId(videoId);
+    public ResponseEntity<Object> startMix(@PathVariable String videoId) {
+        ResponseEntity<Object> gate = checkEnabledAndId(videoId);
         if (gate != null) return gate;
-        return handle(() -> Map.of("items", ytMusicService.startMix(videoId)), "iniciar la radio de " + videoId);
+        return handle(() -> Map.of(ITEMS_KEY, ytMusicService.startMix(videoId)), "iniciar la radio de " + videoId);
     }
 
     // ── Stream resolution ─────────────────────────────────────────────
 
     @GetMapping("/stream/{videoId}")
-    public ResponseEntity<?> getStream(@PathVariable String videoId) {
-        ResponseEntity<?> gate = checkEnabledAndId(videoId);
+    public ResponseEntity<Object> getStream(@PathVariable String videoId) {
+        ResponseEntity<Object> gate = checkEnabledAndId(videoId);
         if (gate != null) return gate;
         try {
             return ResponseEntity.ok(ytMusicService.getStream(videoId));
         } catch (YtStreamUnavailableException e) {
             log.info("Stream no disponible para {}: {}", videoId, e.resolverFailures());
             return ResponseEntity.status(409).body(Map.of(
-                    "error", "No se pudo reproducir este contenido (restringido, bloqueado por región, eliminado o no disponible).",
+                    ERROR_KEY, "No se pudo reproducir este contenido (restringido, bloqueado por región, eliminado o no disponible).",
                     "videoId", e.videoId(),
                     "details", e.resolverFailures()
             ));
         } catch (YtMusicTransportException e) {
             log.warn("Fallo de transporte resolviendo stream de {}: {}", videoId, e.getMessage());
-            return ResponseEntity.status(502).body(Map.of("error", "Fallo comunicando con YouTube Music: " + e.getMessage()));
+            return ResponseEntity.status(502).body(Map.of(ERROR_KEY, "Fallo comunicando con YouTube Music: " + e.getMessage()));
         } catch (Exception e) {
             log.error("Error inesperado resolviendo stream de {}", videoId, e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "Error inesperado al resolver el stream"));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR_KEY, "Error inesperado al resolver el stream"));
         }
     }
 
@@ -196,7 +199,7 @@ public class YtMusicController {
     public void streamAudio(@PathVariable String videoId,
                             @RequestHeader(value = "Range", required = false) String rangeHeader,
                             HttpServletResponse response) {
-        ResponseEntity<?> gate = checkEnabledAndId(videoId);
+        ResponseEntity<Object> gate = checkEnabledAndId(videoId);
         if (gate != null) {
             response.setStatus(gate.getStatusCode().value());
             return;
@@ -219,27 +222,27 @@ public class YtMusicController {
         }
     }
 
-    private ResponseEntity<?> checkEnabled() {
+    private ResponseEntity<Object> checkEnabled() {
         if (!ytMusicService.isEnabled()) {
-            return ResponseEntity.status(503).body(Map.of("error", "YouTube Music está deshabilitado en este servidor"));
+            return ResponseEntity.status(503).body(Map.of(ERROR_KEY, "YouTube Music está deshabilitado en este servidor"));
         }
         return null;
     }
 
-    private ResponseEntity<?> checkEnabledAndQuery(String query) {
-        ResponseEntity<?> gate = checkEnabled();
+    private ResponseEntity<Object> checkEnabledAndQuery(String query) {
+        ResponseEntity<Object> gate = checkEnabled();
         if (gate != null) return gate;
         if (query == null || query.isBlank() || query.length() > 200) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Consulta inválida"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Consulta inválida"));
         }
         return null;
     }
 
-    private ResponseEntity<?> checkEnabledAndId(String id) {
-        ResponseEntity<?> gate = checkEnabled();
+    private ResponseEntity<Object> checkEnabledAndId(String id) {
+        ResponseEntity<Object> gate = checkEnabled();
         if (gate != null) return gate;
         if (id == null || !SAFE_ID.matcher(id).matches()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Identificador inválido"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Identificador inválido"));
         }
         return null;
     }
@@ -248,15 +251,15 @@ public class YtMusicController {
         T run();
     }
 
-    private <T> ResponseEntity<?> handle(Action<T> action, String operationDescription) {
+    private <T> ResponseEntity<Object> handle(Action<T> action, String operationDescription) {
         try {
             return ResponseEntity.ok(action.run());
         } catch (YtMusicTransportException e) {
             log.warn("Fallo al {}: {}", operationDescription, e.getMessage());
-            return ResponseEntity.status(502).body(Map.of("error", "Fallo comunicando con YouTube Music: " + e.getMessage()));
+            return ResponseEntity.status(502).body(Map.of(ERROR_KEY, "Fallo comunicando con YouTube Music: " + e.getMessage()));
         } catch (Exception e) {
             log.error("Error inesperado al {}", operationDescription, e);
-            return ResponseEntity.internalServerError().body(Map.of("error", "Error inesperado al " + operationDescription));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR_KEY, "Error inesperado al " + operationDescription));
         }
     }
 }

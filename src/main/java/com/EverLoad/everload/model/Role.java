@@ -1,4 +1,4 @@
-package com.EverLoad.everload.model;
+package com.everload.everload.model;
 
 public enum Role {
     ADMIN,

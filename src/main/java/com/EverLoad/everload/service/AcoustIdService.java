@@ -1,12 +1,13 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.config.AdminConfigService;
+import com.everload.everload.config.AdminConfigService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
+import org.jaudiotagger.tag.FieldDataInvalidException;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.images.Artwork;
@@ -80,20 +81,14 @@ public class AcoustIdService {
             return new FingerprintResult(false, null, null, null, false, false, "Canción no encontrada en AcoustID");
         }
 
-        // Mejor resultado (mayor score)
-        JsonNode best = null;
-        double bestScore = 0;
-        for (JsonNode r : results) {
-            double score = r.path("score").asDouble(0);
-            if (score > bestScore) { bestScore = score; best = r; }
-        }
-        if (best == null || bestScore < 0.7) {
+        ScoredResult best = findBestResult(results);
+        if (best.node() == null || best.score() < 0.7) {
             return new FingerprintResult(false, null, null, null, false, false,
-                    "Coincidencia insuficiente (score=" + String.format("%.2f", bestScore) + ")");
+                    "Coincidencia insuficiente (score=" + String.format("%.2f", best.score()) + ")");
         }
 
         // 3. Extraer metadatos del primer recording
-        JsonNode recordings = best.path("recordings");
+        JsonNode recordings = best.node().path("recordings");
         if (!recordings.isArray() || recordings.isEmpty()) {
             return new FingerprintResult(false, null, null, null, false, false, "Sin grabaciones en el resultado");
         }
@@ -114,9 +109,24 @@ public class AcoustIdService {
         }
 
         log.info("[AcoustID] {} → title={} artist={} album={} cover={} score={}",
-                file.getName(), title, artist, album, coverEmbedded, String.format("%.2f", bestScore));
+                file.getName(), title, artist, album, coverEmbedded, String.format("%.2f", best.score()));
 
         return new FingerprintResult(true, title, artist, album, coverEmbedded, tagsUpdated, null);
+    }
+
+    private record ScoredResult(JsonNode node, double score) {}
+
+    private ScoredResult findBestResult(JsonNode results) {
+        JsonNode best = null;
+        double bestScore = 0;
+        for (JsonNode result : results) {
+            double score = result.path("score").asDouble(0);
+            if (score > bestScore) {
+                bestScore = score;
+                best = result;
+            }
+        }
+        return new ScoredResult(best, bestScore);
     }
 
     // ── fpcalc ────────────────────────────────────────────────────────────────
@@ -219,25 +229,24 @@ public class AcoustIdService {
         try {
             AudioFile af = AudioFileIO.read(file);
             Tag tag = af.getTagOrCreateDefault();
-            boolean changed = false;
-            if (title != null && !title.isBlank()) {
-                String existing = tag.getFirst(FieldKey.TITLE);
-                if (existing == null || existing.isBlank()) { tag.setField(FieldKey.TITLE, title); changed = true; }
-            }
-            if (artist != null && !artist.isBlank()) {
-                String existing = tag.getFirst(FieldKey.ARTIST);
-                if (existing == null || existing.isBlank()) { tag.setField(FieldKey.ARTIST, artist); changed = true; }
-            }
-            if (album != null && !album.isBlank()) {
-                String existing = tag.getFirst(FieldKey.ALBUM);
-                if (existing == null || existing.isBlank()) { tag.setField(FieldKey.ALBUM, album); changed = true; }
-            }
+            boolean titleChanged = setIfMissing(tag, FieldKey.TITLE, title);
+            boolean artistChanged = setIfMissing(tag, FieldKey.ARTIST, artist);
+            boolean albumChanged = setIfMissing(tag, FieldKey.ALBUM, album);
+            boolean changed = titleChanged || artistChanged || albumChanged;
             if (changed) { af.setTag(tag); AudioFileIO.write(af); }
             return changed;
         } catch (Exception e) {
             log.warn("[AcoustID] No se pudieron escribir tags en {}: {}", file.getName(), e.getMessage());
             return false;
         }
+    }
+
+    private boolean setIfMissing(Tag tag, FieldKey field, String value) throws FieldDataInvalidException {
+        if (value == null || value.isBlank()) return false;
+        String existing = tag.getFirst(field);
+        if (existing != null && !existing.isBlank()) return false;
+        tag.setField(field, value);
+        return true;
     }
 
     private String extractArtist(JsonNode rec) {

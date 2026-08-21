@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 /** Raised when an InnerTube HTTP call fails (network, non-2xx, malformed JSON). */
 public class YtMusicTransportException extends RuntimeException {

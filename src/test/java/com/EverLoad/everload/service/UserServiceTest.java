@@ -1,11 +1,11 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.UpdateUserRequest;
-import com.EverLoad.everload.dto.UserDto;
-import com.EverLoad.everload.model.Role;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.model.UserStatus;
-import com.EverLoad.everload.repository.UserRepository;
+import com.everload.everload.dto.UpdateUserRequest;
+import com.everload.everload.dto.UserDto;
+import com.everload.everload.model.Role;
+import com.everload.everload.model.User;
+import com.everload.everload.model.UserStatus;
+import com.everload.everload.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

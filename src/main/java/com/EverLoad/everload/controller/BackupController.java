@@ -1,9 +1,9 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.BackupDto;
-import com.EverLoad.everload.service.AuditLogService;
-import com.EverLoad.everload.service.BackupService;
-import com.EverLoad.everload.service.BackupService.BackupType;
+import com.everload.everload.dto.BackupDto;
+import com.everload.everload.service.AuditLogService;
+import com.everload.everload.service.BackupService;
+import com.everload.everload.service.BackupService.BackupType;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +23,9 @@ import java.util.Map;
 public class BackupController {
 
     private static final String DATABASE_COMPONENT = "Database";
+    private static final String ERROR_FIELD = "error";
+    private static final String SUCCESS_FIELD = "success";
+    private static final String RETENTION_FIELD = "retention";
 
     private final BackupService backupService;
     private final AuditLogService auditLogService;
@@ -42,7 +45,7 @@ public class BackupController {
     // ── Create ─────────────────────────────────────────────────────────────────
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody(required = false) Map<String, String> body) {
+    public ResponseEntity<Object> create(@RequestBody(required = false) Map<String, String> body) {
         try {
             BackupType type = parseBackupType(body != null ? body.get("type") : null);
             BackupDto dto = backupService.createBackup(type);
@@ -52,7 +55,7 @@ public class BackupController {
         } catch (Exception e) {
             log.error("[BACKUP] Create failed: {}", e.getMessage());
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error al crear la copia: " + e.getMessage()));
+                    .body(Map.of(ERROR_FIELD, "Error al crear la copia: " + e.getMessage()));
         }
     }
 
@@ -65,10 +68,10 @@ public class BackupController {
      * <p>Body: {@code { "filename": "backup_2024-01-15_14-30-00.zip" }}
      */
     @PostMapping("/restore")
-    public ResponseEntity<?> restore(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Object> restore(@RequestBody Map<String, String> body) {
         String filename = body.get("filename");
         if (filename == null || filename.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "filename requerido"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_FIELD, "filename requerido"));
         }
         try {
             backupService.restore(filename);
@@ -76,28 +79,28 @@ public class BackupController {
                     "Copia restaurada correctamente");
             log.warn("[BACKUP] Database restored from {}. Sessions may be stale — advise re-login.", filename);
             return ResponseEntity.ok(Map.of(
-                    "success", true,
+                    SUCCESS_FIELD, true,
                     "message", "Copia restaurada correctamente desde '" + filename + "'. " +
                                "Por seguridad, cierra sesión y vuelve a iniciar."));
         } catch (Exception e) {
             log.error("[BACKUP] Restore failed: {}", e.getMessage());
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error al restaurar: " + e.getMessage()));
+                    .body(Map.of(ERROR_FIELD, "Error al restaurar: " + e.getMessage()));
         }
     }
 
     // ── Delete ─────────────────────────────────────────────────────────────────
 
     @DeleteMapping("/{filename}")
-    public ResponseEntity<?> delete(@PathVariable String filename) {
+    public ResponseEntity<Object> delete(@PathVariable String filename) {
         try {
             backupService.delete(filename);
             auditLogService.log("BACKUP_DELETED", DATABASE_COMPONENT, filename, null);
-            return ResponseEntity.ok(Map.of("success", true));
+            return ResponseEntity.ok(Map.of(SUCCESS_FIELD, true));
         } catch (Exception e) {
             log.error("[BACKUP] Delete failed: {}", e.getMessage());
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error al eliminar: " + e.getMessage()));
+                    .body(Map.of(ERROR_FIELD, "Error al eliminar: " + e.getMessage()));
         }
     }
 
@@ -107,24 +110,24 @@ public class BackupController {
     public ResponseEntity<Map<String, Object>> getConfig() {
         return ResponseEntity.ok(Map.of(
                 "backupPath", backupService.getBackupPath(),
-                "retention",  backupService.getRetention()
+                RETENTION_FIELD,  backupService.getRetention()
         ));
     }
 
     /** Update retention count (backup path requires a server restart to change). */
     @PutMapping("/config")
-    public ResponseEntity<?> updateConfig(@RequestBody Map<String, Object> body) {
-        if (body.containsKey("retention")) {
-            int r = ((Number) body.get("retention")).intValue();
+    public ResponseEntity<Object> updateConfig(@RequestBody Map<String, Object> body) {
+        if (body.containsKey(RETENTION_FIELD)) {
+            int r = ((Number) body.get(RETENTION_FIELD)).intValue();
             if (r < 1 || r > 100) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("error", "retention debe estar entre 1 y 100"));
+                        .body(Map.of(ERROR_FIELD, "retention debe estar entre 1 y 100"));
             }
             backupService.setRetention(r);
             auditLogService.log("BACKUP_CONFIG_UPDATED", "System", "backup",
                     "retention=" + r);
         }
-        return ResponseEntity.ok(Map.of("success", true));
+        return ResponseEntity.ok(Map.of(SUCCESS_FIELD, true));
     }
 
     private BackupType parseBackupType(String type) {

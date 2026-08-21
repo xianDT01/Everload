@@ -1,10 +1,10 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.model.NasPath;
-import com.EverLoad.everload.repository.FavoriteTrackRepository;
-import com.EverLoad.everload.repository.NasPathRepository;
-import com.EverLoad.everload.repository.PlaybackHistoryRepository;
-import com.EverLoad.everload.repository.TrackMetadataCacheRepository;
+import com.everload.everload.model.NasPath;
+import com.everload.everload.repository.FavoriteTrackRepository;
+import com.everload.everload.repository.NasPathRepository;
+import com.everload.everload.repository.PlaybackHistoryRepository;
+import com.everload.everload.repository.TrackMetadataCacheRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -81,7 +81,7 @@ class NasServiceTest {
         Path dest = Path.of(saved);
         assertTrue(Files.exists(dest));
         assertTrue(dest.startsWith(nasRoot));
-        assertFalse(dest.getFileName().toString().matches(".*[:*?].*"),
+        assertTrue(dest.getFileName().toString().chars().noneMatch(ch -> ch == ':' || ch == '*' || ch == '?'),
                 "el nombre guardado no debe contener caracteres peligrosos");
     }
 
@@ -117,8 +117,8 @@ class NasServiceTest {
 
         assertEquals("album/nueva.mp3", nuevo);
         assertTrue(Files.exists(album.resolve("nueva.mp3")));
-        verify(favoriteRepo).renamePathPrefix(eq(1L), eq("album/vieja.mp3"),
-                eq("album/vieja.mp3/%"), eq("album/vieja.mp3".length()), eq("album/nueva.mp3"));
+        verify(favoriteRepo).renamePathPrefix(1L, "album/vieja.mp3",
+                "album/vieja.mp3/%", "album/vieja.mp3".length(), "album/nueva.mp3");
         verify(historyRepo).renamePathPrefix(anyLong(), anyString(), anyString(), anyInt(), anyString());
         verify(cacheRepo).renamePathPrefix(anyLong(), anyString(), anyString(), anyInt(), anyString());
     }

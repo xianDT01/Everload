@@ -1,6 +1,6 @@
-package com.EverLoad.everload.dto;
+package com.everload.everload.dto;
 
-import com.EverLoad.everload.model.Role;
+import com.everload.everload.model.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

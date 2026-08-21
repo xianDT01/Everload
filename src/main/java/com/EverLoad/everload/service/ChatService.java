@@ -1,11 +1,11 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.AdminChatGroupDto;
-import com.EverLoad.everload.dto.ChatGroupDto;
-import com.EverLoad.everload.dto.ChatMessageDto;
-import com.EverLoad.everload.dto.CreateGroupRequest;
-import com.EverLoad.everload.model.*;
-import com.EverLoad.everload.repository.*;
+import com.everload.everload.dto.AdminChatGroupDto;
+import com.everload.everload.dto.ChatGroupDto;
+import com.everload.everload.dto.ChatMessageDto;
+import com.everload.everload.dto.CreateGroupRequest;
+import com.everload.everload.model.*;
+import com.everload.everload.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class ChatService {
     private final PresenceService presenceService;
     private final AvatarService avatarService;
     private final NotificationService notificationService;
-    private final com.EverLoad.everload.repository.ChatGroupReadRepository chatGroupReadRepository;
+    private final com.everload.everload.repository.ChatGroupReadRepository chatGroupReadRepository;
 
     @Transactional
     public List<ChatGroupDto> getGroupsForUser(User user) {
@@ -138,10 +138,10 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<ChatMessageDto> getMessages(Long groupId, User user) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
-            throw new RuntimeException("Access denied");
+            throw new ChatServiceException("Access denied");
         }
 
         // Get last 100, return in ascending order
@@ -151,15 +151,15 @@ public class ChatService {
     }
 
     @Transactional
-    public ChatMessageDto sendMessage(Long groupId, com.EverLoad.everload.dto.SendMessageRequest request, User sender) {
+    public ChatMessageDto sendMessage(Long groupId, com.everload.everload.dto.SendMessageRequest request, User sender) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         GroupMember member = groupMemberRepository.findByGroupAndUser(group, sender)
-                .orElseThrow(() -> new RuntimeException(NOT_A_MEMBER));
+                .orElseThrow(() -> new ChatServiceException(NOT_A_MEMBER));
 
         if (member.getRole() == MemberRole.READONLY) {
-            throw new RuntimeException("Read-only member cannot send messages");
+            throw new ChatServiceException("Read-only member cannot send messages");
         }
 
         MessageType msgType = MessageType.TEXT;
@@ -224,10 +224,10 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getGroupMembers(Long groupId, User user) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
-            throw new RuntimeException("Access denied");
+            throw new ChatServiceException("Access denied");
         }
 
         return groupMemberRepository.findByGroup(group).stream()
@@ -245,17 +245,17 @@ public class ChatService {
     @Transactional
     public void addMember(Long groupId, String username, User requester) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         GroupMember requesterMember = groupMemberRepository.findByGroupAndUser(group, requester)
-                .orElseThrow(() -> new RuntimeException(NOT_A_MEMBER));
+                .orElseThrow(() -> new ChatServiceException(NOT_A_MEMBER));
 
         if (requesterMember.getRole() != MemberRole.ADMIN) {
-            throw new RuntimeException("Only admins can add members");
+            throw new ChatServiceException("Only admins can add members");
         }
 
         User newUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(USER_NOT_FOUND));
 
         if (!groupMemberRepository.existsByGroupAndUser(group, newUser)) {
             MemberRole role = group.getType() == GroupType.ANNOUNCEMENT ? MemberRole.READONLY : MemberRole.MEMBER;
@@ -271,10 +271,10 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<ChatMessageDto> searchMessages(Long groupId, String query, User user) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
-            throw new RuntimeException("Access denied");
+            throw new ChatServiceException("Access denied");
         }
 
         if (query == null || query.isBlank()) {
@@ -294,17 +294,17 @@ public class ChatService {
     @Transactional
     public ChatGroupDto updateGroupInfo(Long groupId, String name, String description, User requester) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         if (group.getType() == GroupType.ANNOUNCEMENT || group.getType() == GroupType.PRIVATE) {
-            throw new RuntimeException("Cannot modify this group type");
+            throw new ChatServiceException("Cannot modify this group type");
         }
 
         GroupMember requesterMember = groupMemberRepository.findByGroupAndUser(group, requester)
-                .orElseThrow(() -> new RuntimeException(NOT_A_MEMBER));
+                .orElseThrow(() -> new ChatServiceException(NOT_A_MEMBER));
 
         if (requesterMember.getRole() != MemberRole.ADMIN) {
-            throw new RuntimeException("Only admins can edit group info");
+            throw new ChatServiceException("Only admins can edit group info");
         }
 
         group.setName(name);
@@ -316,13 +316,13 @@ public class ChatService {
     @Transactional
     public String updateGroupImage(Long groupId, org.springframework.web.multipart.MultipartFile file, User requester) throws java.io.IOException {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         GroupMember requesterMember = groupMemberRepository.findByGroupAndUser(group, requester)
-                .orElseThrow(() -> new RuntimeException(NOT_A_MEMBER));
+                .orElseThrow(() -> new ChatServiceException(NOT_A_MEMBER));
 
         if (requesterMember.getRole() != MemberRole.ADMIN) {
-            throw new RuntimeException("Only admins can edit group image");
+            throw new ChatServiceException("Only admins can edit group image");
         }
 
         String filename = avatarService.uploadGroupAvatar(groupId, group.getImageFilename(), file);
@@ -334,56 +334,56 @@ public class ChatService {
     @Transactional
     public void updateMemberRole(Long groupId, String username, String newRole, User requester) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         if (!group.getCreatedBy().getId().equals(requester.getId())) {
-            throw new RuntimeException("Only the group creator can manage admin roles");
+            throw new ChatServiceException("Only the group creator can manage admin roles");
         }
 
         User targetUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(USER_NOT_FOUND));
 
         if (targetUser.getId().equals(group.getCreatedBy().getId())) {
-            throw new RuntimeException("Cannot change the role of the creator");
+            throw new ChatServiceException("Cannot change the role of the creator");
         }
 
         GroupMember member = groupMemberRepository.findByGroupAndUser(group, targetUser)
-                .orElseThrow(() -> new RuntimeException("Target is not a member"));
+                .orElseThrow(() -> new ChatServiceException("Target is not a member"));
 
         try {
             MemberRole parsedRole = MemberRole.valueOf(newRole.toUpperCase());
             member.setRole(parsedRole);
             groupMemberRepository.save(member);
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid role");
+            throw new ChatServiceException("Invalid role");
         }
     }
 
     @Transactional
     public void kickMember(Long groupId, String username, User requester) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         GroupMember requesterMember = groupMemberRepository.findByGroupAndUser(group, requester)
-                .orElseThrow(() -> new RuntimeException(NOT_A_MEMBER));
+                .orElseThrow(() -> new ChatServiceException(NOT_A_MEMBER));
 
         if (requesterMember.getRole() != MemberRole.ADMIN) {
-            throw new RuntimeException("Only admins can kick members");
+            throw new ChatServiceException("Only admins can kick members");
         }
 
         User targetUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(USER_NOT_FOUND));
 
         if (targetUser.getId().equals(group.getCreatedBy().getId())) {
-            throw new RuntimeException("Cannot kick the group creator");
+            throw new ChatServiceException("Cannot kick the group creator");
         }
         
         if (targetUser.getId().equals(requester.getId())) {
-             throw new RuntimeException("Use leave action instead");
+             throw new ChatServiceException("Use leave action instead");
         }
 
         GroupMember member = groupMemberRepository.findByGroupAndUser(group, targetUser)
-                .orElseThrow(() -> new RuntimeException("Target is not a member"));
+                .orElseThrow(() -> new ChatServiceException("Target is not a member"));
 
         groupMemberRepository.delete(member);
     }
@@ -391,14 +391,14 @@ public class ChatService {
     @Transactional
     public void leaveGroup(Long groupId, User user) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         if (group.getType() == GroupType.ANNOUNCEMENT) {
-            throw new RuntimeException("Cannot leave announcement channel");
+            throw new ChatServiceException("Cannot leave announcement channel");
         }
 
         if (group.getType() == GroupType.PRIVATE) {
-             throw new RuntimeException("Cannot leave private chat, delete it instead.");
+             throw new ChatServiceException("Cannot leave private chat, delete it instead.");
         }
 
         if (group.getCreatedBy().getId().equals(user.getId())) {
@@ -410,7 +410,7 @@ public class ChatService {
         }
 
         GroupMember member = groupMemberRepository.findByGroupAndUser(group, user)
-                .orElseThrow(() -> new RuntimeException(NOT_A_MEMBER));
+                .orElseThrow(() -> new ChatServiceException(NOT_A_MEMBER));
 
         groupMemberRepository.delete(member);
     }
@@ -420,17 +420,17 @@ public class ChatService {
     @Transactional
     public void clearGroupMessages(Long groupId, User user) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         if (group.getType() == GroupType.ANNOUNCEMENT) {
-            throw new RuntimeException("Cannot clear announcement channel");
+            throw new ChatServiceException("Cannot clear announcement channel");
         }
 
         GroupMember member = groupMemberRepository.findByGroupAndUser(group, user)
-                .orElseThrow(() -> new RuntimeException(NOT_A_MEMBER));
+                .orElseThrow(() -> new ChatServiceException(NOT_A_MEMBER));
 
         if (group.getType() != GroupType.PRIVATE && member.getRole() != MemberRole.ADMIN) {
-            throw new RuntimeException("Only group admins can clear messages");
+            throw new ChatServiceException("Only group admins can clear messages");
         }
 
         chatMessageRepository.deleteByGroup(group);
@@ -439,17 +439,17 @@ public class ChatService {
     @Transactional
     public void deleteGroupByUser(Long groupId, User user) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
 
         if (group.getType() == GroupType.ANNOUNCEMENT) {
-            throw new RuntimeException("Cannot delete announcement channel");
+            throw new ChatServiceException("Cannot delete announcement channel");
         }
 
         GroupMember member = groupMemberRepository.findByGroupAndUser(group, user)
-                .orElseThrow(() -> new RuntimeException(NOT_A_MEMBER));
+                .orElseThrow(() -> new ChatServiceException(NOT_A_MEMBER));
 
         if (group.getType() != GroupType.PRIVATE && member.getRole() != MemberRole.ADMIN) {
-            throw new RuntimeException("Only group admins can delete the group");
+            throw new ChatServiceException("Only group admins can delete the group");
         }
 
         chatMessageRepository.deleteByGroup(group);
@@ -469,7 +469,7 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<ChatMessageDto> adminGetMessages(Long groupId) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
         return chatMessageRepository.findByGroupOrderBySentAtAsc(group)
                 .stream().map(this::toMessageDto).toList();
     }
@@ -477,7 +477,7 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> adminGetGroupMembers(Long groupId) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
         return groupMemberRepository.findByGroup(group).stream()
                 .map(m -> {
                     Map<String, Object> info = new HashMap<>();
@@ -493,7 +493,7 @@ public class ChatService {
     @Transactional
     public void adminDeleteGroup(Long groupId) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
         chatMessageRepository.deleteByGroup(group);
         groupMemberRepository.deleteByGroup(group);
         chatGroupRepository.delete(group);
@@ -507,7 +507,7 @@ public class ChatService {
     @Transactional
     public void adminRemoveMember(Long groupId, String username) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
         userRepository.findByUsername(username).ifPresent(user ->
                 groupMemberRepository.findByGroupAndUser(group, user)
                         .ifPresent(groupMemberRepository::delete));
@@ -518,13 +518,13 @@ public class ChatService {
     @Transactional
     public void markRead(Long groupId, User user) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
-            throw new RuntimeException("Access denied");
+            throw new ChatServiceException("Access denied");
         }
-        com.EverLoad.everload.model.ChatGroupRead readRecord =
+        com.everload.everload.model.ChatGroupRead readRecord =
                 chatGroupReadRepository.findByUserAndGroup(user, group)
-                        .orElse(com.EverLoad.everload.model.ChatGroupRead.builder()
+                        .orElse(com.everload.everload.model.ChatGroupRead.builder()
                                 .user(user).group(group).build());
         readRecord.setLastReadAt(LocalDateTime.now(java.time.ZoneId.systemDefault()));
         chatGroupReadRepository.save(readRecord);
@@ -533,12 +533,12 @@ public class ChatService {
     @Transactional(readOnly = true)
     public Map<String, String> getReadStatus(Long groupId, User user) {
         ChatGroup group = chatGroupRepository.findById(groupId)
-                .orElseThrow(() -> new RuntimeException(GROUP_NOT_FOUND));
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
         if (!groupMemberRepository.existsByGroupAndUser(group, user)) {
-            throw new RuntimeException("Access denied");
+            throw new ChatServiceException("Access denied");
         }
         Map<String, String> result = new HashMap<>();
-        for (com.EverLoad.everload.model.ChatGroupRead r : chatGroupReadRepository.findByGroup(group)) {
+        for (com.everload.everload.model.ChatGroupRead r : chatGroupReadRepository.findByGroup(group)) {
             result.put(r.getUser().getUsername(),
                     r.getLastReadAt().atOffset(java.time.ZoneOffset.UTC)
                             .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
@@ -615,35 +615,7 @@ public class ChatService {
             lastSenderAvatarUrl = buildAvatarUrl(lm.getSender());
         }
 
-        String privatePartnerUsername = null;
-        String privatePartnerAvatarUrl = null;
-        Boolean partnerOnline = null;
-        LocalDateTime partnerLastSeen = null;
-
-        String currentUserRole = null;
-        if (g.getType() == GroupType.PRIVATE) {
-            for (GroupMember m : members) {
-                if (!m.getUser().getId().equals(currentUser.getId())) {
-                    User partner = m.getUser();
-                    privatePartnerUsername = partner.getUsername();
-                    privatePartnerAvatarUrl = buildAvatarUrl(partner);
-                    partnerOnline = presenceService.isOnline(partner.getUsername());
-                    // Only expose lastSeen if the partner allows it and is not currently online
-                    if (!partnerOnline.booleanValue() && !Boolean.FALSE.equals(partner.getShowLastSeen())) {
-                        partnerLastSeen = partner.getLastSeen();
-                    }
-                } else {
-                    currentUserRole = m.getRole().name();
-                }
-            }
-        } else {
-            for (GroupMember m : members) {
-                if (m.getUser().getId().equals(currentUser.getId())) {
-                    currentUserRole = m.getRole().name();
-                    break;
-                }
-            }
-        }
+        GroupMembershipView membership = groupMembershipView(g, members, currentUser);
 
         return ChatGroupDto.builder()
                 .id(g.getId())
@@ -657,13 +629,53 @@ public class ChatService {
                 .imageFilename(g.getImageFilename())
                 .createdByUsername(g.getCreatedBy() != null ? g.getCreatedBy().getUsername() : null)
                 .lastSenderAvatarUrl(lastSenderAvatarUrl)
-                .privatePartnerUsername(privatePartnerUsername)
-                .privatePartnerAvatarUrl(privatePartnerAvatarUrl)
-                .partnerOnline(partnerOnline)
-                .partnerLastSeen(partnerLastSeen)
+                .privatePartnerUsername(membership.partnerUsername())
+                .privatePartnerAvatarUrl(membership.partnerAvatarUrl())
+                .partnerOnline(membership.partnerOnline())
+                .partnerLastSeen(membership.partnerLastSeen())
                 .onlineCount(onlineCount)
-                .currentUserRole(currentUserRole)
+                .currentUserRole(membership.currentUserRole())
                 .build();
+    }
+
+    private record GroupMembershipView(String partnerUsername, String partnerAvatarUrl,
+                                       Boolean partnerOnline, LocalDateTime partnerLastSeen,
+                                       String currentUserRole) {}
+
+    private GroupMembershipView groupMembershipView(ChatGroup group, List<GroupMember> members, User currentUser) {
+        if (group.getType() != GroupType.PRIVATE) {
+            return new GroupMembershipView(null, null, null, null, currentUserRole(members, currentUser));
+        }
+
+        String partnerUsername = null;
+        String partnerAvatarUrl = null;
+        Boolean partnerOnline = null;
+        LocalDateTime partnerLastSeen = null;
+        String currentUserRole = null;
+        for (GroupMember member : members) {
+            User memberUser = member.getUser();
+            if (memberUser.getId().equals(currentUser.getId())) {
+                currentUserRole = member.getRole().name();
+                continue;
+            }
+            partnerUsername = memberUser.getUsername();
+            partnerAvatarUrl = buildAvatarUrl(memberUser);
+            partnerOnline = presenceService.isOnline(memberUser.getUsername());
+            if (!partnerOnline.booleanValue() && !Boolean.FALSE.equals(memberUser.getShowLastSeen())) {
+                partnerLastSeen = memberUser.getLastSeen();
+            }
+        }
+        return new GroupMembershipView(
+                partnerUsername, partnerAvatarUrl, partnerOnline, partnerLastSeen, currentUserRole);
+    }
+
+    private String currentUserRole(List<GroupMember> members, User currentUser) {
+        for (GroupMember member : members) {
+            if (member.getUser().getId().equals(currentUser.getId())) {
+                return member.getRole().name();
+            }
+        }
+        return null;
     }
 
     private ChatMessageDto toMessageDto(ChatMessage m) {

@@ -1,8 +1,8 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.repository.NasPathRepository;
-import com.EverLoad.everload.repository.TrackMetadataCacheRepository;
-import com.EverLoad.everload.model.TrackMetadataCache;
+import com.everload.everload.repository.NasPathRepository;
+import com.everload.everload.repository.TrackMetadataCacheRepository;
+import com.everload.everload.model.TrackMetadataCache;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.AudioHeader;
@@ -62,7 +62,7 @@ class MusicServiceTest {
     private void stubResolvedFile(String fileName, byte[] content) throws Exception {
         Path file = tempDir.resolve(fileName);
         Files.write(file, content);
-        when(nasService.resolveValidatedPath(eq(1L), eq(fileName))).thenReturn(file);
+        when(nasService.resolveValidatedPath(1L, fileName)).thenReturn(file);
     }
 
     // ── getCoverArt fallback ──────────────────────────────────────────────────
@@ -102,7 +102,7 @@ class MusicServiceTest {
 
         assertArrayEquals(new byte[0], musicService.getCoverArt(1L, "readme.txt"));
         // Must short-circuit before ever resolving a directory cover fallback.
-        verify(nasService, atMostOnce()).resolveValidatedPath(eq(1L), eq("readme.txt"));
+        verify(nasService, atMostOnce()).resolveValidatedPath(1L, "readme.txt");
     }
 
     @Test
@@ -189,6 +189,18 @@ class MusicServiceTest {
         assertEquals(0, (int) ReflectionTestUtils.invokeMethod(musicService, "parseBpm", "invalid"));
         assertEquals("1\u0000music\u0000" + tempDir.toFile().getAbsolutePath(),
                 ReflectionTestUtils.invokeMethod(musicService, "directoryListingKey", 1L, "music", tempDir.toFile()));
+    }
+
+    @Test
+    void youtubeMetadataCleanupRemovesPresentationSuffixes() {
+        assertEquals("Song", ReflectionTestUtils.invokeMethod(
+                musicService, "cleanYoutubeTitle", "Song (Official Music Video)"));
+        assertEquals("Song", ReflectionTestUtils.invokeMethod(
+                musicService, "cleanYoutubeTitle", "Song [HD]"));
+        assertEquals("Artist", ReflectionTestUtils.invokeMethod(
+                musicService, "cleanYoutubeArtist", "Artist - Topic"));
+        assertEquals("Artist", ReflectionTestUtils.invokeMethod(
+                musicService, "cleanYoutubeArtist", "Artist Official YouTube Channel"));
     }
 
     @Test
@@ -322,7 +334,7 @@ class MusicServiceTest {
         List<?> results = musicService.searchMusic(1L, "album", "song", 1);
 
         assertEquals(1, results.size());
-        assertEquals("Alpha Song", ((com.EverLoad.everload.dto.MusicMetadataDto) results.get(0)).getTitle());
+        assertEquals("Alpha Song", ((com.everload.everload.dto.MusicMetadataDto) results.get(0)).getTitle());
     }
 
     @Test
@@ -333,7 +345,7 @@ class MusicServiceTest {
         when(nasService.getBasePath(1L)).thenReturn(tempDir);
         when(nasService.resolveValidatedPath(1L, "")).thenReturn(tempDir);
 
-        List<com.EverLoad.everload.dto.MusicMetadataDto> results =
+        List<com.everload.everload.dto.MusicMetadataDto> results =
                 musicService.searchMusic(1L, "", "matching", 5);
 
         assertEquals(1, results.size());
@@ -517,7 +529,7 @@ class MusicServiceTest {
         try (MockedStatic<AudioFileIO> audioFiles = mockStatic(AudioFileIO.class)) {
             audioFiles.when(() -> AudioFileIO.read(track.toFile())).thenReturn(audioFile);
 
-            com.EverLoad.everload.dto.MusicMetadataDto result = ReflectionTestUtils.invokeMethod(
+            com.everload.everload.dto.MusicMetadataDto result = ReflectionTestUtils.invokeMethod(
                     musicService, "buildDto", track.toFile(), tempDir, 1L, null, true);
 
             assertEquals("Title", result.getTitle());
@@ -539,8 +551,9 @@ class MusicServiceTest {
         when(metadataRepository.findByNasPathIdAndRelativePath(1L, "cache-update.mp3"))
                 .thenReturn(Optional.empty());
 
-        ReflectionTestUtils.invokeMethod(musicService, "updateMetadataCache",
+        MusicService.MetadataCacheUpdate update = new MusicService.MetadataCacheUpdate(
                 1L, "cache-update.mp3", file, "Title", "Artist", "Album", "2026", audioFile);
+        ReflectionTestUtils.invokeMethod(musicService, "updateMetadataCache", update);
 
         ArgumentCaptor<TrackMetadataCache> entry = ArgumentCaptor.forClass(TrackMetadataCache.class);
         verify(metadataRepository).save(entry.capture());
@@ -548,8 +561,10 @@ class MusicServiceTest {
 
         when(metadataRepository.findByNasPathIdAndRelativePath(1L, "failed.mp3"))
                 .thenThrow(new IllegalStateException("database unavailable"));
-        assertDoesNotThrow(() -> ReflectionTestUtils.invokeMethod(musicService, "updateMetadataCache",
-                1L, "failed.mp3", file, "Title", "Artist", "Album", "2026", audioFile));
+        MusicService.MetadataCacheUpdate failedUpdate = new MusicService.MetadataCacheUpdate(
+                1L, "failed.mp3", file, "Title", "Artist", "Album", "2026", audioFile);
+        assertDoesNotThrow(() -> ReflectionTestUtils.invokeMethod(
+                musicService, "updateMetadataCache", failedUpdate));
     }
 
     @Test
@@ -786,7 +801,7 @@ class MusicServiceTest {
     @Test
     void streamAudioToResponse_missingFile_throwsIllegalArgumentException() {
         File missing = tempDir.resolve("missing.mp3").toFile();
-        when(nasService.resolveValidatedPath(eq(1L), eq("missing.mp3"))).thenReturn(missing.toPath());
+        when(nasService.resolveValidatedPath(1L, "missing.mp3")).thenReturn(missing.toPath());
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         assertThrows(IllegalArgumentException.class, () ->

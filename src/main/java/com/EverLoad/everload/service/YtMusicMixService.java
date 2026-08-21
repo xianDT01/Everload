@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.YtTrackDto;
+import com.everload.everload.dto.YtTrackDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
+import static com.everload.everload.service.YtMusicJsonUtils.*;
 
 /**
  * Auto-generated radio queues ("mixes"): given a seed track, ask YouTube
@@ -22,6 +22,8 @@ import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
 @Service
 public class YtMusicMixService {
 
+    private static final String VIDEO_ID_NODE = "videoId";
+
     private final YtMusicInnertubeClient client;
 
     public YtMusicMixService(YtMusicInnertubeClient client) {
@@ -31,7 +33,7 @@ public class YtMusicMixService {
     public List<YtTrackDto> startMix(String seedVideoId) {
         String playlistId = "RDAMVM" + seedVideoId;
         Map<String, Object> body = new LinkedHashMap<>(client.baseBodyFor(YtMusicClient.MAIN_CLIENT));
-        body.put("videoId", seedVideoId);
+        body.put(VIDEO_ID_NODE, seedVideoId);
         body.put("playlistId", playlistId);
         body.put("isAudioOnly", true);
         return walkQueue(client.next(body));
@@ -59,9 +61,9 @@ public class YtMusicMixService {
         if (row == null) {
             return null;
         }
-        String videoId = textAt(row, "videoId");
+        String videoId = textAt(row, VIDEO_ID_NODE);
         if (videoId == null) {
-            videoId = textAt(row, "navigationEndpoint", "watchEndpoint", "videoId");
+            videoId = textAt(row, "navigationEndpoint", "watchEndpoint", VIDEO_ID_NODE);
         }
         if (videoId == null) {
             return null;
@@ -72,16 +74,7 @@ public class YtMusicMixService {
         // longBylineText runs read "Artist • Album • mm:ss" with separators
         // stripped; the trailing token is the duration whenever it parses as
         // one (mood/video-mix rows sometimes omit the album segment).
-        List<String> tokens = new ArrayList<>();
-        JsonNode runs = at(row, "longBylineText", "runs");
-        if (runs.isArray()) {
-            for (JsonNode r : runs) {
-                JsonNode text = r.get("text");
-                if (text != null && text.isTextual() && !isSeparator(text.asText())) {
-                    tokens.add(text.asText());
-                }
-            }
-        }
+        List<String> tokens = extractBylineTokens(row);
         int duration = 0;
         if (!tokens.isEmpty()) {
             String last = tokens.get(tokens.size() - 1).trim();
@@ -103,5 +96,18 @@ public class YtMusicMixService {
                 .durationSeconds(duration)
                 .thumbnailUrl(thumbnail)
                 .build();
+    }
+
+    private List<String> extractBylineTokens(JsonNode row) {
+        List<String> tokens = new ArrayList<>();
+        JsonNode runs = at(row, "longBylineText", "runs");
+        if (!runs.isArray()) return tokens;
+        for (JsonNode run : runs) {
+            JsonNode text = run.get("text");
+            if (text != null && text.isTextual() && !isSeparator(text.asText())) {
+                tokens.add(text.asText());
+            }
+        }
+        return tokens;
     }
 }

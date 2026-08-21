@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.AndroidReleaseDto;
-import com.EverLoad.everload.service.AndroidReleaseService;
+import com.everload.everload.dto.AndroidReleaseDto;
+import com.everload.everload.service.AndroidReleaseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/app-release/android")
@@ -30,7 +33,7 @@ public class AndroidReleaseController {
     }
 
     @GetMapping("/download")
-    public ResponseEntity<Resource> download() throws Exception {
+    public ResponseEntity<Resource> download() throws MalformedURLException {
         Resource apk = androidReleaseService.getApkResource();
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/vnd.android.package-archive"))
@@ -45,13 +48,13 @@ public class AndroidReleaseController {
             @RequestParam(required = false) String versionName,
             @RequestParam(required = false) String versionCode,
             @RequestParam(required = false) String minAndroidVersion,
-            @RequestParam(required = false) String releaseNotes) throws Exception {
+            @RequestParam(required = false) String releaseNotes) throws IOException {
         return androidReleaseService.saveRelease(file, versionName, versionCode, minAndroidVersion, releaseNotes);
     }
 
     @DeleteMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> delete() throws Exception {
+    public ResponseEntity<Object> delete() throws IOException {
         androidReleaseService.deleteRelease();
         return ResponseEntity.ok().build();
     }

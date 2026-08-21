@@ -1,9 +1,9 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.model.SnakeScore;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.repository.SnakeScoreRepository;
-import com.EverLoad.everload.repository.UserRepository;
+import com.everload.everload.model.SnakeScore;
+import com.everload.everload.model.User;
+import com.everload.everload.repository.SnakeScoreRepository;
+import com.everload.everload.repository.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -27,7 +27,7 @@ public class SnakeScoreController {
 
     @PostMapping("/score")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> submitScore(@RequestBody Map<String, Integer> body, Authentication auth) {
+    public ResponseEntity<Object> submitScore(@RequestBody Map<String, Integer> body, Authentication auth) {
         Integer score = body.get("score");
         if (score == null || score < 0 || score > 100_000) {
             return ResponseEntity.badRequest().body(Map.of("error", "Puntuación inválida"));

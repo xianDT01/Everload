@@ -1,15 +1,15 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.model.FavoriteTrack;
-import com.EverLoad.everload.model.NasPath;
-import com.EverLoad.everload.model.PlaybackHistory;
-import com.EverLoad.everload.model.TrackMetadataCache;
-import com.EverLoad.everload.repository.AuditLogRepository;
-import com.EverLoad.everload.repository.FavoriteTrackRepository;
-import com.EverLoad.everload.repository.NasPathRepository;
-import com.EverLoad.everload.repository.PlaybackHistoryRepository;
-import com.EverLoad.everload.repository.RevokedTokenRepository;
-import com.EverLoad.everload.repository.TrackMetadataCacheRepository;
+import com.everload.everload.model.FavoriteTrack;
+import com.everload.everload.model.NasPath;
+import com.everload.everload.model.PlaybackHistory;
+import com.everload.everload.model.TrackMetadataCache;
+import com.everload.everload.repository.AuditLogRepository;
+import com.everload.everload.repository.FavoriteTrackRepository;
+import com.everload.everload.repository.NasPathRepository;
+import com.everload.everload.repository.PlaybackHistoryRepository;
+import com.everload.everload.repository.RevokedTokenRepository;
+import com.everload.everload.repository.TrackMetadataCacheRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +24,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class CleanupService {
+
+    private static final String REMOVED_KEY = "removed";
 
     private final TrackMetadataCacheRepository metadataCacheRepo;
     private final NasPathRepository nasPathRepository;
@@ -50,13 +52,13 @@ public class CleanupService {
                 removed++;
             }
         }
-        return Map.of("removed", removed, "total", total);
+        return Map.of(REMOVED_KEY, removed, "total", total);
     }
 
     @Transactional
     public Map<String, Object> purgeExpiredTokens() {
         int removed = revokedTokenRepo.deleteExpiredTokens(Instant.now());
-        return Map.of("removed", removed);
+        return Map.of(REMOVED_KEY, removed);
     }
 
     @Transactional
@@ -101,13 +103,13 @@ public class CleanupService {
     public Map<String, Object> trimPlaybackHistory(int daysToKeep) {
         LocalDateTime cutoff = LocalDateTime.now(java.time.ZoneId.systemDefault()).minusDays(daysToKeep);
         int removed = playbackHistoryRepo.deleteOlderThan(cutoff);
-        return Map.of("removed", removed, "daysKept", daysToKeep);
+        return Map.of(REMOVED_KEY, removed, "daysKept", daysToKeep);
     }
 
     @Transactional
     public Map<String, Object> trimAuditLogs(int daysToKeep) {
         LocalDateTime cutoff = LocalDateTime.now(java.time.ZoneId.systemDefault()).minusDays(daysToKeep);
         int removed = auditLogRepo.deleteOlderThan(cutoff);
-        return Map.of("removed", removed, "daysKept", daysToKeep);
+        return Map.of(REMOVED_KEY, removed, "daysKept", daysToKeep);
     }
 }

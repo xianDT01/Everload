@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.service.DownloadService;
-import com.EverLoad.everload.service.DownloadService.DirectDownloadJob;
+import com.everload.everload.service.DownloadService;
+import com.everload.everload.service.DownloadService.DirectDownloadJob;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.FileSystemResource;
@@ -16,6 +16,8 @@ import java.util.Map;
 @RequestMapping("/api")
 @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
 public class DownloadController {
+
+    private static final String ERROR_FIELD = "error";
 
     private final DownloadService downloadService;
 
@@ -41,15 +43,15 @@ public class DownloadController {
 
     @Operation(summary = "Encolar descarga de música de YouTube")
     @PostMapping("/downloadMusic/jobs")
-    public ResponseEntity<?> queueMusicDownload(
+    public ResponseEntity<Object> queueMusicDownload(
             @RequestParam String videoId,
             @RequestParam(defaultValue = "mp3") String format) {
         try {
             return ResponseEntity.ok(downloadService.queueMusicDownload(videoId, format));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_FIELD, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", "Error al iniciar la descarga: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR_FIELD, "Error al iniciar la descarga: " + e.getMessage()));
         }
     }
 
@@ -89,7 +91,7 @@ public class DownloadController {
     }
     @Operation(summary = "Obtener vídeos de una playlist de YouTube")
     @GetMapping("/playlistVideos")
-    public ResponseEntity<?> getPlaylistVideos(@RequestParam String playlistUrl) {
+    public ResponseEntity<Object> getPlaylistVideos(@RequestParam String playlistUrl) {
         return downloadService.getPlaylistVideos(playlistUrl);
     }
     @Operation(summary = "Descargar video de TikTok")
@@ -101,7 +103,7 @@ public class DownloadController {
     @Operation(summary = "Encolar guardado de música en el NAS (asíncrono, para audios largos)")
     @PostMapping("/saveMusicToNas/jobs")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> queueNasSave(
+    public ResponseEntity<Object> queueNasSave(
             @RequestParam String videoId,
             @RequestParam(defaultValue = "mp3") String format,
             @RequestParam Long nasPathId,
@@ -109,9 +111,9 @@ public class DownloadController {
         try {
             return ResponseEntity.ok(downloadService.queueNasSave(videoId, format, nasPathId, subPath));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_FIELD, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", "Error al iniciar el guardado: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR_FIELD, "Error al iniciar el guardado: " + e.getMessage()));
         }
     }
 

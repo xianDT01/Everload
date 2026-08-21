@@ -1,4 +1,4 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

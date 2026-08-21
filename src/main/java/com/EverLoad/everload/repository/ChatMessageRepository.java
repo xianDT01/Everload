@@ -1,7 +1,7 @@
-package com.EverLoad.everload.repository;
+package com.everload.everload.repository;
 
-import com.EverLoad.everload.model.ChatGroup;
-import com.EverLoad.everload.model.ChatMessage;
+import com.everload.everload.model.ChatGroup;
+import com.everload.everload.model.ChatMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

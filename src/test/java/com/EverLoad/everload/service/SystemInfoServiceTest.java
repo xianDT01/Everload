@@ -1,8 +1,8 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.config.AdminConfigService;
-import com.EverLoad.everload.dto.SystemInfoDto;
-import com.EverLoad.everload.dto.UpdateCheckDto;
+import com.everload.everload.config.AdminConfigService;
+import com.everload.everload.dto.SystemInfoDto;
+import com.everload.everload.dto.UpdateCheckDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

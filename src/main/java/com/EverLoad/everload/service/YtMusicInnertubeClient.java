@@ -1,8 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -13,8 +11,8 @@ import org.springframework.web.client.RestTemplate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static com.EverLoad.everload.service.YtMusicClient.ORIGIN_YOUTUBE_MUSIC;
-import static com.EverLoad.everload.service.YtMusicClient.WEB_REMIX;
+import static com.everload.everload.service.YtMusicClient.ORIGIN_YOUTUBE_MUSIC;
+import static com.everload.everload.service.YtMusicClient.WEB_REMIX;
 
 /**
  * Raw transport for YouTube Music's internal "InnerTube" endpoints
@@ -36,7 +34,9 @@ import static com.EverLoad.everload.service.YtMusicClient.WEB_REMIX;
 @Component
 public class YtMusicInnertubeClient {
 
-    private static final Logger log = LoggerFactory.getLogger(YtMusicInnertubeClient.class);
+    private static final String CLIENT_KEY = "client";
+    private static final String CONTEXT_KEY = "context";
+
     private static final String WWW_YOUTUBE = "https://www.youtube.com";
 
     private final RestTemplate restTemplate;
@@ -64,9 +64,9 @@ public class YtMusicInnertubeClient {
     private Map<String, Object> baseBody(YtMusicClient client) {
         Map<String, Object> body = new LinkedHashMap<>();
         Map<String, Object> context = new LinkedHashMap<>();
-        context.put("client", buildClientContext(client));
+        context.put(CLIENT_KEY, buildClientContext(client));
         context.put("user", Map.of("lockedSafetyMode", false));
-        body.put("context", context);
+        body.put(CONTEXT_KEY, context);
         return body;
     }
 
@@ -151,11 +151,6 @@ public class YtMusicInnertubeClient {
 
     // ── Player (stream resolution) ────────────────────────────────────
 
-    /**
-     * Hits {@code /player}. {@code contentPot} (content-bound proof-of-origin
-     * token) and {@code visitorData} are optional extras that, combined with
-     * the ANDROID_VR client, unlock plain (non-signature-cipher) URLs.
-     */
     /** Raw anonymous search suggestions call for the YouTube Music search box. */
     public JsonNode searchSuggestions(String query) {
         Map<String, Object> body = baseBody(WEB_REMIX);
@@ -168,17 +163,22 @@ public class YtMusicInnertubeClient {
         }
     }
 
+    /**
+     * Hits {@code /player}. {@code contentPot} (content-bound proof-of-origin
+     * token) and {@code visitorData} are optional extras that, combined with
+     * the ANDROID_VR client, unlock plain (non-signature-cipher) URLs.
+     */
     public JsonNode player(YtMusicClient client, String videoId, String contentPot, String visitorData) {
         Map<String, Object> contextClient = buildClientContext(client);
         if (visitorData != null) {
             contextClient.put("visitorData", visitorData);
         }
         Map<String, Object> context = new LinkedHashMap<>();
-        context.put("client", contextClient);
+        context.put(CLIENT_KEY, contextClient);
         context.put("user", Map.of("lockedSafetyMode", false));
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("context", context);
+        body.put(CONTEXT_KEY, context);
         body.put("videoId", videoId);
         body.put("contentCheckOk", true);
         body.put("racyCheckOk", true);
@@ -216,7 +216,7 @@ public class YtMusicInnertubeClient {
     /** Lightweight call to mint a fresh {@code visitorData} token, reused across {@code /player} calls in the process. */
     public String fetchVisitorData() {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("context", Map.of("client", buildClientContext(WEB_REMIX)));
+        body.put(CONTEXT_KEY, Map.of(CLIENT_KEY, buildClientContext(WEB_REMIX)));
         try {
             JsonNode resp = post(ORIGIN_YOUTUBE_MUSIC + "/youtubei/v1/visitor_id?prettyPrint=false",
                     body, headersFor(WEB_REMIX, true));

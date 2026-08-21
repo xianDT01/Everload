@@ -1,10 +1,10 @@
-package com.EverLoad.everload.config;
+package com.everload.everload.config;
 
-import com.EverLoad.everload.model.Role;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.model.UserStatus;
-import com.EverLoad.everload.repository.UserRepository;
-import com.EverLoad.everload.service.ChatService;
+import com.everload.everload.model.Role;
+import com.everload.everload.model.User;
+import com.everload.everload.model.UserStatus;
+import com.everload.everload.repository.UserRepository;
+import com.everload.everload.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

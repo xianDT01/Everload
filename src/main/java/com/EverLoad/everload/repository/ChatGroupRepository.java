@@ -1,7 +1,7 @@
-package com.EverLoad.everload.repository;
+package com.everload.everload.repository;
 
-import com.EverLoad.everload.model.ChatGroup;
-import com.EverLoad.everload.model.GroupType;
+import com.everload.everload.model.ChatGroup;
+import com.everload.everload.model.GroupType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

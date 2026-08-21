@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.core.annotation.Order;

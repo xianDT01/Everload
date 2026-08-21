@@ -1,7 +1,7 @@
-package com.EverLoad.everload.repository;
+package com.everload.everload.repository;
 
-import com.EverLoad.everload.model.Notification;
-import com.EverLoad.everload.model.User;
+import com.everload.everload.model.Notification;
+import com.everload.everload.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

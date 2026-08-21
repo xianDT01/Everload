@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.model.AuditLog;
-import com.EverLoad.everload.service.AuditLogService;
+import com.everload.everload.model.AuditLog;
+import com.everload.everload.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;

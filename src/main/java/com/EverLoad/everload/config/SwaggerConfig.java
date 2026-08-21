@@ -1,4 +1,4 @@
-package com.EverLoad.everload.config;
+package com.everload.everload.config;
 
 import io.swagger.v3.oas.models.*;
 import io.swagger.v3.oas.models.info.*;

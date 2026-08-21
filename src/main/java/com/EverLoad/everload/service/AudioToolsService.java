@@ -1,7 +1,7 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.AudioInfoDto;
-import com.EverLoad.everload.model.Download;
+import com.everload.everload.dto.AudioInfoDto;
+import com.everload.everload.model.Download;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -283,23 +283,16 @@ public class AudioToolsService {
 
             switch (ext) {
                 case "mp3":
-                    // ID3 tag or raw MPEG sync (0xFF 0xFB/0xFA/0xF3)
-                    boolean isId3   = header[0] == 'I' && header[1] == 'D' && header[2] == '3';
-                    boolean isMpeg  = (header[0] & 0xFF) == 0xFF && (header[1] & 0xE0) == 0xE0;
-                    if (!isId3 && !isMpeg)
-                        throw new IllegalArgumentException("File content does not match MP3 format");
+                    requireMagicBytes(isMp3(header), "MP3");
                     break;
                 case "flac":
-                    if (!(header[0]=='f' && header[1]=='L' && header[2]=='a' && header[3]=='C'))
-                        throw new IllegalArgumentException("File content does not match FLAC format");
+                    requireMagicBytes(matches(header, 'f', 'L', 'a', 'C'), "FLAC");
                     break;
                 case "wav":
-                    if (!(header[0]=='R' && header[1]=='I' && header[2]=='F' && header[3]=='F'))
-                        throw new IllegalArgumentException("File content does not match WAV format");
+                    requireMagicBytes(matches(header, 'R', 'I', 'F', 'F'), "WAV");
                     break;
                 case "ogg":
-                    if (!(header[0]=='O' && header[1]=='g' && header[2]=='g' && header[3]=='S'))
-                        throw new IllegalArgumentException("File content does not match OGG format");
+                    requireMagicBytes(matches(header, 'O', 'g', 'g', 'S'), "OGG");
                     break;
                 // m4a, aac, opus, wma, mp4 — no universal magic bytes; let ffprobe validate
                 default:
@@ -310,6 +303,22 @@ public class AudioToolsService {
         } catch (Exception e) {
             log.warn("Could not read magic bytes for validation: {}", e.getMessage());
             // Don't block the upload — ffprobe will reject corrupt files later
+        }
+    }
+
+    private boolean isMp3(byte[] header) {
+        boolean isId3 = header[0] == 'I' && header[1] == 'D' && header[2] == '3';
+        boolean isMpeg = (header[0] & 0xFF) == 0xFF && (header[1] & 0xE0) == 0xE0;
+        return isId3 || isMpeg;
+    }
+
+    private boolean matches(byte[] header, char first, char second, char third, char fourth) {
+        return header[0] == first && header[1] == second && header[2] == third && header[3] == fourth;
+    }
+
+    private void requireMagicBytes(boolean valid, String format) {
+        if (!valid) {
+            throw new IllegalArgumentException("File content does not match " + format + " format");
         }
     }
 
@@ -361,12 +370,9 @@ public class AudioToolsService {
         new Thread(() -> {
             try {
                 Thread.sleep(15000);
-                Files.walk(Path.of(dirPath))
-                        .sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(f -> {
-                            if (!f.delete()) log.debug("Could not delete: {}", f.getAbsolutePath());
-                        });
+                try (var paths = Files.walk(Path.of(dirPath))) {
+                    paths.sorted(Comparator.reverseOrder()).forEach(this::deleteCleanupPath);
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.warn("Cleanup interrupted for {}", dirPath);
@@ -374,6 +380,14 @@ public class AudioToolsService {
                 log.warn("Cleanup failed for {}: {}", dirPath, e.getMessage());
             }
         }).start();
+    }
+
+    private void deleteCleanupPath(Path path) {
+        try {
+            Files.delete(path);
+        } catch (IOException e) {
+            log.debug("Could not delete {}: {}", path, e.getMessage());
+        }
     }
 
     // ── String helpers ────────────────────────────────────────────────────────

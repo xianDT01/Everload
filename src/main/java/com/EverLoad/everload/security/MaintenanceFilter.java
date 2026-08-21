@@ -1,6 +1,6 @@
-package com.EverLoad.everload.security;
+package com.everload.everload.security;
 
-import com.EverLoad.everload.service.MaintenanceService;
+import com.everload.everload.service.MaintenanceService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

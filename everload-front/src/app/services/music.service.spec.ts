@@ -76,6 +76,12 @@ describe('MusicService', () => {
 
       expect(url).toContain('&quality=original');
     });
+
+    it('requests compatible transcoding for formats that tablets cannot play reliably', () => {
+      const url = service.getStreamUrl(1, 'Album/old-track.wma');
+
+      expect(url).toContain('&quality=normal');
+    });
   });
 
   describe('yt-dlp social "save to NAS" requests', () => {

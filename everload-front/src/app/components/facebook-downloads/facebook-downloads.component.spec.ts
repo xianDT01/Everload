@@ -83,6 +83,17 @@ describe('FacebookDownloadsComponent', () => {
       });
       expect(component.loading).toBeFalse();
     });
+
+    it('encodes Facebook URLs with query parameters', () => {
+      component.videoUrl = 'https://www.facebook.com/watch/?v=123&ref=share';
+
+      component.download();
+
+      httpMock.expectOne(
+        `/api/downloadFacebook?url=${encodeURIComponent(component.videoUrl)}`
+      ).flush(new Blob(['x']), { status: 200, statusText: 'OK' });
+      expect(component.loading).toBeFalse();
+    });
   });
 
   describe('NAS picker', () => {

@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 /**
  * One InnerTube client identity tuple — the (clientName, clientVersion,

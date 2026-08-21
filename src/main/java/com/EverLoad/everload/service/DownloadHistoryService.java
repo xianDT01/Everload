@@ -1,7 +1,7 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.model.Download;
-import com.EverLoad.everload.repository.DownloadRepository;
+import com.everload.everload.model.Download;
+import com.everload.everload.repository.DownloadRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;

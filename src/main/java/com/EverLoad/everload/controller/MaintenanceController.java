@@ -1,8 +1,8 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.MaintenanceStatusDto;
-import com.EverLoad.everload.service.AuditLogService;
-import com.EverLoad.everload.service.MaintenanceService;
+import com.everload.everload.dto.MaintenanceStatusDto;
+import com.everload.everload.service.AuditLogService;
+import com.everload.everload.service.MaintenanceService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.service.AcoustIdService;
+import com.everload.everload.service.AcoustIdService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ public class AcoustIdController {
     @Operation(summary = "Identificar canción y embeber portada/metadatos por huella de audio")
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> fingerprint(@RequestParam Long pathId,
+    public ResponseEntity<Object> fingerprint(@RequestParam Long pathId,
                                          @RequestParam String subPath) {
         try {
             AcoustIdService.FingerprintResult result = acoustIdService.identify(pathId, subPath);

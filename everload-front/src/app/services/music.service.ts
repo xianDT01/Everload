@@ -413,7 +413,7 @@ export class DeckPlayer {
 
   private async loadNas(track: MusicMetadataDto, pathId: number, loadId: number) {
     if (this.isStaleLoad(loadId)) return;
-    const url = this.musicService.getStreamUrl(pathId, track.path);
+    const url = this.musicService.getStreamUrl(pathId, track.path, track);
     const preferHls = this.musicService.shouldUseHls(track);
 
     if (!preferHls || !(await this.canPlayHls())) {
@@ -1308,10 +1308,29 @@ export class MusicService {
     localStorage.setItem('streamQuality', q);
   }
 
-  getStreamUrl(pathId: number, trackPath: string): string {
+  getStreamUrl(pathId: number, trackPath: string, track?: MusicMetadataDto): string {
     const token = this.auth.getToken();
-    const quality = this.getStreamQuality();
+    const quality = this.getEffectiveStreamQuality(trackPath, track);
     return `${this.api}/stream?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}&quality=${quality}`;
+  }
+
+  private getEffectiveStreamQuality(trackPath: string, track?: MusicMetadataDto): string {
+    const preferred = this.getStreamQuality();
+    if (preferred !== 'original') return preferred;
+
+    const ext = this.getTrackExtension(trackPath, track);
+    if (['wma', 'alac', 'aiff', 'aif', 'mp2', 'mid', 'midi'].includes(ext)) {
+      return 'normal';
+    }
+    return preferred;
+  }
+
+  private getTrackExtension(trackPath: string, track?: MusicMetadataDto): string {
+    const format = (track?.format || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (format) return format;
+    const cleanPath = (trackPath || '').split(/[?#]/, 1)[0];
+    const dot = cleanPath.lastIndexOf('.');
+    return dot >= 0 ? cleanPath.substring(dot + 1).toLowerCase() : '';
   }
 
   shouldUseHls(track: MusicMetadataDto): boolean {
@@ -2010,7 +2029,7 @@ export class MusicService {
     const el = new Audio();
     el.preload = 'auto';
     el.crossOrigin = 'anonymous';
-    el.src = this.getStreamUrl(pathId, track.path);
+    el.src = this.getStreamUrl(pathId, track.path, track);
     el.load();
     this.preloadAudio = el;
     this.preloadedPath = track.path;

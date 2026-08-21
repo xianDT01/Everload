@@ -1,4 +1,4 @@
-package com.EverLoad.everload.security;
+package com.everload.everload.security;
 
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.BeforeEach;

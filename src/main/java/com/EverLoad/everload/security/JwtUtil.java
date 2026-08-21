@@ -1,4 +1,4 @@
-package com.EverLoad.everload.security;
+package com.everload.everload.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
 import java.util.function.Function;
@@ -41,13 +42,14 @@ public class JwtUtil {
     }
 
     public String generateToken(UserDetails userDetails) {
+        Instant issuedAt = Instant.now();
         return Jwts.builder()
                 .id(UUID.randomUUID().toString())   // jti — unique token ID for revocation
                 .subject(userDetails.getUsername())
                 .claim("roles", userDetails.getAuthorities().stream()
                         .map(a -> a.getAuthority()).toList())
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .issuedAt(Date.from(issuedAt))
+                .expiration(Date.from(issuedAt.plusMillis(expiration)))
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -61,8 +63,8 @@ public class JwtUtil {
         return extractClaim(token, Claims::getId);
     }
 
-    public Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+    public Instant extractExpiration(String token) {
+        return extractClaim(token, claims -> claims.getExpiration().toInstant());
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -71,7 +73,7 @@ public class JwtUtil {
     }
 
     private boolean isTokenExpired(String token) {
-        return extractClaim(token, Claims::getExpiration).before(new Date());
+        return extractExpiration(token).isBefore(Instant.now());
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

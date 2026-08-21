@@ -1,11 +1,12 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.MusicMetadataDto;
-import com.EverLoad.everload.dto.PagedMusicResult;
-import com.EverLoad.everload.model.NasPath;
-import com.EverLoad.everload.model.TrackMetadataCache;
-import com.EverLoad.everload.repository.NasPathRepository;
-import com.EverLoad.everload.repository.TrackMetadataCacheRepository;
+import com.everload.everload.dto.MusicMetadataDto;
+import com.everload.everload.dto.PagedMusicResult;
+import com.everload.everload.model.NasPath;
+import com.everload.everload.model.TrackMetadataCache;
+import com.everload.everload.repository.NasPathRepository;
+import com.everload.everload.repository.TrackMetadataCacheRepository;
+import com.everload.everload.util.MediaTextCleaner;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.jaudiotagger.audio.AudioFile;
@@ -41,6 +42,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MusicService {
 
+    private static final String FOUND_KEY = "found";
+    private static final String IMAGE_URL_KEY = "imageUrl";
+
     private static final byte[] NO_COVER_ART = new byte[0];
 
     private final NasService nasService;
@@ -55,6 +59,7 @@ public class MusicService {
     private static final String TRANSCODE_CACHE_DIR = "./downloads/transcode-cache/";
     private static final Set<String> LOSSLESS_EXTS = Set.of("flac", "wav", "aiff", "aif", "alac");
     private static final Set<String> ALREADY_OPUS = Set.of("ogg", "opus");
+    private static final Set<String> BROWSER_DIRECT_EXTS = Set.of("mp3", "m4a", "aac", "ogg", "opus", "wav", "flac");
     private static final long BROWSE_RESULT_TTL_MS = 5 * 60_000L;
     private final ConcurrentHashMap<String, Object[]> browseResultCache = new ConcurrentHashMap<>();
     private final java.util.Set<String> transcoding = ConcurrentHashMap.newKeySet();
@@ -214,70 +219,96 @@ public class MusicService {
     public Map<String, Object> lookupArtistImage(String artist) {
         String normalized = normalizeSearchText(artist);
         if (normalized.isBlank() || normalized.length() < 2 || isSuspiciousArtistName(normalized)) {
-            return Map.of("found", false);
+            return Map.of(FOUND_KEY, false);
         }
 
         if (artistImageLookupCache.containsKey(normalized)) {
             Optional<String> inCache = artistImageLookupCache.getOrDefault(normalized, Optional.empty());
-            return inCache.<Map<String, Object>>map(url -> Map.of("found", true, "imageUrl", url))
-                    .orElseGet(() -> Map.of("found", false));
+            return artistImageResult(inCache);
         }
 
-        Long failedAt = artistImageLookupFailures.get(normalized);
-        if (failedAt != null) {
-            if (System.currentTimeMillis() - failedAt < ARTIST_IMAGE_FAILURE_TTL_MS) {
-                return Map.of("found", false);
-            }
-            artistImageLookupFailures.remove(normalized);
-        }
+        if (isArtistImageLookupThrottled(normalized)) return Map.of(FOUND_KEY, false);
 
         String safeFilename = normalized.replace(' ', '_') + ".jpg";
         Path autoDir = getArtistAutoImageDir();
-        Path filePath = autoDir.resolve(safeFilename).normalize();
-        if (filePath.startsWith(autoDir) && Files.exists(filePath)) {
-            String localUrl = "/api/music/artist-auto-image/" + safeFilename;
-            artistImageLookupCache.put(normalized, Optional.of(localUrl));
-            return Map.of("found", true, "imageUrl", localUrl);
-        }
+        Optional<String> localImage = findStoredArtistImage(safeFilename, autoDir);
+        if (localImage.isPresent()) return cacheArtistImage(normalized, localImage);
 
+        Optional<String> providerImage = findProviderArtistImage(artist, normalized, safeFilename, autoDir);
+        if (providerImage.isPresent()) return cacheArtistImage(normalized, providerImage);
+
+        artistImageLookupFailures.put(normalized, System.currentTimeMillis());
+        return Map.of(FOUND_KEY, false);
+    }
+
+    private Map<String, Object> artistImageResult(Optional<String> image) {
+        return image.<Map<String, Object>>map(url -> Map.of(FOUND_KEY, true, IMAGE_URL_KEY, url))
+                .orElseGet(() -> Map.of(FOUND_KEY, false));
+    }
+
+    private boolean isArtistImageLookupThrottled(String normalizedArtist) {
+        Long failedAt = artistImageLookupFailures.get(normalizedArtist);
+        if (failedAt == null) return false;
+        if (System.currentTimeMillis() - failedAt < ARTIST_IMAGE_FAILURE_TTL_MS) return true;
+        artistImageLookupFailures.remove(normalizedArtist);
+        return false;
+    }
+
+    private Optional<String> findStoredArtistImage(String safeFilename, Path autoDir) {
+        Path filePath = autoDir.resolve(safeFilename).normalize();
+        if (!filePath.startsWith(autoDir) || !Files.exists(filePath)) return Optional.empty();
+        return Optional.of("/api/music/artist-auto-image/" + safeFilename);
+    }
+
+    private Map<String, Object> cacheArtistImage(String normalizedArtist, Optional<String> image) {
+        artistImageLookupCache.put(normalizedArtist, image);
+        return artistImageResult(image);
+    }
+
+    private Optional<String> findProviderArtistImage(String artist, String normalizedArtist,
+                                                     String safeFilename, Path autoDir) {
         try {
             String url = "https://api.deezer.com/search/artist?q=" + encodeUrl(artist) + "&limit=8";
             Map<?, ?> response = restTemplate.getForObject(url, Map.class);
             Object data = response != null ? response.get("data") : null;
-            if (data instanceof List<?> artists) {
-                String fallbackImage = "";
-                for (Object item : artists) {
-                    if (!(item instanceof Map<?, ?> artistMap)) continue;
-                    String name = stringValue(artistMap.get("name"));
-                    String image = firstNonBlank(
-                            stringValue(artistMap.get("picture_xl")),
-                            stringValue(artistMap.get("picture_big")),
-                            stringValue(artistMap.get("picture_medium"))
-                    );
-                    if (image.isBlank()) continue;
-                    if (normalizeSearchText(name).equals(normalized)) {
-                        String local = downloadAutoImage(image, safeFilename, autoDir);
-                        if (!local.isBlank()) {
-                            artistImageLookupCache.put(normalized, Optional.of(local));
-                            return Map.of("found", true, "imageUrl", local);
-                        }
-                    }
-                    if (fallbackImage.isBlank()) fallbackImage = image;
-                }
-                if (!fallbackImage.isBlank()) {
-                    String local = downloadAutoImage(fallbackImage, safeFilename, autoDir);
-                    if (!local.isBlank()) {
-                        artistImageLookupCache.put(normalized, Optional.of(local));
-                        return Map.of("found", true, "imageUrl", local);
-                    }
-                }
-            }
+            return selectProviderArtistImage(data, normalizedArtist, safeFilename, autoDir);
         } catch (Exception e) {
-            log.debug("Automatic artist image lookup failed for {}: {}", normalized, e.getMessage());
+            log.debug("Automatic artist image lookup failed for {}: {}", normalizedArtist, e.getMessage());
+            return Optional.empty();
         }
+    }
 
-        artistImageLookupFailures.put(normalized, System.currentTimeMillis());
-        return Map.of("found", false);
+    private Optional<String> selectProviderArtistImage(Object data, String normalizedArtist,
+                                                       String safeFilename, Path autoDir) {
+        if (!(data instanceof List<?> artists)) return Optional.empty();
+        String fallbackImage = "";
+        for (Object item : artists) {
+            ArtistImageCandidate candidate = artistImageCandidate(item);
+            if (candidate == null) continue;
+            if (normalizeSearchText(candidate.name()).equals(normalizedArtist)) {
+                Optional<String> exact = persistArtistImage(candidate.image(), safeFilename, autoDir);
+                if (exact.isPresent()) return exact;
+            }
+            if (fallbackImage.isBlank()) fallbackImage = candidate.image();
+        }
+        return persistArtistImage(fallbackImage, safeFilename, autoDir);
+    }
+
+    private record ArtistImageCandidate(String name, String image) {}
+
+    private ArtistImageCandidate artistImageCandidate(Object item) {
+        if (!(item instanceof Map<?, ?> artistMap)) return null;
+        String image = firstNonBlank(
+                stringValue(artistMap.get("picture_xl")),
+                stringValue(artistMap.get("picture_big")),
+                stringValue(artistMap.get("picture_medium")));
+        return image.isBlank() ? null : new ArtistImageCandidate(stringValue(artistMap.get("name")), image);
+    }
+
+    private Optional<String> persistArtistImage(String image, String safeFilename, Path autoDir) {
+        if (image == null || image.isBlank()) return Optional.empty();
+        String local = downloadAutoImage(image, safeFilename, autoDir);
+        return local.isBlank() ? Optional.empty() : Optional.of(local);
     }
 
     private String downloadAutoImage(String deezorUrl, String filename, Path dir) {
@@ -306,56 +337,72 @@ public class MusicService {
     public Map<String, Object> lookupAlbumCover(String artist, String album) {
         String normArtist = normalizeSearchText(artist == null ? "" : artist);
         String normAlbum = normalizeSearchText(album == null ? "" : album);
-        if (normAlbum.isBlank()) return Map.of("found", false);
+        if (normAlbum.isBlank()) return Map.of(FOUND_KEY, false);
 
         String cacheKey = normArtist + "|" + normAlbum;
-        Optional<String> cached = albumCoverLookupCache.computeIfAbsent(cacheKey, k -> {
-            String namePart = (normArtist.isBlank() ? normAlbum : normArtist + "__" + normAlbum).replace(' ', '_');
-            if (namePart.length() > 180) namePart = namePart.substring(0, 180);
-            String safeFilename = namePart + ".jpg";
-
-            Path coverDir = getAlbumCoverAutoDir();
-            Path filePath = coverDir.resolve(safeFilename).normalize();
-            if (filePath.startsWith(coverDir) && Files.exists(filePath)) {
-                return Optional.of("/api/music/album-auto-cover/" + safeFilename);
-            }
-            try {
-                String mbQuery = "release:" + encodeUrl(normAlbum)
-                        + (normArtist.isBlank() ? "" : "+artist:" + encodeUrl(normArtist));
-                String mbUrl = "https://musicbrainz.org/ws/2/release/?query=" + mbQuery + "&fmt=json&limit=5";
-
-                org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-                headers.set("User-Agent", "EverLoad/1.0 (music-player; contact@everload.app)");
-                var req = new org.springframework.http.HttpEntity<>(headers);
-                var resp = restTemplate.exchange(mbUrl, org.springframework.http.HttpMethod.GET, req, Map.class);
-                Map<?, ?> body = resp.getBody();
-                Object releases = body != null ? body.get("releases") : null;
-                if (!(releases instanceof List<?> list) || list.isEmpty()) return Optional.empty();
-
-                for (Object item : list) {
-                    if (!(item instanceof Map<?, ?> release)) continue;
-                    String mbid = stringValue(release.get("id"));
-                    if (mbid.isBlank()) continue;
-                    try {
-                        String coverUrl = "https://coverartarchive.org/release/" + mbid + "/front-250";
-                        byte[] bytes = restTemplate.getForObject(coverUrl, byte[].class);
-                        if (bytes != null && bytes.length > 5000) {
-                            String local = downloadAlbumCoverImage(bytes, safeFilename, coverDir);
-                            if (!local.isBlank()) return Optional.of(local);
-                        }
-                    } catch (Exception e) {
-                        log.debug("Local album cover lookup failed: {}", e.getMessage());
-                    }
-                }
-            } catch (Exception e) {
-                log.debug("Album cover provider lookup failed: {}", e.getMessage());
-            }
-            return Optional.empty();
-        });
+        Optional<String> cached = albumCoverLookupCache.computeIfAbsent(
+                cacheKey, key -> findAlbumCover(normArtist, normAlbum));
 
         return cached
-                .<Map<String, Object>>map(url -> Map.of("found", true, "imageUrl", url))
-                .orElseGet(() -> Map.of("found", false));
+                .<Map<String, Object>>map(url -> Map.of(FOUND_KEY, true, IMAGE_URL_KEY, url))
+                .orElseGet(() -> Map.of(FOUND_KEY, false));
+    }
+
+    private Optional<String> findAlbumCover(String normalizedArtist, String normalizedAlbum) {
+        String safeFilename = albumCoverFilename(normalizedArtist, normalizedAlbum);
+        Path coverDir = getAlbumCoverAutoDir();
+        Path filePath = coverDir.resolve(safeFilename).normalize();
+        if (filePath.startsWith(coverDir) && Files.exists(filePath)) {
+            return Optional.of("/api/music/album-auto-cover/" + safeFilename);
+        }
+        return findProviderAlbumCover(normalizedArtist, normalizedAlbum, safeFilename, coverDir);
+    }
+
+    private String albumCoverFilename(String normalizedArtist, String normalizedAlbum) {
+        String namePart = (normalizedArtist.isBlank()
+                ? normalizedAlbum : normalizedArtist + "__" + normalizedAlbum).replace(' ', '_');
+        if (namePart.length() > 180) namePart = namePart.substring(0, 180);
+        return namePart + ".jpg";
+    }
+
+    private Optional<String> findProviderAlbumCover(String normalizedArtist, String normalizedAlbum,
+                                                    String safeFilename, Path coverDir) {
+        try {
+            String mbQuery = "release:" + encodeUrl(normalizedAlbum)
+                    + (normalizedArtist.isBlank() ? "" : "+artist:" + encodeUrl(normalizedArtist));
+            String mbUrl = "https://musicbrainz.org/ws/2/release/?query=" + mbQuery + "&fmt=json&limit=5";
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("User-Agent", "EverLoad/1.0 (music-player; contact@everload.app)");
+            var request = new org.springframework.http.HttpEntity<>(headers);
+            var response = restTemplate.exchange(
+                    mbUrl, org.springframework.http.HttpMethod.GET, request, Map.class);
+            Map<?, ?> body = response.getBody();
+            Object releases = body != null ? body.get("releases") : null;
+            if (!(releases instanceof List<?> list) || list.isEmpty()) return Optional.empty();
+            for (Object item : list) {
+                if (!(item instanceof Map<?, ?> release)) continue;
+                Optional<String> localCover = downloadProviderAlbumCover(release, safeFilename, coverDir);
+                if (localCover.isPresent()) return localCover;
+            }
+        } catch (Exception e) {
+            log.debug("Album cover provider lookup failed: {}", e.getMessage());
+        }
+        return Optional.empty();
+    }
+
+    private Optional<String> downloadProviderAlbumCover(Map<?, ?> release, String safeFilename, Path coverDir) {
+        String mbid = stringValue(release.get("id"));
+        if (mbid.isBlank()) return Optional.empty();
+        try {
+            String coverUrl = "https://coverartarchive.org/release/" + mbid + "/front-250";
+            byte[] bytes = restTemplate.getForObject(coverUrl, byte[].class);
+            if (bytes == null || bytes.length <= 5000) return Optional.empty();
+            String local = downloadAlbumCoverImage(bytes, safeFilename, coverDir);
+            return local.isBlank() ? Optional.empty() : Optional.of(local);
+        } catch (Exception e) {
+            log.debug("Local album cover lookup failed: {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 
     private String downloadAlbumCoverImage(byte[] bytes, String filename, Path dir) {
@@ -539,29 +586,35 @@ public class MusicService {
         File[] files = dir.listFiles();
         if (files == null) return NO_COVER_ART;
 
-        // 2. Embedded art from audio files at root of folder
-        for (File f : files) {
-            if (f.isFile() && isAudio(f)) {
-                String sub = buildSubPath(relativePath, f.getName());
-                byte[] cover = getCoverArt(pathId, sub);
-                if (cover != null && cover.length > 0) return cover;
-            }
-        }
+        byte[] embedded = findEmbeddedCover(pathId, relativePath, files);
+        if (embedded.length > 0) return embedded;
 
-        // 3. Fall back: check one level of subfolders
+        return findSubfolderCover(pathId, relativePath, files);
+    }
+
+    private byte[] findSubfolderCover(Long pathId, String relativePath, File[] files) {
         for (File sub : files) {
-            if (!sub.isDirectory() || !sub.canRead()) continue;
-            byte[] explicit2 = readCoverImageFile(sub);
-            if (explicit2.length > 0) return explicit2;
-            File[] subFiles = sub.listFiles();
-            if (subFiles == null) continue;
-            for (File f : subFiles) {
-                if (f.isFile() && isAudio(f)) {
-                    String subRel = buildSubPath(relativePath, sub.getName() + "/" + f.getName());
-                    byte[] cover = getCoverArt(pathId, subRel);
-                    if (cover != null && cover.length > 0) return cover;
-                }
-            }
+            byte[] cover = findCoverInSubfolder(pathId, relativePath, sub);
+            if (cover.length > 0) return cover;
+        }
+        return NO_COVER_ART;
+    }
+
+    private byte[] findCoverInSubfolder(Long pathId, String relativePath, File subfolder) {
+        if (!subfolder.isDirectory() || !subfolder.canRead()) return NO_COVER_ART;
+        byte[] explicit = readCoverImageFile(subfolder);
+        if (explicit.length > 0) return explicit;
+        File[] files = subfolder.listFiles();
+        if (files == null) return NO_COVER_ART;
+        String subPath = buildSubPath(relativePath, subfolder.getName());
+        return findEmbeddedCover(pathId, subPath, files);
+    }
+
+    private byte[] findEmbeddedCover(Long pathId, String relativePath, File[] files) {
+        for (File file : files) {
+            if (!file.isFile() || !isAudio(file)) continue;
+            byte[] cover = getCoverArt(pathId, buildSubPath(relativePath, file.getName()));
+            if (cover != null && cover.length > 0) return cover;
         }
         return NO_COVER_ART;
     }
@@ -649,19 +702,20 @@ public class MusicService {
             log.info("[DJ Cache] yt-dlp exit code: {} para videoId={}", exitCode, videoId);
 
             if (exitCode != 0) {
-                throw new RuntimeException("yt-dlp terminó con código " + exitCode + " para videoId=" + videoId);
+                throw new MusicOperationException(
+                        "yt-dlp terminó con código " + exitCode + " para videoId=" + videoId);
             }
             if (!outputFile.exists() || outputFile.length() == 0) {
-                throw new RuntimeException("El archivo mp3 no se generó para videoId=" + videoId);
+                throw new MusicOperationException("El archivo mp3 no se generó para videoId=" + videoId);
             }
 
             log.info("[DJ Cache] ✅ Listo: {} ({} bytes)", outputFile.getName(), outputFile.length());
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Descarga de DJ Cache interrumpida", e);
+            throw new MusicOperationException("Descarga de DJ Cache interrumpida", e);
         } catch (IOException e) {
-            throw new RuntimeException("Fallo al ejecutar yt-dlp para DJ Cache", e);
+            throw new MusicOperationException("Fallo al ejecutar yt-dlp para DJ Cache", e);
         }
     }
 
@@ -688,14 +742,19 @@ public class MusicService {
             default     -> 128; // normal
         };
         String ext = getExtension(file.getName());
-        // Skip transcode if already Ogg/Opus (already low-size), or high quality on non-lossless
-        if (ALREADY_OPUS.contains(ext) || ("high".equals(quality) && !LOSSLESS_EXTS.contains(ext))) {
+        boolean directPlayable = BROWSER_DIRECT_EXTS.contains(ext);
+        boolean needsTranscode = !ALREADY_OPUS.contains(ext)
+                && (LOSSLESS_EXTS.contains(ext) || !"high".equals(quality) || !directPlayable);
+        if (!needsTranscode) {
             streamFileToResponse(file, rangeHeader, response);
             return;
         }
         try {
             File cached = getTranscodeCache(pathId, relativePath, quality);
             if (cached.exists()) {
+                streamFileToResponse(cached, rangeHeader, response);
+            } else if (!directPlayable) {
+                transcodeToOggOpus(file, cached, bitrateKbps);
                 streamFileToResponse(cached, rangeHeader, response);
             } else {
                 // Serve original immediately — start background transcode for next play
@@ -808,38 +867,17 @@ public class MusicService {
         response.setHeader("X-Content-Type-Options", "nosniff");
         response.setContentType(contentType);
 
-        long start = 0;
-        long end   = fileLength - 1;
-        boolean partial = false;
-
-        if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
-            try {
-                String rangeSpec = rangeHeader.substring(6).split(",", 2)[0].trim();
-                String[] parts   = rangeSpec.split("-", 2);
-                boolean openEnded = parts.length < 2 || parts[1].isEmpty();
-
-                if (parts[0].isEmpty() && parts.length > 1 && !parts[1].isEmpty()) {
-                    long suffixLength = Long.parseLong(parts[1]);
-                    start = Math.max(fileLength - suffixLength, 0);
-                    end = fileLength - 1;
-                    openEnded = false;
-                } else {
-                    start = parts[0].isEmpty() ? 0 : Long.parseLong(parts[0]);
-                    end = openEnded ? fileLength - 1 : Long.parseLong(parts[1]);
-                }
-
-                end = Math.min(end, fileLength - 1);
-                if (openEnded) {
-                    end = Math.min(start + STREAM_CHUNK_SIZE_BYTES - 1, fileLength - 1);
-                }
-                partial = true;
-            } catch (NumberFormatException e) {
-                response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
-                response.setHeader(CONTENT_RANGE_HEADER, "bytes */" + fileLength);
-                response.setContentLengthLong(0);
-                return;
-            }
+        ByteRange range;
+        try {
+            range = parseByteRange(rangeHeader, fileLength);
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
+            response.setHeader(CONTENT_RANGE_HEADER, "bytes */" + fileLength);
+            response.setContentLengthLong(0);
+            return;
         }
+        long start = range.start();
+        long end = range.end();
 
         if (fileLength <= 0 || start < 0 || start >= fileLength || end < start) {
             response.setStatus(HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE);
@@ -848,7 +886,7 @@ public class MusicService {
             return;
         }
 
-        if (partial) {
+        if (range.partial()) {
             response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
             response.setHeader(CONTENT_RANGE_HEADER, "bytes " + start + "-" + end + "/" + fileLength);
         } else {
@@ -874,6 +912,33 @@ public class MusicService {
             if (isClientAbort(e)) return;
             throw e;
         }
+    }
+
+    private record ByteRange(long start, long end, boolean partial) {}
+
+    private ByteRange parseByteRange(String rangeHeader, long fileLength) {
+        if (rangeHeader == null || !rangeHeader.startsWith("bytes=")) {
+            return new ByteRange(0, fileLength - 1, false);
+        }
+        String rangeSpec = rangeHeader.substring(6).split(",", 2)[0].trim();
+        String[] parts = rangeSpec.split("-", 2);
+        boolean openEnded = parts.length < 2 || parts[1].isEmpty();
+        long start;
+        long end;
+        if (parts[0].isEmpty() && parts.length > 1 && !parts[1].isEmpty()) {
+            long suffixLength = Long.parseLong(parts[1]);
+            start = Math.max(fileLength - suffixLength, 0);
+            end = fileLength - 1;
+            openEnded = false;
+        } else {
+            start = parts[0].isEmpty() ? 0 : Long.parseLong(parts[0]);
+            end = openEnded ? fileLength - 1 : Long.parseLong(parts[1]);
+        }
+        end = Math.min(end, fileLength - 1);
+        if (openEnded) {
+            end = Math.min(start + STREAM_CHUNK_SIZE_BYTES - 1, fileLength - 1);
+        }
+        return new ByteRange(start, end, true);
     }
 
     private boolean isClientAbort(IOException e) {
@@ -903,9 +968,10 @@ public class MusicService {
             if (year   != null) tag.setField(FieldKey.YEAR,   year);
             af.setTag(tag);
             AudioFileIO.write(af);
-            updateMetadataCache(pathId, relativePath, file, title, artist, album, year, af);
+            updateMetadataCache(new MetadataCacheUpdate(
+                    pathId, relativePath, file, title, artist, album, year, af));
         } catch (Exception e) {
-            throw new RuntimeException("No se pudieron actualizar los metadatos: " + e.getMessage());
+            throw new MusicOperationException("No se pudieron actualizar los metadatos: " + e.getMessage(), e);
         }
     }
 
@@ -930,70 +996,17 @@ public class MusicService {
         int failed = 0;
         List<Map<String, String>> items = new ArrayList<>();
 
-        for (File file : audioFiles) {
-            if (processed >= safeLimit) break;
+        for (File file : audioFiles.subList(0, Math.min(safeLimit, audioFiles.size()))) {
             processed++;
             String relPath = relativePath(base, file);
-            try {
-                AudioFile af = AudioFileIO.read(file);
-                Tag tag = af.getTagOrCreateDefault();
-                String existingTitle = Optional.ofNullable(tag.getFirst(FieldKey.TITLE)).orElse("");
-                String existingArtist = Optional.ofNullable(tag.getFirst(FieldKey.ARTIST)).orElse("");
-                String existingAlbum = Optional.ofNullable(tag.getFirst(FieldKey.ALBUM)).orElse("");
-
-                boolean suspiciousArtist = isSuspiciousArtistName(existingArtist);
-                if (onlyMissing && !existingTitle.isBlank() && !existingArtist.isBlank() && !suspiciousArtist && !existingAlbum.isBlank()) {
-                    skipped++;
-                    continue;
-                }
-
-                String query = stripExtension(file.getName());
-                if (!existingTitle.isBlank()) {
-                    query = existingArtist.isBlank() || suspiciousArtist
-                            ? existingTitle
-                            : existingArtist + " " + existingTitle;
-                }
-                YoutubeMetadata metadata = lookupYoutubeMetadata(query);
-                if (metadata == null || metadata.title().isBlank()) {
-                    skipped++;
-                    continue;
-                }
-
-                boolean changed = false;
-                if (!onlyMissing || existingTitle.isBlank()) {
-                    tag.setField(FieldKey.TITLE, metadata.title());
-                    changed = true;
-                }
-                if (!onlyMissing || existingArtist.isBlank() || suspiciousArtist) {
-                    tag.setField(FieldKey.ARTIST, metadata.artist());
-                    changed = true;
-                }
-                if (!onlyMissing || existingAlbum.isBlank()) {
-                    tag.setField(FieldKey.ALBUM, metadata.album());
-                    changed = true;
-                }
-
-                if (changed) {
-                    af.setTag(tag);
-                    AudioFileIO.write(af);
-                    updateMetadataCache(pathId, relPath, file,
-                            tag.getFirst(FieldKey.TITLE),
-                            tag.getFirst(FieldKey.ARTIST),
-                            tag.getFirst(FieldKey.ALBUM),
-                            tag.getFirst(FieldKey.YEAR),
-                            af);
-                    updated++;
-                    items.add(Map.of(
-                            "path", relPath,
-                            "title", tag.getFirst(FieldKey.TITLE),
-                            "artist", tag.getFirst(FieldKey.ARTIST),
-                            "album", tag.getFirst(FieldKey.ALBUM)
-                    ));
-                } else {
-                    skipped++;
-                }
-            } catch (Exception e) {
+            MetadataFillResult result = fillYoutubeMetadata(pathId, file, relPath, onlyMissing);
+            if (result.failed()) {
                 failed++;
+            } else if (result.item() != null) {
+                updated++;
+                items.add(result.item());
+            } else {
+                skipped++;
             }
         }
 
@@ -1006,11 +1019,81 @@ public class MusicService {
         );
     }
 
+    private MetadataFillResult fillYoutubeMetadata(Long pathId, File file,
+                                                    String relativePath, boolean onlyMissing) {
+        try {
+            AudioFile audioFile = AudioFileIO.read(file);
+            Tag tag = audioFile.getTagOrCreateDefault();
+            String existingTitle = Optional.ofNullable(tag.getFirst(FieldKey.TITLE)).orElse("");
+            String existingArtist = Optional.ofNullable(tag.getFirst(FieldKey.ARTIST)).orElse("");
+            String existingAlbum = Optional.ofNullable(tag.getFirst(FieldKey.ALBUM)).orElse("");
+            boolean suspiciousArtist = isSuspiciousArtistName(existingArtist);
+            boolean metadataComplete = !existingTitle.isBlank() && !existingArtist.isBlank()
+                    && !suspiciousArtist && !existingAlbum.isBlank();
+            if (onlyMissing && metadataComplete) return MetadataFillResult.skipped();
+
+            String query = buildYoutubeMetadataQuery(file, existingTitle, existingArtist, suspiciousArtist);
+            YoutubeMetadata metadata = lookupYoutubeMetadata(query);
+            if (metadata == null || metadata.title().isBlank()) return MetadataFillResult.skipped();
+
+            boolean changed = false;
+            if (!onlyMissing || existingTitle.isBlank()) {
+                tag.setField(FieldKey.TITLE, metadata.title());
+                changed = true;
+            }
+            if (!onlyMissing || existingArtist.isBlank() || suspiciousArtist) {
+                tag.setField(FieldKey.ARTIST, metadata.artist());
+                changed = true;
+            }
+            if (!onlyMissing || existingAlbum.isBlank()) {
+                tag.setField(FieldKey.ALBUM, metadata.album());
+                changed = true;
+            }
+            if (!changed) return MetadataFillResult.skipped();
+
+            audioFile.setTag(tag);
+            AudioFileIO.write(audioFile);
+            updateMetadataCache(new MetadataCacheUpdate(
+                    pathId, relativePath, file,
+                    tag.getFirst(FieldKey.TITLE), tag.getFirst(FieldKey.ARTIST),
+                    tag.getFirst(FieldKey.ALBUM), tag.getFirst(FieldKey.YEAR), audioFile));
+            return MetadataFillResult.updated(Map.of(
+                    "path", relativePath,
+                    "title", tag.getFirst(FieldKey.TITLE),
+                    "artist", tag.getFirst(FieldKey.ARTIST),
+                    "album", tag.getFirst(FieldKey.ALBUM)));
+        } catch (Exception e) {
+            return MetadataFillResult.failure();
+        }
+    }
+
+    private String buildYoutubeMetadataQuery(File file, String existingTitle,
+                                             String existingArtist, boolean suspiciousArtist) {
+        if (existingTitle.isBlank()) return stripExtension(file.getName());
+        return existingArtist.isBlank() || suspiciousArtist
+                ? existingTitle
+                : existingArtist + " " + existingTitle;
+    }
+
+    private record MetadataFillResult(Map<String, String> item, boolean failed) {
+        private static MetadataFillResult updated(Map<String, String> item) {
+            return new MetadataFillResult(item, false);
+        }
+
+        private static MetadataFillResult skipped() {
+            return new MetadataFillResult(null, false);
+        }
+
+        private static MetadataFillResult failure() {
+            return new MetadataFillResult(null, true);
+        }
+    }
+
     public Map<String, Object> lookupYoutubeMetadataMap(String query) {
         YoutubeMetadata metadata = lookupYoutubeMetadata(query);
-        if (metadata == null) return Map.of("found", false);
+        if (metadata == null) return Map.of(FOUND_KEY, false);
         return Map.of(
-                "found", true,
+                FOUND_KEY, true,
                 "title", metadata.title(),
                 "artist", metadata.artist(),
                 "album", metadata.album(),
@@ -1076,21 +1159,11 @@ public class MusicService {
     }
 
     private String cleanYoutubeTitle(String title) {
-        if (title == null) return "";
-        return title
-                .replaceAll("(?i)\\s*\\(?(official\\s*(music\\s*)?video|lyric\\s*video|official\\s*audio|audio\\s*oficial|video\\s*oficial|visualizer|hd|hq|4k)\\)?", "")
-                .replaceAll("\\s*[\\[({].*?[\\])}]\\s*$", "")
-                .replaceAll("\\s+", " ")
-                .trim();
+        return MediaTextCleaner.cleanYoutubeTitle(title);
     }
 
     private String cleanYoutubeArtist(String artist) {
-        if (artist == null) return "";
-        String cleaned = artist
-                .replaceAll("(?i)\\s*-?\\s*(topic|official|vevo|music)$", "")
-                .replaceAll("(?i)\\s*(official\\s*)?(youtube\\s*)?channel$", "")
-                .replaceAll("\\s+", " ")
-                .trim();
+        String cleaned = MediaTextCleaner.cleanYoutubeArtist(artist);
         return isSuspiciousArtistName(cleaned) ? "" : cleaned;
     }
 
@@ -1104,7 +1177,18 @@ public class MusicService {
                 || normalized.equals("desconocido");
     }
 
-    private void updateMetadataCache(Long pathId, String relativePath, File file, String title, String artist, String album, String year, AudioFile af) {
+    record MetadataCacheUpdate(Long pathId, String relativePath, File file, String title,
+                               String artist, String album, String year, AudioFile audioFile) {}
+
+    private void updateMetadataCache(MetadataCacheUpdate update) {
+        Long pathId = update.pathId();
+        String relativePath = update.relativePath();
+        File file = update.file();
+        String title = update.title();
+        String artist = update.artist();
+        String album = update.album();
+        String year = update.year();
+        AudioFile af = update.audioFile();
         try {
             TrackMetadataCache entry = metadataCacheRepo.findByNasPathIdAndRelativePath(pathId, relativePath)
                     .orElseGet(() -> TrackMetadataCache.builder().nasPathId(pathId).relativePath(relativePath).build());
@@ -1164,23 +1248,7 @@ public class MusicService {
         // ── Fast path: search the indexed metadata cache — no filesystem walk ──
         List<TrackMetadataCache> dbCache = metadataCacheRepo.findByNasPathId(pathId);
         if (!dbCache.isEmpty()) {
-            String subPathFilter = (subPath != null && !subPath.isBlank()) ? subPath : null;
-            List<Map.Entry<MusicMetadataDto, Integer>> scored = new ArrayList<>();
-            for (TrackMetadataCache c : dbCache) {
-                if (subPathFilter != null && !c.getRelativePath().startsWith(subPathFilter)) continue;
-                MusicMetadataDto dto = dtoFromCache(c);
-                dto.setNasPathId(pathId);
-                int score = scoreSearchDto(dto, tokens);
-                if (score > 0) scored.add(Map.entry(dto, score));
-            }
-            scored.sort((a, b) -> {
-                int cmp = Integer.compare(b.getValue(), a.getValue());
-                if (cmp != 0) return cmp;
-                String ta = normalizeSearchText(a.getKey().getTitle() != null ? a.getKey().getTitle() : "");
-                String tb = normalizeSearchText(b.getKey().getTitle() != null ? b.getKey().getTitle() : "");
-                return ta.compareTo(tb);
-            });
-            return scored.stream().limit(Math.max(1, limit)).map(Map.Entry::getKey).toList();
+            return searchIndexedMusic(pathId, subPath, tokens, limit, dbCache);
         }
 
         // ── Slow fallback: filesystem scan (library not yet indexed) ──
@@ -1196,6 +1264,55 @@ public class MusicService {
         collectAudioFilesForSearch(startDir, audioFiles, SEARCH_SCAN_LIMIT);
         Map<String, TrackMetadataCache> cacheMap = batchFetchCacheChunked(pathId, audioFiles, base);
 
+        SearchResults results = collectInitialSearchHits(base, audioFiles, cacheMap, tokens);
+
+        if (results.hits().size() < limit) {
+            addDeepSearchHits(pathId, base, audioFiles, cacheMap, tokens, results);
+        }
+
+        return results.hits().stream()
+                .sorted(Comparator
+                        .comparingInt((SearchHit hit) -> hit.score).reversed()
+                        .thenComparing(hit -> normalizeSearchText(hit.file.getName())))
+                .limit(Math.max(1, limit))
+                .map(hit -> toSearchResult(hit, base, pathId))
+                .toList();
+    }
+
+    private MusicMetadataDto toSearchResult(SearchHit hit, Path base, Long pathId) {
+        MusicMetadataDto dto = hit.dto != null
+                ? hit.dto
+                : buildDto(hit.file, base, pathId, Collections.singletonMap(hit.relPath, hit.cached));
+        dto.setNasPathId(pathId);
+        return dto;
+    }
+
+    private record SearchResults(List<SearchHit> hits, Set<String> paths) {}
+
+    private void addDeepSearchHits(Long pathId, Path base, List<File> audioFiles,
+                                   Map<String, TrackMetadataCache> cacheMap, List<String> tokens,
+                                   SearchResults results) {
+        int deepReads = 0;
+        for (File file : audioFiles) {
+            if (deepReads >= SEARCH_DEEP_METADATA_LIMIT) break;
+            String relPath = relativePath(base, file);
+            boolean needsDeepRead = !results.paths().contains(relPath)
+                    && validCache(cacheMap.get(relPath), file) == null;
+            if (needsDeepRead) {
+                deepReads++;
+                MusicMetadataDto dto = buildDto(file, base, pathId, cacheMap);
+                int score = scoreSearchDto(dto, tokens);
+                if (score > 0) {
+                    results.hits().add(new SearchHit(file, relPath, null, score, dto));
+                    results.paths().add(relPath);
+                }
+            }
+        }
+    }
+
+    private SearchResults collectInitialSearchHits(Path base, List<File> audioFiles,
+                                                   Map<String, TrackMetadataCache> cacheMap,
+                                                   List<String> tokens) {
         List<SearchHit> hits = new ArrayList<>();
         Set<String> hitPaths = new HashSet<>();
         for (File file : audioFiles) {
@@ -1207,38 +1324,31 @@ public class MusicService {
                 hitPaths.add(relPath);
             }
         }
+        return new SearchResults(hits, hitPaths);
+    }
 
-        int deepReads = 0;
-        if (hits.size() < limit) {
-            for (File file : audioFiles) {
-                if (deepReads >= SEARCH_DEEP_METADATA_LIMIT) break;
-                String relPath = relativePath(base, file);
-                if (hitPaths.contains(relPath)) continue;
-                if (validCache(cacheMap.get(relPath), file) != null) continue;
-
-                deepReads++;
-                MusicMetadataDto dto = buildDto(file, base, pathId, cacheMap);
-                int score = scoreSearchDto(dto, tokens);
-                if (score > 0) {
-                    hits.add(new SearchHit(file, relPath, null, score, dto));
-                    hitPaths.add(relPath);
-                }
-            }
+    private List<MusicMetadataDto> searchIndexedMusic(Long pathId, String subPath, List<String> tokens,
+                                                      int limit, List<TrackMetadataCache> dbCache) {
+        String subPathFilter = subPath != null && !subPath.isBlank() ? subPath : null;
+        List<Map.Entry<MusicMetadataDto, Integer>> scored = new ArrayList<>();
+        for (TrackMetadataCache cached : dbCache) {
+            if (subPathFilter != null && !cached.getRelativePath().startsWith(subPathFilter)) continue;
+            MusicMetadataDto dto = dtoFromCache(cached);
+            dto.setNasPathId(pathId);
+            int score = scoreSearchDto(dto, tokens);
+            if (score > 0) scored.add(Map.entry(dto, score));
         }
+        scored.sort(this::compareScoredSearchResults);
+        return scored.stream().limit(Math.max(1, limit)).map(Map.Entry::getKey).toList();
+    }
 
-        return hits.stream()
-                .sorted(Comparator
-                        .comparingInt((SearchHit hit) -> hit.score).reversed()
-                        .thenComparing(hit -> normalizeSearchText(hit.file.getName())))
-                .limit(Math.max(1, limit))
-                .map(hit -> {
-                    MusicMetadataDto dto = hit.dto != null
-                            ? hit.dto
-                            : buildDto(hit.file, base, pathId, Collections.singletonMap(hit.relPath, hit.cached));
-                    dto.setNasPathId(pathId);
-                    return dto;
-                })
-                .toList();
+    private int compareScoredSearchResults(Map.Entry<MusicMetadataDto, Integer> first,
+                                           Map.Entry<MusicMetadataDto, Integer> second) {
+        int scoreComparison = Integer.compare(second.getValue(), first.getValue());
+        if (scoreComparison != 0) return scoreComparison;
+        String firstTitle = normalizeSearchText(first.getKey().getTitle());
+        String secondTitle = normalizeSearchText(second.getKey().getTitle());
+        return firstTitle.compareTo(secondTitle);
     }
 
     private void collectAudioFilesForSearch(File dir, List<File> results, int limit) {
@@ -1284,7 +1394,16 @@ public class MusicService {
         }
 
         String query = String.join(" ", tokens);
-        int score = 10;
+        int score = 10 + queryMatchScore(query, name, title, artist, album, path);
+        for (String token : tokens) {
+            score += tokenMatchScore(token, name, title, artist, album, path);
+        }
+        return score;
+    }
+
+    private int queryMatchScore(String query, String name, String title,
+                                String artist, String album, String path) {
+        int score = 0;
         if (title.equals(query)) score += 1000;
         if (name.equals(query)) score += 900;
         if (artist.equals(query)) score += 700;
@@ -1296,18 +1415,22 @@ public class MusicService {
         if (artist.contains(query)) score += 220;
         if (album.contains(query)) score += 120;
         if (path.contains(query)) score += 60;
-
-        for (String token : tokens) {
-            if (title.startsWith(token)) score += 45;
-            else if (title.contains(token)) score += 28;
-            if (name.startsWith(token)) score += 40;
-            else if (name.contains(token)) score += 24;
-            if (artist.startsWith(token)) score += 34;
-            else if (artist.contains(token)) score += 20;
-            if (album.contains(token)) score += 10;
-            if (path.contains(token)) score += 5;
-        }
         return score;
+    }
+
+    private int tokenMatchScore(String token, String name, String title,
+                                String artist, String album, String path) {
+        int score = prefixOrContainsScore(title, token, 45, 28)
+                + prefixOrContainsScore(name, token, 40, 24)
+                + prefixOrContainsScore(artist, token, 34, 20);
+        if (album.contains(token)) score += 10;
+        if (path.contains(token)) score += 5;
+        return score;
+    }
+
+    private int prefixOrContainsScore(String value, String token, int prefixScore, int containsScore) {
+        if (value.startsWith(token)) return prefixScore;
+        return value.contains(token) ? containsScore : 0;
     }
 
     private List<String> searchTokens(String query) {
@@ -1336,7 +1459,7 @@ public class MusicService {
         if (full.isBlank()) return Collections.emptyList();
         List<String> parts = new ArrayList<>();
         parts.add(full);
-        Arrays.stream(artist.split("(?i)\\s*(?:,|;|&|\\+|/|\\bfeat\\.?\\b|\\bft\\.?\\b|\\bcon\\b|\\band\\b| y )\\s*"))
+        Arrays.stream(artist.split("(?i)[,;&+/]|\\b(?:feat\\.?|ft\\.?|con|and|y)\\b"))
                 .map(this::normalizeSearchText)
                 .filter(part -> !part.isBlank())
                 .forEach(parts::add);
@@ -1469,28 +1592,12 @@ public class MusicService {
         }
 
         if (cached != null && cached.getLastModified() == lastMod) {
-            return b.title(cached.getTitle() != null && !cached.getTitle().isBlank() ? cached.getTitle() : stripExtension(f.getName()))
-                    .artist(cached.getArtist()  != null ? cached.getArtist()  : "")
-                    .album(cached.getAlbum()    != null ? cached.getAlbum()   : "")
-                    .format(cached.getFormat()  != null ? cached.getFormat()  : extension(f.getName()))
-                    .year(cached.getYear()      != null ? cached.getYear()    : "")
-                    .duration(cached.getDuration())
-                    .hasCover(cached.isHasCover())
-                    .bpm(cached.getBpm())
-                    .build();
+            return buildCachedMetadata(b, cached, f);
         }
 
         // Cache miss or stale — read from disk
         if (!allowDiskRead) {
-            return b.title(stripExtension(f.getName()))
-                    .artist("")
-                    .album("")
-                    .format(extension(f.getName()))
-                    .year("")
-                    .duration(0)
-                    .hasCover(false)
-                    .bpm(0)
-                    .build();
+            return buildMetadataWithoutDiskRead(b, f);
         }
 
         try {
@@ -1499,40 +1606,23 @@ public class MusicService {
             int    duration = af.getAudioHeader().getTrackLength();
             b.format(format).duration(duration);
 
-            String  title   = null;
-            String  artist  = "";
-            String  album   = "";
-            String  year    = "";
-            int     bpm     = 0;
-            boolean hasCover = false;
-
-            Tag tag = af.getTag();
-            if (tag != null) {
-                title  = tag.getFirst(FieldKey.TITLE);
-                String a = tag.getFirst(FieldKey.ARTIST); if (a != null) artist = a;
-                String al = tag.getFirst(FieldKey.ALBUM);  if (al != null) album  = al;
-                String y  = tag.getFirst(FieldKey.YEAR);   if (y  != null) year   = y;
-                String bpmStr = tag.getFirst(FieldKey.BPM);
-                hasCover = tag.getFirstArtwork() != null;
-                bpm = parseBpm(bpmStr);
-            }
-
-            String finalTitle = (title != null && !title.isBlank()) ? title : stripExtension(f.getName());
-            b.title(finalTitle).artist(artist).album(album).year(year).hasCover(hasCover).bpm(bpm);
+            ScannedTagMetadata metadata = readScannedTagMetadata(af.getTag(), f);
+            b.title(metadata.title()).artist(metadata.artist()).album(metadata.album())
+                    .year(metadata.year()).hasCover(metadata.hasCover()).bpm(metadata.bpm());
 
             // Save to cache
             if (pathId != null) {
                 TrackMetadataCache entry = cached != null ? cached
                         : TrackMetadataCache.builder().nasPathId(pathId).relativePath(relPath).build();
                 entry.setLastModified(lastMod);
-                entry.setTitle(finalTitle);
-                entry.setArtist(artist);
-                entry.setAlbum(album);
+                entry.setTitle(metadata.title());
+                entry.setArtist(metadata.artist());
+                entry.setAlbum(metadata.album());
                 entry.setFormat(format);
-                entry.setYear(year);
+                entry.setYear(metadata.year());
                 entry.setDuration(duration);
-                entry.setHasCover(hasCover);
-                entry.setBpm(bpm);
+                entry.setHasCover(metadata.hasCover());
+                entry.setBpm(metadata.bpm());
                 saveScannedMetadata(entry);
             }
 
@@ -1541,6 +1631,44 @@ public class MusicService {
         }
 
         return b.build();
+    }
+
+    private MusicMetadataDto buildCachedMetadata(MusicMetadataDto.MusicMetadataDtoBuilder builder,
+                                                 TrackMetadataCache cached, File file) {
+        String title = cached.getTitle() != null && !cached.getTitle().isBlank()
+                ? cached.getTitle() : stripExtension(file.getName());
+        return builder.title(title)
+                .artist(cached.getArtist() != null ? cached.getArtist() : "")
+                .album(cached.getAlbum() != null ? cached.getAlbum() : "")
+                .format(cached.getFormat() != null ? cached.getFormat() : extension(file.getName()))
+                .year(cached.getYear() != null ? cached.getYear() : "")
+                .duration(cached.getDuration())
+                .hasCover(cached.isHasCover())
+                .bpm(cached.getBpm())
+                .build();
+    }
+
+    private MusicMetadataDto buildMetadataWithoutDiskRead(MusicMetadataDto.MusicMetadataDtoBuilder builder,
+                                                           File file) {
+        return builder.title(stripExtension(file.getName()))
+                .artist("").album("").format(extension(file.getName())).year("")
+                .duration(0).hasCover(false).bpm(0).build();
+    }
+
+    private record ScannedTagMetadata(String title, String artist, String album, String year,
+                                      int bpm, boolean hasCover) {}
+
+    private ScannedTagMetadata readScannedTagMetadata(Tag tag, File file) {
+        if (tag == null) {
+            return new ScannedTagMetadata(stripExtension(file.getName()), "", "", "", 0, false);
+        }
+        String tagTitle = tag.getFirst(FieldKey.TITLE);
+        String title = tagTitle != null && !tagTitle.isBlank() ? tagTitle : stripExtension(file.getName());
+        String artist = Optional.ofNullable(tag.getFirst(FieldKey.ARTIST)).orElse("");
+        String album = Optional.ofNullable(tag.getFirst(FieldKey.ALBUM)).orElse("");
+        String year = Optional.ofNullable(tag.getFirst(FieldKey.YEAR)).orElse("");
+        int bpm = parseBpm(tag.getFirst(FieldKey.BPM));
+        return new ScannedTagMetadata(title, artist, album, year, bpm, tag.getFirstArtwork() != null);
     }
 
     private int parseBpm(String bpm) {
@@ -1587,12 +1715,12 @@ public class MusicService {
         List<File> dirs = Arrays.stream(files)
                 .filter(File::isDirectory)
                 .sorted(Comparator.comparing(f -> f.getName().toLowerCase(Locale.ROOT)))
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
 
         List<File> audioFiles = Arrays.stream(files)
                 .filter(f -> f.isFile() && isAudio(f))
                 .sorted(Comparator.comparing(f -> f.getName().toLowerCase(Locale.ROOT)))
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
 
         trimDirectoryListingCacheIfNeeded();
         CachedDirectoryListing listing = new CachedDirectoryListing(dirs, audioFiles, dirLastModified, now);
@@ -1607,19 +1735,19 @@ public class MusicService {
 
             String relPath = relativePath(base, file);
             TrackMetadataCache cached = cacheMap.get(relPath);
-            if (validCache(cached, file) != null) continue;
-
-            String key = pathId + CACHE_KEY_SEPARATOR + relPath + CACHE_KEY_SEPARATOR + file.lastModified();
-            if (!metadataWarmupInFlight.add(key)) continue;
-
-            scheduled++;
-            metadataExecutor.submit(() -> {
-                try {
-                    buildDto(file, base, pathId, null, true);
-                } finally {
-                    metadataWarmupInFlight.remove(key);
+            if (validCache(cached, file) == null) {
+                String key = pathId + CACHE_KEY_SEPARATOR + relPath + CACHE_KEY_SEPARATOR + file.lastModified();
+                if (metadataWarmupInFlight.add(key)) {
+                    scheduled++;
+                    metadataExecutor.submit(() -> {
+                        try {
+                            buildDto(file, base, pathId, null, true);
+                        } finally {
+                            metadataWarmupInFlight.remove(key);
+                        }
+                    });
                 }
-            });
+            }
         }
     }
 

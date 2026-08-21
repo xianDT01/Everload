@@ -1,13 +1,13 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.FavoriteTrackRequest;
-import com.EverLoad.everload.dto.PlaybackHistoryRequest;
-import com.EverLoad.everload.model.FavoriteTrack;
-import com.EverLoad.everload.model.PlaybackHistory;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.repository.FavoriteTrackRepository;
-import com.EverLoad.everload.repository.PlaybackHistoryRepository;
-import com.EverLoad.everload.repository.UserRepository;
+import com.everload.everload.dto.FavoriteTrackRequest;
+import com.everload.everload.dto.PlaybackHistoryRequest;
+import com.everload.everload.model.FavoriteTrack;
+import com.everload.everload.model.PlaybackHistory;
+import com.everload.everload.model.User;
+import com.everload.everload.repository.FavoriteTrackRepository;
+import com.everload.everload.repository.PlaybackHistoryRepository;
+import com.everload.everload.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

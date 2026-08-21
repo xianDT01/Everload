@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.service.CleanupService;
-import com.EverLoad.everload.service.MusicService;
+import com.everload.everload.service.CleanupService;
+import com.everload.everload.service.MusicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

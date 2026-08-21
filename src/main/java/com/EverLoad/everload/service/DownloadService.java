@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.model.Download;
+import com.everload.everload.model.Download;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -18,8 +18,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.IntConsumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class DownloadService {
@@ -33,8 +31,6 @@ public class DownloadService {
     private static final String VIDEO_CATEGORY = "vídeo";
     private static final String YOUTUBE_SOURCE = "YouTube";
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(DownloadService.class);
-    private static final Pattern YT_DLP_PROGRESS = Pattern.compile("(\\d+\\.?\\d*)%");
-
     /** Retención de jobs terminados antes de purgarlos del mapa (y su temp dir). */
     private static final long JOB_RETENTION_MS = TimeUnit.HOURS.toMillis(1);
     /** Margen para que el cliente termine de descargar antes de borrar el temp dir. */
@@ -220,7 +216,7 @@ public class DownloadService {
         return response;
     }
 
-    public ResponseEntity<?> getPlaylistVideos(String playlistUrl) {
+    public ResponseEntity<Object> getPlaylistVideos(String playlistUrl) {
         if (!isAllowedMediaUrl(playlistUrl, "youtube.com", "youtu.be")) {
             logger.warn("Rejected getPlaylistVideos — disallowed URL: {}", playlistUrl);
             return ResponseEntity.badRequest().body("URL de playlist no permitida");
@@ -420,13 +416,9 @@ public class DownloadService {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (line.contains("nsig extraction failed")) continue;
-                    Matcher matcher = YT_DLP_PROGRESS.matcher(line);
-                    if (matcher.find()) {
-                        try {
-                            onProgress.accept(Math.min((int) Double.parseDouble(matcher.group(1)), 94));
-                        } catch (NumberFormatException e) {
-                            logger.debug("Invalid yt-dlp progress value: {}", matcher.group(1));
-                        }
+                    OptionalInt progress = YtDlpProgressParser.parse(line);
+                    if (progress.isPresent()) {
+                        onProgress.accept(Math.min(progress.getAsInt(), 94));
                     } else {
                         logger.info("yt-dlp: {}", line);
                     }
@@ -437,9 +429,12 @@ public class DownloadService {
         });
         stderrThread.start();
 
-        String finalPath;
+        List<String> finalPaths = new ArrayList<>();
         try (BufferedReader outReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            finalPath = outReader.readLine();
+            String line;
+            while ((line = outReader.readLine()) != null) {
+                if (!line.isBlank()) finalPaths.add(line.trim());
+            }
         }
         int exit;
         try {
@@ -450,12 +445,16 @@ public class DownloadService {
         }
         stderrThread.join(5000);
 
-        if (exit != 0 || finalPath == null || finalPath.isBlank()) {
+        if (exit != 0 || finalPaths.isEmpty()) {
             throw new IOException("yt-dlp falló o no devolvió la ruta del archivo");
         }
-        File file = new File(finalPath.trim());
-        if (!file.exists()) {
-            throw new IOException("Archivo temporal no encontrado: " + finalPath);
+        File file = finalPaths.stream()
+                .map(File::new)
+                .filter(File::exists)
+                .findFirst()
+                .orElseThrow(() -> new IOException("Archivo temporal no encontrado: " + finalPaths.get(0)));
+        if (finalPaths.size() > 1) {
+            logger.info("yt-dlp devolvió {} archivos; se enviará el primero: {}", finalPaths.size(), file.getName());
         }
         applyFilenameMetadata(file);
         return file;

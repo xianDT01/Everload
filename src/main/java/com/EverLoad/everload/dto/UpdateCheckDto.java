@@ -1,4 +1,4 @@
-package com.EverLoad.everload.dto;
+package com.everload.everload.dto;
 
 import lombok.Builder;
 import lombok.Data;

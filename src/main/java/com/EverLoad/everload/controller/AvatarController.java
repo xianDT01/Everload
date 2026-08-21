@@ -1,6 +1,6 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.service.AvatarService;
+import com.everload.everload.service.AvatarService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,11 +27,13 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AvatarController {
 
+    private static final String ERROR_FIELD = "error";
+
     private final AvatarService avatarService;
 
     @Operation(summary = "Subir o reemplazar avatar")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadAvatar(@RequestParam("file") MultipartFile file,
+    public ResponseEntity<Object> uploadAvatar(@RequestParam("file") MultipartFile file,
                                           Authentication auth) {
         try {
             String filename = avatarService.uploadAvatar(auth.getName(), file);
@@ -40,20 +42,20 @@ public class AvatarController {
                     "avatarUrl", "/api/user/avatar/img/" + filename
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_FIELD, e.getMessage()));
         } catch (IOException e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", "Error al guardar el archivo"));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR_FIELD, "Error al guardar el archivo"));
         }
     }
 
     @Operation(summary = "Eliminar avatar")
     @DeleteMapping
-    public ResponseEntity<?> removeAvatar(Authentication auth) {
+    public ResponseEntity<Object> removeAvatar(Authentication auth) {
         try {
             avatarService.removeAvatar(auth.getName());
             return ResponseEntity.ok(Map.of("message", "Avatar eliminado"));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_FIELD, e.getMessage()));
         }
     }
 

@@ -1,4 +1,4 @@
-package com.EverLoad.everload.config;
+package com.everload.everload.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

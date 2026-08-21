@@ -1,7 +1,7 @@
-package com.EverLoad.everload.repository;
+package com.everload.everload.repository;
 
-import com.EverLoad.everload.model.Playlist;
-import com.EverLoad.everload.model.PlaylistTrack;
+import com.everload.everload.model.Playlist;
+import com.everload.everload.model.PlaylistTrack;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

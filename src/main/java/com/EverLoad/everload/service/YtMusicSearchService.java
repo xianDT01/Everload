@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.YtTrackDto;
+import com.everload.everload.dto.YtTrackDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -12,7 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
+import static com.everload.everload.service.YtMusicJsonUtils.*;
 
 /**
  * Free-text search against YouTube Music's public catalogue: merges the
@@ -22,6 +22,9 @@ import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
  */
 @Service
 public class YtMusicSearchService {
+
+    private static final String CONTENTS_NODE = "contents";
+    private static final String THUMBNAIL_NODE = "thumbnail";
 
     private final YtMusicInnertubeClient client;
     private YtMusicCache<String, List<YtTrackDto>> searchCache;
@@ -158,11 +161,8 @@ public class YtMusicSearchService {
                     return bid;
                 }
             }
-            for (JsonNode child : node) {
-                String found = findFirstArtistBrowseId(child);
-                if (found != null) return found;
-            }
-        } else if (node.isArray()) {
+        }
+        if (node.isContainerNode()) {
             for (JsonNode child : node) {
                 String found = findFirstArtistBrowseId(child);
                 if (found != null) return found;
@@ -174,33 +174,31 @@ public class YtMusicSearchService {
     // ── Shared row-walking (also used by playlist/album/mix parsing) ──
 
     List<YtTrackDto> walkTracks(JsonNode resp) {
-        JsonNode shelves = at(resp, "contents", "tabbedSearchResultsRenderer", "tabs", "0",
-                "tabRenderer", "content", "sectionListRenderer", "contents");
+        JsonNode shelves = at(resp, CONTENTS_NODE, "tabbedSearchResultsRenderer", "tabs", "0",
+                "tabRenderer", "content", "sectionListRenderer", CONTENTS_NODE);
         if (!shelves.isArray()) {
             return List.of();
         }
         List<YtTrackDto> out = new ArrayList<>();
         Set<String> seenIds = new LinkedHashSet<>();
         for (JsonNode shelf : shelves) {
-            JsonNode card = shelf.get("musicCardShelfRenderer");
-            if (card != null) {
-                YtTrackDto fromCard = parseCardShelf(card);
-                emit(fromCard, out, seenIds);
-                JsonNode contents = card.get("contents");
-                if (contents != null && contents.isArray()) {
-                    for (JsonNode item : contents) {
-                        emit(parseRow(item), out, seenIds);
-                    }
-                }
-            }
-            JsonNode shelfItems = at(shelf, "musicShelfRenderer", "contents");
-            if (shelfItems.isArray()) {
-                for (JsonNode item : shelfItems) {
-                    emit(parseRow(item), out, seenIds);
-                }
-            }
+            collectCardTracks(shelf.get("musicCardShelfRenderer"), out, seenIds);
+            collectTracks(at(shelf, "musicShelfRenderer", CONTENTS_NODE), out, seenIds);
         }
         return out;
+    }
+
+    private void collectCardTracks(JsonNode card, List<YtTrackDto> out, Set<String> seenIds) {
+        if (card == null) return;
+        emit(parseCardShelf(card), out, seenIds);
+        collectTracks(card.get(CONTENTS_NODE), out, seenIds);
+    }
+
+    private void collectTracks(JsonNode items, List<YtTrackDto> out, Set<String> seenIds) {
+        if (items == null || !items.isArray()) return;
+        for (JsonNode item : items) {
+            emit(parseRow(item), out, seenIds);
+        }
     }
 
     private void emit(YtTrackDto t, List<YtTrackDto> out, Set<String> seenIds) {
@@ -237,8 +235,8 @@ public class YtMusicSearchService {
         }
         String artist = subtitle.isEmpty() ? "" : subtitle.get(0);
         String album = musicVideoTypeHasAlbum(mvt) && subtitle.size() > 1 ? subtitle.get(1) : null;
-        String thumbnail = normalizeThumbnail(bestThumbnailAt(card, "thumbnail",
-                "musicThumbnailRenderer", "thumbnail", "thumbnails"));
+        String thumbnail = normalizeThumbnail(bestThumbnailAt(card, THUMBNAIL_NODE,
+                "musicThumbnailRenderer", THUMBNAIL_NODE, "thumbnails"));
 
         return buildTrack(videoId, title, artist, album, null, 0, thumbnail);
     }
@@ -256,8 +254,8 @@ public class YtMusicSearchService {
         if (videoId == null) {
             return null;
         }
-        String thumbnail = normalizeThumbnail(bestThumbnailAt(row, "thumbnail",
-                "musicThumbnailRenderer", "thumbnail", "thumbnails"));
+        String thumbnail = normalizeThumbnail(bestThumbnailAt(row, THUMBNAIL_NODE,
+                "musicThumbnailRenderer", THUMBNAIL_NODE, "thumbnails"));
         String title = pickRun(row, 0, 0);
 
         // Playlist-track rows carry duration in `fixedColumns`; plain search

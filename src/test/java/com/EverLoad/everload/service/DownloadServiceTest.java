@@ -1,14 +1,27 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.function.IntConsumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
- * Cubre las validaciones de entrada de DownloadService: todo lo que llega a
+ * Cubre las validaciones de entrada de DownloadService: cada dato que llega a
  * yt-dlp pasa antes por aquí, así que estos rechazos son la barrera contra
  * IDs manipulados, formatos raros y URLs de dominios no permitidos (SSRF).
  *
@@ -17,11 +30,16 @@ import static org.mockito.Mockito.mock;
 class DownloadServiceTest {
 
     private DownloadService downloadService;
+    private MusicService musicService;
+
+    @TempDir
+    Path tempDir;
 
     @BeforeEach
     void setUp() {
+        musicService = mock(MusicService.class);
         downloadService = new DownloadService(
-                mock(DownloadHistoryService.class), mock(NasService.class), mock(MusicService.class));
+                mock(DownloadHistoryService.class), mock(NasService.class), musicService);
         // Campo @Value — sin contexto Spring queda a 0 y el pool no puede crearse
         org.springframework.test.util.ReflectionTestUtils.setField(downloadService, "maxConcurrent", 2);
         downloadService.init();
@@ -96,6 +114,29 @@ class DownloadServiceTest {
     void playlistDeDominioAjenoRechazada() {
         assertEquals(HttpStatus.BAD_REQUEST,
                 downloadService.getPlaylistVideos("https://evil.com/playlist?list=youtube.com").getStatusCode());
+    }
+
+    @Test
+    void runYtDlpConsumesEveryPathFromMultiMediaPosts() throws Exception {
+        File first = Files.writeString(tempDir.resolve("first.mp4"), "first").toFile();
+        File second = Files.writeString(tempDir.resolve("second.mp4"), "second").toFile();
+        Process process = mock(Process.class);
+        String output = first.getAbsolutePath() + "\n" + second.getAbsolutePath() + "\n";
+        when(process.getInputStream()).thenReturn(
+                new ByteArrayInputStream(output.getBytes(StandardCharsets.UTF_8)));
+        when(process.getErrorStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        when(process.waitFor()).thenReturn(0);
+        IntConsumer progress = mock(IntConsumer.class);
+
+        File result;
+        try (MockedConstruction<ProcessBuilder> ignored = mockConstruction(
+                ProcessBuilder.class, (builder, context) -> when(builder.start()).thenReturn(process))) {
+            result = ReflectionTestUtils.invokeMethod(
+                    downloadService, "runYtDlp", (Object) new String[]{"yt-dlp-test"}, progress);
+        }
+
+        assertEquals(first, result);
+        verify(musicService).ensureMetadata(first, "first.mp4", "");
     }
 
     // ── Estado de jobs ────────────────────────────────────────────────────────

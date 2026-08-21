@@ -1,9 +1,9 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.model.ArtistProfile;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.repository.ArtistProfileRepository;
-import com.EverLoad.everload.repository.UserRepository;
+import com.everload.everload.model.ArtistProfile;
+import com.everload.everload.model.User;
+import com.everload.everload.repository.ArtistProfileRepository;
+import com.everload.everload.repository.UserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
@@ -85,7 +85,7 @@ public class ArtistProfileController {
     @Operation(summary = "Editar artista manual")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> update(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> update(@AuthenticationPrincipal UserDetails ud,
                                     @PathVariable Long id,
                                     @RequestBody ArtistProfileDto dto) {
         return artistRepository.findById(id)
@@ -93,7 +93,7 @@ public class ArtistProfileController {
                     profile.setName(cleanName(dto.getName()));
                     profile.setAliases(clean(dto.getAliases()));
                     profile.setDescription(clean(dto.getDescription()));
-                    return ResponseEntity.ok(toDto(artistRepository.save(profile)));
+                    return okResponse(toDto(artistRepository.save(profile)));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -101,12 +101,12 @@ public class ArtistProfileController {
     @Operation(summary = "Eliminar artista manual")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> delete(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
+    public ResponseEntity<Object> delete(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
         return artistRepository.findById(id)
                 .map(profile -> {
                     deleteImage(profile.getImageFilename());
                     artistRepository.delete(profile);
-                    return ResponseEntity.ok(Map.of("deleted", true));
+                    return okResponse(Map.of("deleted", true));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -114,7 +114,7 @@ public class ArtistProfileController {
     @Operation(summary = "Subir imagen manual de artista")
     @PostMapping("/{id}/image")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> uploadImage(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> uploadImage(@AuthenticationPrincipal UserDetails ud,
                                          @PathVariable Long id,
                                          @RequestParam("image") MultipartFile image) {
         return artistRepository.findById(id)
@@ -124,9 +124,9 @@ public class ArtistProfileController {
                         deleteImage(profile.getImageFilename());
                         String filename = saveImage(profile.getId(), image);
                         profile.setImageFilename(filename);
-                        return ResponseEntity.ok(toDto(artistRepository.save(profile)));
+                        return okResponse(toDto(artistRepository.save(profile)));
                     } catch (Exception e) {
-                        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+                        return badRequestResponse(Map.of("error", e.getMessage()));
                     }
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -135,7 +135,7 @@ public class ArtistProfileController {
     @Operation(summary = "Guardar imagen de artista desde URL revisada")
     @PostMapping("/{id}/image-url")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> uploadImageFromUrl(@AuthenticationPrincipal UserDetails ud,
+    public ResponseEntity<Object> uploadImageFromUrl(@AuthenticationPrincipal UserDetails ud,
                                                 @PathVariable Long id,
                                                 @RequestBody ArtistImageUrlDto dto) {
         return artistRepository.findById(id)
@@ -144,9 +144,9 @@ public class ArtistProfileController {
                         deleteImage(profile.getImageFilename());
                         String filename = saveImageFromUrl(profile.getId(), dto.getImageUrl());
                         profile.setImageFilename(filename);
-                        return ResponseEntity.ok(toDto(artistRepository.save(profile)));
+                        return okResponse(toDto(artistRepository.save(profile)));
                     } catch (Exception e) {
-                        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+                        return badRequestResponse(Map.of("error", e.getMessage()));
                     }
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -155,12 +155,12 @@ public class ArtistProfileController {
     @Operation(summary = "Quitar imagen manual de artista")
     @DeleteMapping("/{id}/image")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> removeImage(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
+    public ResponseEntity<Object> removeImage(@AuthenticationPrincipal UserDetails ud, @PathVariable Long id) {
         return artistRepository.findById(id)
                 .map(profile -> {
                     deleteImage(profile.getImageFilename());
                     profile.setImageFilename(null);
-                    return ResponseEntity.ok(toDto(artistRepository.save(profile)));
+                    return okResponse(toDto(artistRepository.save(profile)));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -175,6 +175,14 @@ public class ArtistProfileController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(guessContentType(path)))
                 .body(new FileSystemResource(path));
+    }
+
+    private static ResponseEntity<Object> okResponse(Object body) {
+        return ResponseEntity.ok(body);
+    }
+
+    private static ResponseEntity<Object> badRequestResponse(Object body) {
+        return ResponseEntity.badRequest().body(body);
     }
 
     private Map<String, Object> toDto(ArtistProfile profile) {

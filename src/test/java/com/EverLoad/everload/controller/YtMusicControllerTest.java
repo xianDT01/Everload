@@ -1,21 +1,21 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.YtPlaylistSummaryDto;
-import com.EverLoad.everload.dto.YtStreamInfoDto;
-import com.EverLoad.everload.dto.YtTrackDto;
-import com.EverLoad.everload.security.JwtUtil;
-import com.EverLoad.everload.security.UserDetailsServiceImpl;
-import com.EverLoad.everload.service.MaintenanceService;
-import com.EverLoad.everload.service.TokenRevocationService;
-import com.EverLoad.everload.service.YtMusicService;
-import com.EverLoad.everload.service.YtMusicTransportException;
-import com.EverLoad.everload.service.YtStreamUnavailableException;
+import com.everload.everload.dto.YtPlaylistSummaryDto;
+import com.everload.everload.dto.YtStreamInfoDto;
+import com.everload.everload.dto.YtTrackDto;
+import com.everload.everload.security.JwtUtil;
+import com.everload.everload.security.UserDetailsServiceImpl;
+import com.everload.everload.service.MaintenanceService;
+import com.everload.everload.service.TokenRevocationService;
+import com.everload.everload.service.YtMusicService;
+import com.everload.everload.service.YtMusicTransportException;
+import com.everload.everload.service.YtStreamUnavailableException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -37,19 +37,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class YtMusicControllerTest {
 
-    @MockBean
+    @MockitoBean
     JwtUtil jwtUtil;
 
-    @MockBean
+    @MockitoBean
     UserDetailsServiceImpl userDetailsService;
 
-    @MockBean
+    @MockitoBean
     TokenRevocationService tokenRevocationService;
 
-    @MockBean
+    @MockitoBean
     MaintenanceService maintenanceService;
 
-    @MockBean
+    @MockitoBean
     YtMusicService ytMusicService;
 
     @Autowired
@@ -67,7 +67,7 @@ class YtMusicControllerTest {
                 .andExpect(jsonPath("$.items[0].videoId").value("abc123"))
                 .andExpect(jsonPath("$.items[0].title").value("Everything In Its Right Place"));
 
-        verify(ytMusicService).search(eq("radiohead"));
+        verify(ytMusicService).search("radiohead");
     }
 
     @Test

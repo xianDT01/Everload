@@ -1,12 +1,12 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.NasFileDto;
-import com.EverLoad.everload.dto.NasPathDto;
-import com.EverLoad.everload.model.NasPath;
-import com.EverLoad.everload.repository.FavoriteTrackRepository;
-import com.EverLoad.everload.repository.NasPathRepository;
-import com.EverLoad.everload.repository.PlaybackHistoryRepository;
-import com.EverLoad.everload.repository.TrackMetadataCacheRepository;
+import com.everload.everload.dto.NasFileDto;
+import com.everload.everload.dto.NasPathDto;
+import com.everload.everload.model.NasPath;
+import com.everload.everload.repository.FavoriteTrackRepository;
+import com.everload.everload.repository.NasPathRepository;
+import com.everload.everload.repository.PlaybackHistoryRepository;
+import com.everload.everload.repository.TrackMetadataCacheRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +29,8 @@ import java.util.zip.ZipOutputStream;
 @Service
 @RequiredArgsConstructor
 public class NasService {
+
+    private static final String STATUS_KEY = "status";
 
     private static final String NAS_PATH_NOT_FOUND = "Ruta NAS no encontrada";
 
@@ -135,7 +137,7 @@ public class NasService {
         try {
             Files.createDirectories(newFolder);
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo crear la carpeta: " + e.getMessage());
+            throw new NasOperationException("No se pudo crear la carpeta: " + e.getMessage(), e);
         }
     }
 
@@ -174,7 +176,7 @@ public class NasService {
             cascadeRenameInDb(pathId, oldRelative, newRelative);
             return newRelative;
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo renombrar: " + e.getMessage());
+            throw new NasOperationException("No se pudo renombrar: " + e.getMessage(), e);
         }
     }
 
@@ -208,7 +210,7 @@ public class NasService {
         try {
             Files.move(source, destination);
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo mover: " + e.getMessage());
+            throw new NasOperationException("No se pudo mover: " + e.getMessage(), e);
         }
     }
 
@@ -228,7 +230,7 @@ public class NasService {
         try {
             Files.write(coverPath, imageData);
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo guardar la portada: " + e.getMessage());
+            throw new NasOperationException("No se pudo guardar la portada: " + e.getMessage(), e);
         }
     }
 
@@ -251,7 +253,7 @@ public class NasService {
             String relative = basePath.relativize(target).toString().replace("\\", "/");
             cascadeDeleteInDb(pathId, relative);
         } catch (IOException e) {
-            throw new RuntimeException("No se pudo eliminar: " + e.getMessage());
+            throw new NasOperationException("No se pudo eliminar: " + e.getMessage(), e);
         }
     }
 
@@ -293,7 +295,7 @@ public class NasService {
             Files.copy(tempFile, dest, StandardCopyOption.REPLACE_EXISTING);
             return dest.toString();
         } catch (IOException e) {
-            throw new RuntimeException("Error al guardar archivo en NAS: " + e.getMessage());
+            throw new NasOperationException("Error al guardar archivo en NAS: " + e.getMessage(), e);
         }
     }
 
@@ -318,37 +320,36 @@ public class NasService {
         List<Map<String, Object>> results = new ArrayList<>();
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
-            String originalName = file.getOriginalFilename();
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("name", originalName != null ? originalName : file.getName());
-            try {
-                if (originalName == null || !isAllowedAudioExtension(originalName)) {
-                    result.put("status", "error");
-                    result.put("message", "Formato no permitido");
-                    results.add(result);
-                    continue;
-                }
-                // If a relative path was provided (folder upload), recreate directory structure
-                Path dest;
-                String relPath = (paths != null && i < paths.size()) ? paths.get(i) : null;
-                if (relPath != null && !relPath.isBlank()) {
-                    String safePath = buildSafeRelativePath(relPath);
-                    dest = destDir.resolve(safePath).normalize();
-                } else {
-                    dest = destDir.resolve(sanitizeName(originalName)).normalize();
-                }
-                if (!dest.startsWith(basePath)) throw new SecurityException("Acceso denegado");
-                Files.createDirectories(dest.getParent());
-                Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
-                result.put("status", "ok");
-                result.put("path", basePath.relativize(dest).toString());
-            } catch (Exception e) {
-                result.put("status", "error");
-                result.put("message", e.getMessage());
-            }
-            results.add(result);
+            String relativePath = paths != null && i < paths.size() ? paths.get(i) : null;
+            results.add(uploadMusicFile(basePath, destDir, file, relativePath));
         }
         return results;
+    }
+
+    private Map<String, Object> uploadMusicFile(Path basePath, Path destDir,
+                                                MultipartFile file, String relativePath) {
+        String originalName = file.getOriginalFilename();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("name", originalName != null ? originalName : file.getName());
+        try {
+            if (originalName == null || !isAllowedAudioExtension(originalName)) {
+                result.put(STATUS_KEY, "error");
+                result.put("message", "Formato no permitido");
+                return result;
+            }
+            Path destination = relativePath != null && !relativePath.isBlank()
+                    ? destDir.resolve(buildSafeRelativePath(relativePath)).normalize()
+                    : destDir.resolve(sanitizeName(originalName)).normalize();
+            if (!destination.startsWith(basePath)) throw new SecurityException("Acceso denegado");
+            Files.createDirectories(destination.getParent());
+            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+            result.put(STATUS_KEY, "ok");
+            result.put("path", basePath.relativize(destination).toString());
+        } catch (Exception e) {
+            result.put(STATUS_KEY, "error");
+            result.put("message", e.getMessage());
+        }
+        return result;
     }
 
     /** Sanitizes each segment of a relative path like "FolderA/SubB/file.mp3". */

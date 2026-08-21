@@ -1,7 +1,7 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.model.AuditLog;
-import com.EverLoad.everload.repository.AuditLogRepository;
+import com.everload.everload.model.AuditLog;
+import com.everload.everload.repository.AuditLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;

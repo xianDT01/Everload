@@ -1,15 +1,15 @@
-package com.EverLoad.everload;
+package com.everload.everload;
 
-import com.EverLoad.everload.config.CorsConfig;
-import com.EverLoad.everload.security.JwtUtil;
-import com.EverLoad.everload.security.UserDetailsServiceImpl;
-import com.EverLoad.everload.service.MaintenanceService;
-import com.EverLoad.everload.service.TokenRevocationService;
+import com.everload.everload.config.CorsConfig;
+import com.everload.everload.security.JwtUtil;
+import com.everload.everload.security.UserDetailsServiceImpl;
+import com.everload.everload.service.MaintenanceService;
+import com.everload.everload.service.TokenRevocationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,16 +23,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(CorsConfig.class) // <<-- usa tu configuración real
 class CorsConfigTest {
 
-    @MockBean
+    @MockitoBean
     JwtUtil jwtUtil;
 
-    @MockBean
+    @MockitoBean
     UserDetailsServiceImpl userDetailsService;
 
-    @MockBean
+    @MockitoBean
     TokenRevocationService tokenRevocationService;
 
-    @MockBean
+    @MockitoBean
     MaintenanceService maintenanceService;
 
     @Autowired

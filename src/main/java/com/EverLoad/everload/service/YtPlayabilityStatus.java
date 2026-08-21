@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 /**
  * Mirrors the {@code playabilityStatus.status} field YouTube returns from

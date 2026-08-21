@@ -1,7 +1,7 @@
-package com.EverLoad.everload.config;
+package com.everload.everload.config;
 
-import com.EverLoad.everload.service.AuditLogService;
-import com.EverLoad.everload.service.BackupService;
+import com.everload.everload.service.AuditLogService;
+import com.everload.everload.service.BackupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

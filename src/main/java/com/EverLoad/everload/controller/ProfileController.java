@@ -1,11 +1,11 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.ChangePasswordRequest;
-import com.EverLoad.everload.dto.UpdateProfileRequest;
-import com.EverLoad.everload.dto.UserDto;
-import com.EverLoad.everload.security.JwtUtil;
-import com.EverLoad.everload.security.UserDetailsServiceImpl;
-import com.EverLoad.everload.service.ProfileService;
+import com.everload.everload.dto.ChangePasswordRequest;
+import com.everload.everload.dto.UpdateProfileRequest;
+import com.everload.everload.dto.UserDto;
+import com.everload.everload.security.JwtUtil;
+import com.everload.everload.security.UserDetailsServiceImpl;
+import com.everload.everload.service.ProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +30,7 @@ public class ProfileController {
     }
 
     @PutMapping
-    public ResponseEntity<?> updateProfile(
+    public ResponseEntity<Object> updateProfile(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody UpdateProfileRequest request) {
         try {
@@ -45,7 +45,7 @@ public class ProfileController {
     }
 
     @PutMapping("/password")
-    public ResponseEntity<?> changePassword(
+    public ResponseEntity<Object> changePassword(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ChangePasswordRequest request) {
         try {

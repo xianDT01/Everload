@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.BackupDto;
+import com.everload.everload.dto.BackupDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.h2.tools.RunScript;
@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -80,11 +81,11 @@ public class BackupService {
         this.objectMapper = objectMapper;
     }
 
-    public BackupDto createBackup() throws Exception {
+    public BackupDto createBackup() throws IOException, SQLException {
         return createBackup(BackupType.QUICK);
     }
 
-    public BackupDto createBackup(BackupType type) throws Exception {
+    public BackupDto createBackup(BackupType type) throws IOException, SQLException {
         BackupType backupType = type == null ? BackupType.QUICK : type;
         Path dir = ensureBackupDir();
         String filename = BACKUP_PREFIX + backupType.name().toLowerCase() + "_"
@@ -108,7 +109,7 @@ public class BackupService {
         return buildDto(dest);
     }
 
-    public void restore(String filename) throws Exception {
+    public void restore(String filename) throws IOException, SQLException {
         validateFilename(filename);
         Path backupFile = ensureBackupDir().resolve(filename);
         if (!Files.exists(backupFile)) {
@@ -147,13 +148,13 @@ public class BackupService {
         log.info("[BACKUP] Deleted backup: {}", filename);
     }
 
-    private void createDatabaseScript(Path dest) throws Exception {
+    private void createDatabaseScript(Path dest) throws SQLException {
         try (Connection conn = dataSource.getConnection()) {
             Script.process(conn, dest.toAbsolutePath().toString(), "", "COMPRESSION ZIP");
         }
     }
 
-    private void restoreCompositeBackup(Path backupFile, Path tempDir) throws Exception {
+    private void restoreCompositeBackup(Path backupFile, Path tempDir) throws IOException, SQLException {
         Map<String, Object> manifest = readManifest(backupFile);
         Path dbBackup = tempDir.resolve("everload-db.zip");
 
@@ -185,12 +186,12 @@ public class BackupService {
         log.info("[BACKUP] Composite restore completed from {}", backupFile.getFileName());
     }
 
-    private void restoreLegacyDatabaseBackup(Path backupFile) throws Exception {
+    private void restoreLegacyDatabaseBackup(Path backupFile) throws IOException, SQLException {
         log.warn("[BACKUP] Restoring legacy database-only backup from {}", backupFile.getFileName());
         restoreDatabaseScript(backupFile);
     }
 
-    private void restoreDatabaseScript(Path dbBackup) throws Exception {
+    private void restoreDatabaseScript(Path dbBackup) throws SQLException, IOException {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute("DROP ALL OBJECTS");

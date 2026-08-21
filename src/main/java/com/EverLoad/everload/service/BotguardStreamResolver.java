@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
@@ -8,6 +8,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -132,6 +133,10 @@ public class BotguardStreamResolver implements YtStreamResolver {
                 log.warn("Botguard no devolvió un PO token reconocible para {}: {}", videoId, truncate(output));
             }
             return token;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Minteo de PO token interrumpido para {}", videoId);
+            return null;
         } catch (Exception e) {
             if (log.isWarnEnabled()) {
                 log.warn("Fallo minteando PO token de Botguard para {}: {}", videoId, rootMessage(e));
@@ -285,7 +290,7 @@ public class BotguardStreamResolver implements YtStreamResolver {
 
     // ── Process execution ─────────────────────────────────────────────
 
-    private String runProcess(String[] cmd, int timeoutSecs) throws Exception {
+    private String runProcess(String[] cmd, int timeoutSecs) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.redirectErrorStream(true);
         Process process = pb.start();

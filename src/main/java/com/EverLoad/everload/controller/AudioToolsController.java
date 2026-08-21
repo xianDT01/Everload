@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.AudioInfoDto;
-import com.EverLoad.everload.service.AudioToolsService;
+import com.everload.everload.dto.AudioInfoDto;
+import com.everload.everload.service.AudioToolsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;

@@ -1,7 +1,7 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.config.AdminConfigService;
-import com.EverLoad.everload.model.SpotifyResult;
+import com.everload.everload.config.AdminConfigService;
+import com.everload.everload.model.SpotifyResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -12,6 +12,7 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
@@ -45,12 +46,16 @@ public class SpotifyService {
     public List<SpotifyResult> getPlaylistTracks(String playlistId) {
         try {
             return getPlaylistTracksFromEmbed(playlistId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SpotifyServiceException("Se interrumpió la conexión con Spotify", e);
         } catch (Exception e) {
-            throw new RuntimeException("No se pudieron obtener las canciones de Spotify: " + e.getMessage(), e);
+            throw new SpotifyServiceException("No se pudieron obtener las canciones de Spotify: " + e.getMessage(), e);
         }
     }
 
-    private List<SpotifyResult> getPlaylistTracksFromEmbed(String playlistId) throws Exception {
+    private List<SpotifyResult> getPlaylistTracksFromEmbed(String playlistId)
+            throws IOException, InterruptedException {
         String url = "https://open.spotify.com/embed/playlist/" + playlistId;
 
         HttpRequest request = HttpRequest.newBuilder()
@@ -65,13 +70,14 @@ public class SpotifyService {
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() != 200) {
-            throw new RuntimeException("Spotify embed devolvió HTTP " + response.statusCode());
+            throw new SpotifyServiceException("Spotify embed devolvió HTTP " + response.statusCode());
         }
 
         String html = response.body();
         Matcher matcher = NEXT_DATA_PATTERN.matcher(html);
         if (!matcher.find()) {
-            throw new RuntimeException("No se encontraron datos en el embed de Spotify. Comprueba que la playlist sea pública.");
+            throw new SpotifyServiceException(
+                    "No se encontraron datos en el embed de Spotify. Comprueba que la playlist sea pública.");
         }
 
         JsonNode data = objectMapper.readTree(matcher.group(1));
@@ -137,7 +143,7 @@ public class SpotifyService {
         return null;
     }
 
-    public void testConnection() throws Exception {
+    public void testConnection() throws IOException, InterruptedException {
         String url = "https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M";
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -147,7 +153,7 @@ public class SpotifyService {
                 .build();
         HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
         if (response.statusCode() != 200) {
-            throw new RuntimeException("Spotify embed devolvió HTTP " + response.statusCode());
+            throw new SpotifyServiceException("Spotify embed devolvió HTTP " + response.statusCode());
         }
     }
 

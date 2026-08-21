@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Shared JSON tree-walking helpers for YouTube Music's polymorphic InnerTube
@@ -23,8 +22,6 @@ final class YtMusicJsonUtils {
     private YtMusicJsonUtils() {}
 
     private static final Set<String> SEPARATORS = Set.of(" • ", " & ", ", ");
-    private static final Pattern SIZE_SUFFIX = Pattern.compile("=w\\d");
-
     /** Joins every {@code text} fragment under {@code runs} at the given path; empty/missing → null. */
     static String runsText(JsonNode node, String... path) {
         JsonNode runs = at(node, path);
@@ -237,13 +234,8 @@ final class YtMusicJsonUtils {
             if (mvt != null && mvt.isTextual()) {
                 return mvt.asText();
             }
-            for (JsonNode child : node) {
-                String found = findMusicVideoType(child);
-                if (found != null) {
-                    return found;
-                }
-            }
-        } else if (node.isArray()) {
+        }
+        if (node.isContainerNode()) {
             for (JsonNode child : node) {
                 String found = findMusicVideoType(child);
                 if (found != null) {

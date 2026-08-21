@@ -1,4 +1,4 @@
-package com.EverLoad.everload.model;
+package com.everload.everload.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

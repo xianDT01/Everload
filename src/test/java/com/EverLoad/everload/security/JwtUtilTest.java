@@ -1,4 +1,4 @@
-package com.EverLoad.everload.security;
+package com.everload.everload.security;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,7 +7,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.Date;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -63,7 +63,7 @@ class JwtUtilTest {
     void extractExpiration_isInTheFuture() {
         String token = jwtUtil.generateToken(user);
 
-        assertTrue(jwtUtil.extractExpiration(token).after(new Date()));
+        assertTrue(jwtUtil.extractExpiration(token).isAfter(Instant.now()));
     }
 
     @Test

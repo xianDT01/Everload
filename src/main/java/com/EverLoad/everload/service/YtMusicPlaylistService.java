@@ -1,7 +1,7 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.YtPlaylistSummaryDto;
-import com.EverLoad.everload.dto.YtTrackDto;
+import com.everload.everload.dto.YtPlaylistSummaryDto;
+import com.everload.everload.dto.YtTrackDto;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,7 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
+import static com.everload.everload.service.YtMusicJsonUtils.*;
 
 /**
  * Public-playlist browsing. Anonymous {@code /browse} on a {@code VL<id>}
@@ -26,6 +26,11 @@ public class YtMusicPlaylistService {
 
     /** Hard cap on continuation pages per playlist fetch — guards against pathological/looping tokens. */
     private static final int MAX_CONTINUATION_PAGES = 40;
+    private static final String TWO_COLUMN_RENDERER = "twoColumnBrowseResultsRenderer";
+    private static final String CONTENTS_NODE = "contents";
+    private static final String SECTION_LIST_RENDERER = "sectionListRenderer";
+    private static final String THUMBNAIL_NODE = "thumbnail";
+    private static final String THUMBNAILS_NODE = "thumbnails";
 
     private final YtMusicInnertubeClient client;
     private YtMusicCache<String, YtPlaylistSummaryDto> summaryCache;
@@ -80,23 +85,32 @@ public class YtMusicPlaylistService {
         if (!direct.isMissingNode()) {
             return direct;
         }
-        for (String root : new String[]{"twoColumnBrowseResultsRenderer", "singleColumnBrowseResultsRenderer"}) {
-            JsonNode tabs = at(resp, "contents", root, "tabs");
-            if (tabs.isArray()) {
-                for (JsonNode tab : tabs) {
-                    JsonNode contents = at(tab, "tabRenderer", "content", "sectionListRenderer", "contents");
-                    if (contents.isArray()) {
-                        for (JsonNode section : contents) {
-                            for (String key : new String[]{"musicResponsiveHeaderRenderer", "musicDetailHeaderRenderer"}) {
-                                JsonNode h = section.get(key);
-                                if (h != null) return h;
-                            }
-                        }
-                    }
-                }
-            }
+        for (String root : new String[]{TWO_COLUMN_RENDERER, "singleColumnBrowseResultsRenderer"}) {
+            JsonNode header = findHeaderInTabs(at(resp, CONTENTS_NODE, root, "tabs"));
+            if (header != null) return header;
         }
         return com.fasterxml.jackson.databind.node.MissingNode.getInstance();
+    }
+
+    private JsonNode findHeaderInTabs(JsonNode tabs) {
+        if (!tabs.isArray()) return null;
+        for (JsonNode tab : tabs) {
+            JsonNode contents = at(tab, "tabRenderer", "content", SECTION_LIST_RENDERER, CONTENTS_NODE);
+            JsonNode header = findHeaderInSections(contents);
+            if (header != null) return header;
+        }
+        return null;
+    }
+
+    private JsonNode findHeaderInSections(JsonNode sections) {
+        if (!sections.isArray()) return null;
+        for (JsonNode section : sections) {
+            for (String key : new String[]{"musicResponsiveHeaderRenderer", "musicDetailHeaderRenderer"}) {
+                JsonNode header = section.get(key);
+                if (header != null) return header;
+            }
+        }
+        return null;
     }
 
     /** Some layouts wrap the real header in an editable/legacy shell — peel it off. */
@@ -111,10 +125,10 @@ public class YtMusicPlaylistService {
 
     private String bestPlaylistThumbnail(JsonNode header) {
         for (String renderer : new String[]{"musicThumbnailRenderer", "croppedSquareThumbnailRenderer"}) {
-            String url = bestThumbnailAt(header, "thumbnail", renderer, "thumbnail", "thumbnails");
+            String url = bestThumbnailAt(header, THUMBNAIL_NODE, renderer, THUMBNAIL_NODE, THUMBNAILS_NODE);
             if (url != null) return url;
         }
-        return bestThumbnailAt(header, "thumbnail", "thumbnails");
+        return bestThumbnailAt(header, THUMBNAIL_NODE, THUMBNAILS_NODE);
     }
 
     // ── Track list (with continuation walking) ───────────────────────
@@ -133,18 +147,18 @@ public class YtMusicPlaylistService {
     }
 
     private JsonNode findPlaylistShelf(JsonNode resp) {
-        for (String root : new String[]{"twoColumnBrowseResultsRenderer", "singleColumnBrowseResultsRenderer"}) {
-            JsonNode tabs = at(resp, "contents", root, "tabs");
+        for (String root : new String[]{TWO_COLUMN_RENDERER, "singleColumnBrowseResultsRenderer"}) {
+            JsonNode tabs = at(resp, CONTENTS_NODE, root, "tabs");
             if (tabs.isArray()) {
                 for (JsonNode tab : tabs) {
-                    JsonNode contents = at(tab, "tabRenderer", "content", "sectionListRenderer", "contents");
+                    JsonNode contents = at(tab, "tabRenderer", "content", SECTION_LIST_RENDERER, CONTENTS_NODE);
                     JsonNode found = firstPlaylistShelfIn(contents);
                     if (found != null) return found;
                 }
             }
         }
-        JsonNode secondary = at(resp, "contents", "twoColumnBrowseResultsRenderer",
-                "secondaryContents", "sectionListRenderer", "contents");
+        JsonNode secondary = at(resp, CONTENTS_NODE, TWO_COLUMN_RENDERER,
+                "secondaryContents", SECTION_LIST_RENDERER, CONTENTS_NODE);
         JsonNode found = firstPlaylistShelfIn(secondary);
         return found != null ? found : com.fasterxml.jackson.databind.node.MissingNode.getInstance();
     }
@@ -164,7 +178,7 @@ public class YtMusicPlaylistService {
         if (shelf.isMissingNode()) {
             return null;
         }
-        JsonNode contents = shelf.get("contents");
+        JsonNode contents = shelf.get(CONTENTS_NODE);
         if (contents != null && contents.isArray()) {
             for (JsonNode item : contents) {
                 collectRow(item, out, seen);
@@ -178,7 +192,7 @@ public class YtMusicPlaylistService {
         if (shelfCont.isMissingNode()) {
             shelfCont = at(resp, "continuationContents", "playlistVideoListContinuation");
         }
-        JsonNode contents = shelfCont.get("contents");
+        JsonNode contents = shelfCont.get(CONTENTS_NODE);
         if (contents != null && contents.isArray()) {
             for (JsonNode item : contents) {
                 collectRow(item, out, seen);
@@ -220,8 +234,8 @@ public class YtMusicPlaylistService {
 
         int duration = parseMmSs(textAt(row, "fixedColumns", "0",
                 "musicResponsiveListItemFixedColumnRenderer", "text", "runs", "0", "text"));
-        String thumbnail = normalizeThumbnail(bestThumbnailAt(row, "thumbnail",
-                "musicThumbnailRenderer", "thumbnail", "thumbnails"));
+        String thumbnail = normalizeThumbnail(bestThumbnailAt(row, THUMBNAIL_NODE,
+                "musicThumbnailRenderer", THUMBNAIL_NODE, THUMBNAILS_NODE));
         String albumId = albumBrowseId != null ? "ytmusic:album:" + albumBrowseId : synthesizeAlbumId(album, artist);
 
         return YtTrackDto.builder()

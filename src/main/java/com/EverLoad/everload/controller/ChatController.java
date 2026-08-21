@@ -1,14 +1,14 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.ChatGroupDto;
-import com.EverLoad.everload.dto.ChatMessageDto;
-import com.EverLoad.everload.dto.CreateGroupRequest;
-import com.EverLoad.everload.dto.SendMessageRequest;
-import com.EverLoad.everload.model.User;
-import com.EverLoad.everload.model.UserStatus;
-import com.EverLoad.everload.repository.UserRepository;
-import com.EverLoad.everload.service.ChatService;
-import com.EverLoad.everload.service.PresenceService;
+import com.everload.everload.dto.ChatGroupDto;
+import com.everload.everload.dto.ChatMessageDto;
+import com.everload.everload.dto.CreateGroupRequest;
+import com.everload.everload.dto.SendMessageRequest;
+import com.everload.everload.model.User;
+import com.everload.everload.model.UserStatus;
+import com.everload.everload.repository.UserRepository;
+import com.everload.everload.service.ChatService;
+import com.everload.everload.service.PresenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -121,7 +121,7 @@ public class ChatController {
     }
 
     @PostMapping(value = "/groups/{id}/avatar", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateGroupAvatar(@PathVariable Long id,
+    public ResponseEntity<Object> updateGroupAvatar(@PathVariable Long id,
                                                @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
                                                @AuthenticationPrincipal UserDetails userDetails) {
         try {

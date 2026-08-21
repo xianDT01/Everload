@@ -1,9 +1,9 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.YtStreamInfoDto;
+import com.everload.everload.dto.YtStreamInfoDto;
 import com.fasterxml.jackson.databind.JsonNode;
 
-import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
+import static com.everload.everload.service.YtMusicJsonUtils.*;
 
 /**
  * Turns a raw {@code /player} response into a {@link YtStreamResolution} —
@@ -13,6 +13,8 @@ import static com.EverLoad.everload.service.YtMusicJsonUtils.*;
  * format" is reported the same explicit way regardless of which client asked.
  */
 final class YtPlayerResponseInterpreter {
+
+    private static final String PLAYABILITY_STATUS_NODE = "playabilityStatus";
 
     private YtPlayerResponseInterpreter() {}
 
@@ -48,7 +50,7 @@ final class YtPlayerResponseInterpreter {
     }
 
     static YtPlayabilityStatus playabilityStatus(JsonNode playerResponse) {
-        return YtPlayabilityStatus.fromRaw(textAt(playerResponse, "playabilityStatus", "status"));
+        return YtPlayabilityStatus.fromRaw(textAt(playerResponse, PLAYABILITY_STATUS_NODE, "status"));
     }
 
     /**
@@ -58,16 +60,16 @@ final class YtPlayerResponseInterpreter {
      * your country" / "Sign in to confirm your age").
      */
     static String playabilityReason(JsonNode playerResponse) {
-        String reason = textAt(playerResponse, "playabilityStatus", "reason");
+        String reason = textAt(playerResponse, PLAYABILITY_STATUS_NODE, "reason");
         if (reason != null && !reason.isBlank()) {
             return reason;
         }
-        String subReason = runsText(playerResponse, "playabilityStatus", "errorScreen",
+        String subReason = runsText(playerResponse, PLAYABILITY_STATUS_NODE, "errorScreen",
                 "playerErrorMessageRenderer", "subreason", "runs");
         if (subReason != null && !subReason.isBlank()) {
             return subReason;
         }
-        String simpleReason = textAt(playerResponse, "playabilityStatus", "errorScreen",
+        String simpleReason = textAt(playerResponse, PLAYABILITY_STATUS_NODE, "errorScreen",
                 "playerErrorMessageRenderer", "subreason", "simpleText");
         return simpleReason != null ? simpleReason : "";
     }

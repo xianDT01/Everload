@@ -1,9 +1,10 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.dto.MusicMetadataDto;
-import com.EverLoad.everload.dto.PagedMusicResult;
-import com.EverLoad.everload.service.HlsStreamService;
-import com.EverLoad.everload.service.MusicService;
+import com.everload.everload.dto.MusicMetadataDto;
+import com.everload.everload.dto.PagedMusicResult;
+import com.everload.everload.service.HlsStreamService;
+import com.everload.everload.service.MusicService;
+import com.everload.everload.util.MediaTextCleaner;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,6 +34,9 @@ import java.util.Map;
 @Slf4j
 public class MusicController {
 
+    private static final String ERROR_KEY = "error";
+    private static final String SOURCE_KEY = "source";
+
     private final MusicService musicService;
     private final HlsStreamService hlsStreamService;
     private final RestTemplate restTemplate;
@@ -42,84 +46,84 @@ public class MusicController {
     @Operation(summary = "Canciones aleatorias con portada para el panel de inicio")
     @GetMapping("/random")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> getRandomTracks(@RequestParam(defaultValue = "3") int count) {
+    public ResponseEntity<Object> getRandomTracks(@RequestParam(defaultValue = "3") int count) {
         try {
             return ResponseEntity.ok(musicService.getRandomTracks(Math.min(count, 10)));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
     @Operation(summary = "Buscar archivos de audio recursivamente por nombre, título, artista o álbum")
     @GetMapping("/search")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> searchMusic(@RequestParam Long pathId,
+    public ResponseEntity<Object> searchMusic(@RequestParam Long pathId,
                                          @RequestParam String query,
                                          @RequestParam(required = false) String subPath,
                                          @RequestParam(defaultValue = "200") int limit) {
         try {
             return ResponseEntity.ok(musicService.searchMusic(pathId, subPath, query, Math.min(limit, 500)));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
     @Operation(summary = "Resumen cacheado de la biblioteca musical")
     @GetMapping("/library-overview")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> libraryOverview(@RequestParam Long pathId,
+    public ResponseEntity<Object> libraryOverview(@RequestParam Long pathId,
                                              @RequestParam(defaultValue = "5000") int limit) {
         try {
             return ResponseEntity.ok(musicService.getLibraryOverview(pathId, Math.min(limit, 10000)));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
     @Operation(summary = "Canciones añadidas recientemente desde la cache musical")
     @GetMapping("/recent")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> recentMusic(@RequestParam Long pathId,
+    public ResponseEntity<Object> recentMusic(@RequestParam Long pathId,
                                          @RequestParam(defaultValue = "40") int limit) {
         try {
             return ResponseEntity.ok(musicService.getRecentTracks(pathId, Math.min(limit, 200)));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
     @Operation(summary = "Iniciar indexado cacheado de la biblioteca musical")
     @PostMapping("/library-index")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> startLibraryIndex(@RequestParam Long pathId) {
+    public ResponseEntity<Object> startLibraryIndex(@RequestParam Long pathId) {
         try {
             return ResponseEntity.ok(musicService.startLibraryIndex(pathId));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
     @Operation(summary = "Canciones cacheadas de un artista")
     @GetMapping("/artist-tracks")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> artistTracks(@RequestParam Long pathId,
+    public ResponseEntity<Object> artistTracks(@RequestParam Long pathId,
                                           @RequestParam String artist,
                                           @RequestParam(required = false) List<String> aliases,
                                           @RequestParam(defaultValue = "500") int limit) {
         try {
             return ResponseEntity.ok(musicService.getCachedTracksByArtist(pathId, artist, aliases, Math.min(limit, 1000)));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
@@ -127,9 +131,9 @@ public class MusicController {
     @GetMapping("/artist-image")
     @PreAuthorize("isAuthenticated()")
     @SuppressWarnings("java:S6863") // Image lookup is optional; a failed provider lookup is a valid found=false result.
-    public ResponseEntity<?> artistImage(@RequestParam String artist) {
+    public ResponseEntity<Object> artistImage(@RequestParam String artist) {
         if (artist == null || artist.isBlank() || artist.length() > 160) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Artista inválido"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Artista inválido"));
         }
         try {
             return ResponseEntity.ok(musicService.lookupArtistImage(artist));
@@ -141,7 +145,7 @@ public class MusicController {
 
     @Operation(summary = "Servir imagen de artista guardada automáticamente en servidor")
     @GetMapping("/artist-auto-image/{filename:.+}")
-    public ResponseEntity<?> artistAutoImage(@PathVariable String filename) {
+    public ResponseEntity<Object> artistAutoImage(@PathVariable String filename) {
         try {
             Path dir = musicService.getArtistAutoImageDir();
             Path file = dir.resolve(filename).normalize();
@@ -178,18 +182,18 @@ public class MusicController {
 
     @Operation(summary = "Buscar portada de álbum via MusicBrainz + Cover Art Archive")
     @GetMapping("/album-cover")
-    public ResponseEntity<?> albumCover(
+    public ResponseEntity<Object> albumCover(
             @RequestParam(required = false, defaultValue = "") String artist,
             @RequestParam String album) {
         if (album == null || album.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Se requiere el álbum"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Se requiere el álbum"));
         }
         return ResponseEntity.ok(musicService.lookupAlbumCover(artist, album));
     }
 
     @Operation(summary = "Servir portada de álbum guardada automáticamente en servidor")
     @GetMapping("/album-auto-cover/{filename:.+}")
-    public ResponseEntity<?> albumAutoCover(@PathVariable String filename) {
+    public ResponseEntity<Object> albumAutoCover(@PathVariable String filename) {
         try {
             Path dir = musicService.getAlbumCoverAutoDir();
             Path file = dir.resolve(filename).normalize();
@@ -209,7 +213,7 @@ public class MusicController {
     @Operation(summary = "Listar archivos de audio con metadatos ID3 (paginado)")
     @GetMapping("/metadata")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> browseMusic(@RequestParam Long pathId,
+    public ResponseEntity<Object> browseMusic(@RequestParam Long pathId,
                                          @RequestParam(required = false) String subPath,
                                          @RequestParam(defaultValue = "0") int page,
                                          @RequestParam(defaultValue = "50") int size) {
@@ -217,23 +221,23 @@ public class MusicController {
             PagedMusicResult result = musicService.listFilesWithMetadata(pathId, subPath, page, size);
             return ResponseEntity.ok(result);
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
     @Operation(summary = "Actualizar metadatos ID3 de un archivo de audio")
     @PutMapping("/metadata")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> updateMetadata(@RequestBody MetadataUpdateRequest req) {
+    public ResponseEntity<Object> updateMetadata(@RequestBody MetadataUpdateRequest req) {
         try {
             musicService.updateMetadata(req.getPathId(), req.getRelativePath(), req.getTitle(), req.getArtist(), req.getAlbum(), req.getYear());
             return ResponseEntity.ok(Map.of("message", "Metadatos actualizados"));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
@@ -252,31 +256,31 @@ public class MusicController {
     @Operation(summary = "Buscar metadatos de una canción en YouTube via yt-dlp")
     @GetMapping("/youtube-metadata")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> fetchYoutubeMetadata(@RequestParam String query) {
+    public ResponseEntity<Object> fetchYoutubeMetadata(@RequestParam String query) {
         if (query == null || query.isBlank() || query.length() > 300) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Consulta inválida"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Consulta inválida"));
         }
         try {
             return ResponseEntity.ok(musicService.lookupYoutubeMetadataMap(query));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Error al buscar en YouTube: " + e.getMessage()));
+                    .body(Map.of(ERROR_KEY, "Error al buscar en YouTube: " + e.getMessage()));
         }
     }
 
     @Operation(summary = "Rellenar metadatos masivamente desde YouTube via yt-dlp")
     @PostMapping("/youtube-metadata/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> fillYoutubeMetadataBulk(@RequestParam Long pathId,
+    public ResponseEntity<Object> fillYoutubeMetadataBulk(@RequestParam Long pathId,
                                                      @RequestParam(required = false) String subPath,
                                                      @RequestParam(defaultValue = "50") int limit,
                                                      @RequestParam(defaultValue = "true") boolean onlyMissing) {
         try {
             return ResponseEntity.ok(musicService.fillYoutubeMetadataBulk(pathId, subPath, limit, onlyMissing));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
@@ -314,28 +318,28 @@ public class MusicController {
     @Operation(summary = "Preparar cache HLS para audios largos")
     @PostMapping("/hls/prepare")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> prepareHls(@RequestParam Long pathId,
+    public ResponseEntity<Object> prepareHls(@RequestParam Long pathId,
                                         @RequestParam String subPath) {
         try {
             return ResponseEntity.ok(hlsStreamService.prepareHlsStream(pathId, subPath));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
     @Operation(summary = "Estado de cache HLS para audios largos")
     @GetMapping("/hls/status")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> hlsStatus(@RequestParam Long pathId,
+    public ResponseEntity<Object> hlsStatus(@RequestParam Long pathId,
                                        @RequestParam String subPath) {
         try {
             return ResponseEntity.ok(hlsStreamService.getHlsStatus(pathId, subPath));
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
@@ -431,12 +435,12 @@ public class MusicController {
     @Operation(summary = "Preparar y cachear audio de youtube para la cabina DJ")
     @PostMapping("/youtube/prepare")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> prepareYoutubeTrack(@RequestParam String videoId) {
+    public ResponseEntity<Object> prepareYoutubeTrack(@RequestParam String videoId) {
         try {
             musicService.prepareYoutubeTrack(videoId);
             return ResponseEntity.ok(Map.of("message", "Ready", "videoId", videoId));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.internalServerError().body(Map.of(ERROR_KEY, e.getMessage()));
         }
     }
 
@@ -455,7 +459,7 @@ public class MusicController {
     @Operation(summary = "Obtener miniatura de youtube redireccionada")
     @GetMapping("/youtube/cover")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
-    public ResponseEntity<?> getYoutubeCover(@RequestParam String videoId) {
+    public ResponseEntity<Object> getYoutubeCover(@RequestParam String videoId) {
         // Redirect to high quality youtube thumbnail
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(java.net.URI.create("https://img.youtube.com/vi/" + videoId + "/hqdefault.jpg"));
@@ -467,7 +471,7 @@ public class MusicController {
     @Operation(summary = "Obtener letra/LRC para una pista del NAS")
     @GetMapping("/lyrics")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
-    public ResponseEntity<?> getLyrics(
+    public ResponseEntity<Object> getLyrics(
             @RequestParam Long pathId,
             @RequestParam String subPath,
             @RequestParam(required = false) String title,
@@ -479,7 +483,7 @@ public class MusicController {
         if (pathId != null && pathId >= 0 && !"ytmusic".equalsIgnoreCase(source)) {
             String lrc = musicService.findLrcSidecar(pathId, subPath);
             if (lrc != null) {
-                return ResponseEntity.ok(Map.of("source", "file", "lrc", lrc));
+                return ResponseEntity.ok(Map.of(SOURCE_KEY, "file", "lrc", lrc));
             }
         }
 
@@ -495,7 +499,7 @@ public class MusicController {
             if (!lyrics.isEmpty()) return ResponseEntity.ok(lyrics);
         }
 
-        return ResponseEntity.ok(Map.of("source", "none"));
+        return ResponseEntity.ok(Map.of(SOURCE_KEY, "none"));
     }
 
     private Map<String, Object> fetchLrclibLyrics(String title, String artist, int duration) {
@@ -540,10 +544,10 @@ public class MusicController {
         Object syncedLyrics = body.get("syncedLyrics");
         Object plainLyrics = body.get("plainLyrics");
         if (syncedLyrics instanceof String synced && !synced.isBlank()) {
-            return Map.of("source", "lrclib", "lrc", synced);
+            return Map.of(SOURCE_KEY, "lrclib", "lrc", synced);
         }
         if (plainLyrics instanceof String plain && !plain.isBlank()) {
-            return Map.of("source", "lrclib_plain", "plain", plain);
+            return Map.of(SOURCE_KEY, "lrclib_plain", "plain", plain);
         }
         return Map.of();
     }
@@ -578,7 +582,7 @@ public class MusicController {
             ResponseEntity<Map> resp = rt.exchange(url, HttpMethod.GET, new HttpEntity<>(h), Map.class);
             Map body = resp.getBody();
             if (body != null && body.get("lyrics") instanceof String lyrics && !lyrics.isBlank()) {
-                return Map.of("source", "lyrics_ovh", "plain", lyrics);
+                return Map.of(SOURCE_KEY, "lyrics_ovh", "plain", lyrics);
             }
         } catch (Exception e) {
             log.debug("lyrics.ovh lookup failed for '{} - {}': {}", artist, title, e.getMessage());
@@ -587,12 +591,7 @@ public class MusicController {
     }
 
     private String cleanLyricsTerm(String value) {
-        return (value == null ? "" : value)
-                .replaceAll("(?i)\\s*\\((official\\s*(music\\s*)?video|official\\s*audio|lyric\\s*video|visualizer|remaster(ed)?|audio|video|explicit)\\)", "")
-                .replaceAll("(?i)\\s*-\\s*(official\\s*(music\\s*)?video|official\\s*audio|lyric\\s*video|visualizer|remaster(ed)?|audio|video).*", "")
-                .replaceAll("(?i)\\s*(\\(|\\[)\\s*(feat|ft)\\.?\\s+[^)\\]]+[)\\]]", "")
-                .replaceAll("\\s+", " ")
-                .trim();
+        return MediaTextCleaner.cleanLyricsTerm(value);
     }
 
     private String enc(String value) {

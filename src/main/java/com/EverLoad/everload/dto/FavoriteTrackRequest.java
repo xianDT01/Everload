@@ -1,4 +1,4 @@
-package com.EverLoad.everload.dto;
+package com.everload.everload.dto;
 
 /** Input accepted when a user toggles a favorite. Ownership and database fields stay server-controlled. */
 public record FavoriteTrackRequest(

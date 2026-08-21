@@ -1,6 +1,6 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
-import com.EverLoad.everload.dto.YtStreamInfoDto;
+import com.everload.everload.dto.YtStreamInfoDto;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -86,25 +86,31 @@ public class YtMusicStreamService {
                 result = resolver.resolve(videoId);
             } catch (Exception e) {
                 String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-                if (log.isWarnEnabled()) {
-                    log.warn("Resolver {} lanzó una excepción inesperada para {}: {}", resolver.name(), videoId, message);
-                }
+                log.warn("Resolver {} lanzó una excepción inesperada para {}: {}", resolver.name(), videoId, message);
                 failures.add(resolver.name() + ": excepción inesperada (" + message + ")");
                 continue;
             }
             if (result.isSuccess()) {
-                if (log.isInfoEnabled()) {
-                    log.info("Stream de {} resuelto por '{}'", videoId, resolver.name());
-                }
+                logResolvedStream(videoId, resolver);
                 return result.streamInfo();
             }
-            if (log.isDebugEnabled()) {
-                log.debug("Resolver {} no pudo resolver {}: {} ({})",
-                        resolver.name(), videoId, result.status(), result.reason());
-            }
+            logResolverFailure(videoId, resolver, result);
             failures.add(result.describe(resolver.name()));
         }
         throw new YtStreamUnavailableException(videoId, failures);
+    }
+
+    private void logResolvedStream(String videoId, YtStreamResolver resolver) {
+        if (log.isInfoEnabled()) {
+            log.info("Stream de {} resuelto por '{}'", videoId, resolver.name());
+        }
+    }
+
+    private void logResolverFailure(String videoId, YtStreamResolver resolver, YtStreamResolution result) {
+        if (log.isDebugEnabled()) {
+            log.debug("Resolver {} no pudo resolver {}: {} ({})",
+                    resolver.name(), videoId, result.status(), result.reason());
+        }
     }
 
     public void streamAudioToResponse(String videoId, String rangeHeader, HttpServletResponse response)

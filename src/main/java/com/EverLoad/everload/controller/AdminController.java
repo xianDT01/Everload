@@ -1,7 +1,7 @@
-package com.EverLoad.everload.controller;
+package com.everload.everload.controller;
 
-import com.EverLoad.everload.config.AdminConfigService;
-import com.EverLoad.everload.service.AvatarService;
+import com.everload.everload.config.AdminConfigService;
+import com.everload.everload.service.AvatarService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;

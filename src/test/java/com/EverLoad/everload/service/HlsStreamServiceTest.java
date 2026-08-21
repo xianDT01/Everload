@@ -1,4 +1,4 @@
-package com.EverLoad.everload.service;
+package com.everload.everload.service;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +19,6 @@ import java.util.concurrent.Future;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
@@ -51,7 +50,7 @@ class HlsStreamServiceTest {
     private void stubTrack(String name, byte[] content) throws Exception {
         Path file = tempDir.resolve(name);
         Files.write(file, content);
-        when(nasService.resolveValidatedPath(eq(1L), eq(name))).thenReturn(file);
+        when(nasService.resolveValidatedPath(1L, name)).thenReturn(file);
     }
 
     @Test
@@ -88,7 +87,7 @@ class HlsStreamServiceTest {
 
     @Test
     void archivoInaccesibleRechazado() {
-        when(nasService.resolveValidatedPath(eq(1L), eq("fantasma.mp3")))
+        when(nasService.resolveValidatedPath(1L, "fantasma.mp3"))
                 .thenReturn(tempDir.resolve("fantasma.mp3"));
 
         assertThrows(IllegalArgumentException.class,
@@ -97,7 +96,7 @@ class HlsStreamServiceTest {
 
     @Test
     void traversalDelNasSePropagaComoSecurityException() {
-        when(nasService.resolveValidatedPath(eq(1L), eq("../etc/passwd")))
+        when(nasService.resolveValidatedPath(1L, "../etc/passwd"))
                 .thenThrow(new SecurityException("Acceso denegado"));
 
         assertThrows(SecurityException.class,
