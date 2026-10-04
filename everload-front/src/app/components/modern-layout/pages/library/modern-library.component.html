@@ -28,6 +28,11 @@
              [(ngModel)]="query"
              (input)="onSearch()" />
     </div>
+    <div class="ml-bulk-bar" *ngIf="false">
+      <span>{{ selectedPaths.size }} seleccionadas</span>
+      <button class="ml-bulk-clear" type="button" (click)="selectedPaths.clear()">Cancelar selección</button>
+    </div>
+    <div class="ml-bulk-error" role="status" *ngIf="false">{{ metadataError }}</div>
   </div>
 
   <div class="ml-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
@@ -69,6 +74,7 @@
            *cdkVirtualFor="let t of tracks; let i = index; trackBy: trackByPath"
            [class.playing]="isPlaying(t)"
            (dblclick)="play(i)">
+
 
         <!-- # / barras animadas / play en hover -->
         <span class="ml-col-num">
@@ -122,5 +128,24 @@
       </button>
       <div class="ml-empty" *ngIf="!playlists.length">No hay playlists</div>
     </div>
+  </div>
+  <div class="ml-playlist-picker-backdrop" *ngIf="false" (click)="!metadataSaving && (metadataEditorOpen = false)">
+    <section class="ml-metadata-dialog" role="dialog" aria-modal="true" aria-labelledby="ml-metadata-title" (click)="$event.stopPropagation()">
+      <h2 id="ml-metadata-title">Editar etiquetas</h2>
+      <p>{{ selectedPaths.size }} pistas seleccionadas. Marca solo lo que quieras reemplazar.</p>
+      <label><input type="checkbox" [(ngModel)]="bulkFields.title" /> Título</label>
+      <input type="text" [(ngModel)]="bulkValues.title" [disabled]="!bulkFields.title" maxlength="200" />
+      <label><input type="checkbox" [(ngModel)]="bulkFields.artist" /> Artista</label>
+      <input type="text" [(ngModel)]="bulkValues.artist" [disabled]="!bulkFields.artist" maxlength="200" />
+      <label><input type="checkbox" [(ngModel)]="bulkFields.album" /> Álbum</label>
+      <input type="text" [(ngModel)]="bulkValues.album" [disabled]="!bulkFields.album" maxlength="200" />
+      <div class="ml-dialog-progress" *ngIf="metadataSaving">Guardando {{ metadataProgress }}</div>
+      <div class="ml-dialog-actions">
+        <button type="button" class="ml-action-secondary" (click)="metadataEditorOpen = false" [disabled]="metadataSaving">Cancelar</button>
+        <button type="button" class="ml-action-primary" (click)="saveBulkMetadata()" [disabled]="metadataSaving || (!bulkFields.title && !bulkFields.artist && !bulkFields.album) || (bulkFields.title && !bulkValues.title.trim()) || (bulkFields.artist && !bulkValues.artist.trim()) || (bulkFields.album && !bulkValues.album.trim())">
+          {{ metadataSaving ? 'Guardando…' : 'Aplicar a las pistas' }}
+        </button>
+      </div>
+    </section>
   </div>
 </div>

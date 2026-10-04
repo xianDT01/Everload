@@ -37,7 +37,8 @@ class MusicControllerLyricsTest {
     void setUp() {
         musicService = mock(MusicService.class);
         restTemplate = mock(RestTemplate.class);
-        controller = new MusicController(musicService, mock(HlsStreamService.class), restTemplate);
+        controller = new MusicController(musicService, mock(HlsStreamService.class), restTemplate,
+                mock(com.everload.everload.service.MetadataSnapshotService.class));
     }
 
     @Test

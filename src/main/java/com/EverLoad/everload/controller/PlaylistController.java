@@ -131,6 +131,7 @@ public class PlaylistController {
                             .title(dto.getTitle())
                             .artist(dto.getArtist())
                             .album(dto.getAlbum())
+                            .source("youtube".equals(dto.getSource()) || "ytmusic".equals(dto.getSource()) ? dto.getSource() : "nas")
                             .nasPathId(dto.getNasPathId())
                             .durationSeconds(dto.getDurationSeconds())
                             .position(pos)
@@ -281,6 +282,7 @@ public class PlaylistController {
     @Data static class ReorderTracksDto { private List<Long> trackIds; }
 
     @Data static class PlaylistTrackDto {
+        private String source;
         private String trackPath;
         private String title;
         private String artist;

@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { smartShuffle } from '../../../../services/smart-shuffle';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { MusicService, MusicMetadataDto } from '../../../../services/music.service';
@@ -20,6 +21,17 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   loadingShared = false;
   newName = '';
   creating = false;
+  importUrl = '';
+  importName = '';
+  importing = false;
+  actionBusy = false;
+  actionError = '';
+  importResult: { count: number; skipped: number; spotify: boolean } | null = null;
+  shareLink = '';
+  linkCopied = false;
+  private linkSub?: Subscription;
+  private actionSub?: Subscription;
+  private importSub?: Subscription;
 
   tab: 'mine' | 'community' | 'shared' = 'mine';
   view: 'list' | 'detail' = 'list';
@@ -41,10 +53,20 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   private userSearchSub?: Subscription;
   private routerSub?: Subscription;
 
-  constructor(public music: MusicService, public state: ModernStateService, private auth: AuthService, private router: Router) {}
+  constructor(public music: MusicService, public state: ModernStateService, private auth: AuthService, private router: Router, private route: ActivatedRoute) {}
 
   ngOnInit() {
     this.load();
+    this.linkSub = this.route.queryParamMap.subscribe(params => {
+      const id = Number(params.get('playlist') || sessionStorage.getItem('everload_playlist_link'));
+      sessionStorage.removeItem('everload_playlist_link');
+      if (!Number.isSafeInteger(id) || id <= 0) return;
+      this.actionSub?.unsubscribe();
+      this.actionSub = this.music.getPlaylist(id).subscribe({
+        next: playlist => this.openPlaylist(playlist),
+        error: () => { this.actionError = 'PLAYLISTS.UNAVAILABLE'; }
+      });
+    });
     // El layout moderno mantiene esta página viva entre pestañas (RouteReuseStrategy),
     // así que ngOnInit solo corre una vez. Recargamos al volver a entrar para que las
     // playlists no queden vacías/obsoletas si la primera carga falló o llegó vacía.
@@ -56,6 +78,9 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.linkSub?.unsubscribe();
+    this.actionSub?.unsubscribe();
+    this.importSub?.unsubscribe();
     this.searchSub?.unsubscribe();
     this.userSearchSub?.unsubscribe();
     this.routerSub?.unsubscribe();
@@ -125,6 +150,8 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   }
 
   openPlaylist(pl: any) {
+    this.shareLink = '';
+    this.linkCopied = false;
     this.selectedPlaylist = pl;
     this.view = 'detail';
     this.searchQuery = '';
@@ -134,6 +161,56 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   back() {
     this.view = 'list';
     this.selectedPlaylist = null;
+    this.router.navigate([], { relativeTo: this.route, queryParams: { playlist: null }, queryParamsHandling: 'merge' });
+  }
+
+  importPlaylist() {
+    if (this.importing || !this.importUrl.trim() || !this.importName.trim()) return;
+    this.importing = true;
+    this.actionError = '';
+    this.importResult = null;
+    this.importSub = this.music.importPlaylist(this.importUrl.trim(), this.importName.trim()).subscribe({
+      next: result => {
+        this.importing = false;
+        this.importResult = { count: result.playlist.tracks.length, skipped: result.skipped, spotify: result.spotifySource };
+        this.importUrl = '';
+        this.importName = '';
+        this.playlists = [result.playlist, ...this.playlists];
+        this.openPlaylist(result.playlist);
+      },
+      error: () => { this.importing = false; this.actionError = 'PLAYLISTS.IMPORT_ERROR'; }
+    });
+  }
+
+  duplicate() {
+    if (!this.selectedPlaylist || this.actionBusy) return;
+    this.actionBusy = true;
+    this.actionError = '';
+    this.actionSub = this.music.duplicatePlaylist(this.selectedPlaylist.id).subscribe({
+      next: playlist => {
+        this.actionBusy = false;
+        this.playlists = [playlist, ...this.playlists];
+        this.tab = 'mine';
+        this.openPlaylist(playlist);
+      },
+      error: () => { this.actionBusy = false; this.actionError = 'PLAYLISTS.ACTION_ERROR'; }
+    });
+  }
+
+  async copyLink() {
+    if (!this.selectedPlaylist) return;
+    const tree = this.router.createUrlTree(['/modern/playlists'], { queryParams: { playlist: this.selectedPlaylist.id } });
+    this.shareLink = new URL(this.router.serializeUrl(tree), location.origin).href;
+    try {
+      await navigator.clipboard.writeText(this.shareLink);
+      this.linkCopied = true;
+    } catch { this.linkCopied = false; }
+  }
+
+  playSmart() {
+    if (!this.selectedPlaylist?.tracks?.length) return;
+    if (this.music.shuffle) this.music.toggleShuffle();
+    this.playFromPlaylist({ ...this.selectedPlaylist, tracks: smartShuffle(this.selectedPlaylist.tracks) }, 0);
   }
 
   isOwned(pl: any): boolean {
@@ -240,13 +317,13 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   }
 
   private playFromPlaylist(pl: any, index: number) {
-    const pid = this.state.pathId;
-    if (!pl?.tracks?.length || pid == null) return;
+    const pid = this.state.pathId ?? 0;
+    if (!pl?.tracks?.length) return;
     const tracks = pl.tracks.map((t: any) => ({
       name: t.title, path: t.trackPath, directory: false, size: 0,
       lastModified: '', title: t.title, artist: t.artist, album: t.album,
       duration: t.durationSeconds ?? 0, format: '', hasCover: false, bpm: 0,
-      source: 'nas' as const, nasPathId: t.nasPathId ?? pid
+      source: t.source || 'nas', nasPathId: t.nasPathId ?? pid
     }));
     this.music.setQueue(pid, tracks, Math.min(Math.max(index, 0), tracks.length - 1));
   }
@@ -295,7 +372,7 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   }
 
   trackCoverUrl(t: any): string {
-    return this.music.getCoverUrlWithCache(t.nasPathId ?? this.state.pathId ?? 0, t.trackPath, 'nas');
+    return this.music.getCoverUrlWithCache(t.nasPathId ?? this.state.pathId ?? 0, t.trackPath, t.source || 'nas');
   }
 
   searchCoverUrl(t: MusicMetadataDto): string {

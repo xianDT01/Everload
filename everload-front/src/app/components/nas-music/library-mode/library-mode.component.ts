@@ -1234,7 +1234,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         name: t.title, path: t.trackPath, title: t.title, artist: t.artist,
         album: t.album, hasCover: false, directory: false, nasPathId: t.nasPathId,
         duration: t.durationSeconds ?? 0, size: 0, format: '', lastModified: '', bpm: 0,
-        source: 'nas' as const
+        source: t.source || 'nas'
       } as MusicMetadataDto));
       this.items = tracks;
       this.totalTracks = tracks.length;
@@ -1808,7 +1808,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       name: t.title, path: t.trackPath, title: t.title, artist: t.artist,
       album: t.album, hasCover: false, directory: false, nasPathId: t.nasPathId,
       duration: t.durationSeconds ?? 0, size: 0, format: '', lastModified: '', bpm: 0,
-      source: 'nas' as const
+      source: t.source || 'nas'
     } as MusicMetadataDto));
     this.items = tracks;
     this.totalTracks = tracks.length;

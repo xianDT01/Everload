@@ -80,6 +80,13 @@ export class NasService {
     return this.http.put(`${this.BASE}/api/music/metadata`, { pathId, relativePath, title, artist, album, year });
   }
 
+  uploadTrackCover(pathId: number, relativePath: string, image: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('image', image);
+    const params = new HttpParams().set('pathId', pathId).set('subPath', relativePath);
+    return this.http.post(`${this.BASE}/api/music/cover`, formData, { params });
+  }
+
   uploadFolderCover(pathId: number, folderPath: string, image: File): Observable<any> {
     const formData = new FormData();
     formData.append('image', image);

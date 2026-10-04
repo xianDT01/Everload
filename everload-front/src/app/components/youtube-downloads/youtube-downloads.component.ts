@@ -18,12 +18,12 @@ interface QueueItem {
   audioFormat?: string;
   status: 'pending' | 'downloading' | 'completed' | 'failed' | 'cancelled';
   progress: number;
+  nasPathId?: number;
+  nasSubPath?: string;
   startedAt?: Date;
   completedAt?: Date;
   filename?: string;
   error?: string;
-  nasPathId?: number;
-  nasSubPath?: string;
   downloadJobId?: string;
 }
 
@@ -55,10 +55,8 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   private processingQueue = false;
   private cancelActiveDownload: (() => void) | null = null;
 
-  // NAS
   showNasBrowser = false;
   nasDownloadType: 'video' | 'music' = 'video';
-  // Modal propio de guardado en NAS (sustituye al navegador genérico)
   showNasModal = false;
   nasPaths: NasPath[] = [];
   selectedNasPathId: number | null = null;
@@ -171,10 +169,6 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
   }
 
   private processItem(item: QueueItem): Promise<void> {
-    // NAS save: send to server, no browser download
-    if (item.nasPathId) {
-      return this.processItemToNas(item);
-    }
     if (item.type === 'music') {
       return this.processMusicItemAsJob(item);
     }

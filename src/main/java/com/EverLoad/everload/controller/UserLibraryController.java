@@ -5,6 +5,7 @@ import com.everload.everload.model.PlaybackHistory;
 import com.everload.everload.model.User;
 import com.everload.everload.dto.FavoriteTrackRequest;
 import com.everload.everload.dto.PlaybackHistoryRequest;
+import com.everload.everload.dto.CommunityDiscoverResponse;
 import com.everload.everload.repository.FavoriteTrackRepository;
 import com.everload.everload.repository.PlaybackHistoryRepository;
 import com.everload.everload.repository.UserRepository;
@@ -166,5 +167,24 @@ public class UserLibraryController {
             return m;
         }).toList();
         return ResponseEntity.ok(result);
+    }
+
+    @Operation(summary = "Tendencias musicales agregadas de la comunidad")
+    @GetMapping("/community-discover")
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
+    public ResponseEntity<CommunityDiscoverResponse> getCommunityDiscover(
+            @RequestParam(defaultValue = "40") int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        List<CommunityDiscoverResponse.ArtistTrend> artists = playbackHistoryRepository
+                .findCommunityTopArtists(PageRequest.of(0, safeLimit)).stream()
+                .map(row -> new CommunityDiscoverResponse.ArtistTrend(
+                        (String) row[0], ((Number) row[1]).longValue()))
+                .toList();
+        List<CommunityDiscoverResponse.TrackTrend> tracks = playbackHistoryRepository
+                .findCommunityTopTracks(PageRequest.of(0, safeLimit)).stream()
+                .map(row -> new CommunityDiscoverResponse.TrackTrend(
+                        (String) row[0], (String) row[1], (String) row[2], ((Number) row[3]).longValue()))
+                .toList();
+        return ResponseEntity.ok(new CommunityDiscoverResponse(artists, tracks));
     }
 }

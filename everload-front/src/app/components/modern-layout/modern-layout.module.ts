@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { ScrollingModule } from '@angular/cdk/scrolling';
@@ -27,6 +28,8 @@ const routes: Routes = [
     path: '',
     component: ModernLayoutComponent,
     children: [
+      { path: 'flow',      component: ModernHomeComponent },
+      { path: 'everwave',  redirectTo: 'flow', pathMatch: 'full' },
       { path: '',          component: ModernHomeComponent },
       { path: 'library',   component: ModernLibraryComponent },
       { path: 'albums',    component: ModernAlbumsComponent },
@@ -62,6 +65,7 @@ const routes: Routes = [
     ModernFullscreenComponent,
   ],
   imports: [
+    MatIconModule,
     CommonModule,
     FormsModule,
     TranslateModule,

@@ -12,3 +12,5 @@ downloads/
 .idea/
 *.iml
 sonarqube/
+.env
+config.json

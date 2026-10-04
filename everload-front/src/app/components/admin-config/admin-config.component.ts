@@ -62,6 +62,7 @@ interface DownloadHistoryDto {
   title: string;
   type: string;
   platform: string;
+  username?: string;
   createdAt: string;
 }
 
@@ -69,6 +70,7 @@ interface DownloadHistoryVm {
   titulo: string;
   tipo: string;
   plataforma: string;
+  usuario: string;
   fecha: string;
 }
 
@@ -430,10 +432,11 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       next: data => {
         const list = Array.isArray(data) ? data : [];
         this.historial = list.map(d => ({
-          titulo: d.title, tipo: d.type, plataforma: d.platform, fecha: d.createdAt
+          titulo: d.title, tipo: d.type, plataforma: d.platform,
+          usuario: d.username || '', fecha: d.createdAt
         }));
       },
-      error: () => this.historial = [{ titulo: '❌ Error', tipo: '', plataforma: '', fecha: '' }]
+      error: () => this.historial = [{ titulo: '❌ Error', tipo: '', plataforma: '', usuario: '', fecha: '' }]
     });
   }
 

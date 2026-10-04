@@ -4,6 +4,7 @@ import com.everload.everload.dto.MusicMetadataDto;
 import com.everload.everload.dto.PagedMusicResult;
 import com.everload.everload.service.HlsStreamService;
 import com.everload.everload.service.MusicService;
+import com.everload.everload.service.MetadataSnapshotService;
 import com.everload.everload.util.MediaTextCleaner;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +17,7 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import org.springframework.core.io.FileSystemResource;
 
@@ -40,6 +42,7 @@ public class MusicController {
     private final MusicService musicService;
     private final HlsStreamService hlsStreamService;
     private final RestTemplate restTemplate;
+    private final MetadataSnapshotService metadataSnapshotService;
 
     // ── Metadata ──────────────────────────────────────────────────────────────
 
@@ -233,6 +236,7 @@ public class MusicController {
     public ResponseEntity<Object> updateMetadata(@RequestBody MetadataUpdateRequest req) {
         try {
             musicService.updateMetadata(req.getPathId(), req.getRelativePath(), req.getTitle(), req.getArtist(), req.getAlbum(), req.getYear());
+            metadataSnapshotService.refreshTrack(req.getPathId(), req.getRelativePath(), req.getTitle(), req.getArtist(), req.getAlbum());
             return ResponseEntity.ok(Map.of("message", "Metadatos actualizados"));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
@@ -249,6 +253,25 @@ public class MusicController {
         private String artist;
         private String album;
         private String year;
+    }
+
+    @Operation(summary = "Cambiar la carátula incrustada de una canción")
+    @PostMapping(value = "/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER')")
+    public ResponseEntity<Object> updateCoverArt(@RequestParam Long pathId,
+                                                  @RequestParam String subPath,
+                                                  @RequestParam("image") MultipartFile image) {
+        try {
+            if (image.isEmpty() || image.getSize() > 10L * 1024 * 1024) {
+                return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "La imagen debe ocupar entre 1 byte y 10 MB"));
+            }
+            musicService.updateCoverArt(pathId, subPath, image.getBytes());
+            return ResponseEntity.ok(Map.of("message", "Carátula actualizada"));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
+        }
     }
 
     // ── YouTube metadata lookup ───────────────────────────────────────────────

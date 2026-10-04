@@ -14,6 +14,9 @@ import java.util.Optional;
 @Repository
 public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
     @EntityGraph(attributePaths = {"user", "tracks", "collaborators", "collaborators.user"})
+    @Query("SELECT DISTINCT p FROM Playlist p LEFT JOIN p.collaborators c WHERE p.id = :id AND (p.isPublic = true OR p.user = :user OR c.user = :user)")
+    Optional<Playlist> findReadable(@Param("id") Long id, @Param("user") User user);
+    @EntityGraph(attributePaths = {"user", "tracks", "collaborators", "collaborators.user"})
     List<Playlist> findByUserOrderByCreatedAtDesc(User user);
 
     @EntityGraph(attributePaths = {"user", "tracks", "collaborators", "collaborators.user"})

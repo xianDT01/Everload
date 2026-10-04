@@ -582,4 +582,5 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
       .replace(/\s+/g, ' ')
       .trim();
   }
+
 }

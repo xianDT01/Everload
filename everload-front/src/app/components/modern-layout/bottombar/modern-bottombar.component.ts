@@ -32,6 +32,9 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   metadataSaving = false;
   metadataError = '';
   metadataForm = { title: '', artist: '', album: '', year: '' };
+  coverFile: File | null = null;
+  coverPreviewUrl = '';
+  coverUploading = false;
 
   // EQ panel
   showEq = false;
@@ -88,7 +91,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     this.reduceAnimations = localStorage.getItem('mpl_reduce_animations') === 'true';
     this.applyReduceAnimations();
     this.normalize = localStorage.getItem('mpl_normalize') === 'true';
-    this.music.mainPlayer.setNormalize(this.normalize);
+    this.music.setNormalize(this.normalize);
     const step = parseFloat(localStorage.getItem('mpl_vol_scroll_step') ?? '5');
     this.volumeScrollStep = (isFinite(step) && step >= 1 ? step : 5) / 100;
     const savedEq = localStorage.getItem('mpl_eq_bands');
@@ -129,7 +132,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     );
   }
 
-  ngOnDestroy() { this.subs.forEach(s => s.unsubscribe()); }
+  ngOnDestroy() { this.clearCoverPreview(); this.subs.forEach(s => s.unsubscribe()); }
 
   get track(): MusicMetadataDto | null { return this.state?.currentTrack ?? null; }
   get playing(): boolean { return this.state?.playing ?? false; }
@@ -268,13 +271,14 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
 
   get isNasTrack(): boolean {
     const source = this.track?.source;
-    const pathId = this.state?.pathId ?? this.track?.nasPathId ?? 0;
+    const pathId = this.track?.nasPathId ?? this.state?.pathId ?? 0;
     return !!this.track && pathId > 0 && (!source || source === 'nas');
   }
 
   openMetadataEditor() {
     const t = this.track;
     if (!t || !this.isNasTrack) return;
+    this.clearCoverPreview();
     this.metadataForm = {
       title: t.title || t.name || '',
       artist: t.artist || '',
@@ -286,7 +290,55 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   }
 
   closeMetadataEditor() {
-    if (!this.metadataSaving) this.showMetadataEditor = false;
+    if (!this.metadataSaving && !this.coverUploading) {
+      this.showMetadataEditor = false;
+      this.clearCoverPreview();
+    }
+  }
+
+  onCoverFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      this.clearCoverPreview();
+      this.metadataError = 'WINDOWS.MANAGER_COVER_INVALID';
+      input.value = '';
+      return;
+    }
+    this.clearCoverPreview();
+    this.coverFile = file;
+    this.coverPreviewUrl = URL.createObjectURL(file);
+    input.value = '';
+    this.metadataError = '';
+  }
+
+  uploadTrackCover() {
+    const t = this.track;
+    const pathId = t?.nasPathId ?? this.state?.pathId ?? 0;
+    if (!t || !pathId || !this.coverFile || !this.isNasTrack || this.coverUploading) return;
+    this.coverUploading = true;
+    this.metadataError = '';
+    this.nas.uploadTrackCover(pathId, t.path, this.coverFile).subscribe({
+      next: () => {
+        t.hasCover = true;
+        this.music.coverOverrideMap.delete(t.path);
+        this.music.invalidateTrackCover(pathId, t.path);
+        this.coverUploading = false;
+        this.clearCoverPreview();
+        this.notify.showToast('success', 'Carátula actualizada', 'La portada se ha guardado en el archivo de música.');
+      },
+      error: (err) => {
+        this.coverUploading = false;
+        this.metadataError = err?.error?.error || 'WINDOWS.MANAGER_COVER_ERROR';
+      }
+    });
+  }
+
+  private clearCoverPreview() {
+    if (this.coverPreviewUrl) URL.revokeObjectURL(this.coverPreviewUrl);
+    this.coverPreviewUrl = '';
+    this.coverFile = null;
   }
 
   setMetadataField(field: 'title' | 'artist' | 'album' | 'year', value: string) {
@@ -295,7 +347,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
 
   saveMetadata() {
     const t = this.track;
-    const pathId = this.state?.pathId ?? t?.nasPathId ?? 0;
+    const pathId = t?.nasPathId ?? this.state?.pathId ?? 0;
     if (!t || !pathId || this.metadataSaving) return;
 
     this.metadataSaving = true;
@@ -307,6 +359,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
           t.artist = this.metadataForm.artist.trim();
           t.album = this.metadataForm.album.trim();
           (t as any).year = this.metadataForm.year.trim();
+          this.modState.invalidateOverview(pathId);
           this.metadataSaving = false;
           this.showMetadataEditor = false;
           this.notify.showToast('success', 'Metadatos actualizados', 'Los cambios ya se han guardado en el NAS.');
@@ -381,7 +434,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   toggleNormalize() {
     this.normalize = !this.normalize;
     localStorage.setItem('mpl_normalize', String(this.normalize));
-    this.music.mainPlayer.setNormalize(this.normalize);
+    this.music.setNormalize(this.normalize);
   }
 
   private applyReduceAnimations() {

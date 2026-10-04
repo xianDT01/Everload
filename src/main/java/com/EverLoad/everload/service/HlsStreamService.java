@@ -86,8 +86,11 @@ public class HlsStreamService {
             return hlsJobResponse(job);
         }
 
-        if (!"RUNNING".equals(job.status)) {
-            startHlsJob(job, file);
+        // Atomically claim preparation so concurrent listeners share one conversion.
+        synchronized (job) {
+            if (!"RUNNING".equals(job.status) && !isHlsReady(job)) {
+                startHlsJob(job, file);
+            }
         }
 
         return hlsJobResponse(job);
@@ -377,11 +380,11 @@ public class HlsStreamService {
     private static class HlsCacheJob {
         String key;
         Path dir;
-        String status;
-        int progress;
+        volatile String status;
+        volatile int progress;
         int durationSeconds;
         long fileSizeBytes;
         boolean eligible;
-        String error;
+        volatile String error;
     }
 }

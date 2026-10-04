@@ -18,6 +18,16 @@ public interface PlaylistTrackRepository extends JpaRepository<PlaylistTrack, Lo
 
     @Modifying
     @Transactional
+    @Query("UPDATE PlaylistTrack pt SET pt.title = :title, pt.artist = :artist, pt.album = :album " +
+            "WHERE pt.trackPath = :trackPath AND pt.nasPathId = :nasPathId AND pt.source = 'nas'")
+    int updateMetadataByTrack(@Param("nasPathId") Long nasPathId,
+                              @Param("trackPath") String trackPath,
+                              @Param("title") String title,
+                              @Param("artist") String artist,
+                              @Param("album") String album);
+
+    @Modifying
+    @Transactional
     @Query("DELETE FROM PlaylistTrack pt WHERE pt.playlist = :playlist AND pt.trackPath = :trackPath AND pt.nasPathId = :nasPathId")
     int deleteByPlaylistAndTrackPathAndNasPathId(
             @Param("playlist") Playlist playlist,

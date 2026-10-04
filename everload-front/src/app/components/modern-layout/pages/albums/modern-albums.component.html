@@ -7,9 +7,9 @@
     <div class="ma-loading" *ngIf="loading">{{ 'COMMON.LOADING' | translate }}</div>
 
     <div class="ma-grid" *ngIf="!loading">
-      <div class="ma-card" *ngFor="let g of albums" (click)="openDetail(g)">
+      <div class="ma-card" *ngFor="let g of albums; trackBy: trackByAlbum" (click)="openDetail(g)">
         <div class="ma-cover">
-          <img [src]="cover(g)" (error)="$any($event.target).style.display='none'" class="ma-img" />
+          <img [src]="cover(g)" loading="lazy" decoding="async" (error)="$any($event.target).style.display='none'" class="ma-img" />
           <div class="ma-play-btn" (click)="play(g); $event.stopPropagation()">
             <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5Z"/></svg>
           </div>

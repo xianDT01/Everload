@@ -1,6 +1,7 @@
 package com.everload.everload.dto;
 
 import com.everload.everload.model.Role;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,4 +18,5 @@ public class AuthResponse {
     private Role role;
     private String status;
     private String avatarUrl;
+    private LocalDateTime createdAt;
 }

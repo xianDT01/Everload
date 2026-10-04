@@ -1,8 +1,9 @@
 ﻿import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
-import { forkJoin, Subscription } from 'rxjs';
-import { ArtistProfileDto, MusicService, MusicMetadataDto, YtMusicDiscoverItemDto } from '../../../../services/music.service';
+import { NavigationEnd, Router } from '@angular/router';
+import { catchError, forkJoin, of, Subscription } from 'rxjs';
+import { ArtistProfileDto, CommunityDiscoverDto, MusicService, MusicMetadataDto, YtMusicDiscoverItemDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
+import { AuthService } from '../../../../services/auth.service';
 
 interface AlbumCard {
   album: string;
@@ -63,6 +64,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   artistLoading = false;
   artistError = '';
   loading = true;
+  isFlow = false;
 
   editMode = false;
   homeSections: HomeSection[] = [];
@@ -78,15 +80,33 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   @ViewChild('exploreRow') exploreRowRef?: ElementRef<HTMLElement>;
   @ViewChild('ytPlaylistsRow') ytPlaylistsRowRef?: ElementRef<HTMLElement>;
 
-  constructor(public music: MusicService, private state: ModernStateService, private router: Router) {}
+  constructor(public music: MusicService, private state: ModernStateService, private router: Router, private auth: AuthService) {}
 
   ngOnInit() {
+    this.isFlow = this.router.url.startsWith('/modern/flow');
     this.loadHomeConfig();
     this.sub = this.state.pathId$.subscribe(pid => {
       if (pid != null) this.load(pid);
     });
+    this.sub.add(this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) this.isFlow = event.urlAfterRedirects.startsWith('/modern/flow');
+    }));
     this.coverSub = this.music.coverReady$.subscribe(() => {});
     this.loadYtPlaylists();
+  }
+
+  get flowCards(): AlbumCard[] {
+    const seen = new Set<string>();
+    return [...this.listenNow, ...this.newReleases, ...this.recentlyAdded].filter(card => {
+      const key = `${card.album}\u0000${card.artist}`.toLocaleLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 12);
+  }
+
+  openFlowLink(route: string): void {
+    this.router.navigateByUrl(route);
   }
 
   ngOnDestroy() {
@@ -209,10 +229,17 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       recent: this.music.getRecentTracks(pathId, 60),
       profiles: this.music.getArtistProfiles(),
       topArtists: this.music.getTopArtists(50),
+      favorites: this.music.getFavorites().pipe(catchError(() => of([]))),
+      community: this.music.getCommunityDiscover(60).pipe(catchError(() => of({ topArtists: [], topTracks: [] } as CommunityDiscoverDto))),
     }).subscribe({
-      next: ({ history, overview, recent, profiles, topArtists }) => {
+      next: ({ history, overview, recent, profiles, topArtists, favorites, community }) => {
         const items = history || [];
         const tracks = overview.tracks || [];
+        const allTimePlays = (topArtists || []).reduce((total, entry) => total + (entry.playCount || 0), 0);
+        const personalSignals = Math.max(items.length, allTimePlays) + favorites.length * 2;
+        const accountCreatedAt = this.auth.getCurrentUser()?.createdAt;
+        const existingAccount = !accountCreatedAt || accountCreatedAt < '2026-09-25T00:00:00';
+        const personalWeight = existingAccount ? 1 : Math.min(1, personalSignals / 15);
         if (this.indexPoll) clearTimeout(this.indexPoll);
         if (overview.indexing && tracks.length === 0) {
           this.indexPoll = setTimeout(() => this.load(pathId), 6000);
@@ -220,32 +247,74 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         const profileByKey = new Map<string, ArtistProfileDto>();
         profiles.forEach(profile => this.profileKeys(profile).forEach(key => profileByKey.set(key, profile)));
 
-        // Featured = pool de lo más escuchado (frecuencia en el historial), que rota.
-        const freq = new Map<string, number>();
-        items.forEach((i: any) => {
-          const k = (i.trackPath || '').trim();
-          if (k) freq.set(k, (freq.get(k) || 0) + 1);
+        const ownTrackCounts = new Map<string, number>();
+        items.forEach((item: any) => {
+          const key = `${item.nasPathId ?? pathId}:${item.trackPath || ''}`;
+          ownTrackCounts.set(key, (ownTrackCounts.get(key) || 0) + 1);
         });
-        // Dedup por ÁLBUM (no por pista): así cada rotación cambia de portada de verdad,
-        // evitando que se repita la misma imagen con otra canción del mismo álbum.
+        const favoriteTrackCounts = new Map<string, number>();
+        favorites.forEach((favorite: any) => {
+          const key = `${favorite.nasPathId ?? pathId}:${favorite.trackPath || ''}`;
+          favoriteTrackCounts.set(key, (favoriteTrackCounts.get(key) || 0) + 2);
+        });
+        const communityTrackCounts = new Map<string, number>();
+        const communityTrackFallback = new Map<string, number>();
+        community.topTracks.forEach(entry => {
+          const key = this.trackRecommendationKey(entry.title, entry.artist, entry.album);
+          communityTrackCounts.set(key, entry.playCount);
+          const fallback = `${this.key(entry.title)}|${this.key(entry.album)}`;
+          communityTrackFallback.set(fallback, (communityTrackFallback.get(fallback) || 0) + entry.playCount);
+        });
+        const candidateTracks = new Map<string, { track: MusicMetadataDto; pathId: number }>();
+        items.forEach((item: any) => {
+          const track = this.toTrack(item, pathId);
+          if (track.path) candidateTracks.set(`${item.nasPathId ?? pathId}:${track.path}`, { track, pathId: item.nasPathId ?? pathId });
+        });
+        tracks.forEach(track => {
+          if (track.path) candidateTracks.set(`${track.nasPathId ?? pathId}:${track.path}`, { track, pathId: track.nasPathId ?? pathId });
+        });
+        const candidateScores = Array.from(candidateTracks.values()).map(candidate => {
+          const key = `${candidate.pathId}:${candidate.track.path}`;
+          const own = (ownTrackCounts.get(key) || 0) + (favoriteTrackCounts.get(key) || 0);
+          const recommendationKey = this.trackRecommendationKey(candidate.track.title, candidate.track.artist, candidate.track.album);
+          const global = communityTrackCounts.get(recommendationKey)
+            || communityTrackFallback.get(`${this.key(candidate.track.title)}|${this.key(candidate.track.album)}`) || 0;
+          return { ...candidate, own, global };
+        });
+        const maxOwnTrack = this.maxCount(candidateScores.map(candidate => candidate.own));
+        const maxGlobalTrack = this.maxCount(candidateScores.map(candidate => candidate.global));
+        candidateScores.sort((a, b) => this.blendedScore(b.own, b.global, personalWeight, maxOwnTrack, maxGlobalTrack)
+          - this.blendedScore(a.own, a.global, personalWeight, maxOwnTrack, maxGlobalTrack));
         const seenAlbum = new Set<string>();
         const pool: { track: MusicMetadataDto; pathId: number }[] = [];
-        [...items]
-          .sort((a: any, b: any) =>
-            (freq.get((b.trackPath || '').trim()) || 0) - (freq.get((a.trackPath || '').trim()) || 0))
-          .forEach((i: any) => {
-            const albumKey = (i.album || i.title || '').trim().toLowerCase();
+        if (existingAccount) {
+          const frequency = new Map<string, number>();
+          items.forEach((item: any) => {
+            const key = (item.trackPath || '').trim();
+            if (key) frequency.set(key, (frequency.get(key) || 0) + 1);
+          });
+          [...items].sort((a: any, b: any) =>
+            (frequency.get((b.trackPath || '').trim()) || 0) - (frequency.get((a.trackPath || '').trim()) || 0))
+            .forEach((item: any) => {
+              const albumKey = (item.album || item.title || '').trim().toLowerCase();
+              if (albumKey && !seenAlbum.has(albumKey)) {
+                seenAlbum.add(albumKey);
+                pool.push({ track: this.toTrack(item, pathId), pathId: item.nasPathId ?? pathId });
+              }
+            });
+          if (!pool.length) tracks.forEach(track => {
+            const albumKey = (track.album || track.title || '').trim().toLowerCase();
             if (albumKey && !seenAlbum.has(albumKey)) {
               seenAlbum.add(albumKey);
-              pool.push({ track: this.toTrack(i, pathId), pathId: i.nasPathId ?? pathId });
+              pool.push({ track, pathId: track.nasPathId ?? pathId });
             }
           });
-        if (pool.length === 0) {
-          tracks.forEach(t => {
-            const albumKey = (t.album || t.title || '').trim().toLowerCase();
+        } else {
+          candidateScores.forEach(candidate => {
+            const albumKey = this.albumRecommendationKey(candidate.track.artist, candidate.track.album);
             if (albumKey && !seenAlbum.has(albumKey)) {
               seenAlbum.add(albumKey);
-              pool.push({ track: t, pathId: t.nasPathId ?? pathId });
+              pool.push({ track: candidate.track, pathId: candidate.pathId });
             }
           });
         }
@@ -276,7 +345,33 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
             albumMap.get(key)!.tracks.push(t);
           }
         });
-        this.listenNow = Array.from(albumMap.values()).slice(0, 9);
+        const ownAlbumCounts = new Map<string, number>();
+        items.forEach((item: any) => {
+          const key = this.albumRecommendationKey(item.artist, item.album || item.title);
+          ownAlbumCounts.set(key, (ownAlbumCounts.get(key) || 0) + 1);
+        });
+        favorites.forEach((favorite: any) => {
+          const key = this.albumRecommendationKey(favorite.artist, favorite.album || favorite.title);
+          ownAlbumCounts.set(key, (ownAlbumCounts.get(key) || 0) + 2);
+        });
+        const globalAlbumCounts = new Map<string, number>();
+        community.topTracks.forEach(entry => {
+          const key = this.albumRecommendationKey(entry.artist, entry.album || entry.title);
+          globalAlbumCounts.set(key, (globalAlbumCounts.get(key) || 0) + entry.playCount);
+        });
+        const albumCards = Array.from(albumMap.values());
+        if (existingAccount) {
+          this.listenNow = albumCards.slice(0, 9);
+        } else {
+          const maxOwnAlbum = this.maxCount(Array.from(ownAlbumCounts.values()));
+          const maxGlobalAlbum = this.maxCount(Array.from(globalAlbumCounts.values()));
+          this.listenNow = albumCards.sort((a, b) => {
+            const keyA = this.albumRecommendationKey(a.artist, a.album);
+            const keyB = this.albumRecommendationKey(b.artist, b.album);
+            return this.blendedScore(ownAlbumCounts.get(keyB) || 0, globalAlbumCounts.get(keyB) || 0, personalWeight, maxOwnAlbum, maxGlobalAlbum)
+              - this.blendedScore(ownAlbumCounts.get(keyA) || 0, globalAlbumCounts.get(keyA) || 0, personalWeight, maxOwnAlbum, maxGlobalAlbum);
+          }).slice(0, 9);
+        }
 
         // Top Artists
         const artistMap = new Map<string, ArtistCard>();
@@ -301,11 +396,34 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         (topArtists as { artist: string; playCount: number }[]).forEach(entry => {
           playCountMap.set(this.key(entry.artist), entry.playCount);
         });
+        if (!existingAccount) {
+          items.forEach((item: any) => this.artistDisplayParts(item.artist || '').forEach(name => {
+            const key = this.key(name);
+            if (key && !playCountMap.has(key)) playCountMap.set(key, 1);
+          }));
+          favorites.forEach((favorite: any) => this.artistDisplayParts(favorite.artist || '').forEach(name => {
+            const key = this.key(name);
+            if (key) playCountMap.set(key, (playCountMap.get(key) || 0) + 2);
+          }));
+        }
+        const globalArtistCounts = new Map<string, number>();
+        community.topArtists.forEach(entry => this.artistDisplayParts(entry.artist).forEach(name => {
+          const key = this.key(name);
+          if (key) globalArtistCounts.set(key, (globalArtistCounts.get(key) || 0) + entry.playCount);
+        }));
+        const maxOwnArtist = this.maxCount(Array.from(playCountMap.values()));
+        const maxGlobalArtist = this.maxCount(Array.from(globalArtistCounts.values()));
         this.topArtists = Array.from(artistMap.values())
           .sort((a, b) => {
             const pa = playCountMap.get(this.key(a.artist)) ?? 0;
             const pb = playCountMap.get(this.key(b.artist)) ?? 0;
-            if (pa !== pb) return pb - pa;
+            if (!existingAccount) {
+              const score = this.blendedScore(pa, globalArtistCounts.get(this.key(a.artist)) || 0, personalWeight, maxOwnArtist, maxGlobalArtist)
+                - this.blendedScore(pb, globalArtistCounts.get(this.key(b.artist)) || 0, personalWeight, maxOwnArtist, maxGlobalArtist);
+              if (score !== 0) return score;
+            } else if (pa !== pb) {
+              return pb - pa;
+            }
             return b.tracks.length - a.tracks.length || a.artist.localeCompare(b.artist);
           })
           .slice(0, 14);
@@ -370,6 +488,24 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       name, path: '', directory: false, size: 0, lastModified: '',
       title: name, artist: name, album: '', duration: 0, format: '', hasCover: false, bpm: 0, source: 'nas'
     };
+  }
+
+  private trackRecommendationKey(title: string, artist: string, album: string): string {
+    return `${this.key(title)}|${this.key(artist)}|${this.key(album)}`;
+  }
+
+  private albumRecommendationKey(artist: string, album: string): string {
+    return `${this.key(artist)}|${this.key(album)}`;
+  }
+
+  private maxCount(values: number[]): number {
+    return values.reduce((max, value) => Math.max(max, value || 0), 0);
+  }
+
+  private blendedScore(own: number, community: number, personalWeight: number, maxOwn: number, maxCommunity: number): number {
+    const ownScore = maxOwn ? own / maxOwn : 0;
+    const communityScore = maxCommunity ? community / maxCommunity : 0;
+    return ownScore * personalWeight + communityScore * (1 - personalWeight);
   }
 
   private pickExploreTracks(tracks: MusicMetadataDto[]): MusicMetadataDto[] {

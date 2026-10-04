@@ -19,6 +19,16 @@ public interface FavoriteTrackRepository extends JpaRepository<FavoriteTrack, Lo
     Optional<FavoriteTrack> findByUserAndTrackPathAndNasPathId(User user, String trackPath, Long nasPathId);
     boolean existsByUserAndTrackPathAndNasPathId(User user, String trackPath, Long nasPathId);
 
+    @Modifying
+    @Transactional
+    @Query("UPDATE FavoriteTrack f SET f.title = :title, f.artist = :artist, f.album = :album " +
+           "WHERE f.nasPathId = :nasPathId AND f.trackPath = :trackPath")
+    int updateMetadataByTrack(@Param("nasPathId") Long nasPathId,
+                              @Param("trackPath") String trackPath,
+                              @Param("title") String title,
+                              @Param("artist") String artist,
+                              @Param("album") String album);
+
     long countByUser(User user);
 
     @Modifying

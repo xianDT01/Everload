@@ -8,6 +8,7 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.AudioHeader;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
+import org.jaudiotagger.tag.id3.ID3v23Tag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -201,6 +202,20 @@ class MusicServiceTest {
                 musicService, "cleanYoutubeArtist", "Artist - Topic"));
         assertEquals("Artist", ReflectionTestUtils.invokeMethod(
                 musicService, "cleanYoutubeArtist", "Artist Official YouTube Channel"));
+    }
+
+    @Test
+    void blankMetadataFieldIsRemovedInsteadOfWritingAnInvalidId3Frame() throws Exception {
+        Tag tag = new ID3v23Tag();
+        tag.setField(FieldKey.YEAR, "2012");
+
+        ReflectionTestUtils.invokeMethod(musicService, "setMetadataField", tag, FieldKey.YEAR, "");
+        ReflectionTestUtils.invokeMethod(musicService, "setMetadataField", tag, FieldKey.TITLE, "Tacata");
+        ReflectionTestUtils.invokeMethod(musicService, "setMetadataField", tag, FieldKey.ARTIST, "Tacabro");
+
+        assertFalse(tag.hasField(FieldKey.YEAR));
+        assertEquals("Tacata", tag.getFirst(FieldKey.TITLE));
+        assertEquals("Tacabro", tag.getFirst(FieldKey.ARTIST));
     }
 
     @Test

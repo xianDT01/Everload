@@ -51,7 +51,8 @@ public class NasYtDlpService {
         java.util.Set<String> validFormats = java.util.Set.of("mp3","m4a","flac","opus","ogg","wav","aac");
         String safeFormat = (format != null && validFormats.contains(format.toLowerCase())) ? format.toLowerCase() : "mp3";
         String safeSub = (subPath != null) ? subPath : "";
-        YtDlpJob job = new YtDlpJob(jobId, videoId, safeTitle, nasPathId, safeSub, safeFormat);
+        YtDlpJob job = new YtDlpJob(jobId, videoId, safeTitle, nasPathId, safeSub, safeFormat,
+                downloadHistoryService.currentUsername());
         jobs.put(jobId, job);
         executor.submit(() -> execute(job));
         log.info("Queued yt-dlp job {} video={} path={}/{}", jobId, videoId, nasPathId, safeSub);
@@ -62,7 +63,8 @@ public class NasYtDlpService {
         String jobId = UUID.randomUUID().toString();
         String safeTitle = (title != null && !title.isBlank()) ? title : "video";
         String safeSub = (subPath != null) ? subPath : "";
-        YtDlpJob job = new YtDlpJob(jobId, null, safeTitle, nasPathId, safeSub, "video");
+        YtDlpJob job = new YtDlpJob(jobId, null, safeTitle, nasPathId, safeSub, "video",
+                downloadHistoryService.currentUsername());
         jobs.put(jobId, job);
         executor.submit(() -> executeVideoUrl(job, url));
         log.info("Queued yt-dlp URL job {} url={} path={}/{}", jobId, url, nasPathId, safeSub);
@@ -150,7 +152,7 @@ public class NasYtDlpService {
             job.progress = 97;
             String saved = nasService.saveToNas(job.nasPathId, job.subPath, tmp.toPath(), tmp.getName());
             refreshLibrary(job.nasPathId, saved);
-            downloadHistoryService.recordDownload(new Download(tmp.getName(), "music (NAS)", "YouTube"));
+            downloadHistoryService.recordDownload(new Download(tmp.getName(), "music (NAS)", "YouTube", job.username));
 
             job.resultFilename = tmp.getName();
             job.resultPath = saved;
@@ -218,7 +220,7 @@ public class NasYtDlpService {
 
             job.progress = 97;
             String saved = nasService.saveToNas(job.nasPathId, job.subPath, tmp.toPath(), tmp.getName());
-            downloadHistoryService.recordDownload(new Download(tmp.getName(), "video (NAS)", "Social"));
+            downloadHistoryService.recordDownload(new Download(tmp.getName(), "video (NAS)", "Social", job.username));
 
             job.resultFilename = tmp.getName();
             job.resultPath = saved;
@@ -285,6 +287,8 @@ public class NasYtDlpService {
         public final long nasPathId;
         public final String subPath;
         public final String format;
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public final String username;
         public volatile Status status = Status.QUEUED;
         public volatile int progress = 0;
         public volatile String error;
@@ -294,13 +298,19 @@ public class NasYtDlpService {
         public volatile long completedAt;
 
         public YtDlpJob(String jobId, String videoId, String title,
-                        long nasPathId, String subPath, String format) {
+                        long nasPathId, String subPath, String format, String username) {
             this.jobId = jobId;
             this.videoId = videoId;
             this.title = title;
             this.nasPathId = nasPathId;
             this.subPath = subPath;
             this.format = format;
+            this.username = username;
+        }
+
+        public YtDlpJob(String jobId, String videoId, String title,
+                        long nasPathId, String subPath, String format) {
+            this(jobId, videoId, title, nasPathId, subPath, format, null);
         }
     }
 }

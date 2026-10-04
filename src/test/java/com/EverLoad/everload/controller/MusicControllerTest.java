@@ -5,6 +5,7 @@ import com.everload.everload.security.UserDetailsServiceImpl;
 import com.everload.everload.service.HlsStreamService;
 import com.everload.everload.service.MaintenanceService;
 import com.everload.everload.service.MusicService;
+import com.everload.everload.service.MetadataSnapshotService;
 import com.everload.everload.service.TokenRevocationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,9 @@ class MusicControllerTest {
 
     @MockitoBean
     MusicService musicService;
+
+    @MockitoBean
+    MetadataSnapshotService metadataSnapshotService;
 
     @MockitoBean
     HlsStreamService hlsStreamService;

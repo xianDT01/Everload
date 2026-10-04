@@ -19,6 +19,16 @@ public interface PlaybackHistoryRepository extends JpaRepository<PlaybackHistory
 
     long countByUser(User user);
 
+    @Modifying
+    @Transactional
+    @Query("UPDATE PlaybackHistory h SET h.title = :title, h.artist = :artist, h.album = :album " +
+           "WHERE h.nasPathId = :nasPathId AND h.trackPath = :trackPath")
+    int updateMetadataByTrack(@Param("nasPathId") Long nasPathId,
+                              @Param("trackPath") String trackPath,
+                              @Param("title") String title,
+                              @Param("artist") String artist,
+                              @Param("album") String album);
+
     @Query("SELECT h.trackPath, h.title, h.artist, h.album, h.nasPathId, COUNT(h) as cnt " +
            "FROM PlaybackHistory h WHERE h.user = :user " +
            "GROUP BY h.trackPath, h.title, h.artist, h.album, h.nasPathId " +
@@ -30,6 +40,17 @@ public interface PlaybackHistoryRepository extends JpaRepository<PlaybackHistory
            "GROUP BY h.artist " +
            "ORDER BY cnt DESC")
     List<Object[]> findTopArtistsByUser(@Param("user") User user, Pageable pageable);
+
+    @Query("SELECT h.artist, COUNT(h), COUNT(DISTINCT h.user.id) " +
+           "FROM PlaybackHistory h WHERE h.artist IS NOT NULL AND h.artist <> '' " +
+           "GROUP BY h.artist HAVING COUNT(DISTINCT h.user.id) >= 2 ORDER BY COUNT(h) DESC")
+    List<Object[]> findCommunityTopArtists(Pageable pageable);
+
+    @Query("SELECT h.title, h.artist, h.album, COUNT(h), COUNT(DISTINCT h.user.id) " +
+           "FROM PlaybackHistory h WHERE h.title IS NOT NULL AND h.title <> '' " +
+           "GROUP BY h.title, h.artist, h.album " +
+           "HAVING COUNT(DISTINCT h.user.id) >= 2 ORDER BY COUNT(h) DESC")
+    List<Object[]> findCommunityTopTracks(Pageable pageable);
 
     @Query("SELECT h.trackPath, h.title, h.artist, h.album, h.nasPathId, MAX(h.playedAt) as lastPlayed " +
            "FROM PlaybackHistory h WHERE h.user = :user " +

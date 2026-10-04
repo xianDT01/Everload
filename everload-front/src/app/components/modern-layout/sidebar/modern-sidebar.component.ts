@@ -1,5 +1,5 @@
 ﻿import { Component, ElementRef, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import anime from 'animejs/lib/anime.es.js';
 import { ModernStateService } from '../modern-state.service';
@@ -43,6 +43,7 @@ export class ModernSidebarComponent implements OnInit, OnDestroy {
 
   themes = THEMES;
   showThemes = false;
+  isFlow = false;
   paths: NasPath[] = [];
   selectedPathId: number | null = null;
   private sub!: Subscription;
@@ -58,10 +59,14 @@ export class ModernSidebarComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.isFlow = this.router.url.startsWith('/modern/flow');
     this.sub = this.state.pathId$.subscribe(id => {
       this.selectedPathId = id;
       this.paths = this.state.paths;
     });
+    this.sub.add(this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) this.isFlow = event.urlAfterRedirects.startsWith('/modern/flow');
+    }));
     document.addEventListener('mpl-sidebar-order', this.orderListener);
   }
 
@@ -77,6 +82,9 @@ export class ModernSidebarComponent implements OnInit, OnDestroy {
   }
 
   onPathChange(id: string) { this.state.selectPath(+id); }
+  selectPlayerMode(mode: 'modern' | 'flow'): void {
+    this.router.navigateByUrl(mode === 'flow' ? '/modern/flow' : '/modern');
+  }
   selectTheme(id: string) { this.themeChange.emit(id); this.showThemes = false; }
   goHome(event?: Event) { this.animateExit(event, '/'); }
   goLibrary(event?: Event) { this.animateExit(event, '/nas-music'); }

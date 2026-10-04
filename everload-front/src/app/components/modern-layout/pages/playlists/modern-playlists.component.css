@@ -108,8 +108,11 @@
   overflow: hidden;
 }
 
-.mpl-cover-icon { font-size: 44px; }
-.mpl-cover-icon-lg { font-size: 72px; }
+.mpl-cover-icon { width: 74px; height: 74px; color: color-mix(in srgb, var(--ml-text) 82%, var(--ml-accent)); filter: drop-shadow(0 12px 18px rgba(0,0,0,0.24)); }
+.mpl-cover-icon-lg { width: 118px; height: 118px; }
+.mpl-cover-glyph { width: 100%; height: 100%; display: block; fill: color-mix(in srgb, var(--ml-accent) 76%, var(--ml-text)); }
+.mpl-cover-glyph circle:first-of-type { fill: color-mix(in srgb, var(--ml-bg) 55%, transparent); stroke: currentColor; stroke-width: 2; }
+.mpl-cover-glyph circle:nth-of-type(2) { fill: currentColor; }
 
 .mpl-play-btn {
   position: absolute;
@@ -497,3 +500,27 @@
   padding: 4px;
 }
 .mpl-collab-remove:hover { color: var(--ml-danger); }
+.mpl-import { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 16px 0; border-bottom: 1px solid var(--ml-border); margin-bottom: 20px; }
+.mpl-import h3, .mpl-import p { flex-basis: 100%; margin: 0; font-size: 14px; }
+.mpl-import label { display: grid; gap: 6px; flex: 1 1 220px; min-width: 0; font-size: 13px; }
+.mpl-import .mpl-input, .mpl-link .mpl-input { width: 100%; min-width: 0; box-sizing: border-box; }
+.mpl-import p, .mpl-link p { color: var(--ml-muted); font-size: 12px; }
+.mpl-link { margin-top: 14px; max-width: 560px; }
+.mpl-link label { display: grid; gap: 6px; }
+.mpl-hero-meta { min-width: 0; }
+.mpl-hero-name { overflow-wrap: anywhere; }
+.mpl-btn-visibility mat-icon { width: 20px; height: 20px; font-size: 20px; flex-shrink: 0; }
+@media (max-width: 800px) {
+  .mpl-page { padding: 16px; }
+  .mpl-header, .mpl-hero { flex-direction: column; align-items: stretch; }
+  .mpl-hero-cover { width: 120px; height: 120px; }
+  .mpl-hero-name { font-size: 24px; letter-spacing: 0; }
+  .mpl-tabs { flex-wrap: wrap; }
+  .mpl-create { flex-wrap: wrap; min-width: 0; }
+  .mpl-create input { min-width: 0; width: 100%; }
+  .mpl-track-row, .mpl-track-list-header { grid-template-columns: 20px minmax(0, 1fr) 38px 24px; gap: 6px; padding-left: 0; padding-right: 0; }
+  .mpl-col-album { display: none; }
+  .mpl-track-thumb { width: 28px; height: 28px; }
+  .mpl-track-remove { opacity: 1; }
+  .mpl-search-wrap, .mpl-modal { max-width: 100%; box-sizing: border-box; }
+}

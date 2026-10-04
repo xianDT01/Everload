@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -141,6 +145,40 @@ class HlsStreamServiceTest {
         assertTrue(playlist.contains("segment=seg_00001.ts"));
         assertTrue(playlist.contains("token=token+value"));
         assertArrayEquals(segment, response.getContentAsByteArray());
+    }
+
+    @Test
+    void concurrentListenersQueueOnlyOneConversion() throws Exception {
+        stubTrack("shared.mp3", "audio".getBytes());
+        ReflectionTestUtils.setField(hlsService, "hlsMinSizeBytes", 0L);
+        ExecutorService conversionExecutor = mock(ExecutorService.class);
+        ReflectionTestUtils.setField(hlsService, "hlsExecutor", conversionExecutor);
+        CountDownLatch ready = new CountDownLatch(16);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService callers = Executors.newFixedThreadPool(16);
+        try {
+            List<Future<Map<String, Object>>> responses = new ArrayList<>();
+            for (int i = 0; i < 16; i++) {
+                responses.add(callers.submit(() -> {
+                    ready.countDown();
+                    if (!start.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("Callers did not start");
+                    }
+                    return hlsService.prepareHlsStream(1L, "shared.mp3");
+                }));
+            }
+            try {
+                assertTrue(ready.await(5, TimeUnit.SECONDS));
+            } finally {
+                start.countDown();
+            }
+            for (Future<Map<String, Object>> response : responses) {
+                assertEquals("RUNNING", response.get(10, TimeUnit.SECONDS).get("status"));
+            }
+        } finally {
+            callers.shutdownNow();
+        }
+        verify(conversionExecutor).submit(any(Runnable.class));
     }
 
     @Test

@@ -105,4 +105,32 @@ class UserLibraryControllerTest {
         assertEquals("Artist", artist.get("artist"));
         assertEquals(5L, artist.get("playCount"));
     }
+
+    @Test
+    void communityDiscoverReturnsAggregatedMetadataWithoutUserOrPathData() {
+        when(history.findCommunityTopArtists(any())).thenReturn(List.<Object[]>of(
+                new Object[]{"Artist", 12L, 3L}
+        ));
+        when(history.findCommunityTopTracks(any())).thenReturn(List.<Object[]>of(
+                new Object[]{"Track", "Artist", "Album", 8L, 2L}
+        ));
+
+        var response = controller.getCommunityDiscover(40).getBody();
+
+        assertNotNull(response);
+        assertEquals("Artist", response.topArtists().get(0).artist());
+        assertEquals(12L, response.topArtists().get(0).playCount());
+        assertEquals("Track", response.topTracks().get(0).title());
+        assertEquals(8L, response.topTracks().get(0).playCount());
+        verify(history).findCommunityTopArtists(argThat(page -> page.getPageSize() == 40));
+        verify(history).findCommunityTopTracks(argThat(page -> page.getPageSize() == 40));
+    }
+
+    @Test
+    void communityDiscoverClampsLimits() {
+        controller.getCommunityDiscover(500);
+
+        verify(history).findCommunityTopArtists(argThat(page -> page.getPageSize() == 100));
+        verify(history).findCommunityTopTracks(argThat(page -> page.getPageSize() == 100));
+    }
 }

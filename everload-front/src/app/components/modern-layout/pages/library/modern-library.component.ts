@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Subscription, from, of } from 'rxjs';
+import { catchError, concatMap, finalize, tap } from 'rxjs/operators';
 import { MusicService, MusicMetadataDto } from '../../../../services/music.service';
+import { NasService } from '../../../../services/nas.service';
 import { ModernStateService } from '../../modern-state.service';
 
 type SortCol = 'title' | 'artist' | 'album' | 'duration';
@@ -17,14 +19,22 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   loading = false;
   query = '';
   pathId: number | null = null;
+  selectedPaths = new Set<string>();
+  metadataEditorOpen = false;
+  metadataSaving = false;
+  metadataProgress = '';
+  metadataError = '';
+  bulkFields = { title: false, artist: false, album: false };
+  bulkValues = { title: '', artist: '', album: '' };
 
   sortCol: SortCol | null = null;
   sortDir: 'asc' | 'desc' = 'asc';
 
   private allTracks: MusicMetadataDto[] = [];
   private sub!: Subscription;
+  private searchTimer?: ReturnType<typeof setTimeout>;
 
-  constructor(public music: MusicService, private state: ModernStateService) {}
+  constructor(public music: MusicService, private state: ModernStateService, private nas: NasService) {}
 
   ngOnInit() {
     this.sub = this.state.pathId$.subscribe(pid => {
@@ -32,6 +42,7 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
       this.sortCol = null;
       this.sortDir = 'asc';
       this.query = '';
+      this.selectedPaths.clear();
       if (pid != null) {
         this.load(pid);
         this.loadPlaylists();
@@ -39,7 +50,10 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy() { this.sub?.unsubscribe(); }
+  ngOnDestroy() {
+    this.sub?.unsubscribe();
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+  }
 
   private load(pathId: number) {
     this.loading = true;
@@ -53,7 +67,72 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
     });
   }
 
-  onSearch() { this.applyFilterSort(); }
+  onSearch() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.applyFilterSort(), 80);
+  }
+
+  isSelected(track: MusicMetadataDto): boolean { return this.selectedPaths.has(track.path); }
+
+  toggleSelected(track: MusicMetadataDto, event: Event) {
+    event.stopPropagation();
+    if (this.selectedPaths.has(track.path)) this.selectedPaths.delete(track.path);
+    else this.selectedPaths.add(track.path);
+  }
+
+  toggleVisibleSelection(event: Event) {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.tracks.forEach(track => checked ? this.selectedPaths.add(track.path) : this.selectedPaths.delete(track.path));
+  }
+
+  get selectedTracks(): MusicMetadataDto[] {
+    return this.allTracks.filter(track => this.selectedPaths.has(track.path));
+  }
+
+  get visibleSelectionComplete(): boolean {
+    return this.tracks.length > 0 && this.tracks.every(track => this.selectedPaths.has(track.path));
+  }
+
+  openMetadataEditor() {
+    if (!this.selectedPaths.size || this.selectedPaths.size > 100) return;
+    this.bulkFields = { title: false, artist: false, album: false };
+    this.bulkValues = { title: '', artist: '', album: '' };
+    this.metadataError = '';
+    this.metadataProgress = '';
+    this.metadataEditorOpen = true;
+  }
+
+  saveBulkMetadata() {
+    const fields = (Object.keys(this.bulkFields) as Array<keyof typeof this.bulkFields>)
+      .filter(field => this.bulkFields[field]);
+    if (!fields.length || fields.some(field => !this.bulkValues[field].trim()) || this.pathId == null) return;
+
+    const tracks = this.selectedTracks;
+    this.metadataSaving = true;
+    let saved = 0;
+    let failed = 0;
+    from(tracks).pipe(
+      concatMap(track => this.nas.updateMetadata(
+        track.nasPathId ?? this.pathId!,
+        track.path,
+        this.bulkFields.title ? this.bulkValues.title.trim() : (track.title || track.name),
+        this.bulkFields.artist ? this.bulkValues.artist.trim() : (track.artist || ''),
+        this.bulkFields.album ? this.bulkValues.album.trim() : (track.album || '')
+      ).pipe(
+        tap(() => saved++),
+        catchError(() => { failed++; return of(null); }),
+        tap(() => this.metadataProgress = `${saved + failed}/${tracks.length}`)
+      )),
+      finalize(() => {
+        this.metadataSaving = false;
+        this.metadataEditorOpen = false;
+        this.metadataProgress = '';
+        this.selectedPaths.clear();
+        if (this.pathId != null) this.load(this.pathId);
+        if (failed) this.metadataError = `Se actualizaron ${saved} pistas; ${failed} fallaron.`;
+      })
+    ).subscribe();
+  }
 
   sortBy(col: SortCol) {
     if (this.sortCol === col) {

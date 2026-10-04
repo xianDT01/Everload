@@ -10,6 +10,7 @@ export interface AuthResponse {
   role: 'ADMIN' | 'NAS_USER' | 'BASIC_USER';
   status: string;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 export interface RegisterRequest {

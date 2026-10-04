@@ -10,6 +10,11 @@ import { MaintenanceService, MaintenanceState } from './services/maintenance.ser
 import { PwaUpdateService } from './services/pwa-update.service';
 import { ApiBaseService } from './services/api-base.service';
 
+interface InstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -20,6 +25,7 @@ export class AppComponent implements OnInit, OnDestroy {
   playerMode: 'full' | 'mini' | 'hidden' = 'mini';
   maintenanceState: MaintenanceState = { active: false, message: '' };
   currentUrl = '/';
+  installAvailable = false;
 
   get isModernRoute(): boolean {
     return this.currentUrl.startsWith('/modern');
@@ -29,6 +35,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private alertSub?: Subscription;
   private maintenanceSub?: Subscription;
   private heartbeatRef: any = null;
+  private installPrompt: InstallPromptEvent | null = null;
 
   constructor(
     public authService: AuthService,
@@ -61,6 +68,9 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    window.addEventListener('beforeinstallprompt', this.onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', this.onAppInstalled);
+
     // Apply the user's chosen font (if any) before anything renders
     const font = localStorage.getItem('mpl_font');
     if (font && font !== 'inter') {
@@ -118,10 +128,49 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('beforeinstallprompt', this.onBeforeInstallPrompt);
+    window.removeEventListener('appinstalled', this.onAppInstalled);
     this.authSub?.unsubscribe();
     this.alertSub?.unsubscribe();
     this.maintenanceSub?.unsubscribe();
     this.stopHeartbeat();
+  }
+
+  async installApp(): Promise<void> {
+    if (!this.installPrompt) return;
+
+    const prompt = this.installPrompt;
+    this.installPrompt = null;
+    this.installAvailable = false;
+    await prompt.prompt();
+    const choice = await prompt.userChoice;
+    if (choice.outcome === 'dismissed') {
+      localStorage.setItem('everload-install-dismissed', '1');
+    }
+  }
+
+  dismissInstall(): void {
+    this.installPrompt = null;
+    this.installAvailable = false;
+    localStorage.setItem('everload-install-dismissed', '1');
+  }
+
+  private onBeforeInstallPrompt = (event: Event): void => {
+    event.preventDefault();
+    if (localStorage.getItem('everload-install-dismissed') === '1' || this.isStandalone()) return;
+    this.installPrompt = event as InstallPromptEvent;
+    this.installAvailable = true;
+  };
+
+  private onAppInstalled = (): void => {
+    this.installPrompt = null;
+    this.installAvailable = false;
+    localStorage.removeItem('everload-install-dismissed');
+  };
+
+  private isStandalone(): boolean {
+    return window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
   }
 
   @HostListener('window:beforeunload')

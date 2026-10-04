@@ -20,8 +20,9 @@ describe('MusicService', () => {
   beforeEach(() => {
     localStorage.clear();
 
-    authSpy = jasmine.createSpyObj<AuthService>('AuthService', ['getToken']);
+    authSpy = jasmine.createSpyObj<AuthService>('AuthService', ['getToken', 'getCurrentUser']);
     authSpy.getToken.and.returnValue('test-token');
+    authSpy.getCurrentUser.and.returnValue(null);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -151,6 +152,29 @@ describe('MusicService', () => {
       httpMock.expectOne(url).flush([{ artist: 'B', playCount: 2 }]);
 
       expect(refetched).toEqual([{ artist: 'B', playCount: 2 }]);
+    });
+
+    it('does not reuse one account\'s artists after switching users', () => {
+      authSpy.getCurrentUser.and.returnValue({ username: 'first' } as any);
+      service.getTopArtists().subscribe();
+      httpMock.expectOne(url).flush([{ artist: 'First user', playCount: 4 }]);
+
+      authSpy.getCurrentUser.and.returnValue({ username: 'second' } as any);
+      let secondUser: any;
+      service.getTopArtists().subscribe(result => secondUser = result);
+      httpMock.expectOne(url).flush([{ artist: 'Second user', playCount: 2 }]);
+
+      expect(secondUser).toEqual([{ artist: 'Second user', playCount: 2 }]);
+    });
+
+    it('uses a separate cache entry for each requested limit', () => {
+      service.getTopArtists(20).subscribe();
+      httpMock.expectOne(url).flush([]);
+
+      service.getTopArtists(50).subscribe();
+      const request = httpMock.expectOne(`${BACKEND}/api/library/top-artists?limit=50`);
+      expect(request.request.method).toBe('GET');
+      request.flush([]);
     });
   });
 

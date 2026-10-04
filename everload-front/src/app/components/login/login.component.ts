@@ -72,7 +72,12 @@ export class LoginComponent implements OnInit {
         if (res.status === 'PENDING') {
           this.router.navigate(['/pending-approval']);
         } else {
-          this.router.navigate(['/']);
+          const playlistId = Number(sessionStorage.getItem('everload_playlist_link'));
+          if (Number.isSafeInteger(playlistId) && playlistId > 0) {
+            this.router.navigate(['/modern/playlists'], { queryParams: { playlist: playlistId } });
+          } else {
+            this.router.navigate(['/']);
+          }
         }
       },
       error: (err) => {

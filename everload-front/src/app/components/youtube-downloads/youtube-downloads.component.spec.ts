@@ -51,6 +51,14 @@ describe('YoutubeDownloadsComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('shows device download actions without a NAS save action', () => {
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    expect(buttons.some(button => button.textContent?.includes('DOWNLOAD_VIDEO'))).toBeTrue();
+    expect(buttons.some(button => button.textContent?.includes('DOWNLOAD_MUSIC'))).toBeTrue();
+    expect(buttons.some(button => button.textContent?.includes('NAS.SAVE_TO_NAS'))).toBeFalse();
+    expect(fixture.nativeElement.textContent).not.toContain('NAS.SELECT_FOLDER');
+  });
+
   it('persists the chosen language preference', () => {
     spyOn(localStorage, 'setItem');
 

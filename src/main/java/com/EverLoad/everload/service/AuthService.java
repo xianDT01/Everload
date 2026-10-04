@@ -56,6 +56,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .status(user.getStatus().name())
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 
@@ -96,6 +97,7 @@ public class AuthService {
                 .role(user.getRole())
                 .status(user.getStatus().name())
                 .avatarUrl(avatarUrl)
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 
@@ -121,6 +123,7 @@ public class AuthService {
                 .role(user.getRole())
                 .status(user.getStatus().name())
                 .avatarUrl(avatarUrl)
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 }

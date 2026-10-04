@@ -1,10 +1,12 @@
 import { Component, OnInit, OnDestroy, AfterViewChecked, HostListener, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { forkJoin, Subscription } from 'rxjs';
+import { forkJoin, Subscription, from, of } from 'rxjs';
+import { catchError, concatMap, finalize, tap } from 'rxjs/operators';
 import { ArtistProfileDto, MusicMetadataDto, MusicService, PlayerState } from '../../services/music.service';
 import { NasPath, NasService } from '../../services/nas.service';
 import { ChatMessageDto, ChatService } from '../../services/chat.service';
+import { ChatComponent } from '../chat/chat.component';
 import { AuthService } from '../../services/auth.service';
 import { ApiBaseService } from '../../services/api-base.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -67,6 +69,7 @@ interface ArtistReviewItem {
   styleUrls: ['./now-playing-panel.component.css']
 })
 export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDestroy {
+  @ViewChild(ChatComponent) messengerChat?: ChatComponent;
 
   state: PlayerState | null = null;
   shuffle = false;
@@ -82,26 +85,34 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   likedItems: any[] = [];
   readonly Math = Math;
   taskbarClock = '';
+  desktopTrayPopup: 'network' | 'sound' | 'calendar' | null = null;
+  private desktopVolumeBeforeMute = 70;
+  calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  readonly calendarWeekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
   desktopSelectedIcons = new Set<DesktopIconId>();
   desktopIconPositions: Record<DesktopIconId, { x: number; y: number }> = {
-    explorer: { x: 22, y: 26 },
-    music: { x: 22, y: 104 },
-    manager: { x: 22, y: 182 },
-    player: { x: 22, y: 260 },
-    calculator: { x: 22, y: 338 },
-    notepad: { x: 22, y: 416 },
-    equalizer: { x: 22, y: 494 },
-    snake: { x: 22, y: 572 },
-    xp: { x: 118, y: 26 },
-    messenger: { x: 118, y: 104 },
-    youtube: { x: 118, y: 182 },
-    browser: { x: 118, y: 260 },
-    minesweeper: { x: 118, y: 338 },
-    wallpaper: { x: 118, y: 416 },
+    explorer: { x: 18, y: 24 },
+    music: { x: 18, y: 108 },
+    manager: { x: 18, y: 192 },
+    player: { x: 18, y: 276 },
+    calculator: { x: 18, y: 360 },
+    notepad: { x: 18, y: 444 },
+    equalizer: { x: 18, y: 528 },
+    snake: { x: 18, y: 570 },
+    xp: { x: 118, y: 24 },
+    messenger: { x: 118, y: 108 },
+    youtube: { x: 118, y: 192 },
+    browser: { x: 118, y: 276 },
+    minesweeper: { x: 118, y: 360 },
+    wallpaper: { x: 118, y: 444 },
   };
   desktopSelection: { startX: number; startY: number; currentX: number; currentY: number } | null = null;
 
   desktopStartOpen = false;
+  desktopStartAllPrograms = false;
+  desktopTaskbarHeight = 40;
+  desktopStartMenuSize = { width: 470, height: 500 };
+  winampScale = 1.1;
   desktopExplorerOpen = true;
   musicManagerOpen = false;
   messengerOpen = false;
@@ -122,6 +133,12 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   youtubeDownloaderMaximized = false;
   browserMaximized = false;
   activeDesktopWindow: DesktopWindowTarget = 'player';
+  private desktopWindowZOrder: Record<DesktopWindowTarget, number> = {
+    player: 9500, explorer: 9501, manager: 9499, messenger: 9498, youtube: 9497,
+    browser: 9496, minesweeper: 9495, calculator: 9494, notepad: 9493,
+    equalizer: 9492, snake: 9491
+  };
+  private desktopWindowZCounter = 9501;
   desktopPanelPosition = { x: 0, y: 0 };
   desktopPanelSize = { width: 1060, height: 690 };
   explorerWindowPosition = { x: 132, y: 84 };
@@ -257,6 +274,16 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   // ── Winamp 10-band EQ + playlist ─────────────────────────────────────────
   waEqBands: number[] = new Array(10).fill(0);
   readonly waEqBandNames = ['60','170','310','600','1K','3K','6K','12K','14K','16K'];
+  readonly waEqPresets: Array<{ id: string; label: string; bands: number[] }> = [
+    { id: 'flat', label: 'Flat', bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    { id: 'rock', label: 'Rock', bands: [4, 4, 2, 0, -2, -1, 3, 4, 4, 4] },
+    { id: 'pop', label: 'Pop', bands: [-1, 1, 3, 4, 2, -1, -1, -1, 0, 1] },
+    { id: 'classical', label: 'Classical', bands: [4, 3, 2, 1, -1, -1, 0, 2, 3, 4] },
+    { id: 'bass', label: 'Bass boost', bands: [7, 7, 5, 3, 1, 0, -1, -2, -2, -2] },
+    { id: 'voice', label: 'Voice', bands: [-3, -2, -1, 2, 4, 4, 3, 1, 0, -1] },
+  ];
+  waEqPreset = 'flat';
+  waQueueSelection = new Set<number>();
   waEqOn = true;
   waEqVisible = true;
   waPlVisible = true;
@@ -322,6 +349,12 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   explorerItems: MusicMetadataDto[] = [];
   explorerSelectedPath: string | null = null;
   explorerSelectedPaths = new Set<string>();
+  explorerMetadataEditorOpen = false;
+  explorerMetadataSaving = false;
+  explorerMetadataProgress = '';
+  explorerMetadataResult = '';
+  explorerMetadataFields = { title: false, artist: false, album: false, year: false };
+  explorerMetadataValues = { title: '', artist: '', album: '', year: '' };
   private explorerSelectionAnchorPath: string | null = null;
   explorerLoading = false;
   explorerError = '';
@@ -374,10 +407,17 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     edgeX: 'left' | 'right';
     edgeY: 'top' | 'bottom';
   } | null = null;
+  private chromeResizeState: {
+    kind: 'taskbar' | 'start-menu' | 'winamp';
+    startX: number;
+    startY: number;
+    startHeight: number;
+    startWidth: number;
+    startScale: number;
+  } | null = null;
 
   private subs: Subscription[] = [];
   private wasOpen = false;
-  private readonly desktopTaskbarHeight = 40;
   private readonly wallpaperStorageKey = 'everload.windows.wallpaper';
   private readonly customWallpaperStorageKey = 'everload.windows.customWallpaper';
   private desktopIconDragState: {
@@ -419,10 +459,12 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     }));
     this.subs.push(this.musicService.shuffle$.subscribe(v => { this.shuffle = v; }));
     this.subs.push(this.musicService.repeat$.subscribe(v => { this.repeat = v; }));
-    this.subs.push(this.musicService.queue$.subscribe(q => { this.winampQueue = q; }));
+    this.subs.push(this.musicService.queue$.subscribe(q => { this.winampQueue = q; this.waQueueSelection.clear(); }));
     this.musicService.getFavorites().subscribe({ next: favs => { this.likedItems = favs; } });
     this.loadExplorerPaths();
     this.loadWallpaperPreference();
+    this.loadDesktopSizing();
+    this.loadDesktopIconPositions();
     this.loadSkinPreference();
     this.loadNotepad();
     this.loadBrowserFavorites();
@@ -458,6 +500,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   ngOnDestroy(): void {
+    this.clearCoverPreview();
     this.subs.forEach(s => s.unsubscribe());
     this.stopViz();
     this.stopMinesTimer();
@@ -478,13 +521,54 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
   get desktopPanelStyle(): Record<string, string> {
     if (!this.isDesktopWmp || this.isFullscreen) return {};
+    const isWinamp = this.playerSkin === 'winamp';
     return {
       left: `${this.desktopPanelPosition.x}px`,
       top: `${this.desktopPanelPosition.y}px`,
-      width: `${this.desktopPanelSize.width}px`,
-      height: `${this.desktopPanelSize.height}px`,
-      zIndex: this.activeDesktopWindow === 'player' ? '9501' : '9498',
+      width: isWinamp ? `${Math.ceil(300 * this.winampScale) + 8}px` : `${this.desktopPanelSize.width}px`,
+      height: isWinamp ? `${Math.ceil(this.getWinampContentHeight() * this.winampScale) + 8}px` : `${this.desktopPanelSize.height}px`,
+      zIndex: String(this.getWindowZIndex('player')),
       transform: 'none'
+    };
+  }
+  get calendarMonthLabel(): string {
+    return this.calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  }
+  get currentDateLabel(): string {
+    return new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  }
+  get calendarDays(): { day: number; currentMonth: boolean; today: boolean }[] {
+    const year = this.calendarMonth.getFullYear();
+    const month = this.calendarMonth.getMonth();
+    const offset = (new Date(year, month, 1).getDay() + 6) % 7;
+    const start = new Date(year, month, 1 - offset);
+    const today = new Date();
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index);
+      return {
+        day: date.getDate(),
+        currentMonth: date.getMonth() === month,
+        today: date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()
+      };
+    });
+  }
+  toggleTrayPopup(popup: 'network' | 'sound' | 'calendar'): void {
+    this.desktopTrayPopup = this.desktopTrayPopup === popup ? null : popup;
+  }
+  shiftCalendarMonth(amount: number): void {
+    this.calendarMonth = new Date(this.calendarMonth.getFullYear(), this.calendarMonth.getMonth() + amount, 1);
+  }
+  goToToday(): void {
+    const today = new Date();
+    this.calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+  get desktopStartMenuStyle(): Record<string, string> {
+    const maxWidth = Math.max(300, window.innerWidth - 12);
+    const maxHeight = Math.max(320, window.innerHeight - this.desktopTaskbarHeight - 12);
+    return {
+      width: `${Math.min(this.desktopStartMenuSize.width, maxWidth)}px`,
+      height: `${Math.min(this.desktopStartMenuSize.height, maxHeight)}px`,
+      bottom: `${this.desktopTaskbarHeight}px`
     };
   }
   get explorerWindowStyle(): Record<string, string> {
@@ -494,7 +578,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       top: `${this.explorerWindowPosition.y}px`,
       width: `${this.explorerWindowSize.width}px`,
       height: `${this.explorerWindowSize.height}px`,
-      zIndex: this.activeDesktopWindow === 'explorer' ? '9502' : '9497'
+      zIndex: String(this.getWindowZIndex('explorer'))
     };
   }
   get musicManagerWindowStyle(): Record<string, string> {
@@ -504,7 +588,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       top: `${this.musicManagerWindowPosition.y}px`,
       width: `${this.musicManagerWindowSize.width}px`,
       height: `${this.musicManagerWindowSize.height}px`,
-      zIndex: this.activeDesktopWindow === 'manager' ? '9518' : '9498'
+      zIndex: String(this.getWindowZIndex('manager'))
     };
   }
   get messengerWindowStyle(): Record<string, string> {
@@ -514,7 +598,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       top: `${this.messengerWindowPosition.y}px`,
       width: `${this.messengerWindowSize.width}px`,
       height: `${this.messengerWindowSize.height}px`,
-      zIndex: this.activeDesktopWindow === 'messenger' ? '9503' : '9496'
+      zIndex: String(this.getWindowZIndex('messenger'))
     };
   }
   get youtubeWindowStyle(): Record<string, string> {
@@ -524,7 +608,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       top: `${this.youtubeWindowPosition.y}px`,
       width: `${this.youtubeWindowSize.width}px`,
       height: `${this.youtubeWindowSize.height}px`,
-      zIndex: this.activeDesktopWindow === 'youtube' ? '9505' : '9495'
+      zIndex: String(this.getWindowZIndex('youtube'))
     };
   }
   get browserWindowStyle(): Record<string, string> {
@@ -534,7 +618,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       top: `${this.browserWindowPosition.y}px`,
       width: `${this.browserWindowSize.width}px`,
       height: `${this.browserWindowSize.height}px`,
-      zIndex: this.activeDesktopWindow === 'browser' ? '9507' : '9494'
+      zIndex: String(this.getWindowZIndex('browser'))
     };
   }
   get youtubeVideoId(): string | null {
@@ -553,7 +637,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       top: `${this.minesweeperWindowPosition.y}px`,
       width: `${this.minesweeperWindowSize.width}px`,
       height: `${this.minesweeperWindowSize.height}px`,
-      zIndex: this.activeDesktopWindow === 'minesweeper' ? '9506' : '9494'
+      zIndex: String(this.getWindowZIndex('minesweeper'))
     };
   }
   get minesFace(): string {
@@ -563,6 +647,28 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
   get canManageNas(): boolean {
     return this.authService.canManageNas();
+  }
+  get desktopUserName(): string {
+    return this.authService.getCurrentUser()?.username || 'Invitado';
+  }
+  get desktopUserInitial(): string {
+    return this.desktopUserName.trim().charAt(0).toUpperCase() || '?';
+  }
+  get desktopUserRole(): string {
+    const role = this.authService.getCurrentUser()?.role;
+    return role === 'ADMIN' ? 'Administrador' : role === 'NAS_USER' ? 'Usuario NAS' : 'Everload';
+  }
+  get desktopAvatarUrl(): string | null {
+    return this.authService.getAvatarUrl();
+  }
+  get messengerPersonalMessage(): string {
+    const track = this.state?.currentTrack;
+    return this.state?.playing && track
+      ? `♫ ${track.title || track.name}${track.artist ? ` - ${track.artist}` : ''}`
+      : 'EverLoad';
+  }
+  get messengerHasActiveConversation(): boolean {
+    return this.chatService.currentPollGroupId !== null;
   }
   get currentSkinName(): string {
     return this.skinOptions.find(s => s.id === this.playerSkin)?.name ?? '';
@@ -724,11 +830,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       const dx = event.clientX - this.desktopIconDragState.startX;
       const dy = event.clientY - this.desktopIconDragState.startY;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.desktopIconDragState.moved = true;
+      const snapX = Math.round(dx / 100) * 100;
+      const snapY = Math.round(dy / 78) * 78;
+      const next = { ...this.desktopIconPositions };
       for (const id of this.desktopIconDragState.ids) {
         const origin = this.desktopIconDragState.origins[id];
-        if (origin) {
-          this.desktopIconPositions[id] = this.clampDesktopIconPosition(origin.x + dx, origin.y + dy);
-        }
+        if (origin) next[id] = this.clampDesktopIconPosition(origin.x + snapX, origin.y + snapY);
+      }
+      if (this.desktopIconMoveIsFree(next, this.desktopIconDragState.ids)) {
+        for (const id of this.desktopIconDragState.ids) this.desktopIconPositions[id] = next[id];
       }
       return;
     }
@@ -737,6 +847,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       this.desktopSelection.currentY = event.clientY;
       return;
     }
+    if (this.chromeResizeState) { this.handleChromeResize(event); return; }
     if (this.resizeState) { this.handleWindowResize(event); return; }
     if (this.dragState) {
       const nextX = event.clientX - this.dragState.offsetX;
@@ -751,6 +862,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (this.desktopIconDragState) {
       if (this.desktopIconDragState.moved) {
         this.suppressNextDesktopIconClick = true;
+        this.saveDesktopIconPositions();
         window.setTimeout(() => { this.suppressNextDesktopIconClick = false; }, 0);
       }
       this.desktopIconDragState = null;
@@ -767,17 +879,133 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     }
     this.dragState = null;
     this.resizeState = null;
+    if (this.chromeResizeState) this.saveDesktopSizing();
+    this.chromeResizeState = null;
+  }
+
+  beginChromeResize(event: MouseEvent, kind: 'taskbar' | 'start-menu' | 'winamp'): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.chromeResizeState = {
+      kind, startX: event.clientX, startY: event.clientY,
+      startHeight: kind === 'taskbar' ? this.desktopTaskbarHeight : this.desktopStartMenuSize.height,
+      startWidth: this.desktopStartMenuSize.width,
+      startScale: this.winampScale
+    };
+  }
+
+  private handleChromeResize(event: MouseEvent): void {
+    const state = this.chromeResizeState;
+    if (!state) return;
+    const dx = event.clientX - state.startX;
+    const dy = event.clientY - state.startY;
+    if (state.kind === 'taskbar') {
+      this.desktopTaskbarHeight = Math.round(Math.max(32, Math.min(58, state.startHeight - dy)));
+    } else if (state.kind === 'start-menu') {
+      this.desktopStartMenuSize = {
+        width: Math.round(Math.max(400, Math.min(Math.min(620, window.innerWidth - 12), state.startWidth + dx))),
+        height: Math.round(Math.max(380, Math.min(Math.min(680, window.innerHeight - this.desktopTaskbarHeight - 12), state.startHeight - dy)))
+      };
+    } else {
+      this.winampScale = Math.round(Math.max(0.85, Math.min(1.5, state.startScale + Math.max(dx, dy) / 360)) * 100) / 100;
+    }
+  }
+
+  private loadDesktopSizing(): void {
+    try {
+      const saved = JSON.parse(localStorage.getItem('everload.windows.desktopSizing') || '{}');
+      this.desktopTaskbarHeight = Math.max(32, Math.min(58, Number(saved.taskbarHeight) || 40));
+      this.desktopStartMenuSize = {
+        width: Math.max(400, Math.min(620, Number(saved.startWidth) || 470)),
+        height: Math.max(380, Math.min(680, Number(saved.startHeight) || 500))
+      };
+      this.winampScale = Math.max(0.85, Math.min(1.5, Number(saved.winampScale) || 1.1));
+    } catch { /* Ignore invalid local sizing preferences. */ }
+  }
+
+  private saveDesktopSizing(): void {
+    try {
+      localStorage.setItem('everload.windows.desktopSizing', JSON.stringify({
+        taskbarHeight: this.desktopTaskbarHeight,
+        startWidth: this.desktopStartMenuSize.width,
+        startHeight: this.desktopStartMenuSize.height,
+        winampScale: this.winampScale
+      }));
+    } catch { /* Storage may be unavailable in private browsing. */ }
   }
 
   private clampDesktopIconPosition(x: number, y: number): { x: number; y: number } {
     const iconWidth = 92;
     const iconHeight = 74;
-    const maxX = Math.max(0, window.innerWidth - iconWidth - 8);
-    const maxY = Math.max(0, window.innerHeight - this.desktopTaskbarHeight - iconHeight - 8);
+    const maxX = Math.max(18, window.innerWidth - iconWidth - 8);
+    const maxY = Math.max(24, window.innerHeight - this.desktopTaskbarHeight - iconHeight - 8);
+    const snappedX = 18 + Math.round((x - 18) / 100) * 100;
+    const snappedY = 24 + Math.round((y - 24) / 78) * 78;
     return {
-      x: Math.max(0, Math.min(maxX, x)),
-      y: Math.max(0, Math.min(maxY, y))
+      x: Math.max(18, Math.min(18 + Math.floor((maxX - 18) / 100) * 100, snappedX)),
+      y: Math.max(24, Math.min(24 + Math.floor((maxY - 24) / 78) * 78, snappedY))
     };
+  }
+
+  private desktopIconMoveIsFree(
+    positions: Record<DesktopIconId, { x: number; y: number }>,
+    movingIds: DesktopIconId[]
+  ): boolean {
+    const moving = new Set(movingIds);
+    const occupied = new Set<string>();
+    for (const id of Object.keys(positions) as DesktopIconId[]) {
+      if (moving.has(id)) continue;
+      const pos = positions[id];
+      occupied.add(`${pos.x}:${pos.y}`);
+    }
+    for (const id of movingIds) {
+      const pos = positions[id];
+      const cell = `${pos.x}:${pos.y}`;
+      if (occupied.has(cell)) return false;
+      occupied.add(cell);
+    }
+    return true;
+  }
+
+  private loadDesktopIconPositions(): void {
+    try {
+      const saved = JSON.parse(localStorage.getItem('everload.windows.desktopIcons') || '{}');
+      const positions = { ...this.desktopIconPositions };
+      for (const id of Object.keys(positions) as DesktopIconId[]) {
+        const candidate = saved[id];
+        if (Number.isFinite(candidate?.x) && Number.isFinite(candidate?.y)) {
+          positions[id] = this.clampDesktopIconPosition(candidate.x, candidate.y);
+        }
+      }
+      const placed: DesktopIconId[] = [];
+      for (const id of Object.keys(positions) as DesktopIconId[]) {
+        if (this.desktopIconMoveIsFree(positions, [...placed, id])) placed.push(id);
+        else {
+          const cols = Math.max(1, Math.floor((window.innerWidth - 92 - 18) / 100) + 1);
+          const rows = Math.max(1, Math.floor((window.innerHeight - this.desktopTaskbarHeight - 74 - 24) / 78) + 1);
+          let found = false;
+          for (let cell = 0; cell < cols * rows && !found; cell++) {
+            positions[id] = { x: 18 + (cell % cols) * 100, y: 24 + Math.floor(cell / cols) * 78 };
+            if (this.desktopIconMoveIsFree(positions, [...placed, id])) found = true;
+          }
+          placed.push(id);
+        }
+      }
+      this.desktopIconPositions = positions;
+    } catch { /* Keep the default desktop layout when storage is unavailable. */ }
+  }
+
+  private saveDesktopIconPositions(): void {
+    try { localStorage.setItem('everload.windows.desktopIcons', JSON.stringify(this.desktopIconPositions)); }
+    catch { /* Storage may be unavailable in private browsing. */ }
+  }
+
+  private getWinampContentHeight(): number {
+    return 145 + (this.waEqVisible ? 132 : 0) + (this.waPlVisible ? 172 : 0);
+  }
+
+  getWindowZIndex(target: DesktopWindowTarget): number {
+    return this.desktopWindowZOrder[target];
   }
 
   private selectDesktopIconsInRect(): void {
@@ -831,7 +1059,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   playerCoverUrl(): string {
     const t   = this.state?.currentTrack;
-    const pid = this.state?.pathId;
+    const pid = t?.nasPathId ?? this.state?.pathId;
     if (!t || !pid) return '';
     return this.musicService.getCoverUrlWithCache(pid, t.path);
   }
@@ -881,10 +1109,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   openMusicManager(tab: 'properties' | 'queue' | 'history' | 'stats' | 'playlists' | 'review' | 'artists' = this.musicManagerTab): void {
+    if (!this.canManageNas) return;
     this.musicManagerOpen = true;
     this.musicManagerMinimized = false;
     this.musicManagerTab = tab;
-    this.activeDesktopWindow = 'manager';
+    this.focusWindow('manager');
     this.desktopStartOpen = false;
     if (tab === 'history') this.loadMusicHistory();
     if (tab === 'stats') this.loadStats();
@@ -896,7 +1125,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   closeMusicManager(): void {
     this.musicManagerOpen = false;
     this.musicManagerMinimized = false;
-    if (this.activeDesktopWindow === 'manager') this.activeDesktopWindow = 'player';
+    if (this.activeDesktopWindow === 'manager') this.focusWindow('player');
   }
 
   loadMusicHistory(): void {
@@ -1463,6 +1692,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   metaYear = '';
   metadataLoading = false;
   metadataYtLoading = false;
+  coverFile: File | null = null;
+  coverPreviewUrl = '';
+  coverUploading = false;
   metadataSuggestion: { title: string; artist: string; album: string; rawTitle?: string; channelName?: string } | null = null;
 
   openMetadataEdit(): void {
@@ -1474,19 +1706,66 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.metaYear = (t as any).year || '';
     this.metadataSuggestion = null;
     this.metadataEditing = true;
+    this.clearCoverPreview();
     this.musicManagerStatus = '';
   }
 
   cancelMetadataEdit(): void {
+    this.clearCoverPreview();
     this.metadataEditing = false;
     this.metadataSuggestion = null;
     this.musicManagerStatus = '';
   }
 
+  onCoverFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      this.clearCoverPreview();
+      this.musicManagerStatus = 'WINDOWS.MANAGER_COVER_INVALID';
+      input.value = '';
+      return;
+    }
+    this.clearCoverPreview();
+    this.coverFile = file;
+    this.coverPreviewUrl = URL.createObjectURL(file);
+    input.value = '';
+    this.musicManagerStatus = '';
+  }
+
+  uploadTrackCover(): void {
+    const track = this.state?.currentTrack;
+    const pathId = track?.nasPathId ?? this.state?.pathId ?? this.winampQueue.pathId;
+    if (!track || !pathId || !this.coverFile || !this.canManageNas || this.coverUploading) return;
+    this.coverUploading = true;
+    this.nasService.uploadTrackCover(pathId, track.path, this.coverFile).subscribe({
+      next: () => {
+        track.hasCover = true;
+        this.musicService.coverOverrideMap.delete(track.path);
+        this.musicService.invalidateTrackCover(pathId, track.path);
+        this.musicService.fetchCoverIfNeeded(track);
+        this.coverUploading = false;
+        this.clearCoverPreview();
+        this.musicManagerStatus = 'WINDOWS.MANAGER_COVER_SAVED';
+      },
+      error: (err) => {
+        this.coverUploading = false;
+        this.musicManagerStatus = err?.error?.error || 'WINDOWS.MANAGER_COVER_ERROR';
+      }
+    });
+  }
+
+  private clearCoverPreview(): void {
+    if (this.coverPreviewUrl) URL.revokeObjectURL(this.coverPreviewUrl);
+    this.coverPreviewUrl = '';
+    this.coverFile = null;
+  }
+
   saveMetadata(): void {
     if (!this.state?.currentTrack || !this.canManageNas) return;
     const track = this.state.currentTrack;
-    const pathId = this.state.pathId ?? this.winampQueue.pathId;
+    const pathId = track.nasPathId ?? this.state.pathId ?? this.winampQueue.pathId;
     if (!pathId) { this.musicManagerStatus = 'WINDOWS.MANAGER_METADATA_ERROR'; return; }
 
     this.metadataLoading = true;
@@ -1500,6 +1779,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         (track as any).year = this.metaYear;
         this.metadataLoading = false;
         this.metadataEditing = false;
+        this.clearCoverPreview();
         this.metadataSuggestion = null;
         this.musicManagerStatus = 'WINDOWS.MANAGER_METADATA_SAVED';
         // Also update the MediaSession if available
@@ -1511,9 +1791,10 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
           });
         }
       },
-      error: () => {
+      error: (err) => {
         this.metadataLoading = false;
         this.musicManagerStatus = 'WINDOWS.MANAGER_METADATA_ERROR';
+        console.error('Could not save track metadata', err);
       }
     });
   }
@@ -1766,9 +2047,16 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   toggleStartMenu(): void {
     this.desktopStartOpen = !this.desktopStartOpen;
+    this.desktopStartAllPrograms = false;
+  }
+
+  logoffDesktop(): void {
+    this.desktopStartOpen = false;
+    this.authService.logout();
   }
 
   focusWindow(target: DesktopWindowTarget): void {
+    this.desktopWindowZOrder[target] = ++this.desktopWindowZCounter;
     this.activeDesktopWindow = target;
     this.desktopStartOpen = false;
   }
@@ -1876,7 +2164,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   openExplorerWindow(): void {
     this.desktopExplorerOpen = true;
     this.explorerMinimized = false;
-    this.activeDesktopWindow = 'explorer';
+    this.focusWindow('explorer');
     this.desktopStartOpen = false;
     this.ensureExplorerContext();
   }
@@ -1891,19 +2179,19 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   closePlayerWindow(): void {
     this.playerMinimized = true;
     if (this.activeDesktopWindow === 'player') {
-      if (this.desktopExplorerOpen && !this.explorerMinimized) this.activeDesktopWindow = 'explorer';
-      else if (this.musicManagerOpen && !this.musicManagerMinimized) this.activeDesktopWindow = 'manager';
-      else if (this.messengerOpen && !this.messengerMinimized) this.activeDesktopWindow = 'messenger';
-      else if (this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized) this.activeDesktopWindow = 'youtube';
-      else if (this.browserOpen && !this.browserMinimized) this.activeDesktopWindow = 'browser';
-      else if (this.minesweeperOpen && !this.minesweeperMinimized) this.activeDesktopWindow = 'minesweeper';
+      if (this.desktopExplorerOpen && !this.explorerMinimized) this.focusWindow('explorer');
+      else if (this.musicManagerOpen && !this.musicManagerMinimized) this.focusWindow('manager');
+      else if (this.messengerOpen && !this.messengerMinimized) this.focusWindow('messenger');
+      else if (this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized) this.focusWindow('youtube');
+      else if (this.browserOpen && !this.browserMinimized) this.focusWindow('browser');
+      else if (this.minesweeperOpen && !this.minesweeperMinimized) this.focusWindow('minesweeper');
     }
   }
 
   openYoutubeDownloader(): void {
     this.youtubeDownloaderOpen = true;
     this.youtubeDownloaderMinimized = false;
-    this.activeDesktopWindow = 'youtube';
+    this.focusWindow('youtube');
     this.desktopStartOpen = false;
   }
 
@@ -1912,14 +2200,14 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.youtubeDownloaderMinimized = false;
     this.youtubeDownloaderMaximized = false;
     if (this.activeDesktopWindow === 'youtube') {
-      this.activeDesktopWindow = this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player';
+      this.focusWindow(this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player');
     }
   }
 
   openBrowser(): void {
     this.browserOpen = true;
     this.browserMinimized = false;
-    this.activeDesktopWindow = 'browser';
+    this.focusWindow('browser');
     this.desktopStartOpen = false;
     if (!this.browserFrameUrl) this.navigateBrowser(this.browserCurrentUrl, false);
   }
@@ -1929,7 +2217,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.browserMinimized = false;
     this.browserMaximized = false;
     if (this.activeDesktopWindow === 'browser') {
-      this.activeDesktopWindow = this.youtubeDownloaderOpen ? 'youtube' : this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player';
+      this.focusWindow(this.youtubeDownloaderOpen ? 'youtube' : this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player');
     }
   }
 
@@ -1953,7 +2241,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   openMinesweeper(): void {
     this.minesweeperOpen = true;
     this.minesweeperMinimized = false;
-    this.activeDesktopWindow = 'minesweeper';
+    this.focusWindow('minesweeper');
     this.desktopStartOpen = false;
     if (!this.minesBoard.length) this.resetMinesweeper();
   }
@@ -1962,7 +2250,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.minesweeperOpen = false;
     this.minesweeperMinimized = false;
     if (this.activeDesktopWindow === 'minesweeper') {
-      this.activeDesktopWindow = this.youtubeDownloaderOpen ? 'youtube' : this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player';
+      this.focusWindow(this.youtubeDownloaderOpen ? 'youtube' : this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player');
     }
   }
 
@@ -2076,9 +2364,19 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const wasOpen = this.messengerOpen;
     this.messengerOpen = true;
     this.messengerMinimized = false;
-    this.activeDesktopWindow = 'messenger';
+    this.focusWindow('messenger');
     this.desktopStartOpen = false;
     if (!wasOpen) this.playMsnOnline();
+  }
+
+  openMessengerContacts(): void {
+    this.focusWindow('messenger');
+    this.messengerChat?.openPrivateChatModal();
+  }
+
+  openMessengerGroup(): void {
+    this.focusWindow('messenger');
+    this.messengerChat?.openCreateGroup();
   }
 
   closeMessengerWindow(): void {
@@ -2086,7 +2384,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.messengerMinimized = false;
     this.messengerMaximized = false;
     if (this.activeDesktopWindow === 'messenger') {
-      this.activeDesktopWindow = this.desktopExplorerOpen ? 'explorer' : 'player';
+      this.focusWindow(this.desktopExplorerOpen ? 'explorer' : 'player');
     }
   }
 
@@ -2129,13 +2427,13 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (target === 'equalizer')  this.equalizerMinimized = true;
     if (target === 'snake')      this.snakeMinimized = true;
     if (this.activeDesktopWindow === target) {
-      if (target !== 'player' && !this.playerMinimized) this.activeDesktopWindow = 'player';
-      else if (target !== 'explorer' && this.desktopExplorerOpen && !this.explorerMinimized) this.activeDesktopWindow = 'explorer';
-      else if (target !== 'manager' && this.musicManagerOpen && !this.musicManagerMinimized) this.activeDesktopWindow = 'manager';
-      else if (target !== 'messenger' && this.messengerOpen && !this.messengerMinimized) this.activeDesktopWindow = 'messenger';
-      else if (target !== 'youtube' && this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized) this.activeDesktopWindow = 'youtube';
-      else if (target !== 'browser' && this.browserOpen && !this.browserMinimized) this.activeDesktopWindow = 'browser';
-      else if (target !== 'minesweeper' && this.minesweeperOpen && !this.minesweeperMinimized) this.activeDesktopWindow = 'minesweeper';
+      if (target !== 'player' && !this.playerMinimized) this.focusWindow('player');
+      else if (target !== 'explorer' && this.desktopExplorerOpen && !this.explorerMinimized) this.focusWindow('explorer');
+      else if (target !== 'manager' && this.musicManagerOpen && !this.musicManagerMinimized) this.focusWindow('manager');
+      else if (target !== 'messenger' && this.messengerOpen && !this.messengerMinimized) this.focusWindow('messenger');
+      else if (target !== 'youtube' && this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized) this.focusWindow('youtube');
+      else if (target !== 'browser' && this.browserOpen && !this.browserMinimized) this.focusWindow('browser');
+      else if (target !== 'minesweeper' && this.minesweeperOpen && !this.minesweeperMinimized) this.focusWindow('minesweeper');
     }
   }
 
@@ -2616,7 +2914,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   openCurrentTrackFolder(): void {
     this.desktopStartOpen = false;
     this.desktopExplorerOpen = true;
-    this.activeDesktopWindow = 'explorer';
+    this.focusWindow('explorer');
     this.ensureExplorerContext(true);
   }
 
@@ -2703,6 +3001,62 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     return this.explorerSelectionCount > 0;
   }
 
+  get explorerSelectedTracks(): MusicMetadataDto[] {
+    return this.explorerSelectedItems.filter(item => !item.directory);
+  }
+
+  get explorerCanEditMetadata(): boolean {
+    const selected = this.explorerSelectedItems;
+    return this.canManageNas && selected.length > 0 && selected.length <= 100 && selected.every(item => !item.directory);
+  }
+
+  openExplorerMetadataEditor(): void {
+    if (!this.explorerCanEditMetadata) return;
+    this.explorerMetadataFields = { title: false, artist: false, album: false, year: false };
+    this.explorerMetadataValues = { title: '', artist: '', album: '', year: '' };
+    this.explorerMetadataProgress = '';
+    this.explorerMetadataResult = '';
+    this.explorerMetadataEditorOpen = true;
+  }
+
+  saveExplorerMetadata(): void {
+    const fields = this.explorerMetadataFields;
+    const selectedFields = (Object.keys(fields) as Array<keyof typeof fields>).filter(field => fields[field]);
+    const tracks = this.explorerSelectedTracks;
+    if (!this.explorerCanEditMetadata || !this.explorerPathId || !tracks.length || !selectedFields.length) return;
+    if (selectedFields.some(field => !this.explorerMetadataValues[field].trim())) return;
+
+    let saved = 0;
+    let failed = 0;
+    this.explorerMetadataSaving = true;
+    from(tracks).pipe(
+      concatMap(track => this.nasService.updateMetadata(
+        track.nasPathId ?? this.explorerPathId!,
+        track.path,
+        fields.title ? this.explorerMetadataValues.title.trim() : (track.title || track.name),
+        fields.artist ? this.explorerMetadataValues.artist.trim() : (track.artist || ''),
+        fields.album ? this.explorerMetadataValues.album.trim() : (track.album || ''),
+        fields.year ? this.explorerMetadataValues.year.trim() : (track as any).year || ''
+      ).pipe(
+        tap(() => saved++),
+        catchError(() => { failed++; return of(null); }),
+        tap(() => this.explorerMetadataProgress = `${saved + failed}/${tracks.length}`)
+      )),
+      finalize(() => {
+        this.explorerMetadataSaving = false;
+        this.explorerMetadataEditorOpen = false;
+        this.explorerMetadataResult = this.translate.instant(
+          failed ? 'WINDOWS.METADATA_PARTIAL' : 'WINDOWS.METADATA_RESULT',
+          failed ? { saved, failed } : { count: saved }
+        );
+        this.explorerMetadataProgress = '';
+        this.loadExplorerItems();
+        const result = this.explorerMetadataResult;
+        window.setTimeout(() => { if (this.explorerMetadataResult === result) this.explorerMetadataResult = ''; }, 6000);
+      })
+    ).subscribe();
+  }
+
   get explorerClipboardLabel(): string {
     if (!this.explorerClipboard) return '';
     if (this.explorerClipboard.items.length === 1) return this.explorerClipboard.items[0].name;
@@ -2737,7 +3091,18 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   setDesktopVolume(value: number | string): void {
     const numeric = typeof value === 'string' ? Number(value) : value;
-    this.musicService.mainPlayer.setVolume(Math.max(0, Math.min(1, numeric / 100)));
+    const percent = Math.max(0, Math.min(100, numeric));
+    if (percent > 0) this.desktopVolumeBeforeMute = percent;
+    this.musicService.mainPlayer.setVolume(percent / 100);
+  }
+
+  toggleDesktopMute(): void {
+    if (this.currentVolumePercent > 0) {
+      this.desktopVolumeBeforeMute = this.currentVolumePercent;
+      this.setDesktopVolume(0);
+      return;
+    }
+    this.setDesktopVolume(this.desktopVolumeBeforeMute || 70);
   }
 
   nudgeDesktopVolume(delta: number): void {
@@ -3219,7 +3584,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   // ── Calculator ─────────────────────────────────────────────────────────────
-  openCalculator(): void { this.calculatorOpen = true; this.calculatorMinimized = false; this.activeDesktopWindow = 'calculator'; this.desktopStartOpen = false; }
+  openCalculator(): void { this.calculatorOpen = true; this.calculatorMinimized = false; this.focusWindow('calculator'); this.desktopStartOpen = false; }
   closeCalculator(): void { this.calculatorOpen = false; this.calculatorMaximized = false; }
 
   toggleCalculatorMaximize(): void {
@@ -3280,7 +3645,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.loadNotepad();
     this.notepadOpen = true;
     this.notepadMinimized = false;
-    this.activeDesktopWindow = 'notepad';
+    this.focusWindow('notepad');
     this.desktopStartOpen = false;
   }
   closeNotepad(): void { this.saveNotepad(); this.notepadOpen = false; this.notepadMaximized = false; }
@@ -3445,7 +3810,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   // ── Equalizer ─────────────────────────────────────────────────────────────
-  openEqualizer(): void { this.equalizerOpen = true; this.equalizerMinimized = false; this.activeDesktopWindow = 'equalizer'; this.desktopStartOpen = false; }
+  openEqualizer(): void { this.equalizerOpen = true; this.equalizerMinimized = false; this.focusWindow('equalizer'); this.desktopStartOpen = false; }
   closeEqualizer(): void { this.equalizerOpen = false; this.equalizerMaximized = false; }
 
   toggleEqualizerMaximize(): void {
@@ -3479,6 +3844,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   // Winamp 10-band maps pairs to 5 EQ bands: [0+1]→0, [2+3]→1, [4+5]→2, [6+7]→3, [8+9]→4
   setWaEqBand(index: number, value: string | number): void {
     this.waEqBands[index] = parseFloat(value as string);
+    this.waEqPreset = 'custom';
     if (!this.waEqOn) return;
     const group = Math.floor(index / 2);
     const avg = (this.waEqBands[group * 2] + this.waEqBands[group * 2 + 1]) / 2;
@@ -3499,12 +3865,54 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   resetWaEq(): void {
-    this.waEqBands = new Array(10).fill(0);
-    [0, 1, 2, 3, 4].forEach(i => this.musicService.mainPlayer.setEqBand(i, 0));
+    this.applyWaEqPreset('flat');
+  }
+
+  applyWaEqPreset(id: string): void {
+    const preset = this.waEqPresets.find(item => item.id === id) ?? this.waEqPresets[0];
+    this.waEqPreset = preset.id;
+    this.waEqBands = [...preset.bands];
+    if (!this.waEqOn) this.waEqOn = true;
+    for (let group = 0; group < 5; group++) {
+      const gain = (this.waEqBands[group * 2] + this.waEqBands[group * 2 + 1]) / 2;
+      this.eqBands[group] = gain;
+      this.musicService.mainPlayer.setEqBand(group, gain);
+    }
+  }
+
+  toggleWaQueueSelection(index: number, event: Event): void {
+    event.stopPropagation();
+    if (this.waQueueSelection.has(index)) this.waQueueSelection.delete(index);
+    else this.waQueueSelection.add(index);
+  }
+
+  selectAllWaQueue(): void {
+    if (this.waQueueSelection.size === this.winampQueue.tracks.length) this.waQueueSelection.clear();
+    else this.waQueueSelection = new Set(this.winampQueue.tracks.map((_, index) => index));
+  }
+
+  removeWaQueueSelection(): void {
+    if (!this.waQueueSelection.size) return;
+    const removed = this.waQueueSelection;
+    const currentPath = this.state?.currentTrack?.path;
+    const tracks = this.winampQueue.tracks.filter((_, index) => !removed.has(index));
+    const activeIndex = currentPath ? tracks.findIndex(track => track.path === currentPath) : Math.min(this.winampQueue.index, tracks.length - 1);
+    this.waQueueSelection = new Set();
+    this.musicService.updateQueue(this.winampQueue.pathId, tracks, activeIndex);
+  }
+
+  sortWaQueue(): void {
+    const currentPath = this.state?.currentTrack?.path;
+    const tracks = [...this.winampQueue.tracks].sort((a, b) =>
+      `${a.artist || ''} ${a.title || a.name}`.localeCompare(`${b.artist || ''} ${b.title || b.name}`, undefined, { sensitivity: 'base' })
+    );
+    const activeIndex = currentPath ? tracks.findIndex(track => track.path === currentPath) : this.winampQueue.index;
+    this.waQueueSelection.clear();
+    this.musicService.updateQueue(this.winampQueue.pathId, tracks, activeIndex);
   }
 
   // ── Snake ──────────────────────────────────────────────────────────────────
-  openSnake(): void { this.snakeOpen = true; this.snakeMinimized = false; this.activeDesktopWindow = 'snake'; this.desktopStartOpen = false; }
+  openSnake(): void { this.snakeOpen = true; this.snakeMinimized = false; this.focusWindow('snake'); this.desktopStartOpen = false; }
   closeSnake(): void { this.snakeOpen = false; if (this.snakeRaf) { cancelAnimationFrame(this.snakeRaf); this.snakeRaf = undefined; } }
 
   startSnake(): void {

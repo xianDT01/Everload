@@ -6,8 +6,8 @@
          (click)="$event.stopPropagation(); openFullscreen()">
       <img *ngIf="track && coverUrl" [src]="coverUrl"
            (error)="$any($event.target).style.display='none'" class="mb-cover-img" />
-      <span class="mb-cover-icon">♪</span>
-      <div class="mb-cover-hover">⤢</div>
+      <span class="mb-cover-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.4" fill="var(--ml-bg)"/><path d="M12 3.5v8.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M12 4.2c2.7-.3 4.8.2 6.3 1.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+      <div class="mb-cover-hover" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg></div>
     </div>
     <div class="mb-meta" *ngIf="track">
       <div class="mb-title-row">
@@ -107,7 +107,7 @@
     <div class="mb-pl-wrap" *ngIf="track">
       <button class="mb-btn mb-icon-btn" [class.mb-active]="showPlaylistMenu"
               (click)="togglePlaylistMenu()" [title]="'MUSIC.ADD_TO_PLAYLIST' | translate">
-        <svg viewBox="0 0 24 24"><path d="M3 6h12v2H3V6Zm0 4h12v2H3v-2Zm0 4h8v2H3v-2Zm14-4h2v3h3v2h-3v3h-2v-3h-3v-2h3v-3Z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M3 5.5h10v2H3v-2Zm0 4h7v2H3v-2Zm0 4h5v2H3v-2Z"/><circle cx="17.5" cy="15.5" r="3.5"/><path d="M19 15.5V6h2v9.5h-2Z"/><path d="M14 6h7v2h-7V6Z"/></svg>
       </button>
 
       <div class="mb-pl-backdrop" *ngIf="showPlaylistMenu" (click)="closePlaylistMenu()"></div>
@@ -120,7 +120,7 @@
         <button class="mb-pl-item" *ngFor="let pl of playlists"
                 [class.mb-pl-item-added]="trackInPlaylist(pl)"
                 (click)="addCurrentToPlaylist(pl)">
-          <svg viewBox="0 0 24 24"><path d="M4 6h11v2H4V6Zm0 4h11v2H4v-2Zm0 4h7v2H4v-2Zm13-8h2v8.18A3 3 0 1 1 17 11V6Z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M4 5.5h9v2H4v-2Zm0 4h6.5v2H4v-2Zm0 4h5v2H4v-2Z"/><circle cx="17.5" cy="15.5" r="3.5"/><path d="M19 15.5V6h2v9.5h-2Z"/><path d="M14 6h7v2h-7V6Z"/></svg>
           <span class="mb-pl-name">{{ pl.name }}</span>
           <span class="mb-pl-added" *ngIf="trackInPlaylist(pl)" [title]="'MUSIC.MODERN_FAVORITE' | translate">✓</span>
           <span class="mb-pl-count" *ngIf="!trackInPlaylist(pl)">{{ (pl.tracks?.length || 0) }}</span>
@@ -135,7 +135,7 @@
 
     <!-- Queue button -->
     <button class="mb-btn mb-icon-btn" [class.mb-active]="showQueue" (click)="toggleQueuePanel()" [title]="'MUSIC.MODERN_QUEUE' | translate">
-      <svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 5h18v2H3v-2Zm0 5h12v2H3v-2Z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M5 5h2v2H5V5Zm4 0h10v2H9V5ZM5 11h2v2H5v-2Zm4 0h10v2H9v-2ZM5 17h2v2H5v-2Zm4 0h7v2H9v-2Z"/></svg>
     </button>
   </div>
 
@@ -254,10 +254,21 @@
     <label>{{ 'MUSIC.YEAR' | translate }}
       <input [value]="metadataForm.year" (input)="setMetadataField('year', $any($event.target).value)" [disabled]="metadataSaving" />
     </label>
-    <p class="mb-metadata-error" *ngIf="metadataError">{{ metadataError }}</p>
+    <div class="mb-cover-editor">
+      <img *ngIf="coverPreviewUrl || track?.hasCover" [src]="coverPreviewUrl || coverUrl" alt="" />
+      <span *ngIf="!coverPreviewUrl && !track?.hasCover">♪</span>
+      <div>
+        <strong>{{ 'WINDOWS.MANAGER_COVER_LABEL' | translate }}</strong>
+        <input type="file" accept="image/jpeg,image/png" (change)="onCoverFileSelected($event)" [disabled]="coverUploading" />
+        <button type="button" (click)="uploadTrackCover()" [disabled]="!coverFile || coverUploading">
+          {{ coverUploading ? ('WINDOWS.MANAGER_COVER_UPLOADING' | translate) : ('WINDOWS.MANAGER_COVER_SAVE' | translate) }}
+        </button>
+      </div>
+    </div>
+    <p class="mb-metadata-error" *ngIf="metadataError">{{ metadataError | translate }}</p>
     <div class="mb-metadata-actions">
-      <button type="button" class="mb-metadata-cancel" (click)="closeMetadataEditor()" [disabled]="metadataSaving">{{ 'COMMON.CANCEL' | translate }}</button>
-      <button type="button" class="mb-metadata-save" (click)="saveMetadata()" [disabled]="metadataSaving">{{ metadataSaving ? ('LOADING' | translate) : ('COMMON.SAVE' | translate) }}</button>
+      <button type="button" class="mb-metadata-cancel" (click)="closeMetadataEditor()" [disabled]="metadataSaving || coverUploading">{{ 'COMMON.CANCEL' | translate }}</button>
+      <button type="button" class="mb-metadata-save" (click)="saveMetadata()" [disabled]="metadataSaving || coverUploading">{{ metadataSaving ? ('LOADING' | translate) : ('COMMON.SAVE' | translate) }}</button>
     </div>
   </section>
 </div>

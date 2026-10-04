@@ -92,9 +92,6 @@
     <div class="buttons">
       <button (click)="addToQueue('video')" [disabled]="isLoading">{{ 'DOWNLOAD_VIDEO' | translate }}</button>
       <button (click)="addToQueue('music')" [disabled]="isLoading">{{ 'DOWNLOAD_MUSIC' | translate }}</button>
-      <button *ngIf="hasNasAccess" (click)="openNasBrowser('music')" [disabled]="isLoading" class="btn-nas">
-        💾 {{ 'NAS.SAVE_TO_NAS' | translate }}
-      </button>
     </div>
 
     <!-- ══ COLA DE DESCARGAS ══ -->
@@ -151,47 +148,6 @@
                 class="btn-retry" (click)="retryItem(item.id)" [title]="'QUEUE.RETRY' | translate">↺</button>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ MODAL: GUARDAR EN NAS ══ -->
-    <div class="share-overlay" *ngIf="showNasModal" (click)="closeNasModal()">
-      <div class="share-modal nas-modal" (click)="$event.stopPropagation()">
-        <div class="share-modal-header">
-          <span class="share-modal-title">💾 {{ 'NAS.SAVE_TO_NAS' | translate }}</span>
-          <button class="share-modal-close" (click)="closeNasModal()">✕</button>
-        </div>
-
-        <div class="nas-modal-body">
-          <div class="share-loading" *ngIf="nasLoadingPaths">
-            <span>{{ 'LOADING' | translate }}...</span>
-          </div>
-
-          <ng-container *ngIf="!nasLoadingPaths">
-            <span class="nas-field-label">{{ 'NAS.SELECT_FOLDER' | translate }}</span>
-            <div class="share-list nas-path-list">
-              <div *ngIf="nasPaths.length === 0" class="share-empty">{{ 'NAS.NO_WRITABLE_PATHS' | translate }}</div>
-              <div *ngFor="let p of nasPaths" class="share-item nas-path-item"
-                   [class.nas-selected]="selectedNasPathId === p.id"
-                   (click)="selectedNasPathId = p.id">
-                <div class="share-item-icon">🗂️</div>
-                <div class="share-item-info">
-                  <span class="share-item-name">{{ p.name }}</span>
-                  <span class="share-item-meta">{{ p.path }}</span>
-                </div>
-                <span class="share-item-arrow" *ngIf="selectedNasPathId === p.id">✓</span>
-              </div>
-            </div>
-
-            <span class="nas-field-label">{{ 'NAS.SUBFOLDER_OPTIONAL' | translate }}</span>
-            <input type="text" class="nas-subpath-input" [(ngModel)]="nasSubPath"
-                   placeholder="{{ 'NAS.SUBFOLDER_PLACEHOLDER' | translate }}" />
-
-            <button class="nas-save-confirm" [disabled]="!selectedNasPathId" (click)="confirmNasSave()">
-              💾 {{ 'NAS.SAVE_TO_NAS' | translate }}
-            </button>
-          </ng-container>
         </div>
       </div>
     </div>

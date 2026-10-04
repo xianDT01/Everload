@@ -140,4 +140,8 @@ export class ModernAlbumsComponent implements OnInit, OnDestroy {
   }
 
   trackByPath(_: number, t: MusicMetadataDto): string { return t.path; }
+
+  trackByAlbum(_: number, album: AlbumGroup): string {
+    return `${album.pathId}:${album.album}:${album.artist}`;
+  }
 }

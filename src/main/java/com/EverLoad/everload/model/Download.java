@@ -26,6 +26,8 @@ public class Download {
 
     private String type;       // "music" or "video"
     private String platform;   // "YouTube", "Spotify", "TikTok", etc.
+    @Column(length = 100)
+    private String username;
     private LocalDateTime createdAt;
 
     public Download() {
@@ -39,6 +41,11 @@ public class Download {
         this.createdAt = LocalDateTime.now(java.time.ZoneId.systemDefault());
     }
 
+    public Download(String title, String type, String platform, String username) {
+        this(title, type, platform);
+        this.username = username;
+    }
+
     public Long getId() { return id; }
 
     public String getTitle() { return title; }
@@ -49,6 +56,9 @@ public class Download {
 
     public String getPlatform() { return platform; }
     public void setPlatform(String platform) { this.platform = platform; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

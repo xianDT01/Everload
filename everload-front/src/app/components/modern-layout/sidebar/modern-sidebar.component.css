@@ -34,6 +34,11 @@
   letter-spacing: 0;
 }
 
+.ms-player-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin: 0 2px 12px; padding: 3px; border: 1px solid var(--ml-border); border-radius: 7px; background: var(--ml-main); }
+.ms-player-switch button { min-width: 0; min-height: 30px; border: 0; border-radius: 5px; background: transparent; color: var(--ml-muted); font: 700 11px/1 inherit; cursor: pointer; }
+.ms-player-switch button:hover { color: var(--ml-text); }
+.ms-player-switch button.ms-player-mode-active { background: var(--ml-card-hover); color: var(--ml-text); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+
 .ms-section-top {
   padding: 0 0 9px;
 }
@@ -223,4 +228,11 @@
 .ms-exit-primary {
   color: var(--ml-text);
   background: color-mix(in srgb, var(--ml-accent) 14%, transparent);
+}
+@media (max-width: 640px) {
+  .ms-nav { padding: 8px 4px; }
+  .ms-label, .ms-logo-text, .ms-exit-btn > span:not(.ms-icon) { display: none; }
+  .ms-logo, .ms-item, .ms-exit-btn { justify-content: center; padding-left: 8px; padding-right: 8px; }
+  .ms-path-select { width: 100%; min-width: 0; }
+  .ms-theme-list { position: fixed; left: 64px; bottom: 80px; width: 220px; max-height: 60vh; overflow: auto; z-index: 20; background: var(--ml-bg); }
 }

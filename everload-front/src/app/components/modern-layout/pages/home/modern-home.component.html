@@ -1,4 +1,34 @@
-﻿<div class="mh-page" *ngIf="!loading; else spinner">
+﻿<ng-container *ngIf="!loading; else spinner">
+  <div class="flow-page" *ngIf="isFlow">
+    <header class="ew-header">
+      <div><span class="flow-eyebrow">{{ 'MUSIC.FLOW_FOR_YOU' | translate }}</span><h1>{{ 'MUSIC.FLOW_HOME' | translate }}</h1></div>
+      <div class="flow-arrows"><button type="button" [attr.aria-label]="'MUSIC.MODERN_PREVIOUS' | translate" (click)="flowCardsRow.scrollBy({left: -420, behavior: 'smooth'})">‹</button><button type="button" [attr.aria-label]="'MUSIC.MODERN_NEXT' | translate" (click)="flowCardsRow.scrollBy({left: 420, behavior: 'smooth'})">›</button></div>
+    </header>
+    <div class="flow-cards" #flowCardsRow>
+      <button type="button" class="flow-card" *ngFor="let card of flowCards" (click)="playAlbum(card)" [title]="card.album + ' - ' + card.artist">
+        <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" loading="lazy" />
+        <span class="flow-card-shade"></span><span class="flow-card-play" aria-hidden="true">▶</span>
+        <span class="flow-card-copy"><strong>{{ card.album }}</strong><small>{{ card.artist }}</small></span>
+      </button>
+      <div class="flow-empty" *ngIf="!flowCards.length">{{ 'MUSIC.FLOW_EMPTY' | translate }}</div>
+    </div>
+    <nav class="flow-shortcuts" [attr.aria-label]="'MUSIC.FLOW_SHORTCUTS' | translate">
+      <button type="button" (click)="openFlowLink('/modern/library')"><span class="flow-shortcut-icon">♫</span><span><strong>{{ 'MUSIC.MODERN_SIDEBAR_LIBRARY' | translate }}</strong><small>{{ 'MUSIC.FLOW_LIBRARY_HINT' | translate }}</small></span></button>
+      <button type="button" (click)="openFlowLink('/modern/ytmusic')"><span class="flow-shortcut-icon">⌕</span><span><strong>{{ 'MUSIC.MODERN_SIDEBAR_YTMUSIC' | translate }}</strong><small>{{ 'MUSIC.FLOW_EXPLORE_HINT' | translate }}</small></span></button>
+      <button type="button" (click)="openFlowLink('/modern/activity')"><span class="flow-shortcut-icon">◷</span><span><strong>{{ 'MUSIC.MODERN_SIDEBAR_ACTIVITY' | translate }}</strong><small>{{ 'MUSIC.FLOW_HISTORY_HINT' | translate }}</small></span></button>
+      <button type="button" (click)="openFlowLink('/modern/downloads')"><span class="flow-shortcut-icon">⇩</span><span><strong>{{ 'MUSIC.MODERN_SIDEBAR_DOWNLOADS' | translate }}</strong><small>{{ 'MUSIC.FLOW_DOWNLOADS_HINT' | translate }}</small></span></button>
+    </nav>
+    <section class="flow-listen" *ngIf="listenNow.length">
+      <h2>{{ 'MUSIC.MODERN_LISTEN_NOW' | translate }}</h2>
+      <div class="flow-listen-grid">
+        <button type="button" class="flow-listen-item" *ngFor="let card of listenNow.slice(0, 8)" (click)="playAlbum(card)">
+          <img [src]="coverFor(card.track, card.pathId)" (error)="$any($event.target).style.display='none'" loading="lazy" />
+          <span><strong>{{ card.album }}</strong><small>{{ card.artist }}</small></span><span class="flow-inline-play" aria-hidden="true">▶</span>
+        </button>
+      </div>
+    </section>
+  </div>
+  <div class="mh-page" *ngIf="!isFlow">
 
   <!-- Header row -->
   <div class="mh-header-row">
@@ -250,6 +280,8 @@
 
 </div>
 
+
+</ng-container>
 <ng-template #spinner>
   <div class="mh-loading">{{ 'COMMON.LOADING' | translate }}</div>
 </ng-template>

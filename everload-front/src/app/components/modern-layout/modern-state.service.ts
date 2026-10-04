@@ -9,6 +9,7 @@ interface OverviewEntry {
 }
 
 const OVERVIEW_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const HOME_OVERVIEW_LIMIT = 400;
 
 @Injectable({ providedIn: 'root' })
 export class ModernStateService {
@@ -28,7 +29,7 @@ export class ModernStateService {
   get showFullscreen(): boolean { return this._showFullscreen.value; }
   get selectedArtistName(): string { return this._selectedArtistName.value; }
 
-  private overviewCache = new Map<number, OverviewEntry>();
+  private overviewCache = new Map<string, OverviewEntry>();
 
   constructor(private nas: NasService, private music: MusicService) {
     this.nas.getPaths().subscribe(paths => {
@@ -46,28 +47,37 @@ export class ModernStateService {
   selectPath(id: number) {
     this._pathId.next(id);
     localStorage.setItem('modern_path_id', String(id));
-    this.overviewCache.delete(id); // force refresh on explicit path change
+    this.invalidateOverview(id); // force refresh on explicit path change
     this.prefetchOverview(id);
   }
 
-  /** Shared, cached library overview. One HTTP request per pathId per TTL window. */
-  getOverview(pathId: number): Observable<LibraryOverviewDto> {
+  /** Shared overview cache. The home page uses a small slice; library views request the full slice. */
+  getOverview(pathId: number, limit = 5000): Observable<LibraryOverviewDto> {
     const now = Date.now();
-    const cached = this.overviewCache.get(pathId);
+    const cacheKey = this.cacheKey(pathId, limit);
+    const cached = this.overviewCache.get(cacheKey);
     if (cached && now < cached.expiresAt) return cached.obs;
-    const obs = this.music.getLibraryOverview(pathId, 5000).pipe(shareReplay(1));
-    this.overviewCache.set(pathId, { obs, expiresAt: now + OVERVIEW_TTL_MS });
+    const obs = this.music.getLibraryOverview(pathId, limit).pipe(shareReplay(1));
+    this.overviewCache.set(cacheKey, { obs, expiresAt: now + OVERVIEW_TTL_MS });
     return obs;
   }
 
   /** Call after a library re-index to force the next getOverview() to fetch fresh data. */
   invalidateOverview(pathId?: number) {
-    if (pathId !== undefined) this.overviewCache.delete(pathId);
+    if (pathId !== undefined) {
+      for (const key of this.overviewCache.keys()) {
+        if (key.startsWith(`${pathId}:`)) this.overviewCache.delete(key);
+      }
+    }
     else this.overviewCache.clear();
   }
 
   private prefetchOverview(pathId: number) {
-    this.getOverview(pathId).subscribe({ error: () => {} });
+    this.getOverview(pathId, HOME_OVERVIEW_LIMIT).subscribe({ error: () => {} });
+  }
+
+  private cacheKey(pathId: number, limit: number): string {
+    return `${pathId}:${Math.max(1, Math.min(limit, 10000))}`;
   }
 
   toggleQueue() { this._showQueue.next(!this._showQueue.value); }

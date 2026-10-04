@@ -28,6 +28,11 @@
     </div>
   </div>
 
+  <div class="admin-brand" aria-label="Everload Admin">
+    <span class="admin-brand-mark" aria-hidden="true"><img src="/icons/icon-96x96.png" alt=""></span>
+    <span class="admin-brand-name">Everload<small>Admin</small></span>
+  </div>
+
   <!-- Tabs -->
   <div class="tabs">
     <button [class.active]="activeTab === 'config'" (click)="activeTab = 'config'">⚙️ {{ 'ADMIN.TAB_CONFIG' | translate }}</button>
@@ -370,6 +375,7 @@
         </div>
         <div class="history-card-title">{{ item.titulo }}</div>
         <div class="history-card-meta">
+          <span class="history-card-user">{{ 'ADMIN.HISTORY_USER' | translate }}: {{ item.usuario || ('ADMIN.HISTORY_UNKNOWN_USER' | translate) }}</span>
           <span class="history-card-type">{{ item.tipo }}</span>
           <span class="history-card-date">
             <ng-container *ngIf="item.fecha; else sinFechaCard">{{ item.fecha | date:'dd/MM/yy, HH:mm' }}</ng-container>
@@ -387,6 +393,7 @@
             <th>{{ 'ADMIN.COL_TITLE' | translate }}</th>
             <th>{{ 'TIPO' | translate }}</th>
             <th>{{ 'PLATAFORMA' | translate }}</th>
+            <th>{{ 'ADMIN.HISTORY_USER' | translate }}</th>
             <th>{{ 'COMMON.DATE' | translate }}</th>
           </tr>
         </thead>
@@ -398,6 +405,7 @@
               <img [src]="getIconPath(item.plataforma)" class="icon-table" />
               {{ item.plataforma }}
             </td>
+            <td>{{ item.usuario || ('ADMIN.HISTORY_UNKNOWN_USER' | translate) }}</td>
             <td>
               <ng-container *ngIf="item.fecha; else sinFecha">
                 {{ item.fecha | date:'dd/MM/yy, HH:mm' }}
@@ -554,6 +562,7 @@
   <!-- ══ TAB: SISTEMA ══════════════════════════════════════════════════════════ -->
   <div *ngIf="activeTab === 'app'" class="tab-content app-release-tab">
     <div class="app-release-hero">
+      <div class="app-release-brand-icon"><img src="/icons/icon-192x192.png" alt="Everload"></div>
       <div>
         <span class="app-release-kicker">{{ 'ADMIN.APP_KICKER' | translate }}</span>
         <h3>{{ 'ADMIN.APP_TITLE' | translate }}</h3>
@@ -612,6 +621,7 @@
       </section>
 
       <aside class="app-release-card current">
+        <div class="app-release-current-brand"><img src="/icons/icon-96x96.png" alt=""></div>
         <span class="app-release-kicker">{{ 'ADMIN.APP_CURRENT' | translate }}</span>
         <h4>{{ androidRelease?.available ? (androidRelease?.versionName || 'EverLoad APK') : ('ADMIN.APP_NOT_PUBLISHED' | translate) }}</h4>
         <dl>
@@ -1051,4 +1061,3 @@
   </div>
 
 </div>
-

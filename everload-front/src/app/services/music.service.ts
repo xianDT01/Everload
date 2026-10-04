@@ -61,6 +61,11 @@ export interface YtMusicDiscoverShelfDto {
   items: YtMusicDiscoverItemDto[];
 }
 
+export interface CommunityDiscoverDto {
+  topArtists: { artist: string; playCount: number }[];
+  topTracks: { title: string; artist: string; album: string; playCount: number }[];
+}
+
 export interface YtMusicDiscoverHomeDto {
   shelves: YtMusicDiscoverShelfDto[];
   continuation?: string;
@@ -196,6 +201,8 @@ export class DeckPlayer {
   private normalizeCompressor: DynamicsCompressorNode | null = null;
   private normalizeMakeup: GainNode | null = null;
   normalizeEnabled = false;
+  private normalizeFrame: number | null = null;
+  private normalizeRmsData: Float32Array | null = null;
 
   // Combo Filter
   private comboFilter: BiquadFilterNode | null = null;
@@ -379,6 +386,7 @@ export class DeckPlayer {
   // ── Load ──────────────────────────────────────────────────────────────────
 
   async load(track: MusicMetadataDto, pathId: number) {
+    pathId = track.nasPathId ?? pathId;
     const loadId = ++this.loadNonce;
     this.stopAll();
     this.resetMasterGain();
@@ -764,6 +772,46 @@ export class DeckPlayer {
   setNormalize(enabled: boolean) {
     this.normalizeEnabled = enabled;
     this.applyNormalize();
+    if (enabled) this.startNormalizeMonitor();
+    else this.stopNormalizeMonitor();
+  }
+
+  private startNormalizeMonitor() {
+    if (this.normalizeFrame !== null || typeof requestAnimationFrame === 'undefined') return;
+    const tick = () => {
+      this.normalizeFrame = requestAnimationFrame(tick);
+      this.updateNormalizeGain();
+    };
+    this.normalizeFrame = requestAnimationFrame(tick);
+  }
+
+  private stopNormalizeMonitor() {
+    if (this.normalizeFrame !== null && typeof cancelAnimationFrame !== 'undefined') {
+      cancelAnimationFrame(this.normalizeFrame);
+    }
+    this.normalizeFrame = null;
+    this.normalizeRmsData = null;
+  }
+
+  private updateNormalizeGain() {
+    if (!this.normalizeEnabled || !this.normalizeCompressor || !this.normalizeMakeup ||
+        !this.analyserNode || !this.audioCtx || this.activeSource === 'youtube' || !this.state.playing) return;
+
+    if (!this.normalizeRmsData || this.normalizeRmsData.length !== this.analyserNode.fftSize) {
+      this.normalizeRmsData = new Float32Array(this.analyserNode.fftSize);
+    }
+    this.analyserNode.getFloatTimeDomainData(this.normalizeRmsData);
+    let sum = 0;
+    for (const sample of this.normalizeRmsData) sum += sample * sample;
+    const rms = Math.sqrt(sum / this.normalizeRmsData.length);
+    if (!Number.isFinite(rms) || rms < 0.001) return;
+
+    // Adapt slowly to the measured RMS so volume changes do not pump.
+    const targetRms = 0.14;
+    const targetGain = Math.max(0.55, Math.min(2.2, targetRms / rms));
+    const currentGain = this.normalizeMakeup.gain.value || 1;
+    const smoothedGain = currentGain + (targetGain - currentGain) * 0.08;
+    this.normalizeMakeup.gain.setTargetAtTime(smoothedGain, this.audioCtx.currentTime, 0.08);
   }
 
   private applyNormalize() {
@@ -773,12 +821,12 @@ export class DeckPlayer {
     if (!c || !m || !ctx) return;
     const t = ctx.currentTime;
     if (this.normalizeEnabled) {
-      c.threshold.setValueAtTime(-24, t);
-      c.knee.setValueAtTime(30, t);
-      c.ratio.setValueAtTime(8, t);
-      c.attack.setValueAtTime(0.003, t);
+      c.threshold.setValueAtTime(-18, t);
+      c.knee.setValueAtTime(18, t);
+      c.ratio.setValueAtTime(4, t);
+      c.attack.setValueAtTime(0.005, t);
       c.release.setValueAtTime(0.25, t);
-      m.gain.setTargetAtTime(1.7, t, 0.05); // makeup ≈ +4.6 dB
+      m.gain.setTargetAtTime(1, t, 0.05);
     } else {
       // Ratio 1 = sin compresión (transparente)
       c.threshold.setValueAtTime(0, t);
@@ -958,6 +1006,7 @@ export class MusicService {
   globalPlayerHidden = false;
 
   coverOverrideMap = new Map<string, string>();
+  private readonly trackCoverBust = new Map<string, number>();
   private artistImageCache = new Map<string, string | null>();
   /** Emite el trackPath cada vez que se guarda una portada nueva (iTunes o manual) */
   readonly coverReady$ = new Subject<string>();
@@ -1022,6 +1071,12 @@ export class MusicService {
     this.setupNativeAudioSession();
     this.setupNowPlayingNotifications();
     this.setupPreloading();
+  }
+
+  setNormalize(enabled: boolean): void {
+    this.mainPlayer.setNormalize(enabled);
+    this.deckAPlayer.setNormalize(enabled);
+    this.deckBPlayer.setNormalize(enabled);
   }
 
   private setupMediaSession(): void {
@@ -1362,7 +1417,13 @@ export class MusicService {
     if (source === 'ytmusic') {
       return this.coverOverrideMap.get(trackPath) || '';
     }
-    return `${this.api}/cover?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}`;
+    const bust = this.trackCoverBust.get(`${pathId}:${trackPath}`);
+    const bustParam = bust ? `&v=${bust}` : '';
+    return `${this.api}/cover?pathId=${pathId}&subPath=${encodeURIComponent(trackPath)}&token=${token}${bustParam}`;
+  }
+
+  invalidateTrackCover(pathId: number, trackPath: string): void {
+    this.trackCoverBust.set(`${pathId}:${trackPath}`, Date.now());
   }
 
   getFolderCoverUrl(pathId: number, folderPath: string): string {
@@ -1795,6 +1856,12 @@ export class MusicService {
     return this.http.get<any[]>(`${this.api.replace('/music', '/library')}/history?limit=${limit}`);
   }
 
+  getCommunityDiscover(limit = 40): Observable<CommunityDiscoverDto> {
+    return this.http.get<CommunityDiscoverDto>(
+      `${this.api.replace('/music', '/library')}/community-discover?limit=${limit}`
+    );
+  }
+
   getListeningStats(topLimit = 10): Observable<{ totalPlays: number; topTracks: any[] }> {
     return this.http.get<{ totalPlays: number; topTracks: any[] }>(
       `${this.api.replace('/music', '/library')}/stats?topLimit=${topLimit}`
@@ -1803,11 +1870,14 @@ export class MusicService {
 
   private topArtistsCache$: Observable<{ artist: string; playCount: number }[]> | null = null;
   private topArtistsCacheTs = 0;
+  private topArtistsCacheKey = '';
 
   getTopArtists(limit = 20): Observable<{ artist: string; playCount: number }[]> {
     const now = Date.now();
-    if (!this.topArtistsCache$ || now - this.topArtistsCacheTs > 300_000) {
+    const cacheKey = `${this.auth.getCurrentUser()?.username || 'anonymous'}|${limit}`;
+    if (!this.topArtistsCache$ || this.topArtistsCacheKey !== cacheKey || now - this.topArtistsCacheTs > 300_000) {
       this.topArtistsCacheTs = now;
+      this.topArtistsCacheKey = cacheKey;
       this.topArtistsCache$ = this.http.get<{ artist: string; playCount: number }[]>(
         `${this.api.replace('/music', '/library')}/top-artists?limit=${limit}`
       ).pipe(shareReplay(1));
@@ -1815,7 +1885,10 @@ export class MusicService {
     return this.topArtistsCache$;
   }
 
-  invalidateTopArtistsCache() { this.topArtistsCache$ = null; }
+  invalidateTopArtistsCache() {
+    this.topArtistsCache$ = null;
+    this.topArtistsCacheKey = '';
+  }
 
   // ── Playlists ─────────────────────────────────────────────────────────────
 
@@ -1823,6 +1896,18 @@ export class MusicService {
 
   getPlaylists(): Observable<any[]> {
     return this.http.get<any[]>(this.playlistApi);
+  }
+
+  getPlaylist(id: number): Observable<any> {
+    return this.http.get<any>(`${this.playlistApi}/${id}`);
+  }
+
+  duplicatePlaylist(id: number): Observable<any> {
+    return this.http.post<any>(`${this.playlistApi}/${id}/duplicate`, {});
+  }
+
+  importPlaylist(url: string, name: string): Observable<any> {
+    return this.http.post<any>(`${this.playlistApi}/import`, { url, name });
   }
 
   createPlaylist(name: string): Observable<any> {
@@ -1840,6 +1925,7 @@ export class MusicService {
   addTrackToPlaylist(playlistId: number, track: MusicMetadataDto, nasPathId: number): Observable<any> {
     return this.http.post<any>(`${this.playlistApi}/${playlistId}/tracks`, {
       trackPath: track.path,
+      source: track.source || 'nas',
       title: track.title || track.name,
       artist: track.artist || '',
       album: track.album || '',

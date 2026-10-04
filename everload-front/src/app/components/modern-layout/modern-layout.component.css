@@ -92,3 +92,9 @@
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
 }
+@media (max-width: 640px) {
+  .ml-shell, .ml-shell.ml-queue-open { grid-template: "sidebar main" minmax(0, 1fr) "player player" 68px / 64px minmax(0, 1fr); }
+  .ml-shell[data-bar="top"], .ml-shell[data-bar="top"].ml-queue-open { grid-template: "player player" 68px "sidebar main" minmax(0, 1fr) / 64px minmax(0, 1fr); }
+  .ml-queue { position: absolute; right: 0; top: 0; bottom: 68px; width: min(280px, calc(100% - 64px)); z-index: 10; background: var(--ml-bg); }
+  .ml-shell[data-bar="top"] .ml-queue { top: 68px; bottom: 0; }
+}

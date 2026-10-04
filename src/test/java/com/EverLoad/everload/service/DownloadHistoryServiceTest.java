@@ -7,6 +7,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,5 +97,20 @@ class DownloadHistoryServiceTest {
     void sinArchivoLegadoNoHaceNada() {
         serviceWithLegacy(tempDir.resolve("no-existe.json").toString()).importLegacyJsonHistory();
         verify(repository, never()).saveAll(any());
+    }
+
+    @Test
+    void guardaElUsuarioAutenticadoEnElRegistro() {
+        DownloadHistoryService service = serviceWithLegacy(tempDir.resolve("no-existe.json").toString());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("xiandt01", "", List.of()));
+        try {
+            Download download = new Download("tema.mp3", "music", "YouTube");
+            service.recordDownload(download);
+            assertEquals("xiandt01", download.getUsername());
+            verify(repository).save(download);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 }

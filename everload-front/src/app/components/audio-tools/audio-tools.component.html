@@ -4,7 +4,7 @@
   <header class="at-header">
     <button class="at-back-btn" (click)="goHome()" [title]="'AUDIO.BACK' | translate">←</button>
     <div class="at-header-text">
-      <h1 class="at-title">🎙 {{ 'AUDIO.TITLE' | translate }}</h1>
+      <h1 class="at-title">{{ 'AUDIO.TITLE' | translate }}</h1>
       <p class="at-subtitle">{{ 'AUDIO.SUBTITLE' | translate }}</p>
     </div>
   </header>
@@ -12,10 +12,10 @@
   <!-- ═══ TABS ════════════════════════════════════════════════════════════ -->
   <div class="at-tabs">
     <button class="at-tab" [class.active]="activeTab === 'convert'" (click)="setTab('convert')">
-      🔄 {{ 'AUDIO.TAB_CONVERT' | translate }}
+      {{ 'AUDIO.TAB_CONVERT' | translate }}
     </button>
     <button class="at-tab" [class.active]="activeTab === 'trim'" (click)="setTab('trim')">
-      ✂ {{ 'AUDIO.TAB_TRIM' | translate }}
+      {{ 'AUDIO.TAB_TRIM' | translate }}
     </button>
   </div>
 
@@ -36,13 +36,13 @@
              accept=".mp3,.m4a,.wav,.ogg,.aac,.flac,.opus,.wma"
              (change)="onConvertFileSelected($event)" hidden />
       <ng-container *ngIf="!convertFile">
-        <div class="dropzone-icon">🎵</div>
+        <div class="dropzone-icon">AUDIO FILE</div>
         <p class="dropzone-main">{{ 'AUDIO.DROP_FILE' | translate }}</p>
         <p class="dropzone-hint">{{ 'AUDIO.DROP_FILE_OR' | translate }}</p>
         <p class="dropzone-formats">MP3 · M4A · WAV · OGG · AAC · FLAC · OPUS · WMA</p>
       </ng-container>
       <ng-container *ngIf="convertFile">
-        <div class="dropzone-icon">📂</div>
+        <div class="dropzone-icon">SELECTED FILE</div>
         <p class="dropzone-main file-name">{{ convertFile.name }}</p>
         <p class="dropzone-hint">{{ formatBytes(convertFile.size) }} · {{ 'AUDIO.CLICK_CHANGE' | translate }}</p>
       </ng-container>
@@ -106,7 +106,7 @@
             *ngIf="convertFile"
             [disabled]="converting || loadingInfo"
             (click)="convertAudio()">
-      <span *ngIf="!converting">🔄 {{ 'AUDIO.CONVERT_BTN' | translate }}</span>
+      <span *ngIf="!converting">{{ 'AUDIO.CONVERT_BTN' | translate }}</span>
       <span *ngIf="converting" class="btn-loading">
         <span class="spinner"></span> {{ 'AUDIO.CONVERTING' | translate }}
       </span>
@@ -117,7 +117,7 @@
   <!-- ═══════════════════════════════════════════════════════════════════════
        TAB: RECORTAR
   ════════════════════════════════════════════════════════════════════════ -->
-  <div class="at-panel" *ngIf="activeTab === 'trim'">
+  <div class="at-panel trim-panel" *ngIf="activeTab === 'trim'">
 
     <!-- Drop zone -->
     <div class="at-dropzone"
@@ -131,13 +131,13 @@
              accept=".mp3,.m4a,.wav,.ogg,.aac,.flac,.opus,.wma"
              (change)="onTrimFileSelected($event)" hidden />
       <ng-container *ngIf="!trimFile">
-        <div class="dropzone-icon">✂</div>
+        <div class="dropzone-icon">AUDIO FILE</div>
         <p class="dropzone-main">{{ 'AUDIO.DROP_FILE' | translate }}</p>
         <p class="dropzone-hint">{{ 'AUDIO.DROP_FILE_OR' | translate }}</p>
         <p class="dropzone-formats">MP3 · M4A · WAV · OGG · AAC · FLAC · OPUS · WMA</p>
       </ng-container>
       <ng-container *ngIf="trimFile">
-        <div class="dropzone-icon">📂</div>
+        <div class="dropzone-icon">SELECTED FILE</div>
         <p class="dropzone-main file-name">{{ trimFile.name }}</p>
         <p class="dropzone-hint">{{ formatBytes(trimFile.size) }} · {{ 'AUDIO.CLICK_CHANGE' | translate }}</p>
       </ng-container>
@@ -205,7 +205,7 @@
       <!-- ── Time inputs ────────────────────────────────────────────────── -->
       <div class="trim-inputs-row">
         <div class="trim-input-group">
-          <label class="trim-input-label">✂ {{ 'AUDIO.TRIM_START' | translate }}</label>
+          <label class="trim-input-label">{{ 'AUDIO.TRIM_START' | translate }}</label>
           <input type="text" class="trim-time-input"
                  [value]="trimStartDisplay"
                  (change)="onTrimStartInput($event)"
@@ -213,7 +213,7 @@
         </div>
         <div class="trim-arrow">→</div>
         <div class="trim-input-group">
-          <label class="trim-input-label">✂ {{ 'AUDIO.TRIM_END' | translate }}</label>
+          <label class="trim-input-label">{{ 'AUDIO.TRIM_END' | translate }}</label>
           <input type="text" class="trim-time-input"
                  [value]="trimEndDisplay"
                  (change)="onTrimEndInput($event)"
@@ -239,7 +239,7 @@
 
       <!-- Trim button -->
       <button class="at-action-btn" [disabled]="trimming" (click)="trimAudio()">
-        <span *ngIf="!trimming">✂ {{ 'AUDIO.TRIM_BTN' | translate }}</span>
+        <span *ngIf="!trimming">{{ 'AUDIO.TRIM_BTN' | translate }}</span>
         <span *ngIf="trimming" class="btn-loading">
           <span class="spinner"></span> {{ 'AUDIO.TRIMMING' | translate }}
         </span>

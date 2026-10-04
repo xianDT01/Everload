@@ -13,6 +13,8 @@ import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
+import org.jaudiotagger.tag.images.Artwork;
+import org.jaudiotagger.tag.images.ArtworkFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
@@ -21,6 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -46,6 +51,7 @@ public class MusicService {
     private static final String IMAGE_URL_KEY = "imageUrl";
 
     private static final byte[] NO_COVER_ART = new byte[0];
+    private static final long MAX_COVER_UPLOAD_BYTES = 10L * 1024 * 1024;
 
     private final NasService nasService;
     private final NasPathRepository nasPathRepository;
@@ -569,6 +575,72 @@ public class MusicService {
         return NO_COVER_ART;
     }
 
+    public void updateCoverArt(Long pathId, String relativePath, byte[] imageBytes) {
+        if (imageBytes == null || imageBytes.length == 0 || imageBytes.length > MAX_COVER_UPLOAD_BYTES) {
+            throw new IllegalArgumentException("La imagen debe ocupar entre 1 byte y 10 MB");
+        }
+        File audioFile = resolveFile(pathId, relativePath);
+        if (!isAudio(audioFile)) throw new IllegalArgumentException("No es un archivo de audio");
+
+        Path temporaryImage = null;
+        try {
+            String format = imageFormat(imageBytes);
+            if (format == null) throw new IllegalArgumentException("Solo se admiten imágenes JPG o PNG");
+            try (ImageInputStream imageInput = ImageIO.createImageInputStream(new ByteArrayInputStream(imageBytes))) {
+                Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
+                if (!readers.hasNext()) throw new IllegalArgumentException("La imagen no es válida");
+                ImageReader reader = readers.next();
+                try {
+                    reader.setInput(imageInput, true, true);
+                    int width = reader.getWidth(0);
+                    int height = reader.getHeight(0);
+                    if (width > 8000 || height > 8000 || (long) width * height > 40_000_000L
+                            || reader.read(0) == null) {
+                        throw new IllegalArgumentException("La imagen no es válida o supera las dimensiones permitidas");
+                    }
+                } finally {
+                    reader.dispose();
+                }
+            }
+
+            temporaryImage = Files.createTempFile("everload-cover-", "." + format);
+            Files.write(temporaryImage, imageBytes);
+
+            AudioFile audio = AudioFileIO.read(audioFile);
+            Tag tag = audio.getTagOrCreateAndSetDefault();
+            Artwork artwork = ArtworkFactory.createArtworkFromFile(temporaryImage.toFile());
+            tag.deleteArtworkField();
+            tag.setField(artwork);
+            audio.setTag(tag);
+            AudioFileIO.write(audio);
+
+            Tag savedTag = audio.getTag();
+            updateMetadataCache(new MetadataCacheUpdate(pathId, relativePath, audioFile,
+                    savedTag == null ? null : savedTag.getFirst(FieldKey.TITLE),
+                    savedTag == null ? null : savedTag.getFirst(FieldKey.ARTIST),
+                    savedTag == null ? null : savedTag.getFirst(FieldKey.ALBUM),
+                    savedTag == null ? null : savedTag.getFirst(FieldKey.YEAR), audio));
+            invalidateBrowseCache(pathId);
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MusicOperationException("No se pudo guardar la carátula: " + e.getMessage(), e);
+        } finally {
+            if (temporaryImage != null) {
+                try { Files.deleteIfExists(temporaryImage); }
+                catch (IOException e) { log.debug("Could not remove temporary cover image: {}", e.getMessage()); }
+            }
+        }
+    }
+
+    private String imageFormat(byte[] bytes) {
+        if (bytes.length >= 8 && bytes[0] == (byte) 0x89 && bytes[1] == 0x50
+                && bytes[2] == 0x4e && bytes[3] == 0x47) return "png";
+        if (bytes.length >= 3 && bytes[0] == (byte) 0xff && bytes[1] == (byte) 0xd8
+                && bytes[2] == (byte) 0xff) return "jpg";
+        return null;
+    }
+
     /** Returns cover art bytes for a folder, with priority:
      *  1. cover.jpg / cover.png file in the folder
      *  2. Embedded ID3 art from any audio file directly in the folder
@@ -962,16 +1034,26 @@ public class MusicService {
         try {
             AudioFile af = AudioFileIO.read(file);
             Tag tag = af.getTagOrCreateDefault();
-            if (title  != null) tag.setField(FieldKey.TITLE,  title);
-            if (artist != null) tag.setField(FieldKey.ARTIST, artist);
-            if (album  != null) tag.setField(FieldKey.ALBUM,  album);
-            if (year   != null) tag.setField(FieldKey.YEAR,   year);
+            setMetadataField(tag, FieldKey.TITLE, title);
+            setMetadataField(tag, FieldKey.ARTIST, artist);
+            setMetadataField(tag, FieldKey.ALBUM, album);
+            setMetadataField(tag, FieldKey.YEAR, year);
             af.setTag(tag);
             AudioFileIO.write(af);
             updateMetadataCache(new MetadataCacheUpdate(
                     pathId, relativePath, file, title, artist, album, year, af));
+            invalidateBrowseCache(pathId);
         } catch (Exception e) {
             throw new MusicOperationException("No se pudieron actualizar los metadatos: " + e.getMessage(), e);
+        }
+    }
+
+    private void setMetadataField(Tag tag, FieldKey key, String value) throws Exception {
+        if (value == null) return;
+        if (value.isBlank()) {
+            tag.deleteField(key);
+        } else {
+            tag.setField(key, value.trim());
         }
     }
 

@@ -287,7 +287,8 @@ public class DownloadService {
             throw new IllegalStateException("El servicio de descargas no está listo aún");
         }
         pruneOldJobs();
-        DirectDownloadJob job = new DirectDownloadJob(UUID.randomUUID().toString(), videoId, safeFormat);
+        DirectDownloadJob job = new DirectDownloadJob(UUID.randomUUID().toString(), videoId, safeFormat,
+                downloadHistoryService.currentUsername());
         directDownloadJobs.put(job.jobId, job);
         return job;
     }
@@ -315,7 +316,7 @@ public class DownloadService {
             job.status = DirectDownloadStatus.RUNNING;
             job.progress = 5;
             File finalFile = runAudioDownload(job, tempDirPath);
-            downloadHistoryService.recordDownload(new Download(finalFile.getName(), MUSIC_CATEGORY, YOUTUBE_SOURCE));
+            downloadHistoryService.recordDownload(new Download(finalFile.getName(), MUSIC_CATEGORY, YOUTUBE_SOURCE, job.username));
 
             job.filename = finalFile.getName();
             job.filePath = finalFile.getAbsolutePath();
@@ -347,7 +348,7 @@ public class DownloadService {
 
             String fileName = tmpFile.getName();
             String savedPath = nasService.saveToNas(job.nasPathId, job.nasSubPath, tmpFile.toPath(), fileName);
-            downloadHistoryService.recordDownload(new Download(fileName, "music (NAS)", YOUTUBE_SOURCE));
+            downloadHistoryService.recordDownload(new Download(fileName, "music (NAS)", YOUTUBE_SOURCE, job.username));
             logger.info("✅ [NAS] Guardado en: {}", savedPath);
 
             job.filename = fileName;
@@ -576,6 +577,8 @@ public class DownloadService {
         public final String jobId;
         public final String videoId;
         public final String format;
+        @JsonIgnore
+        public final String username;
         public volatile DirectDownloadStatus status = DirectDownloadStatus.QUEUED;
         public volatile int progress = 0;
         public volatile String filename;
@@ -590,10 +593,11 @@ public class DownloadService {
         @JsonIgnore
         public volatile String nasSubPath;
 
-        public DirectDownloadJob(String jobId, String videoId, String format) {
+        public DirectDownloadJob(String jobId, String videoId, String format, String username) {
             this.jobId = jobId;
             this.videoId = videoId;
             this.format = format;
+            this.username = username;
         }
     }
 }

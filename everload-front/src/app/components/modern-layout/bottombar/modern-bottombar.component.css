@@ -42,8 +42,14 @@
 
 .mb-cover-icon {
   color: color-mix(in srgb, var(--ml-text) 24%, transparent);
-  font-size: 20px;
+  width: 25px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.mb-cover-icon svg { width: 25px; height: 25px; fill: currentColor; display: block; }
 
 .mb-cover-hover {
   position: absolute;
@@ -57,6 +63,8 @@
   opacity: 0;
   transition: opacity 0.15s;
 }
+
+.mb-cover-hover svg { width: 18px; height: 18px; fill: currentColor; display: block; }
 
 .mb-cover:hover .mb-cover-hover { opacity: 1; }
 
@@ -146,16 +154,16 @@
   color: var(--ml-muted);
   font-size: 12px;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: color 0.15s;
+  padding: 6px;
+  border-radius: 50%;
+  transition: color 0.15s, background 0.15s, transform 0.15s;
   line-height: 1;
   font-family: inherit;
 }
 
-.mb-btn:hover { color: var(--ml-text); }
+.mb-btn:hover { color: var(--ml-text); background: color-mix(in srgb, var(--ml-text) 8%, transparent); transform: translateY(-1px); }
 .mb-btn-lg { font-size: 14px; }
-.mb-active { color: var(--ml-text); }
+.mb-active { color: var(--ml-accent); background: color-mix(in srgb, var(--ml-accent) 14%, transparent); }
 
 .mb-btn svg {
   width: 18px;
@@ -176,7 +184,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
   line-height: 1;
   flex-shrink: 0;
   box-shadow: 0 8px 22px color-mix(in srgb, var(--ml-accent) 25%, transparent);
@@ -297,6 +305,8 @@
 }
 
 .mb-icon-btn svg { width: 14px; height: 14px; fill: currentColor; display: block; }
+.mb-icon-btn { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; }
+.mb-vol-icon { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; }
 
 /* ── EQ Panel ── */
 .mb-eq-panel {
@@ -757,6 +767,14 @@
 .mb-metadata-modal label { display: grid; gap: 6px; margin-top: 10px; color: var(--ml-muted); font-size: 11px; font-weight: 700; }
 .mb-metadata-modal input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--ml-border); border-radius: 8px; padding: 9px 10px; background: color-mix(in srgb, var(--ml-bg) 96%, #000 4%); color: var(--ml-text); font: inherit; }
 .mb-metadata-modal input:focus { outline: 2px solid color-mix(in srgb, var(--ml-accent) 48%, transparent); border-color: var(--ml-accent); }
+.mb-cover-editor { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px; border: 1px solid var(--ml-border); background: color-mix(in srgb, var(--ml-bg) 92%, var(--ml-text) 8%); }
+.mb-cover-editor > img, .mb-cover-editor > span { width: 68px; height: 68px; flex: 0 0 68px; object-fit: cover; background: var(--ml-bg); }
+.mb-cover-editor > span { display: grid; place-items: center; color: var(--ml-muted); font-size: 28px; }
+.mb-cover-editor > div { display: grid; justify-items: start; gap: 7px; min-width: 0; }
+.mb-cover-editor strong { color: var(--ml-muted); font-size: 11px; }
+.mb-cover-editor input { max-width: 100%; font-size: 11px; }
+.mb-cover-editor button { border: 1px solid var(--ml-border); padding: 6px 9px; background: transparent; color: var(--ml-text); cursor: pointer; font: inherit; font-size: 11px; }
+.mb-cover-editor button:disabled { cursor: wait; opacity: .6; }
 .mb-metadata-error { margin: 12px 0 0; color: var(--ml-danger); font-size: 12px; }
 .mb-metadata-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .mb-metadata-actions button { border-radius: 8px; padding: 8px 12px; cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; }

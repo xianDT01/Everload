@@ -35,6 +35,9 @@ public class PlaylistTrack {
     private String artist;
     private String album;
 
+    @Builder.Default
+    private String source = "nas";
+
     @Column(nullable = false)
     private Long nasPathId;
 

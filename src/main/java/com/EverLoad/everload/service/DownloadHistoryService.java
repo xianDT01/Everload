@@ -7,6 +7,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -52,11 +55,25 @@ public class DownloadHistoryService {
     }
 
     public void recordDownload(Download download) {
+        recordDownload(download, currentUsername());
+    }
+
+    public void recordDownload(Download download, String username) {
         try {
+            if (download.getUsername() == null || download.getUsername().isBlank()) {
+                download.setUsername(username);
+            }
             downloadRepository.save(download);
         } catch (Exception e) {
             logger.error("No se pudo guardar el historial de descargas", e);
         }
+    }
+
+    public String currentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) return null;
+        return authentication.getName();
     }
 
     public List<Download> getHistory() {

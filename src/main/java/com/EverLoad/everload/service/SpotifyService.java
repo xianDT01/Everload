@@ -44,8 +44,12 @@ public class SpotifyService {
     }
 
     public List<SpotifyResult> getPlaylistTracks(String playlistId) {
+        return getPlaylistTracks(playlistId, Integer.MAX_VALUE);
+    }
+
+    public List<SpotifyResult> getPlaylistTracks(String playlistId, int limit) {
         try {
-            return getPlaylistTracksFromEmbed(playlistId);
+            return getPlaylistTracksFromEmbed(playlistId, limit);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new SpotifyServiceException("Se interrumpió la conexión con Spotify", e);
@@ -54,7 +58,7 @@ public class SpotifyService {
         }
     }
 
-    private List<SpotifyResult> getPlaylistTracksFromEmbed(String playlistId)
+    private List<SpotifyResult> getPlaylistTracksFromEmbed(String playlistId, int limit)
             throws IOException, InterruptedException {
         String url = "https://open.spotify.com/embed/playlist/" + playlistId;
 
@@ -90,14 +94,16 @@ public class SpotifyService {
         }
 
         List<SpotifyResult> results = new ArrayList<>();
+        long deadline = limit == Integer.MAX_VALUE ? Long.MAX_VALUE : System.nanoTime() + Duration.ofSeconds(60).toNanos();
         for (JsonNode track : trackList) {
+            if (results.size() >= limit) break;
             String title = track.path("title").asText("").trim();
             String artist = track.path("subtitle").asText("").trim();
             if (title.isEmpty()) continue;
 
             String query = artist.isEmpty() ? title : artist + " - " + title;
-            String youtubeUrl = searchYouTube(query);
-            results.add(new SpotifyResult(query, youtubeUrl));
+            String youtubeUrl = System.nanoTime() < deadline ? searchYouTube(query) : null;
+            results.add(new SpotifyResult(query, youtubeUrl, artist));
         }
 
         return results;
