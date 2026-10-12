@@ -42,6 +42,9 @@ public class FavoriteTrack {
     
     private Long nasPathId; // ID of the root NasPath
 
+    @Transient
+    private Boolean available;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

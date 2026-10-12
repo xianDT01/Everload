@@ -9,6 +9,7 @@ import com.everload.everload.dto.CommunityDiscoverResponse;
 import com.everload.everload.repository.FavoriteTrackRepository;
 import com.everload.everload.repository.PlaybackHistoryRepository;
 import com.everload.everload.repository.UserRepository;
+import com.everload.everload.service.NasService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class UserLibraryController {
     private final FavoriteTrackRepository favoriteTrackRepository;
     private final PlaybackHistoryRepository playbackHistoryRepository;
     private final UserRepository userRepository;
+    private final NasService nasService;
 
     private User getAuthenticatedUser(UserDetails userDetails) {
         return userRepository.findByUsername(userDetails.getUsername())
@@ -50,7 +52,12 @@ public class UserLibraryController {
     public ResponseEntity<List<FavoriteTrack>> getFavorites(@AuthenticationPrincipal UserDetails userDetails) {
         User user = getAuthenticatedUser(userDetails);
         List<FavoriteTrack> favorites = favoriteTrackRepository.findByUser(user, Sort.by(Sort.Direction.DESC, "createdAt"));
+        favorites.forEach(track -> track.setAvailable(isAvailable(track.getNasPathId(), track.getTrackPath())));
         return ResponseEntity.ok(favorites);
+    }
+
+    private boolean isAvailable(Long nasPathId, String trackPath) {
+        return nasPathId == null || nasPathId <= 0 || nasService.isTrackAvailable(nasPathId, trackPath);
     }
 
     @Operation(summary = "Añadir o quitar pista de favoritos (toggle)")
@@ -98,6 +105,7 @@ public class UserLibraryController {
                                                             @RequestParam(defaultValue = "50") int limit) {
         User user = getAuthenticatedUser(userDetails);
         List<PlaybackHistory> history = playbackHistoryRepository.findByUserOrderByPlayedAtDesc(user, PageRequest.of(0, limit));
+        history.forEach(track -> track.setAvailable(isAvailable(track.getNasPathId(), track.getTrackPath())));
         return ResponseEntity.ok(history);
     }
 
@@ -143,6 +151,7 @@ public class UserLibraryController {
             m.put("album",     row[3]);
             m.put("nasPathId", row[4]);
             m.put("playCount", row[5]);
+            m.put("available", isAvailable((Long) row[4], (String) row[0]));
             return m;
         }).toList();
 

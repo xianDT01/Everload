@@ -3,6 +3,9 @@ package com.everload.everload.controller;
 import com.everload.everload.dto.AuthResponse;
 import com.everload.everload.dto.LoginRequest;
 import com.everload.everload.dto.RegisterRequest;
+import com.everload.everload.dto.RefreshSessionRequest;
+import com.everload.everload.dto.LogoutSessionRequest;
+import com.everload.everload.service.PersistentSessionService;
 import com.everload.everload.security.JwtUtil;
 import com.everload.everload.service.AuthService;
 import com.everload.everload.service.PresenceService;
@@ -29,6 +32,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final TokenRevocationService tokenRevocationService;
     private final PresenceService presenceService;
+    private final PersistentSessionService persistentSessionService;
 
     @Operation(summary = "Registrar nuevo usuario")
     @PostMapping("/register")
@@ -46,6 +50,9 @@ public class AuthController {
     public ResponseEntity<Object> login(@Valid @RequestBody LoginRequest request) {
         try {
             AuthResponse response = authService.login(request);
+            if (request.isRememberMe()) {
+                response.setRefreshToken(persistentSessionService.create(response.getUsername()));
+            }
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(401).body(Map.of(ERROR_FIELD, e.getMessage()));
@@ -72,9 +79,20 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/session/refresh")
+    public ResponseEntity<Object> refreshSession(@Valid @RequestBody RefreshSessionRequest request) {
+        try {
+            return ResponseEntity.ok(persistentSessionService.refresh(request.getRefreshToken()));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(401).body(Map.of(ERROR_FIELD, "Sesion invalida o expirada"));
+        }
+    }
+
     @Operation(summary = "Cerrar sesión — invalida el token actual")
     @PostMapping("/logout")
-    public ResponseEntity<Object> logout(HttpServletRequest request) {
+    public ResponseEntity<Object> logout(HttpServletRequest request,
+            @Valid @RequestBody(required = false) LogoutSessionRequest session) {
+        if (session != null) persistentSessionService.revoke(session.getRefreshToken());
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);

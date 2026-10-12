@@ -36,8 +36,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 class ChatServiceTest {
 
@@ -47,6 +49,7 @@ class ChatServiceTest {
     private ChatGroupReadRepository readRepository;
     private UserRepository userRepository;
     private PresenceService presenceService;
+    private NotificationService notificationService;
     private ChatService service;
 
     @BeforeEach
@@ -57,6 +60,7 @@ class ChatServiceTest {
         readRepository = mock(ChatGroupReadRepository.class);
         userRepository = mock(UserRepository.class);
         presenceService = mock(PresenceService.class);
+        notificationService = mock(NotificationService.class);
         service = new ChatService(
                 groupRepository,
                 memberRepository,
@@ -64,7 +68,7 @@ class ChatServiceTest {
                 userRepository,
                 presenceService,
                 mock(AvatarService.class),
-                mock(NotificationService.class),
+                notificationService,
                 readRepository
         );
     }
@@ -191,6 +195,7 @@ class ChatServiceTest {
         assertThrows(RuntimeException.class, () -> service.deleteGroupByUser(99L, user));
         assertThrows(RuntimeException.class, () -> service.adminGetMessages(99L));
         assertThrows(RuntimeException.class, () -> service.adminGetGroupMembers(99L));
+        assertThrows(RuntimeException.class, () -> service.adminClearGroupMessages(99L));
         assertThrows(RuntimeException.class, () -> service.adminDeleteGroup(99L));
         assertThrows(RuntimeException.class, () -> service.adminRemoveMember(99L, "target"));
     }
@@ -241,6 +246,17 @@ class ChatServiceTest {
         assertEquals(1, service.adminGetAllGroups().size());
         assertEquals(1, service.adminGetMessages(3L).size());
         assertEquals(1, service.adminGetGroupMembers(3L).size());
+    }
+
+    @Test
+    void adminClearGroupMessagesDeletesHistoryWithoutReadingIt() {
+        ChatGroup group = group(3L);
+        when(groupRepository.findById(3L)).thenReturn(Optional.of(group));
+
+        service.adminClearGroupMessages(3L);
+
+        verify(messageRepository).deleteByGroup(group);
+        verify(messageRepository, never()).findByGroupOrderBySentAtAsc(group);
     }
 
     @Test
@@ -299,6 +315,37 @@ class ChatServiceTest {
         ChatMessageDto result = service.getMessages(2L, user).get(0);
 
         assertEquals("original text", result.getReplyToContent());
+    }
+
+    @Test
+    void readonlyMembersCannotSendAndTextMentionsNotifyOnlyOtherGroupMembers() {
+        User sender = user(1L, "sender");
+        User mentioned = user(2L, "mentioned");
+        User outsider = user(3L, "outsider");
+        ChatGroup group = group(4L);
+        when(groupRepository.findById(4L)).thenReturn(Optional.of(group));
+        when(memberRepository.findByGroupAndUser(group, sender)).thenReturn(Optional.of(
+                GroupMember.builder().group(group).user(sender).role(MemberRole.READONLY).build()));
+        assertThrows(RuntimeException.class, () -> service.sendMessage(4L,
+                SendMessageRequest.builder().content("not allowed").build(), sender));
+
+        when(memberRepository.findByGroupAndUser(group, sender)).thenReturn(Optional.of(
+                GroupMember.builder().group(group).user(sender).role(MemberRole.MEMBER).build()));
+        when(userRepository.findByUsername("mentioned")).thenReturn(Optional.of(mentioned));
+        when(userRepository.findByUsername("outsider")).thenReturn(Optional.of(outsider));
+        when(memberRepository.existsByGroupAndUser(group, mentioned)).thenReturn(true);
+        when(memberRepository.existsByGroupAndUser(group, outsider)).thenReturn(false);
+        when(messageRepository.save(any(ChatMessage.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.sendMessage(4L, SendMessageRequest.builder()
+                .content("hello @sender @mentioned @outsider @mentioned")
+                .messageType("unknown")
+                .build(), sender);
+
+        verify(notificationService).createNotification(mentioned, "MENTION",
+                "sender te mencionó en group", "hello @sender @mentioned @outsider @mentioned", "/chat?group=4");
+        verify(notificationService, never()).createNotification(outsider, "MENTION",
+                "sender te mencionó en group", "hello @sender @mentioned @outsider @mentioned", "/chat?group=4");
     }
 
     private User user(Long id, String username) {

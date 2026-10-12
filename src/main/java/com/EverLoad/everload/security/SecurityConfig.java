@@ -56,6 +56,11 @@ public class SecurityConfig {
             }))
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, exception) -> {
+                response.setStatus(401);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"error\":\"Autenticacion requerida\"}");
+            }))
             .authorizeHttpRequests(auth -> {
                 auth
                     .requestMatchers("/api/auth/**").permitAll()

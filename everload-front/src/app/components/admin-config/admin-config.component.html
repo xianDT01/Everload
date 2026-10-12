@@ -15,15 +15,16 @@
       </button>
     </div>
     <div class="theme-picker-wrap">
-      <button class="theme-toggle-btn" (click)="toggleThemePicker()" [title]="'ADMIN.THEME_TITLE' | translate">🎨</button>
+      <button class="theme-toggle-btn" (click)="toggleThemePicker()" [title]="'ADMIN.THEME_TITLE' | translate" [attr.aria-label]="'ADMIN.THEME_TITLE' | translate" [attr.aria-expanded]="showThemePicker">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h1.2a2.2 2.2 0 0 0 1.6-3.7 1.5 1.5 0 0 1 1.1-2.6H18a3 3 0 0 0 3-3c0-4.8-4-8.7-9-8.7Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="15" cy="8" r="1"/></svg>
+      </button>
       <div class="theme-picker-panel" *ngIf="showThemePicker">
-        <div *ngFor="let t of themes" 
-             class="theme-dot" 
-             [style.background]="t.color"
-             [class.active]="currentTheme === t.id"
-             (click)="applyTheme(t.id)"
-             [title]="t.id">
-        </div>
+        <span class="skin-picker-label">{{ 'ADMIN.SKINS' | translate }}</span>
+        <button *ngFor="let t of themes" type="button" class="skin-option" [class.active]="currentTheme === t.id" (click)="applyTheme(t.id)" [attr.aria-pressed]="currentTheme === t.id" [title]="('ADMIN.SKIN_' + t.id.toUpperCase()) | translate">
+          <span class="theme-dot" [style.background]="t.color" aria-hidden="true"></span>
+          <span>{{ ('ADMIN.SKIN_' + t.id.toUpperCase()) | translate }}</span>
+          <svg *ngIf="currentTheme === t.id" class="skin-check" viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -35,17 +36,129 @@
 
   <!-- Tabs -->
   <div class="tabs">
-    <button [class.active]="activeTab === 'config'" (click)="activeTab = 'config'">⚙️ {{ 'ADMIN.TAB_CONFIG' | translate }}</button>
-    <button [class.active]="activeTab === 'authHero'" (click)="activeTab = 'authHero'; loadAuthHeroImages()">{{ 'ADMIN.TAB_AUTH_HERO' | translate }}</button>
-    <button [class.active]="activeTab === 'users'" (click)="activeTab = 'users'; loadPendingUsers(); loadActiveUsers()">👥 {{ 'ADMIN.TAB_USERS' | translate }}</button>
-    <button [class.active]="activeTab === 'nas'" (click)="activeTab = 'nas'; loadNasPaths()">💾 {{ 'ADMIN.TAB_NAS' | translate }}</button>
-    <button [class.active]="activeTab === 'logs'" (click)="activeTab = 'logs'; cargarLogs()">📋 {{ 'ADMIN.TAB_LOGS' | translate }}</button>
-    <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'; cargarHistorial()">📜 {{ 'ADMIN.TAB_HISTORY' | translate }}</button>
-    <button [class.active]="activeTab === 'chat'" (click)="activeTab = 'chat'; loadChatGroups()">💬 {{ 'ADMIN.TAB_CHAT' | translate }}</button>
-    <button [class.active]="activeTab === 'audit'" (click)="activeTab = 'audit'; loadAuditLogs(0)">🔍 {{ 'ADMIN.TAB_AUDIT' | translate }}</button>
-    <button [class.active]="activeTab === 'app'" (click)="activeTab = 'app'; loadAndroidRelease()">APK {{ 'ADMIN.TAB_APP' | translate }}</button>
-    <button [class.active]="activeTab === 'sistema'" (click)="activeTab = 'sistema'; onSistemaTab()">🛠️ {{ 'ADMIN.TAB_SYSTEM' | translate }}</button>
+    <button [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
+      {{ 'ADMIN.DASHBOARD' | translate }}
+    </button>
+    <button [class.active]="activeTab === 'config'" (click)="activeTab = 'config'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>{{ 'ADMIN.TAB_CONFIG' | translate }}</button>
+    <button [class.active]="activeTab === 'authHero'" (click)="activeTab = 'authHero'; loadAuthHeroImages()"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="15" rx="2"/><path d="M8 21h8m-4-2v2m-5-7 3-3 2 2 2-2 3 3"/><circle cx="9" cy="8" r="1"/></svg>{{ 'ADMIN.TAB_AUTH_HERO' | translate }}</button>
+    <button [class.active]="activeTab === 'users'" (click)="activeTab = 'users'; loadPendingUsers(); loadActiveUsers(); loadInactiveUsers()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1H3Zm13-9a3 3 0 1 0-1-5.8M18 14a5 5 0 0 1 3 4.6V20h-3"/></svg>{{ 'ADMIN.TAB_USERS' | translate }}</button>
+    <button [class.active]="activeTab === 'nas'" (click)="activeTab = 'nas'; loadNasPaths()"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M11 8h6m-6 9h6"/></svg>{{ 'ADMIN.TAB_NAS' | translate }}</button>
+    <button [class.active]="activeTab === 'logs'" (click)="activeTab = 'logs'; cargarLogs()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h12M8 10h12M8 15h12M8 20h12"/><path d="M3 5h.01M3 10h.01M3 15h.01M3 20h.01"/></svg>{{ 'ADMIN.TAB_LOGS' | translate }}</button>
+    <button [class.active]="activeTab === 'history'" (click)="activeTab = 'history'; cargarHistorial()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>{{ 'ADMIN.TAB_HISTORY' | translate }}</button>
+    <button [class.active]="activeTab === 'chat'" (click)="activeTab = 'chat'; loadChatGroups()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.7 8.7 0 0 1-3.6-.8L4 20l1.3-3.6A7.2 7.2 0 0 1 4 12c0-4.2 3.6-7.5 8-7.5s8 2.8 8 7Z"/><path d="M8 12h.01M12 12h.01M16 12h.01"/></svg>{{ 'ADMIN.TAB_CHAT' | translate }}</button>
+    <button [class.active]="activeTab === 'audit'" (click)="activeTab = 'audit'; loadAuditLogs(0)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5M8 10.5l1.7 1.7 3.5-3.5"/></svg>{{ 'ADMIN.TAB_AUDIT' | translate }}</button>
+    <button [class.active]="activeTab === 'app'" (click)="activeTab = 'app'; loadAndroidRelease()"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 5h4m-2 13.5h.01"/><path d="m10 9 5 3-5 3V9Z"/></svg>{{ 'ADMIN.TAB_APP' | translate }}</button>
+    <button [class.active]="activeTab === 'sistema'" (click)="activeTab = 'sistema'; onSistemaTab()"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01m4-10h6m-6 10h6"/><path d="m18 2 1 2m3 1-2 1"/></svg>{{ 'ADMIN.TAB_SYSTEM' | translate }}</button>
   </div>
+
+  <section *ngIf="activeTab === 'overview'" class="tab-content admin-overview">
+    <header class="overview-hero">
+      <div class="overview-hero-copy">
+        <span class="overview-eyebrow">EVERLOAD <span>/</span> {{ 'ADMIN.OVERVIEW' | translate }}</span>
+        <h1>{{ 'ADMIN.OVERVIEW_TITLE' | translate }}</h1>
+        <p>{{ 'ADMIN.OVERVIEW_DESC' | translate }}</p>
+        <div class="overview-health"><span></span>{{ 'ADMIN.SERVICE_OPERATIONAL' | translate }}</div>
+      </div>
+      <div class="overview-hero-art" aria-hidden="true">
+        <div class="overview-art-ring overview-art-ring-a"></div>
+        <div class="overview-art-ring overview-art-ring-b"></div>
+        <div class="overview-art-core"><img src="/icons/icon-192x192.png" alt=""></div>
+        <span class="overview-art-note">EL / 01</span>
+      </div>
+      <button class="overview-refresh" type="button" (click)="loadDashboard()" [disabled]="dashboardLoading" [title]="'ADMIN.REFRESH' | translate">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.8-2L20 12M4 12l2.6 5a7 7 0 0 0 11.8-2"/></svg>
+      </button>
+    </header>
+
+    <div class="overview-statusline">
+      <span>{{ 'ADMIN.LIVE_OVERVIEW' | translate }}</span>
+      <span *ngIf="dashboardUpdatedAt">{{ 'ADMIN.LAST_UPDATED' | translate }} {{ dashboardUpdatedAt | date:'HH:mm:ss' }}</span>
+      <span *ngIf="!dashboardUpdatedAt">{{ 'ADMIN.WAITING_DATA' | translate }}</span>
+    </div>
+
+    <div *ngIf="dashboardError" class="overview-error">
+      <span>{{ 'ADMIN.DASHBOARD_ERROR' | translate }}</span>
+      <button class="btn secondary small" (click)="loadDashboard()">{{ 'ADMIN.RETRY' | translate }}</button>
+    </div>
+
+    <ng-container *ngIf="dashboard as stats">
+      <div class="overview-metrics">
+        <article class="overview-metric metric-users">
+          <div class="metric-top"><span>{{ 'ADMIN.ACTIVE_USERS' | translate }}</span><span class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1.5A5.5 5.5 0 0 1 8 13h2a5.5 5.5 0 0 1 5.5 5.5V20M16 4.8a3.5 3.5 0 0 1 0 6.6M18 14a4.5 4.5 0 0 1 3.5 4.4V20"/></svg></span></div>
+          <strong>{{ stats.activeUsers }}</strong>
+          <small>{{ stats.totalUsers }} {{ 'ADMIN.TOTAL_ACCOUNTS' | translate }}</small>
+          <div class="metric-foot"><span class="metric-dot"></span>{{ 'ADMIN.USERS_ACTIVE_NOTE' | translate }}</div>
+        </article>
+        <article class="overview-metric metric-downloads">
+          <div class="metric-top"><span>{{ 'ADMIN.DOWNLOADS_TODAY' | translate }}</span><span class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3"/></svg></span></div>
+          <strong>{{ stats.downloadsToday }}</strong>
+          <small>{{ stats.downloadsLast7Days }} {{ 'ADMIN.LAST_SEVEN_DAYS' | translate }}</small>
+          <div class="metric-foot"><span class="metric-dot"></span>{{ 'ADMIN.DOWNLOADS_TOTAL' | translate }} {{ stats.totalDownloads }}</div>
+        </article>
+        <article class="overview-metric metric-pending">
+          <div class="metric-top"><span>{{ 'ADMIN.PENDING_USERS' | translate }}</span><span class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/></svg></span></div>
+          <strong>{{ stats.pendingUsers }}</strong>
+          <small>{{ 'ADMIN.NEEDS_REVIEW' | translate }}</small>
+          <button class="metric-link" (click)="activeTab = 'users'; loadPendingUsers(); loadActiveUsers(); loadInactiveUsers()">{{ 'ADMIN.REVIEW_REQUESTS' | translate }} <span>→</span></button>
+        </article>
+        <article class="overview-metric metric-storage">
+          <div class="metric-top"><span>{{ 'ADMIN.DATABASE_STORAGE' | translate }}</span><span class="metric-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg></span></div>
+          <strong>{{ formatDashboardBytes(stats.databaseSizeBytes) }}</strong>
+          <small>{{ 'ADMIN.PERSISTENT_VOLUME' | translate }}</small>
+          <div class="metric-foot"><span class="metric-dot"></span>{{ formatDashboardBytes(stats.volumeUsableBytes) }} {{ 'ADMIN.FREE_SPACE' | translate }}</div>
+        </article>
+      </div>
+
+      <div class="overview-panels">
+        <section class="overview-panel activity-panel">
+          <div class="panel-heading">
+            <div><span class="panel-overline">{{ 'ADMIN.ACTIVITY' | translate }}</span><h2>{{ 'ADMIN.DOWNLOAD_ACTIVITY' | translate }}</h2></div>
+            <span class="panel-total">{{ stats.downloadsLast7Days }} <small>{{ 'ADMIN.LAST_SEVEN_DAYS' | translate }}</small></span>
+          </div>
+          <div class="activity-chart" *ngIf="stats.downloadsByDay.length; else noActivity">
+            <div class="activity-column" *ngFor="let day of stats.downloadsByDay">
+              <span class="activity-count">{{ day.count }}</span>
+              <div class="activity-track"><i [style.height.%]="dashboardBarHeight(day.count)"></i></div>
+              <small>{{ dashboardDayLabel(day.day) }}</small>
+            </div>
+          </div>
+          <ng-template #noActivity><p class="panel-empty">{{ 'ADMIN.NO_ACTIVITY' | translate }}</p></ng-template>
+          <div class="chart-legend"><span></span>{{ 'ADMIN.DOWNLOADS_PER_DAY' | translate }}</div>
+        </section>
+
+        <section class="overview-panel resource-panel">
+          <div class="panel-heading"><div><span class="panel-overline">{{ 'ADMIN.RUNTIME' | translate }}</span><h2>{{ 'ADMIN.RESOURCE_USAGE' | translate }}</h2></div><span class="runtime-badge">{{ 'ADMIN.LIVE' | translate }}</span></div>
+          <div class="resource-row">
+            <div><span>{{ 'ADMIN.PROCESS_CPU' | translate }}</span><strong>{{ stats.processCpuPercent === null ? '—' : (stats.processCpuPercent | number:'1.0-1') + '%' }}</strong></div>
+            <div class="resource-track"><i class="cpu-fill" [style.width.%]="stats.processCpuPercent || 0"></i></div>
+          </div>
+          <div class="resource-row">
+            <div><span>{{ 'ADMIN.JVM_MEMORY' | translate }}</span><strong>{{ formatDashboardBytes(stats.jvmHeapUsedBytes) }} <small>/ {{ formatDashboardBytes(stats.jvmHeapMaxBytes) }}</small></strong></div>
+            <div class="resource-track"><i class="memory-fill" [style.width.%]="stats.jvmHeapPercent"></i></div>
+          </div>
+          <div class="resource-row">
+            <div><span>{{ 'ADMIN.DATA_VOLUME' | translate }}</span><strong>{{ dashboardVolumePercent | number:'1.0-0' }}% <small>{{ formatDashboardBytes(stats.volumeTotalBytes - stats.volumeUsableBytes) }} / {{ formatDashboardBytes(stats.volumeTotalBytes) }}</small></strong></div>
+            <div class="resource-track"><i class="volume-fill" [style.width.%]="dashboardVolumePercent"></i></div>
+          </div>
+          <div class="runtime-foot"><span class="runtime-check">✓</span>{{ 'ADMIN.RUNTIME_NOTE' | translate }}</div>
+        </section>
+
+        <section class="overview-panel recent-panel">
+          <div class="panel-heading"><div><span class="panel-overline">{{ 'ADMIN.LATEST_EVENTS' | translate }}</span><h2>{{ 'ADMIN.RECENT_DOWNLOADS' | translate }}</h2></div><button class="panel-action" (click)="activeTab = 'history'; cargarHistorial()">{{ 'ADMIN.VIEW_HISTORY' | translate }} <span>→</span></button></div>
+          <div *ngIf="stats.recentDownloads.length; else noRecent" class="recent-list">
+            <div class="recent-row" *ngFor="let item of stats.recentDownloads">
+              <span class="recent-file-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></span>
+              <div class="recent-main"><strong>{{ item.title || ('ADMIN.UNTITLED_DOWNLOAD' | translate) }}</strong><span>{{ item.platform || '—' }} · {{ item.username || ('ADMIN.UNKNOWN_USER' | translate) }}</span></div>
+              <time>{{ item.createdAt | date:'dd/MM HH:mm' }}</time>
+            </div>
+          </div>
+          <ng-template #noRecent><p class="panel-empty">{{ 'ADMIN.NO_RECENT_DOWNLOADS' | translate }}</p></ng-template>
+        </section>
+      </div>
+    </ng-container>
+    <div *ngIf="!dashboard && dashboardLoading" class="overview-loading"><span class="loading-pulse"></span>{{ 'ADMIN.LOADING_OVERVIEW' | translate }}</div>
+  </section>
 
   <!-- ══ TAB: CONFIG ══════════════════════════════════════════════════════════ -->
   <div *ngIf="activeTab === 'config'" class="tab-content">
@@ -267,6 +380,36 @@
         </tbody>
       </table>
     </div>
+
+    <hr>
+
+    <h3>{{ 'ADMIN.INACTIVE_USERS' | translate }} ({{ inactiveUsers.length }})</h3>
+    <div *ngIf="inactiveUsers.length === 0" class="empty-state">{{ 'ADMIN.NO_INACTIVE' | translate }}</div>
+    <div *ngIf="inactiveUsers.length > 0" class="table-wrapper">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>{{ 'ADMIN.COL_USER' | translate }}</th>
+            <th>{{ 'ADMIN.COL_EMAIL' | translate }}</th>
+            <th>{{ 'ADMIN.COL_ROLE' | translate }}</th>
+            <th>{{ 'ADMIN.COL_REGISTERED' | translate }}</th>
+            <th>{{ 'ADMIN.COL_ACTIONS' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of inactiveUsers">
+            <td [attr.data-label]="'ADMIN.COL_USER' | translate">{{ u.username }}</td>
+            <td [attr.data-label]="'ADMIN.COL_EMAIL' | translate">{{ u.email }}</td>
+            <td [attr.data-label]="'ADMIN.COL_ROLE' | translate">{{ u.role }}</td>
+            <td [attr.data-label]="'ADMIN.COL_REGISTERED' | translate">{{ u.createdAt | date:'dd/MM/yy HH:mm' }}</td>
+            <td [attr.data-label]="'ADMIN.COL_ACTIONS' | translate" class="actions-cell">
+              <button class="btn-approve" (click)="reactivateUser(u)">{{ 'ADMIN.REACTIVATE' | translate }}</button>
+              <button class="btn-del" (click)="deleteUser(u)" title="{{ 'ADMIN.COL_DELETE' | translate }}">🗑</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ══ TAB: NAS ═════════════════════════════════════════════════════════════ -->
@@ -420,22 +563,16 @@
 
   <!-- ══ TAB: CHAT ════════════════════════════════════════════════════════════ -->
   <div *ngIf="activeTab === 'chat'" class="tab-content">
-
     <p *ngIf="chatMsg" class="message">{{ chatMsg }}</p>
-
     <div class="chat-mod-toolbar">
       <input [(ngModel)]="chatGroupSearch" [placeholder]="'ADMIN.CHAT_SEARCH' | translate" class="log-filter-input" />
       <button class="btn small" (click)="loadChatGroups()">🔄 {{ 'ADMIN.REFRESH' | translate }}</button>
       <span class="chat-stats">{{ filteredChatGroups.length }} {{ 'ADMIN.CHAT_GROUPS_COUNT' | translate }}</span>
     </div>
-
     <div *ngIf="filteredChatGroups.length === 0" class="empty-state">{{ 'ADMIN.CHAT_NO_GROUPS' | translate }}</div>
-
     <div class="chat-group-list">
       <div *ngFor="let g of filteredChatGroups" class="chat-group-card">
-
-        <!-- Group header row -->
-        <div class="chat-group-header" (click)="selectChatGroup(g)">
+        <div class="chat-group-header">
           <span class="group-type-badge" [title]="g.type">{{ getGroupTypeBadge(g.type) }}</span>
           <div class="group-info">
             <span class="group-name">{{ g.name }}</span>
@@ -443,63 +580,16 @@
             <span class="group-meta">
               {{ 'ADMIN.CHAT_CREATED_BY' | translate }}: <strong>{{ g.createdByUsername || '—' }}</strong>
               &nbsp;·&nbsp;{{ g.memberCount }} 👥 &nbsp;·&nbsp; {{ g.messageCount }} 💬
+              &nbsp;·&nbsp;{{ g.createdAt | date:'dd/MM/yy' }}
             </span>
-            <span *ngIf="g.lastMessage" class="group-last-msg">{{ g.lastMessage }}</span>
           </div>
           <div class="group-card-actions">
-            <button class="btn-del" (click)="deleteChatGroup(g, $event)" [title]="'ADMIN.CHAT_DELETE_GROUP' | translate">🗑</button>
-            <span class="expand-chevron">{{ selectedChatGroup?.id === g.id ? '▲' : '▼' }}</span>
+            <button class="btn small" (click)="clearChatGroupMessages(g)" [disabled]="g.messageCount === 0">
+              {{ 'ADMIN.CHAT_CLEAR_GROUP' | translate }}
+            </button>
+            <button *ngIf="g.type !== 'ANNOUNCEMENT'" class="btn-del" (click)="deleteChatGroup(g, $event)" [title]="'ADMIN.CHAT_DELETE_GROUP' | translate">🗑</button>
           </div>
         </div>
-
-        <!-- Expanded detail -->
-        <div *ngIf="selectedChatGroup?.id === g.id" class="chat-group-detail">
-          <div *ngIf="loadingChatDetail" class="empty-state">{{ 'NAS.LOADING' | translate }}</div>
-
-          <div *ngIf="!loadingChatDetail" class="chat-detail-columns">
-
-            <!-- Members column -->
-            <div class="chat-detail-col">
-              <h4>👥 {{ 'ADMIN.CHAT_MEMBERS' | translate }} ({{ chatGroupMembers.length }})</h4>
-              <div *ngIf="chatGroupMembers.length === 0" class="empty-state-sm">{{ 'ADMIN.CHAT_NO_MEMBERS' | translate }}</div>
-              <div *ngFor="let m of chatGroupMembers" class="member-row-admin">
-                <div class="member-avatar-sm">
-                  <img *ngIf="m.avatarUrl" [src]="getFullAvatarUrl(m.avatarUrl)" alt="" />
-                  <span *ngIf="!m.avatarUrl">{{ m.username.charAt(0).toUpperCase() }}</span>
-                </div>
-                <span class="member-name">{{ m.username }}</span>
-                <span class="member-role-badge"
-                      [class.role-admin]="m.role === 'ADMIN'"
-                      [class.role-readonly]="m.role === 'READONLY'">{{ m.role }}</span>
-                <button class="btn-reject btn-sm" (click)="removeChatMember(m.username)">
-                  🚫 {{ 'ADMIN.CHAT_KICK' | translate }}
-                </button>
-              </div>
-            </div>
-
-            <!-- Messages column -->
-            <div class="chat-detail-col chat-messages-col">
-              <h4>💬 {{ 'ADMIN.CHAT_MESSAGES' | translate }} ({{ chatGroupMessages.length }})</h4>
-              <input *ngIf="chatGroupMessages.length > 5"
-                     [(ngModel)]="chatMessageSearch"
-                     [placeholder]="'ADMIN.CHAT_SEARCH_MSG' | translate"
-                     class="msg-search-input" />
-              <div *ngIf="filteredChatMessages.length === 0" class="empty-state-sm">{{ 'ADMIN.CHAT_NO_MESSAGES' | translate }}</div>
-              <div class="messages-scroll">
-                <div *ngFor="let m of filteredChatMessages" class="message-row-admin">
-                  <div class="msg-header-admin">
-                    <span class="msg-sender-admin">{{ m.senderUsername }}</span>
-                    <span class="msg-time-admin">{{ m.sentAt | date:'dd/MM/yy HH:mm' }}</span>
-                    <button class="btn-del btn-sm" (click)="deleteChatMessage(m)">🗑</button>
-                  </div>
-                  <div class="msg-content-admin">{{ getChatMessagePreview(m) }}</div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
       </div>
     </div>
   </div>

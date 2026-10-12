@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -37,9 +38,45 @@ class YtDlpAdminControllerTest {
         assertTrue(invalidExecutable.toFile().setExecutable(true) || invalidExecutable.toFile().canExecute());
         YtDlpAdminController controller = controller(invalidExecutable.toString());
 
-        ResponseEntity<String> response = controller.updateYtDlp();
+        Process process = mock(Process.class);
+        when(process.getInputStream()).thenReturn(new ByteArrayInputStream("update failed".getBytes()));
+        when(process.waitFor()).thenReturn(126);
 
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        try (MockedConstruction<ProcessBuilder> ignored = mockConstruction(
+                ProcessBuilder.class,
+                (builder, context) -> {
+                    when(builder.directory(invalidExecutable.getParent().toFile())).thenReturn(builder);
+                    when(builder.redirectErrorStream(true)).thenReturn(builder);
+                    when(builder.start()).thenReturn(process);
+                })) {
+            ResponseEntity<String> response = controller.updateYtDlp();
+
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+            assertTrue(response.getBody().contains("Exit code: 126"));
+        }
+    }
+
+    @Test
+    void successfulUpdateReturnsOk() throws Exception {
+        Path executable = Files.writeString(tempDir.resolve("yt-dlp.exe"), "binary");
+        assertTrue(executable.toFile().setExecutable(true) || executable.toFile().canExecute());
+        YtDlpAdminController controller = controller(executable.toString());
+        Process process = mock(Process.class);
+        when(process.getInputStream()).thenReturn(new ByteArrayInputStream("already up to date".getBytes()));
+        when(process.waitFor()).thenReturn(0);
+
+        try (MockedConstruction<ProcessBuilder> ignored = mockConstruction(
+                ProcessBuilder.class,
+                (builder, context) -> {
+                    when(builder.directory(executable.getParent().toFile())).thenReturn(builder);
+                    when(builder.redirectErrorStream(true)).thenReturn(builder);
+                    when(builder.start()).thenReturn(process);
+                })) {
+            ResponseEntity<String> response = controller.updateYtDlp();
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertTrue(response.getBody().contains("already up to date"));
+        }
     }
 
     @Test

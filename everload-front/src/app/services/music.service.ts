@@ -27,6 +27,7 @@ export interface MusicMetadataDto {
   source?: 'nas' | 'youtube' | 'local' | 'ytmusic';
   localHandle?: any;
   nasPathId?: number; // Set when track comes from favorites/history
+  available?: boolean;
   thumbnailUrl?: string;
 }
 
@@ -2096,16 +2097,31 @@ export class MusicService {
     if (!q.tracks.length) return null;
     const currentIndex = this.resolveQueueIndex();
 
-    if (this._repeat === 'one') return { track: q.tracks[currentIndex], pathId: q.pathId };
+    if (this._repeat === 'one') {
+      const track = q.tracks[currentIndex];
+      return { track, pathId: track?.nasPathId ?? q.pathId };
+    }
 
     if (this._shuffle) {
       const pos = this.shuffleOrder.indexOf(currentIndex);
       const nextPos = pos + 1;
-      if (nextPos < this.shuffleOrder.length) return { track: q.tracks[this.shuffleOrder[nextPos]], pathId: q.pathId };
-      if (this._repeat === 'all' && this.shuffleOrder.length > 0) return { track: q.tracks[this.shuffleOrder[0]], pathId: q.pathId };
+      if (nextPos < this.shuffleOrder.length) {
+        const track = q.tracks[this.shuffleOrder[nextPos]];
+        return { track, pathId: track.nasPathId ?? q.pathId };
+      }
+      if (this._repeat === 'all' && this.shuffleOrder.length > 0) {
+        const track = q.tracks[this.shuffleOrder[0]];
+        return { track, pathId: track.nasPathId ?? q.pathId };
+      }
     } else {
-      if (currentIndex < q.tracks.length - 1) return { track: q.tracks[currentIndex + 1], pathId: q.pathId };
-      if (this._repeat === 'all') return { track: q.tracks[0], pathId: q.pathId };
+      if (currentIndex < q.tracks.length - 1) {
+        const track = q.tracks[currentIndex + 1];
+        return { track, pathId: track.nasPathId ?? q.pathId };
+      }
+      if (this._repeat === 'all') {
+        const track = q.tracks[0];
+        return { track, pathId: track.nasPathId ?? q.pathId };
+      }
     }
     return null;
   }
@@ -2204,7 +2220,7 @@ export class MusicService {
     if (this._shuffle) this.buildShuffleOrder();
     this.persistState();
     if (tracks[index]) {
-      this.mainPlayer.load(tracks[index], pathId).then(() => {
+      this.mainPlayer.load(tracks[index], tracks[index].nasPathId ?? pathId).then(() => {
         this.mainPlayer.play();
         this.scheduleNextPreload();
         if (tracks[index]?.source === 'ytmusic') this.ensureYtMusicAutomix();
@@ -2226,7 +2242,7 @@ export class MusicService {
     this.queueSubj.next({ tracks, pathId, index });
     this.persistState();
     if (tracks[index]) {
-      this.mainPlayer.load(tracks[index], pathId).then(() => {
+      this.mainPlayer.load(tracks[index], tracks[index].nasPathId ?? pathId).then(() => {
         this.mainPlayer.play();
         this.scheduleNextPreload();
         if (tracks[index]?.source === 'ytmusic') this.ensureYtMusicAutomix();

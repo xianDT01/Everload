@@ -9,6 +9,8 @@ import com.everload.everload.repository.PlaylistCollaboratorRepository;
 import com.everload.everload.repository.PlaylistRepository;
 import com.everload.everload.repository.PlaylistTrackRepository;
 import com.everload.everload.repository.UserRepository;
+import com.everload.everload.service.NasService;
+import com.everload.everload.service.NasService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -35,6 +37,7 @@ class PlaylistControllerTest {
     private PlaylistTrackRepository trackRepository;
     private PlaylistCollaboratorRepository collaboratorRepository;
     private UserRepository userRepository;
+    private NasService nasService;
     private PlaylistController controller;
     private UserDetails principal;
     private User owner;
@@ -45,12 +48,29 @@ class PlaylistControllerTest {
         trackRepository = mock(PlaylistTrackRepository.class);
         collaboratorRepository = mock(PlaylistCollaboratorRepository.class);
         userRepository = mock(UserRepository.class);
+        nasService = mock(NasService.class);
         controller = new PlaylistController(
-                playlistRepository, trackRepository, collaboratorRepository, userRepository);
+                playlistRepository, trackRepository, collaboratorRepository, userRepository, nasService);
         principal = mock(UserDetails.class);
         owner = User.builder().id(1L).username("owner").status(UserStatus.ACTIVE).build();
         when(principal.getUsername()).thenReturn("owner");
         when(userRepository.findByUsername("owner")).thenReturn(Optional.of(owner));
+    }
+
+    @Test
+    void playlistResponsesMarkMissingNasTracksButKeepExternalTracksAvailable() {
+        Playlist playlist = playlist(10L, "Mixed");
+        PlaylistTrack missing = PlaylistTrack.builder().trackPath("gone.mp3").source("nas").nasPathId(3L).build();
+        PlaylistTrack youtube = PlaylistTrack.builder().trackPath("video-id").source("youtube").nasPathId(0L).build();
+        playlist.setTracks(new ArrayList<>(List.of(missing, youtube)));
+        when(playlistRepository.findByUserOrderByCreatedAtDesc(owner)).thenReturn(List.of(playlist));
+        when(nasService.isTrackAvailable(3L, "gone.mp3")).thenReturn(false);
+
+        List<Playlist> response = controller.list(principal).getBody();
+
+        assertEquals(Boolean.FALSE, response.get(0).getTracks().get(0).getAvailable());
+        assertEquals(Boolean.TRUE, response.get(0).getTracks().get(1).getAvailable());
+        verify(nasService).isTrackAvailable(3L, "gone.mp3");
     }
 
     @Test

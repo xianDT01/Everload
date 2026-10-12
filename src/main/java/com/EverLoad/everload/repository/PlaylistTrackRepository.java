@@ -18,6 +18,18 @@ public interface PlaylistTrackRepository extends JpaRepository<PlaylistTrack, Lo
 
     @Modifying
     @Transactional
+    @Query("UPDATE PlaylistTrack pt " +
+            "SET pt.trackPath = CONCAT(:newPrefix, SUBSTRING(pt.trackPath, :cutLen + 1)) " +
+            "WHERE pt.nasPathId = :nasPathId AND pt.source = 'nas' " +
+            "AND (pt.trackPath = :exactOld OR pt.trackPath LIKE :likePrefix ESCAPE '!')")
+    int renamePathPrefix(@Param("nasPathId") Long nasPathId,
+                         @Param("exactOld") String exactOld,
+                         @Param("likePrefix") String likePrefix,
+                         @Param("cutLen") int cutLen,
+                         @Param("newPrefix") String newPrefix);
+
+    @Modifying
+    @Transactional
     @Query("UPDATE PlaylistTrack pt SET pt.title = :title, pt.artist = :artist, pt.album = :album " +
             "WHERE pt.trackPath = :trackPath AND pt.nasPathId = :nasPathId AND pt.source = 'nas'")
     int updateMetadataByTrack(@Param("nasPathId") Long nasPathId,

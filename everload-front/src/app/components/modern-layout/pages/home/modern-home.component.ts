@@ -233,10 +233,11 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       community: this.music.getCommunityDiscover(60).pipe(catchError(() => of({ topArtists: [], topTracks: [] } as CommunityDiscoverDto))),
     }).subscribe({
       next: ({ history, overview, recent, profiles, topArtists, favorites, community }) => {
-        const items = history || [];
+        const items = (history || []).filter((item: any) => item.available !== false);
+        const availableFavorites = (favorites || []).filter((item: any) => item.available !== false);
         const tracks = overview.tracks || [];
         const allTimePlays = (topArtists || []).reduce((total, entry) => total + (entry.playCount || 0), 0);
-        const personalSignals = Math.max(items.length, allTimePlays) + favorites.length * 2;
+        const personalSignals = Math.max(items.length, allTimePlays) + availableFavorites.length * 2;
         const accountCreatedAt = this.auth.getCurrentUser()?.createdAt;
         const existingAccount = !accountCreatedAt || accountCreatedAt < '2026-09-25T00:00:00';
         const personalWeight = existingAccount ? 1 : Math.min(1, personalSignals / 15);
@@ -253,7 +254,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
           ownTrackCounts.set(key, (ownTrackCounts.get(key) || 0) + 1);
         });
         const favoriteTrackCounts = new Map<string, number>();
-        favorites.forEach((favorite: any) => {
+        availableFavorites.forEach((favorite: any) => {
           const key = `${favorite.nasPathId ?? pathId}:${favorite.trackPath || ''}`;
           favoriteTrackCounts.set(key, (favoriteTrackCounts.get(key) || 0) + 2);
         });
@@ -328,19 +329,25 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         // Listen Now = unique albums from history + overview
         const albumMap = new Map<string, AlbumCard>();
         items.forEach((i: any) => {
-          const key = (i.album || i.title || '').trim();
+          const album = (i.album || i.title || '').trim();
+          if (!album) return;
+          const itemPathId = i.nasPathId ?? pathId;
+          const key = `${itemPathId}:${this.key(i.artist || '')}:${this.key(album)}`;
           if (key && !albumMap.has(key)) {
             const t = this.toTrack(i, pathId);
-            albumMap.set(key, { album: i.album || i.title, artist: i.artist, track: t, pathId: i.nasPathId ?? pathId, tracks: [t] });
+            albumMap.set(key, { album, artist: i.artist, track: t, pathId: itemPathId, tracks: [t] });
           } else if (key) {
             albumMap.get(key)!.tracks.push(this.toTrack(i, pathId));
           }
         });
         tracks.forEach(t => {
-          const key = (t.album || t.title || '').trim();
+          const album = (t.album || t.title || '').trim();
+          if (!album) return;
+          const trackPathId = t.nasPathId ?? pathId;
+          const key = `${trackPathId}:${this.key(t.artist || '')}:${this.key(album)}`;
           if (!key) return;
           if (!albumMap.has(key)) {
-            albumMap.set(key, { album: t.album || t.title, artist: t.artist, track: t, pathId: t.nasPathId ?? pathId, tracks: [t] });
+            albumMap.set(key, { album, artist: t.artist, track: t, pathId: trackPathId, tracks: [t] });
           } else if (!albumMap.get(key)!.tracks.some(existing => existing.path === t.path)) {
             albumMap.get(key)!.tracks.push(t);
           }
@@ -350,7 +357,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
           const key = this.albumRecommendationKey(item.artist, item.album || item.title);
           ownAlbumCounts.set(key, (ownAlbumCounts.get(key) || 0) + 1);
         });
-        favorites.forEach((favorite: any) => {
+        availableFavorites.forEach((favorite: any) => {
           const key = this.albumRecommendationKey(favorite.artist, favorite.album || favorite.title);
           ownAlbumCounts.set(key, (ownAlbumCounts.get(key) || 0) + 2);
         });
@@ -401,7 +408,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
             const key = this.key(name);
             if (key && !playCountMap.has(key)) playCountMap.set(key, 1);
           }));
-          favorites.forEach((favorite: any) => this.artistDisplayParts(favorite.artist || '').forEach(name => {
+          availableFavorites.forEach((favorite: any) => this.artistDisplayParts(favorite.artist || '').forEach(name => {
             const key = this.key(name);
             if (key) playCountMap.set(key, (playCountMap.get(key) || 0) + 2);
           }));
@@ -418,8 +425,8 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
             const pa = playCountMap.get(this.key(a.artist)) ?? 0;
             const pb = playCountMap.get(this.key(b.artist)) ?? 0;
             if (!existingAccount) {
-              const score = this.blendedScore(pa, globalArtistCounts.get(this.key(a.artist)) || 0, personalWeight, maxOwnArtist, maxGlobalArtist)
-                - this.blendedScore(pb, globalArtistCounts.get(this.key(b.artist)) || 0, personalWeight, maxOwnArtist, maxGlobalArtist);
+              const score = this.blendedScore(pb, globalArtistCounts.get(this.key(b.artist)) || 0, personalWeight, maxOwnArtist, maxGlobalArtist)
+                - this.blendedScore(pa, globalArtistCounts.get(this.key(a.artist)) || 0, personalWeight, maxOwnArtist, maxGlobalArtist);
               if (score !== 0) return score;
             } else if (pa !== pb) {
               return pb - pa;

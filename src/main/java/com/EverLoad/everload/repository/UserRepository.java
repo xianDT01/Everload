@@ -23,6 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
 
     List<User> findByStatus(UserStatus status);
+    long countByStatus(UserStatus status);
 
     List<User> findTop10ByUsernameContainingIgnoreCaseAndStatus(String username, UserStatus status);
 

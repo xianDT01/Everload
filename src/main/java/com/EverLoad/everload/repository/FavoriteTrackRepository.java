@@ -36,7 +36,7 @@ public interface FavoriteTrackRepository extends JpaRepository<FavoriteTrack, Lo
     @Query("UPDATE FavoriteTrack f " +
            "SET f.trackPath = CONCAT(:newPrefix, SUBSTRING(f.trackPath, :cutLen + 1)) " +
            "WHERE f.nasPathId = :nasPathId " +
-           "AND (f.trackPath = :exactOld OR f.trackPath LIKE :likePrefix)")
+           "AND (f.trackPath = :exactOld OR f.trackPath LIKE :likePrefix ESCAPE '!')")
     int renamePathPrefix(@Param("nasPathId") Long nasPathId,
                          @Param("exactOld") String exactOld,
                          @Param("likePrefix") String likePrefix,
@@ -47,7 +47,7 @@ public interface FavoriteTrackRepository extends JpaRepository<FavoriteTrack, Lo
     @Transactional
     @Query("DELETE FROM FavoriteTrack f " +
            "WHERE f.nasPathId = :nasPathId " +
-           "AND (f.trackPath = :exactPath OR f.trackPath LIKE :likePrefix)")
+           "AND (f.trackPath = :exactPath OR f.trackPath LIKE :likePrefix ESCAPE '!')")
     int deleteByPathPrefix(@Param("nasPathId") Long nasPathId,
                            @Param("exactPath") String exactPath,
                            @Param("likePrefix") String likePrefix);

@@ -524,3 +524,5 @@
   .mpl-track-remove { opacity: 1; }
   .mpl-search-wrap, .mpl-modal { max-width: 100%; box-sizing: border-box; }
 }
+.mpl-track-unavailable-row { opacity: .62; }
+.mpl-track-unavailable { color: #d66a6a; font-size: .75rem; }

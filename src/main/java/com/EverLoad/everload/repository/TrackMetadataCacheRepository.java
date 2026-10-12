@@ -14,6 +14,29 @@ import java.util.Optional;
 
 @Repository
 public interface TrackMetadataCacheRepository extends JpaRepository<TrackMetadataCache, Long> {
+    @Query("SELECT c FROM TrackMetadataCache c WHERE c.nasPathId = :pathId " +
+           "AND (:query = '' OR LOCATE(:query, LOWER(COALESCE(c.title, ''))) > 0 " +
+           "OR LOCATE(:query, LOWER(COALESCE(c.artist, ''))) > 0 " +
+           "OR LOCATE(:query, LOWER(COALESCE(c.album, ''))) > 0 " +
+           "OR LOCATE(:query, LOWER(c.relativePath)) > 0) " +
+           "ORDER BY LOWER(COALESCE(c.title, '')), c.relativePath, c.id")
+    org.springframework.data.domain.Slice<TrackMetadataCache> findLibraryPage(
+            @Param("pathId") Long pathId, @Param("query") String query,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT c FROM TrackMetadataCache c WHERE c.nasPathId = :pathId " +
+           "AND (:query = '' OR LOCATE(:query, LOWER(COALESCE(c.title, ''))) > 0 " +
+           "OR LOCATE(:query, LOWER(COALESCE(c.artist, ''))) > 0 " +
+           "OR LOCATE(:query, LOWER(COALESCE(c.album, ''))) > 0 " +
+           "OR LOCATE(:query, LOWER(c.relativePath)) > 0) " +
+           "ORDER BY CASE WHEN :sort = 'date' THEN c.lastModified ELSE 0 END DESC, " +
+           "CASE WHEN :sort = 'artist' THEN LOWER(COALESCE(c.artist, '')) ELSE '' END, " +
+           "LOWER(COALESCE(c.title, '')), c.relativePath, c.id")
+    org.springframework.data.domain.Slice<TrackMetadataCache> findSortedLibraryPage(
+            @Param("pathId") Long pathId, @Param("query") String query, @Param("sort") String sort,
+            org.springframework.data.domain.Pageable pageable);
+    @Transactional
+    int deleteByNasPathIdAndRelativePath(Long nasPathId, String relativePath);
     Optional<TrackMetadataCache> findByNasPathIdAndRelativePath(Long nasPathId, String relativePath);
     List<TrackMetadataCache> findByNasPathId(Long nasPathId);
     List<TrackMetadataCache> findByNasPathIdAndRelativePathIn(Long nasPathId, Collection<String> relativePaths);
@@ -23,7 +46,7 @@ public interface TrackMetadataCacheRepository extends JpaRepository<TrackMetadat
     @Query("UPDATE TrackMetadataCache c " +
            "SET c.relativePath = CONCAT(:newPrefix, SUBSTRING(c.relativePath, :cutLen + 1)) " +
            "WHERE c.nasPathId = :nasPathId " +
-           "AND (c.relativePath = :exactOld OR c.relativePath LIKE :likePrefix)")
+           "AND (c.relativePath = :exactOld OR c.relativePath LIKE :likePrefix ESCAPE '!')")
     int renamePathPrefix(@Param("nasPathId") Long nasPathId,
                          @Param("exactOld") String exactOld,
                          @Param("likePrefix") String likePrefix,
@@ -34,7 +57,7 @@ public interface TrackMetadataCacheRepository extends JpaRepository<TrackMetadat
     @Transactional
     @Query("DELETE FROM TrackMetadataCache c " +
            "WHERE c.nasPathId = :nasPathId " +
-           "AND (c.relativePath = :exactPath OR c.relativePath LIKE :likePrefix)")
+           "AND (c.relativePath = :exactPath OR c.relativePath LIKE :likePrefix ESCAPE '!')")
     int deleteByPathPrefix(@Param("nasPathId") Long nasPathId,
                            @Param("exactPath") String exactPath,
                            @Param("likePrefix") String likePrefix);

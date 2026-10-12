@@ -1,7 +1,6 @@
 package com.everload.everload.controller;
 
 import com.everload.everload.dto.AdminChatGroupDto;
-import com.everload.everload.dto.ChatMessageDto;
 import com.everload.everload.service.AuditLogService;
 import com.everload.everload.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,7 +11,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Tag(name = "Admin Chat", description = "Moderación de chats (solo administradores)")
 @RestController
@@ -30,16 +28,12 @@ public class AdminChatController {
         return ResponseEntity.ok(chatService.adminGetAllGroups());
     }
 
-    @Operation(summary = "Ver mensajes de un grupo")
-    @GetMapping("/groups/{id}/messages")
-    public ResponseEntity<List<ChatMessageDto>> getGroupMessages(@PathVariable Long id) {
-        return ResponseEntity.ok(chatService.adminGetMessages(id));
-    }
-
-    @Operation(summary = "Ver miembros de un grupo")
-    @GetMapping("/groups/{id}/members")
-    public ResponseEntity<List<Map<String, Object>>> getGroupMembers(@PathVariable Long id) {
-        return ResponseEntity.ok(chatService.adminGetGroupMembers(id));
+    @Operation(summary = "Eliminar todos los mensajes de un grupo")
+    @DeleteMapping("/groups/{id}/messages")
+    public ResponseEntity<Void> clearGroupMessages(@PathVariable Long id) {
+        chatService.adminClearGroupMessages(id);
+        auditLogService.log("GROUP_MESSAGES_CLEARED", "ChatGroup", id.toString(), null);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Eliminar un grupo completo con sus mensajes y miembros")
@@ -50,19 +44,4 @@ public class AdminChatController {
         return ResponseEntity.ok().build();
     }
 
-    @Operation(summary = "Eliminar un mensaje concreto")
-    @DeleteMapping("/messages/{id}")
-    public ResponseEntity<Void> deleteMessage(@PathVariable Long id) {
-        chatService.adminDeleteMessage(id);
-        auditLogService.log("MESSAGE_DELETED", "ChatMessage", id.toString(), null);
-        return ResponseEntity.ok().build();
-    }
-
-    @Operation(summary = "Expulsar a un usuario de un grupo")
-    @DeleteMapping("/groups/{id}/members/{username}")
-    public ResponseEntity<Void> removeMember(@PathVariable Long id, @PathVariable String username) {
-        chatService.adminRemoveMember(id, username);
-        auditLogService.log("MEMBER_KICKED", "ChatGroup", id.toString(), "kicked=" + username);
-        return ResponseEntity.ok().build();
-    }
 }

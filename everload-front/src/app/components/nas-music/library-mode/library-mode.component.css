@@ -2349,6 +2349,19 @@
   margin: 0;
 }
 
+.library-retry-button {
+  border: 1px solid var(--sp-border, rgba(255,255,255,0.16));
+  border-radius: 6px;
+  padding: 9px 16px;
+  color: var(--sp-text, #fff);
+  background: var(--sp-faint, rgba(255,255,255,0.08));
+  cursor: pointer;
+}
+
+.library-retry-button:hover {
+  background: var(--sp-hover, rgba(255,255,255,0.14));
+}
+
 .empty-actions {
   display: flex;
   gap: 12px;
@@ -7459,3 +7472,4 @@
   cursor: pointer;
   accent-color: #1db954;
 }
+.track-unavailable { color: #c65b5b; }

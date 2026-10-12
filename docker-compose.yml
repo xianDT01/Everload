@@ -23,7 +23,7 @@ services:
       CADDY_EMAIL: ${CADDY_EMAIL:-admin@example.com}
     depends_on:
       everload:
-        condition: service_started
+        condition: service_healthy
     networks:
       - everload-net
 
@@ -70,6 +70,9 @@ services:
 
       # Admin config.json (Spotify/YouTube API keys) — on the DB volume so credentials persist
       APP_CONFIG_PATH: /app/data/config.json
+
+      # Keep published Android releases across container rebuilds.
+      APP_ANDROID_RELEASE_PATH: /app/data/android-release
 
       # HLS cache for long NAS tracks — on the DB/data volume so prepared sessions survive restarts
       MUSIC_HLS_CACHE_DIR: /app/data/hls-cache

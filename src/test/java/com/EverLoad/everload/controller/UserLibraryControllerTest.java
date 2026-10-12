@@ -8,6 +8,7 @@ import com.everload.everload.model.User;
 import com.everload.everload.repository.FavoriteTrackRepository;
 import com.everload.everload.repository.PlaybackHistoryRepository;
 import com.everload.everload.repository.UserRepository;
+import com.everload.everload.service.NasService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +26,7 @@ class UserLibraryControllerTest {
     private FavoriteTrackRepository favorites;
     private PlaybackHistoryRepository history;
     private UserLibraryController controller;
+    private NasService nasService;
     private User user;
     private UserDetails principal;
 
@@ -33,11 +35,24 @@ class UserLibraryControllerTest {
         favorites = mock(FavoriteTrackRepository.class);
         history = mock(PlaybackHistoryRepository.class);
         UserRepository users = mock(UserRepository.class);
-        controller = new UserLibraryController(favorites, history, users);
+        nasService = mock(NasService.class);
+        controller = new UserLibraryController(favorites, history, users, nasService);
         user = User.builder().username("xianDT").build();
         principal = mock(UserDetails.class);
         when(principal.getUsername()).thenReturn("xianDT");
         when(users.findByUsername("xianDT")).thenReturn(Optional.of(user));
+    }
+
+    @Test
+    void favoriteAndHistoryResponsesExposeMissingNasFiles() {
+        FavoriteTrack favorite = FavoriteTrack.builder().trackPath("gone.mp3").nasPathId(1L).build();
+        PlaybackHistory entry = PlaybackHistory.builder().trackPath("gone.mp3").nasPathId(1L).build();
+        when(favorites.findByUser(eq(user), any())).thenReturn(List.of(favorite));
+        when(history.findByUserOrderByPlayedAtDesc(eq(user), any())).thenReturn(List.of(entry));
+        when(nasService.isTrackAvailable(1L, "gone.mp3")).thenReturn(false);
+
+        assertEquals(Boolean.FALSE, controller.getFavorites(principal).getBody().get(0).getAvailable());
+        assertEquals(Boolean.FALSE, controller.getHistory(principal, 50).getBody().get(0).getAvailable());
     }
 
     @Test

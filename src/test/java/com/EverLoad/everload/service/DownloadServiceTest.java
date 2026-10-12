@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import com.everload.everload.model.Download;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 /**
  * Cubre las validaciones de entrada de DownloadService: cada dato que llega a
@@ -31,6 +33,7 @@ class DownloadServiceTest {
 
     private DownloadService downloadService;
     private MusicService musicService;
+    private DownloadHistoryService historyService;
 
     @TempDir
     Path tempDir;
@@ -38,8 +41,9 @@ class DownloadServiceTest {
     @BeforeEach
     void setUp() {
         musicService = mock(MusicService.class);
+        historyService = mock(DownloadHistoryService.class);
         downloadService = new DownloadService(
-                mock(DownloadHistoryService.class), mock(NasService.class), musicService);
+                historyService, mock(NasService.class), musicService);
         // Campo @Value — sin contexto Spring queda a 0 y el pool no puede crearse
         org.springframework.test.util.ReflectionTestUtils.setField(downloadService, "maxConcurrent", 2);
         downloadService.init();
@@ -137,6 +141,50 @@ class DownloadServiceTest {
 
         assertEquals(first, result);
         verify(musicService).ensureMetadata(first, "first.mp4", "");
+    }
+
+    @Test
+    void runYtDlpRejectsFailedProcessAndMissingOutputFile() throws Exception {
+        Process failed = mock(Process.class);
+        when(failed.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        when(failed.getErrorStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        when(failed.waitFor()).thenReturn(2);
+        try (MockedConstruction<ProcessBuilder> ignored = mockConstruction(
+                ProcessBuilder.class, (builder, context) -> when(builder.start()).thenReturn(failed))) {
+            var thrown = assertThrows(java.lang.reflect.UndeclaredThrowableException.class,
+                    () -> ReflectionTestUtils.invokeMethod(downloadService, "runYtDlp",
+                            (Object) new String[]{"yt-dlp-test"}, (IntConsumer) p -> {}));
+            assertInstanceOf(java.io.IOException.class, thrown.getUndeclaredThrowable());
+        }
+
+        Process missingOutput = mock(Process.class);
+        when(missingOutput.getInputStream()).thenReturn(new ByteArrayInputStream(
+                tempDir.resolve("missing.mp3").toString().getBytes(StandardCharsets.UTF_8)));
+        when(missingOutput.getErrorStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        when(missingOutput.waitFor()).thenReturn(0);
+        try (MockedConstruction<ProcessBuilder> ignored = mockConstruction(
+                ProcessBuilder.class, (builder, context) -> when(builder.start()).thenReturn(missingOutput))) {
+            var thrown = assertThrows(java.lang.reflect.UndeclaredThrowableException.class,
+                    () -> ReflectionTestUtils.invokeMethod(downloadService, "runYtDlp",
+                            (Object) new String[]{"yt-dlp-test"}, (IntConsumer) p -> {}));
+            assertInstanceOf(java.io.IOException.class, thrown.getUndeclaredThrowable());
+        }
+    }
+
+    @Test
+    void validSocialMediaUrlReachesDownloaderAndReportsProcessFailure() throws Exception {
+        Process failed = mock(Process.class);
+        when(failed.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        when(failed.getErrorStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        when(failed.waitFor()).thenReturn(1);
+
+        try (MockedConstruction<ProcessBuilder> ignored = mockConstruction(
+                ProcessBuilder.class, (builder, context) -> when(builder.start()).thenReturn(failed))) {
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR,
+                    downloadService.downloadTwitterVideo("https://x.com/user/status/123").getStatusCode());
+        }
+
+        verify(historyService, never()).recordDownload(org.mockito.ArgumentMatchers.any(Download.class));
     }
 
     // ── Estado de jobs ────────────────────────────────────────────────────────

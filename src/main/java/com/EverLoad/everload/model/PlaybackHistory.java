@@ -43,6 +43,9 @@ public class PlaybackHistory {
     private Integer durationSeconds; // How long it was played
     private Boolean completed; // Did the track finish entirely?
 
+    @Transient
+    private Boolean available;
+
     @PrePersist
     protected void onCreate() {
         playedAt = LocalDateTime.now(java.time.ZoneId.systemDefault());

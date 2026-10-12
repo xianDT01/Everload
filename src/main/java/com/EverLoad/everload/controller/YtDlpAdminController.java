@@ -65,9 +65,13 @@ public class YtDlpAdminController {
             String output = new String(process.getInputStream().readAllBytes());
             int exitCode = process.waitFor();
 
-            return ResponseEntity.ok(
-                    "✅ yt-dlp actualizado.\n\nExit code: " + exitCode + "\n\nSalida:\n" + output
-            );
+            String result = "Exit code: " + exitCode + "\n\nSalida:\n" + output;
+            if (exitCode != 0) {
+                return ResponseEntity.internalServerError()
+                        .body("❌ yt-dlp no pudo actualizarse.\n\n" + result);
+            }
+
+            return ResponseEntity.ok("✅ yt-dlp actualizado.\n\n" + result);
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

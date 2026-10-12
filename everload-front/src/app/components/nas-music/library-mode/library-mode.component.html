@@ -676,6 +676,7 @@
               <div class="tr-info">
                 <span class="tr-name" [class.green]="isCurrentTrack(track)">{{ track.title || track.name }}</span>
                 <span class="tr-artist">{{ track.artist || '' }}</span>
+                <span class="tr-artist track-unavailable" *ngIf="track.available === false">{{ 'TRACK_UNAVAILABLE' | translate }}</span>
               </div>
             </div>
 
@@ -760,8 +761,13 @@
         <span class="spinner-dot"></span><span class="spinner-dot"></span><span class="spinner-dot"></span>
       </div>
 
+      <div *ngIf="loadError" class="empty-state">
+        <p class="empty-title">{{ 'MUSIC.LIBRARY_LOAD_ERROR' | translate }}</p>
+        <button type="button" class="library-retry-button" (click)="retryLoad()">{{ 'MUSIC.LIBRARY_RETRY' | translate }}</button>
+      </div>
+
       <!-- Empty state -->
-      <div *ngIf="items.length === 0 && !searchQuery && !pageLoading" class="empty-state">
+      <div *ngIf="items.length === 0 && !searchQuery && !pageLoading && !loadError" class="empty-state">
         <svg width="72" height="72" viewBox="0 0 24 24" fill="rgba(255,255,255,0.15)">
           <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>
         </svg>

@@ -2,15 +2,20 @@ package com.everload.everload.service;
 
 import com.everload.everload.dto.NasFileDto;
 import com.everload.everload.dto.NasPathDto;
+import com.everload.everload.event.NasFilesChangedEvent;
 import com.everload.everload.model.NasPath;
 import com.everload.everload.repository.FavoriteTrackRepository;
 import com.everload.everload.repository.NasPathRepository;
 import com.everload.everload.repository.PlaybackHistoryRepository;
+import com.everload.everload.repository.PlaylistTrackRepository;
 import com.everload.everload.repository.TrackMetadataCacheRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -28,6 +33,7 @@ import java.util.zip.ZipOutputStream;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NasService {
 
     private static final String STATUS_KEY = "status";
@@ -42,6 +48,8 @@ public class NasService {
     private final FavoriteTrackRepository favoriteTrackRepository;
     private final PlaybackHistoryRepository playbackHistoryRepository;
     private final TrackMetadataCacheRepository trackMetadataCacheRepository;
+    private final PlaylistTrackRepository playlistTrackRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${nas.storage.base}")
     private String nasStorageBase;
@@ -64,7 +72,9 @@ public class NasService {
                 .path(resolvedPath)
                 .description(dto.getDescription())
                 .build();
-        return toDto(nasPathRepository.save(nasPath));
+        NasPath saved = nasPathRepository.save(nasPath);
+        eventPublisher.publishEvent(new NasFilesChangedEvent(saved.getId()));
+        return toDto(saved);
     }
 
     public void deletePath(Long id) {
@@ -72,6 +82,7 @@ public class NasService {
             throw new IllegalArgumentException("Ruta no encontrada");
         }
         nasPathRepository.deleteById(id);
+        eventPublisher.publishEvent(new NasFilesChangedEvent(id));
     }
 
     // ── Explorador de archivos NAS ────────────────────────────────────────────
@@ -136,11 +147,13 @@ public class NasService {
 
         try {
             Files.createDirectories(newFolder);
+            eventPublisher.publishEvent(new NasFilesChangedEvent(pathId));
         } catch (IOException e) {
             throw new NasOperationException("No se pudo crear la carpeta: " + e.getMessage(), e);
         }
     }
 
+    @Transactional
     public String renameFileOrFolder(Long pathId, String relativePath, String newName) {
         NasPath nasPath = nasPathRepository.findById(pathId)
                 .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
@@ -173,7 +186,13 @@ public class NasService {
             Files.move(target, destination);
             String newRelative = basePath.relativize(destination).toString().replace("\\", "/");
             String oldRelative = basePath.relativize(target).toString().replace("\\", "/");
-            cascadeRenameInDb(pathId, oldRelative, newRelative);
+            try {
+                cascadeRenameInDb(pathId, oldRelative, newRelative);
+            } catch (RuntimeException e) {
+                rollbackMove(destination, target, e);
+                throw e;
+            }
+            eventPublisher.publishEvent(new NasFilesChangedEvent(pathId));
             return newRelative;
         } catch (IOException e) {
             throw new NasOperationException("No se pudo renombrar: " + e.getMessage(), e);
@@ -181,13 +200,15 @@ public class NasService {
     }
 
     private void cascadeRenameInDb(Long nasPathId, String oldPath, String newPath) {
-        String likePrefix = oldPath + "/%";
+        String likePrefix = escapeLikePrefix(oldPath);
         int cutLen = oldPath.length();
         favoriteTrackRepository.renamePathPrefix(nasPathId, oldPath, likePrefix, cutLen, newPath);
         playbackHistoryRepository.renamePathPrefix(nasPathId, oldPath, likePrefix, cutLen, newPath);
         trackMetadataCacheRepository.renamePathPrefix(nasPathId, oldPath, likePrefix, cutLen, newPath);
+        playlistTrackRepository.renamePathPrefix(nasPathId, oldPath, likePrefix, cutLen, newPath);
     }
 
+    @Transactional
     public void moveFileOrFolder(Long pathId, String sourcePath, String targetFolderPath) {
         NasPath nasPath = nasPathRepository.findById(pathId)
                 .orElseThrow(() -> new IllegalArgumentException(NAS_PATH_NOT_FOUND));
@@ -209,8 +230,26 @@ public class NasService {
 
         try {
             Files.move(source, destination);
+            String oldRelative = basePath.relativize(source).toString().replace("\\", "/");
+            String newRelative = basePath.relativize(destination).toString().replace("\\", "/");
+            try {
+                cascadeRenameInDb(pathId, oldRelative, newRelative);
+            } catch (RuntimeException e) {
+                rollbackMove(destination, source, e);
+                throw e;
+            }
+            eventPublisher.publishEvent(new NasFilesChangedEvent(pathId));
         } catch (IOException e) {
             throw new NasOperationException("No se pudo mover: " + e.getMessage(), e);
+        }
+    }
+
+    private void rollbackMove(Path movedPath, Path originalPath, RuntimeException cause) {
+        try {
+            Files.move(movedPath, originalPath);
+        } catch (IOException rollbackFailure) {
+            cause.addSuppressed(rollbackFailure);
+            log.error("Could not roll back NAS file operation from {} to {}", movedPath, originalPath, rollbackFailure);
         }
     }
 
@@ -252,6 +291,7 @@ public class NasService {
             deleteRecursively(target);
             String relative = basePath.relativize(target).toString().replace("\\", "/");
             cascadeDeleteInDb(pathId, relative);
+            eventPublisher.publishEvent(new NasFilesChangedEvent(pathId));
         } catch (IOException e) {
             throw new NasOperationException("No se pudo eliminar: " + e.getMessage(), e);
         }
@@ -259,7 +299,7 @@ public class NasService {
 
     /** Al eliminar un archivo/carpeta, limpia favoritos, historial y caché que apuntaban a él. */
     private void cascadeDeleteInDb(Long nasPathId, String deletedPath) {
-        String likePrefix = deletedPath + "/%";
+        String likePrefix = escapeLikePrefix(deletedPath);
         favoriteTrackRepository.deleteByPathPrefix(nasPathId, deletedPath, likePrefix);
         playbackHistoryRepository.deleteByPathPrefix(nasPathId, deletedPath, likePrefix);
         trackMetadataCacheRepository.deleteByPathPrefix(nasPathId, deletedPath, likePrefix);
@@ -293,6 +333,9 @@ public class NasService {
         try {
             Files.createDirectories(destDir);
             Files.copy(tempFile, dest, StandardCopyOption.REPLACE_EXISTING);
+            String relative = basePath.relativize(dest).toString().replace("\\", "/");
+            trackMetadataCacheRepository.deleteByNasPathIdAndRelativePath(pathId, relative);
+            eventPublisher.publishEvent(new NasFilesChangedEvent(pathId));
             return dest.toString();
         } catch (IOException e) {
             throw new NasOperationException("Error al guardar archivo en NAS: " + e.getMessage(), e);
@@ -323,7 +366,17 @@ public class NasService {
             String relativePath = paths != null && i < paths.size() ? paths.get(i) : null;
             results.add(uploadMusicFile(basePath, destDir, file, relativePath));
         }
+        if (results.stream().anyMatch(result -> "ok".equals(result.get(STATUS_KEY)))) {
+            results.stream().filter(result -> "ok".equals(result.get(STATUS_KEY)))
+                    .map(result -> String.valueOf(result.get("path")).replace("\\", "/"))
+                    .forEach(relative -> trackMetadataCacheRepository.deleteByNasPathIdAndRelativePath(pathId, relative));
+            eventPublisher.publishEvent(new NasFilesChangedEvent(pathId));
+        }
         return results;
+    }
+
+    private String escapeLikePrefix(String path) {
+        return path.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "/%";
     }
 
     private Map<String, Object> uploadMusicFile(Path basePath, Path destDir,
@@ -403,8 +456,7 @@ public class NasService {
      * Returns the base path when subPath is blank/null.
      */
     public Path resolveValidatedPath(Long pathId, String subPath) {
-        NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada: " + pathId));
+        NasPath nasPath = resolvePath(pathId);
         Path basePath = Path.of(nasPath.getPath()).normalize();
         Path target = (subPath != null && !subPath.isBlank())
                 ? basePath.resolve(subPath).normalize()
@@ -417,9 +469,36 @@ public class NasService {
 
     /** Returns the configured base path for a NAS entry. */
     public Path getBasePath(Long pathId) {
-        NasPath nasPath = nasPathRepository.findById(pathId)
-                .orElseThrow(() -> new IllegalArgumentException("Ruta NAS no encontrada: " + pathId));
+        NasPath nasPath = resolvePath(pathId);
         return Path.of(nasPath.getPath()).normalize();
+    }
+
+    public boolean isTrackAvailable(Long pathId, String relativePath) {
+        if (pathId == null || relativePath == null || relativePath.isBlank()) return false;
+        try {
+            Path file = resolveValidatedPath(pathId, relativePath);
+            return java.nio.file.Files.isRegularFile(file) && java.nio.file.Files.isReadable(file);
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
+
+    private NasPath resolvePath(Long pathId) {
+        NasPath requested = nasPathRepository.findById(pathId).orElse(null);
+        if (requested != null) return requested;
+
+        List<NasPath> readablePaths = nasPathRepository.findAll().stream()
+                .filter(path -> {
+                    File directory = new File(path.getPath());
+                    return directory.isDirectory() && directory.canRead();
+                })
+                .toList();
+        if (readablePaths.size() == 1) {
+            NasPath fallback = readablePaths.get(0);
+            log.warn("NAS path id {} is stale; resolving against the only readable path id {}", pathId, fallback.getId());
+            return fallback;
+        }
+        throw new IllegalArgumentException("Ruta NAS no encontrada: " + pathId);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

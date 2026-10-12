@@ -230,7 +230,8 @@
         <span class="mpl-col-remove" *ngIf="canEditTracks(selectedPlaylist)"></span>
       </div>
       <div class="mpl-track-row mpl-track-row-clickable" *ngFor="let t of selectedPlaylist.tracks; let i = index"
-           (click)="playFrom(i)" [title]="'MUSIC.MODERN_START_LISTENING' | translate">
+           (click)="playFrom(i)" [class.mpl-track-unavailable-row]="t.available === false"
+           [title]="(t.available === false ? 'TRACK_UNAVAILABLE' : 'MUSIC.MODERN_START_LISTENING') | translate">
         <span class="mpl-col-num mpl-track-num">{{ i + 1 }}</span>
         <div class="mpl-col-title mpl-track-main">
           <img class="mpl-track-thumb"
@@ -239,6 +240,9 @@
           <div class="mpl-track-info">
             <span class="mpl-track-title">{{ t.title }}</span>
             <span class="mpl-track-artist">{{ t.artist }}</span>
+            <span class="mpl-track-unavailable" *ngIf="t.available === false" role="status">
+              {{ 'TRACK_UNAVAILABLE' | translate }}
+            </span>
           </div>
         </div>
         <span class="mpl-col-album mpl-track-album">{{ t.album }}</span>

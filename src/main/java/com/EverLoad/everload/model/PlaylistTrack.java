@@ -45,4 +45,7 @@ public class PlaylistTrack {
 
     @Column(nullable = false)
     private Integer position;
+
+    @Transient
+    private Boolean available;
 }

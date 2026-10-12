@@ -18,6 +18,7 @@ public class MusicMetadataDto {
     
     // Set when returned from random/discovery endpoints
     private Long nasPathId;
+    private Boolean available;
 
     // Audio specific metadata
     private String title;

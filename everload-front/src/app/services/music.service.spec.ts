@@ -85,6 +85,82 @@ describe('MusicService', () => {
     });
   });
 
+  describe('queue playback across NAS paths', () => {
+    it('loads each queued track using its own NAS path id', () => {
+      const load = spyOn(service.mainPlayer, 'load').and.returnValue(Promise.resolve());
+      spyOn(service.mainPlayer, 'play');
+      const tracks: any[] = [
+        { path: 'one.mp3', nasPathId: 3, source: 'nas' },
+        { path: 'two.mp3', nasPathId: 8, source: 'nas' },
+      ];
+
+      service.setQueue(3, tracks, 0);
+      service.playNextMain();
+
+      expect(load.calls.allArgs().map(args => args[1])).toEqual([3, 8]);
+    });
+
+    it('keeps the originating NAS path when advancing directly to a queued track', () => {
+      const load = spyOn(service.mainPlayer, 'load').and.returnValue(Promise.resolve());
+      spyOn(service.mainPlayer, 'play');
+      spyOn<any>(service, 'scheduleNextPreload').and.stub();
+      const tracks: any[] = [
+        { path: 'one.mp3', nasPathId: 3, source: 'nas' },
+        { path: 'two.mp3', nasPathId: 8, source: 'nas' }
+      ];
+
+      (service as any).advanceToTrack(3, tracks, 1);
+
+      expect(load).toHaveBeenCalledWith(tracks[1], 8);
+    });
+
+    it('preloads the next track using that track NAS path, falling back to the queue path', () => {
+      const tracks: any[] = [
+        { path: 'one.mp3', nasPathId: 3 },
+        { path: 'two.mp3', nasPathId: 8 },
+        { path: 'three.mp3' }
+      ];
+      (service as any).queueSubj.next({ tracks, pathId: 3, index: 0 });
+
+      expect((service as any).peekNextTrack()).toEqual({ track: tracks[1], pathId: 8 });
+      (service as any).queueSubj.next({ tracks, pathId: 3, index: 1 });
+      expect((service as any).peekNextTrack()).toEqual({ track: tracks[2], pathId: 3 });
+    });
+
+    it('repeats the current track on its own NAS path and wraps repeat-all queues', () => {
+      const tracks: any[] = [
+        { path: 'one.mp3', nasPathId: 3 },
+        { path: 'two.mp3', nasPathId: 8 }
+      ];
+      (service as any).queueSubj.next({ tracks, pathId: 3, index: 1 });
+      (service as any)._repeat = 'one';
+      expect((service as any).peekNextTrack()).toEqual({ track: tracks[1], pathId: 8 });
+
+      (service as any)._repeat = 'all';
+      (service as any).queueSubj.next({ tracks, pathId: 3, index: 1 });
+      expect((service as any).peekNextTrack()).toEqual({ track: tracks[0], pathId: 3 });
+      (service as any)._repeat = 'none';
+      expect((service as any).peekNextTrack()).toBeNull();
+    });
+
+    it('follows shuffle order and wraps it only when repeat-all is enabled', () => {
+      const tracks: any[] = [
+        { path: 'one.mp3', nasPathId: 3 },
+        { path: 'two.mp3', nasPathId: 8 },
+        { path: 'three.mp3', nasPathId: 12 }
+      ];
+      (service as any).queueSubj.next({ tracks, pathId: 3, index: 1 });
+      (service as any)._shuffle = true;
+      (service as any).shuffleOrder = [1, 2, 0];
+
+      expect((service as any).peekNextTrack()).toEqual({ track: tracks[2], pathId: 12 });
+      (service as any).queueSubj.next({ tracks, pathId: 3, index: 0 });
+      expect((service as any).peekNextTrack()).toBeNull();
+      (service as any)._repeat = 'all';
+      expect((service as any).peekNextTrack()).toEqual({ track: tracks[1], pathId: 8 });
+    });
+  });
+
   describe('yt-dlp social "save to NAS" requests', () => {
     it('queues a social media URL via POST with url/title/nasPathId/subPath as query params', () => {
       const expectedQuery = new URLSearchParams({

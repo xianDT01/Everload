@@ -863,6 +863,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private currentPage = 0;
   totalTracks = 0;
   pageLoading = false;
+  loadError = false;
   loadingPage = false; // dedup guard, también usado en template
   private loadingAllPages = false;
   private intersectionObserver?: IntersectionObserver;
@@ -896,11 +897,21 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.loadFavoriteFolders();
     this.startBannerRotation();
     this.loadFavHistoryBanners();
-    this.nasService.getPaths().subscribe(paths => {
-      this.paths = paths;
-      if (paths.length > 0) this.selectPath(paths[0].id);
-      else this.setView('home');
-      this.lmLoadMusicSections(paths);
+    this.nasService.getPaths().subscribe({
+      next: paths => {
+        this.paths = paths;
+        const readablePath = paths.find(path => path.readable);
+        if (readablePath) this.selectPath(readablePath.id);
+        else {
+          this.setView('home');
+          this.loadError = paths.length > 0;
+        }
+        this.lmLoadMusicSections(paths.filter(path => path.readable));
+      },
+      error: () => {
+        this.paths = [];
+        this.loadError = true;
+      }
     });
     this.loadRandomBanners();
 
@@ -1026,7 +1037,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   private loadFavHistoryBanners(): void {
     this.musicService.getFavorites().subscribe(favs => {
       if (!favs.length) return;
-      const fav = favs[0];
+      const fav = favs.find((item: any) => item.available !== false);
+      if (!fav) return;
       const track: MusicMetadataDto = {
         name: fav.title, path: fav.trackPath, title: fav.title, artist: fav.artist,
         album: fav.album, hasCover: false, directory: false, nasPathId: fav.nasPathId,
@@ -1041,7 +1053,8 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.musicService.getHistory(1).subscribe(hist => {
       if (!hist.length) return;
-      const h = hist[0];
+      const h = hist.find((item: any) => item.available !== false);
+      if (!h) return;
       const track: MusicMetadataDto = {
         name: h.title, path: h.trackPath, title: h.title, artist: h.artist,
         album: h.album, hasCover: false, directory: false, nasPathId: h.nasPathId,
@@ -1153,6 +1166,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   load() {
+    this.loadError = false;
     this.brokenCoverPaths.clear();
     this.currentPage = 0;
     this.totalTracks = 0;
@@ -1163,12 +1177,15 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
         this.historyItems = h;
       });
       if (this.paths.length > 0) {
-        this.musicService.browse(this.paths[0].id, '', 0, this.PAGE_SIZE).subscribe(result => {
-          this.items = result.items;
-          this.totalTracks = result.totalTracks;
-          this.currentPage = 0;
-          this.fetchCoversForVisible();
-          this.checkPendingAutoPlay();
+        this.musicService.browse(this.paths[0].id, '', 0, this.PAGE_SIZE).subscribe({
+          next: result => {
+            this.items = result.items;
+            this.totalTracks = result.totalTracks;
+            this.currentPage = 0;
+            this.fetchCoversForVisible();
+            this.checkPendingAutoPlay();
+          },
+          error: () => { this.loadError = true; }
         });
       }
     } else if (this.currentView === 'liked') {
@@ -1189,6 +1206,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
           hasCover: false,
           directory: false,
           nasPathId: f.nasPathId,
+          available: f.available,
           duration: 0,
           size: 0,
           format: '',
@@ -1211,9 +1229,12 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
            hasCover: false,
            directory: false,
            nasPathId: h.nasPathId,
+           available: h.available,
            duration: h.durationSeconds,
            size: 0,
-           format: ''
+           format: '',
+           lastModified: h.playedAt || '',
+           bpm: 0
         } as MusicMetadataDto));
         this.totalTracks = this.items.length;
         this.items.slice(0, 30).forEach(t => this.musicService.fetchCoverIfNeeded(t));
@@ -1221,13 +1242,19 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       });
     } else if (this.currentView === 'folder' && this.selectedPathId !== null) {
       this.pageLoading = true;
-      this.musicService.browse(this.selectedPathId, this.currentSubPath, 0, this.PAGE_SIZE).subscribe(result => {
-        this.items = result.items;
-        this.totalTracks = result.totalTracks;
-        this.currentPage = 0;
-        this.pageLoading = false;
-        this.fetchCoversForVisible();
-        this.checkPendingAutoPlay();
+      this.musicService.browse(this.selectedPathId, this.currentSubPath, 0, this.PAGE_SIZE).subscribe({
+        next: result => {
+          this.items = result.items;
+          this.totalTracks = result.totalTracks;
+          this.currentPage = 0;
+          this.pageLoading = false;
+          this.fetchCoversForVisible();
+          this.checkPendingAutoPlay();
+        },
+        error: () => {
+          this.pageLoading = false;
+          this.loadError = true;
+        }
       });
     } else if (this.currentView === 'playlist' && this.selectedPlaylist) {
       const tracks = (this.selectedPlaylist.tracks ?? []).map((t: any) => ({
@@ -1240,6 +1267,23 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       this.totalTracks = tracks.length;
       tracks.slice(0, 30).forEach((t: MusicMetadataDto) => this.musicService.fetchCoverIfNeeded(t));
     }
+  }
+
+  retryLoad(): void {
+    if (this.paths.some(path => path.readable)) {
+      this.load();
+      return;
+    }
+    this.loadError = false;
+    this.nasService.getPaths().subscribe({
+      next: paths => {
+        this.paths = paths;
+        const readablePath = paths.find(path => path.readable);
+        if (readablePath) this.selectPath(readablePath.id);
+        else this.loadError = true;
+      },
+      error: () => { this.loadError = true; }
+    });
   }
 
   get allTracksLoaded(): boolean {
@@ -1443,10 +1487,11 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Playback ──────────────────────────────────────────────────────────────
 
   playTrack(track: MusicMetadataDto) {
+    if (track.available === false) return;
     const pid = track.nasPathId ?? this.selectedPathId;
     if (pid === null || pid === undefined) return;
-    const queueTracks = this.filteredTracks;
-    const idx = queueTracks.findIndex(t => t.path === track.path);
+    const queueTracks = this.filteredTracks.filter(t => t.available !== false);
+    const idx = queueTracks.findIndex(t => t.path === track.path && t.nasPathId === track.nasPathId);
     this.musicService.setQueue(pid, queueTracks, Math.max(0, idx));
   }
 
@@ -1808,7 +1853,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       name: t.title, path: t.trackPath, title: t.title, artist: t.artist,
       album: t.album, hasCover: false, directory: false, nasPathId: t.nasPathId,
       duration: t.durationSeconds ?? 0, size: 0, format: '', lastModified: '', bpm: 0,
-      source: t.source || 'nas'
+      source: t.source || 'nas', available: t.available
     } as MusicMetadataDto));
     this.items = tracks;
     this.totalTracks = tracks.length;

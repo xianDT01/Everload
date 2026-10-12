@@ -84,6 +84,7 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
+            "karmaConfig": "karma.conf.cjs",
             "polyfills": [
               "zone.js",
               "zone.js/testing"
@@ -92,7 +93,9 @@
             "assets": [
               "src/favicon.ico",
               "src/Logo App-icon.ico",
-              "src/assets"
+              "src/assets",
+              "src/manifest.webmanifest",
+              "src/icons"
             ],
             "styles": [
               "src/styles.css"

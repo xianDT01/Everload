@@ -48,6 +48,37 @@ class NasYtDlpServiceTest {
         verify(executor).submit(any(Runnable.class));
     }
 
+    @Test void completedDownloadIsReusedOnlyWhileItsFileExists() {
+        String first = service.queue("same-video", "Song", 3L, "Music", "mp3");
+        var job = service.getJob(first);
+        job.status = NasYtDlpService.YtDlpJob.Status.DONE;
+        job.resultPath = "/nas/Music/song.mp3";
+        var nas = (NasService) ReflectionTestUtils.getField(service, "nasService");
+        org.mockito.Mockito.when(nas.isTrackAvailable(3L, job.resultPath)).thenReturn(true, false);
+        assertEquals(first, service.queue("same-video", "Song", 3L, "Music", "mp3"));
+        org.junit.jupiter.api.Assertions.assertNotEquals(first, service.queue("same-video", "Song", 3L, "Music", "mp3"));
+        verify(executor, times(2)).submit(any(Runnable.class));
+    }
+
+    @Test void differentUsersAndDestinationsDoNotShareJobs() {
+        var history = (DownloadHistoryService) ReflectionTestUtils.getField(service, "downloadHistoryService");
+        org.mockito.Mockito.when(history.currentUsername()).thenReturn("one");
+        String first = service.queue("video", "Song", 3L, "Music", "mp3");
+        org.junit.jupiter.api.Assertions.assertNotEquals(first, service.queue("video", "Song", 3L, "Other", "mp3"));
+        org.mockito.Mockito.when(history.currentUsername()).thenReturn("two");
+        org.junit.jupiter.api.Assertions.assertNotEquals(first, service.queue("video", "Song", 3L, "Music", "mp3"));
+    }
+
+    @Test void duplicateActiveRequestsReuseJobButFailuresCanRetry() {
+        String first = service.queue("same-video", "Song", 3L, "Music", "mp3");
+        assertEquals(first, service.queue("same-video", "Other title", 3L, "Music", "mp3"));
+        verify(executor, times(1)).submit(any(Runnable.class));
+        service.getJob(first).status = NasYtDlpService.YtDlpJob.Status.ERROR;
+        org.junit.jupiter.api.Assertions.assertNotEquals(first,
+                service.queue("same-video", "Song", 3L, "Music", "mp3"));
+        verify(executor, times(2)).submit(any(Runnable.class));
+    }
+
     @Test
     void queueUrlAndActiveJobsExposeQueuedWork() {
         String jobId = service.queueUrl("https://example.test/video", null, 4L, "clips");

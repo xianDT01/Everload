@@ -1466,14 +1466,24 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   playSelectedPlaylist(): void {
     if (!this.selectedPlaylist?.tracks?.length) return;
-    const tracks = this.selectedPlaylist.tracks.map((t: any) => this.playlistTrackToMusic(t));
-    this.musicService.setQueue(tracks[0].nasPathId || this.state?.pathId || this.winampQueue.pathId, tracks, 0);
+    this.queuePlaylist(this.selectedPlaylist, 0);
   }
 
   playPlaylistTrack(index: number): void {
     if (!this.selectedPlaylist?.tracks?.[index]) return;
-    const tracks = this.selectedPlaylist.tracks.map((t: any) => this.playlistTrackToMusic(t));
-    this.musicService.setQueue(tracks[index].nasPathId || this.state?.pathId || this.winampQueue.pathId, tracks, index);
+    if (this.selectedPlaylist.tracks[index].available === false) return;
+    this.queuePlaylist(this.selectedPlaylist, index);
+  }
+
+  private queuePlaylist(playlist: any, originalIndex: number): void {
+    const playable = playlist.tracks
+      .map((track: any, index: number) => ({ track, index }))
+      .filter(({ track }: any) => track.available !== false);
+    if (!playable.length) return;
+    const next = playable.findIndex(({ index }: any) => index >= originalIndex);
+    const startIndex = next < 0 ? playable.length - 1 : next;
+    const tracks = playable.map(({ track }: any) => this.playlistTrackToMusic(track));
+    this.musicService.setQueue(tracks[startIndex].nasPathId ?? this.state?.pathId ?? this.winampQueue.pathId, tracks, startIndex);
   }
 
   removeSelectedPlaylistTrack(trackId: number, event?: Event): void {
@@ -1551,20 +1561,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       format: '',
       bpm: 0,
       hasCover: false,
-      source: 'nas',
+      source: t.source || 'nas',
+      available: t.available,
       nasPathId: t.nasPathId
     };
   }
 
   playPlaylist(pl: any): void {
     if (!pl.tracks?.length) return;
-    const tracks = pl.tracks.map((t: any) => ({
-      name: t.title, path: t.trackPath, title: t.title,
-      artist: t.artist, album: t.album, duration: t.durationSeconds,
-      directory: false, size: 0, lastModified: '', format: '', hasCover: false, bpm: 0,
-      source: 'nas' as const, nasPathId: t.nasPathId
-    }));
-    this.musicService.setQueue(pl.tracks[0].nasPathId, tracks, 0);
+    this.queuePlaylist(pl, 0);
   }
 
   loadLyricsForTrack(): void {
@@ -1634,6 +1639,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   playHistoryItem(item: any): void {
+    if (item.available === false) return;
     const pathId = Number(item.nasPathId ?? item.pathId ?? this.state?.pathId ?? 0);
     const trackPath = item.trackPath || item.path;
     if (!pathId || !trackPath) return;

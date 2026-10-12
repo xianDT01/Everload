@@ -466,6 +466,13 @@ public class ChatService {
                 .toList();
     }
 
+    @Transactional
+    public void adminClearGroupMessages(Long groupId) {
+        ChatGroup group = chatGroupRepository.findById(groupId)
+                .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
+        chatMessageRepository.deleteByGroup(group);
+    }
+
     @Transactional(readOnly = true)
     public List<ChatMessageDto> adminGetMessages(Long groupId) {
         ChatGroup group = chatGroupRepository.findById(groupId)
@@ -494,6 +501,9 @@ public class ChatService {
     public void adminDeleteGroup(Long groupId) {
         ChatGroup group = chatGroupRepository.findById(groupId)
                 .orElseThrow(() -> new ChatServiceException(GROUP_NOT_FOUND));
+        if (group.getType() == GroupType.ANNOUNCEMENT) {
+            throw new ChatServiceException("Cannot delete announcement channel");
+        }
         chatMessageRepository.deleteByGroup(group);
         groupMemberRepository.deleteByGroup(group);
         chatGroupRepository.delete(group);
@@ -723,16 +733,6 @@ public class ChatService {
         long memberCount = groupMemberRepository.countByGroup(g);
         long messageCount = chatMessageRepository.countByGroup(g);
 
-        List<ChatMessage> lastMsgs = chatMessageRepository.findTop100ByGroupOrderBySentAtDesc(g);
-        String lastMessage = null;
-        java.time.LocalDateTime lastMessageTime = null;
-        if (!lastMsgs.isEmpty()) {
-            ChatMessage lm = lastMsgs.get(0);
-            String preview = messagePreview(lm, 50, "Vídeo de YouTube");
-            lastMessage = lm.getSender().getUsername() + ": " + preview;
-            lastMessageTime = lm.getSentAt();
-        }
-
         return AdminChatGroupDto.builder()
                 .id(g.getId())
                 .name(g.getName())
@@ -741,8 +741,6 @@ public class ChatService {
                 .createdAt(g.getCreatedAt())
                 .memberCount((int) memberCount)
                 .messageCount(messageCount)
-                .lastMessage(lastMessage)
-                .lastMessageTime(lastMessageTime)
                 .createdByUsername(g.getCreatedBy() != null ? g.getCreatedBy().getUsername() : null)
                 .build();
     }

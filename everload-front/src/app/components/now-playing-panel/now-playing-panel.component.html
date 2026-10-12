@@ -439,9 +439,9 @@
           </div>
         </div>
         <div class="np-manager-list" *ngIf="historyItems.length; else noHistory">
-          <button class="np-manager-track" *ngFor="let item of historyItems" (dblclick)="playHistoryItem(item)">
+          <button class="np-manager-track" *ngFor="let item of historyItems" (dblclick)="playHistoryItem(item)" [disabled]="item.available === false">
             <span class="num">♪</span>
-            <span class="copy"><strong>{{ item.title || item.name || item.trackPath }}</strong><small>{{ item.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ item.playedAt || item.createdAt || '' }}</small></span>
+            <span class="copy"><strong>{{ item.title || item.name || item.trackPath }}</strong><small>{{ item.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ item.playedAt || item.createdAt || '' }}</small><small class="track-unavailable" *ngIf="item.available === false">{{ 'TRACK_UNAVAILABLE' | translate }}</small></span>
             <span class="np-manager-row-actions"><i (click)="playHistoryItem(item); $event.stopPropagation()">▶</i></span>
           </button>
         </div>
@@ -587,9 +587,9 @@
             </div>
 
             <div class="np-playlist-track-list">
-              <button class="np-manager-track" *ngFor="let t of selectedPlaylist.tracks || []; let i = index" (dblclick)="playPlaylistTrack(i)">
+              <button class="np-manager-track" *ngFor="let t of selectedPlaylist.tracks || []; let i = index" (dblclick)="playPlaylistTrack(i)" [disabled]="t.available === false">
                 <span class="num">{{ i + 1 }}</span>
-                <span class="copy"><strong>{{ t.title || t.trackPath }}</strong><small>{{ t.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ t.album || ('MUSIC.MODERN_NO_ALBUM' | translate) }}</small></span>
+                <span class="copy"><strong>{{ t.title || t.trackPath }}</strong><small>{{ t.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }} · {{ t.album || ('MUSIC.MODERN_NO_ALBUM' | translate) }}</small><small class="track-unavailable" *ngIf="t.available === false">{{ 'TRACK_UNAVAILABLE' | translate }}</small></span>
                 <span class="np-manager-row-actions">
                   <i (click)="playPlaylistTrack(i); $event.stopPropagation()">▶</i>
                   <i (click)="removeSelectedPlaylistTrack(t.id, $event)">×</i>

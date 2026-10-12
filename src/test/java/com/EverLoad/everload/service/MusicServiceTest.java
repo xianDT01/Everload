@@ -2,6 +2,7 @@ package com.everload.everload.service;
 
 import com.everload.everload.repository.NasPathRepository;
 import com.everload.everload.repository.TrackMetadataCacheRepository;
+import com.everload.everload.event.NasFilesChangedEvent;
 import com.everload.everload.model.TrackMetadataCache;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
@@ -53,11 +54,32 @@ class MusicServiceTest {
     @BeforeEach
     void setUp() {
         nasService = mock(NasService.class);
+        when(nasService.isTrackAvailable(anyLong(), anyString())).thenReturn(true);
         metadataRepository = mock(TrackMetadataCacheRepository.class);
         restTemplate = mock(RestTemplate.class);
         musicService = new MusicService(nasService, mock(NasPathRepository.class), metadataRepository,
                 restTemplate);
         ReflectionTestUtils.setField(musicService, "avatarStoragePath", tempDir.toString());
+    }
+
+    @Test
+    void libraryTracksReadsOnePageAndKeepsContinuationWhenFilesAreMissing() {
+        var pageable = org.springframework.data.domain.PageRequest.of(4, 100);
+        var track = TrackMetadataCache.builder().nasPathId(1L).relativePath("song.mp3").title("Song").build();
+        when(metadataRepository.findLibraryPage(eq(1L), eq("song"), eq(pageable)))
+                .thenReturn(new org.springframework.data.domain.SliceImpl<>(List.of(track), pageable, true));
+        when(nasService.isTrackAvailable(1L, "song.mp3")).thenReturn(false);
+        var response = musicService.getLibraryTracks(1L, 4, 100, " SONG ");
+        assertEquals(List.of(), response.get("tracks"));
+        assertEquals(true, response.get("hasMore"));
+        verify(metadataRepository, never()).findByNasPathId(anyLong());
+    }
+
+    @Test
+    void libraryTracksChecksPathAccessBeforeReadingCachedMetadata() {
+        when(nasService.getBasePath(2L)).thenThrow(new SecurityException("denied"));
+        assertThrows(SecurityException.class, () -> musicService.getLibraryTracks(2L, 0, 100, ""));
+        verifyNoInteractions(metadataRepository);
     }
 
     private void stubResolvedFile(String fileName, byte[] content) throws Exception {
@@ -167,6 +189,37 @@ class MusicServiceTest {
     }
 
     @Test
+    void nasFileChangesInvalidateOnlyMatchingBrowseCachesAndMemoryClearReportsCounts() {
+        Map<String, Object[]> browseCache = new java.util.concurrent.ConcurrentHashMap<>();
+        browseCache.put("1|music|0|50", new Object[0]);
+        browseCache.put("2|music|0|50", new Object[0]);
+        Map<String, Object> directoryCache = new java.util.concurrent.ConcurrentHashMap<>();
+        directoryCache.put("1\u0000music\u0000/root", new Object());
+        directoryCache.put("2\u0000music\u0000/root", new Object());
+        Map<String, Object> artistCache = new java.util.concurrent.ConcurrentHashMap<>();
+        artistCache.put("artist", new Object());
+        Map<String, Object> albumCache = new java.util.concurrent.ConcurrentHashMap<>();
+        albumCache.put("album", new Object());
+        ReflectionTestUtils.setField(musicService, "browseResultCache", browseCache);
+        ReflectionTestUtils.setField(musicService, "directoryListingCache", directoryCache);
+        ReflectionTestUtils.setField(musicService, "artistImageLookupCache", artistCache);
+        ReflectionTestUtils.setField(musicService, "albumCoverLookupCache", albumCache);
+
+        musicService.onNasFilesChanged(new NasFilesChangedEvent(1L));
+
+        assertEquals(List.of("2|music|0|50"), List.copyOf(browseCache.keySet()));
+        assertEquals(List.of("2\u0000music\u0000/root"), List.copyOf(directoryCache.keySet()));
+        assertEquals(Map.of(
+                "artistImageCacheCleared", 1,
+                "directoryListingCacheCleared", 1,
+                "albumCoverCacheCleared", 1), musicService.clearMemoryCaches());
+        assertEquals(List.of("2|music|0|50"), List.copyOf(browseCache.keySet()));
+        assertEquals(true, directoryCache.isEmpty());
+        assertEquals(true, artistCache.isEmpty());
+        assertEquals(true, albumCache.isEmpty());
+    }
+
+    @Test
     void cachedArtistTracksMatchAliasesAndUseStableOrdering() {
         TrackMetadataCache first = cachedTrack("b/second.mp3", "Second", "Guest");
         first.setAlbum("Beta");
@@ -216,6 +269,41 @@ class MusicServiceTest {
         assertFalse(tag.hasField(FieldKey.YEAR));
         assertEquals("Tacata", tag.getFirst(FieldKey.TITLE));
         assertEquals("Tacabro", tag.getFirst(FieldKey.ARTIST));
+    }
+
+    @Test
+    void updateMetadataWritesTrimmedTagsAndInvalidatesLibraryCaches() throws Exception {
+        Path track = Files.writeString(tempDir.resolve("edited.mp3"), "audio");
+        when(nasService.resolveValidatedPath(1L, "edited.mp3")).thenReturn(track);
+        AudioFile audio = metadataAudioFile("Old", "Old artist", "Old album");
+        try (MockedStatic<AudioFileIO> audioFiles = mockStatic(AudioFileIO.class)) {
+            audioFiles.when(() -> AudioFileIO.read(track.toFile())).thenReturn(audio);
+
+            musicService.updateMetadata(1L, "edited.mp3", " New title ", " Artist ", " Album ", "2025");
+
+            Tag tag = audio.getTagOrCreateDefault();
+            verify(tag).setField(FieldKey.TITLE, "New title");
+            verify(tag).setField(FieldKey.ARTIST, "Artist");
+            verify(tag).setField(FieldKey.ALBUM, "Album");
+            verify(tag).setField(FieldKey.YEAR, "2025");
+            audioFiles.verify(() -> AudioFileIO.write(audio));
+        }
+        Path textFile = Files.writeString(tempDir.resolve("notes.txt"), "text");
+        when(nasService.resolveValidatedPath(1L, "notes.txt")).thenReturn(textFile);
+        assertThrows(IllegalArgumentException.class,
+                () -> musicService.updateMetadata(1L, "notes.txt", "x", "x", "x", "x"));
+    }
+
+    @Test
+    void findsLyricsSidecarBesideTrackAndReturnsNullWhenMissing() throws Exception {
+        Path track = Files.writeString(tempDir.resolve("song.mp3"), "audio");
+        Files.writeString(tempDir.resolve("song.lrc"), "[00:01.00]Lyrics\n");
+        when(nasService.resolveValidatedPath(1L, "song.mp3")).thenReturn(track);
+        when(nasService.resolveValidatedPath(1L, "no-lyrics.mp3"))
+                .thenReturn(Files.writeString(tempDir.resolve("no-lyrics.mp3"), "audio"));
+
+        assertEquals("[00:01.00]Lyrics\n", musicService.findLrcSidecar(1L, "song.mp3"));
+        assertNull(musicService.findLrcSidecar(1L, "no-lyrics.mp3"));
     }
 
     @Test

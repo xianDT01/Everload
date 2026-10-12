@@ -67,7 +67,8 @@ src/main/resources/static/
 
 # Backups locales
 Caddyfile.bak*
+Caddyfile*.bak
+tmp/
 
 # Estado interno de Claude Code
 .claude/scheduled_tasks.lock
-

@@ -9,6 +9,7 @@ import com.everload.everload.repository.PlaylistCollaboratorRepository;
 import com.everload.everload.repository.PlaylistRepository;
 import com.everload.everload.repository.PlaylistTrackRepository;
 import com.everload.everload.repository.UserRepository;
+import com.everload.everload.service.NasService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
@@ -37,6 +38,7 @@ public class PlaylistController {
     private final PlaylistTrackRepository playlistTrackRepository;
     private final PlaylistCollaboratorRepository playlistCollaboratorRepository;
     private final UserRepository userRepository;
+    private final NasService nasService;
 
     private User getUser(UserDetails ud) {
         return userRepository.findByUsername(ud.getUsername())
@@ -49,21 +51,31 @@ public class PlaylistController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<List<Playlist>> list(@AuthenticationPrincipal UserDetails ud) {
-        return ResponseEntity.ok(playlistRepository.findByUserOrderByCreatedAtDesc(getUser(ud)));
+        return ResponseEntity.ok(withAvailability(playlistRepository.findByUserOrderByCreatedAtDesc(getUser(ud))));
     }
 
     @Operation(summary = "Listar playlists públicas de todos los usuarios")
     @GetMapping("/public")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<List<Playlist>> listPublic() {
-        return ResponseEntity.ok(playlistRepository.findByIsPublicTrueOrderByCreatedAtDesc());
+        return ResponseEntity.ok(withAvailability(playlistRepository.findByIsPublicTrueOrderByCreatedAtDesc()));
     }
 
     @Operation(summary = "Listar playlists colaborativas compartidas con el usuario")
     @GetMapping("/shared")
     @PreAuthorize("hasAnyRole('ADMIN', 'NAS_USER', 'BASIC_USER')")
     public ResponseEntity<List<Playlist>> listShared(@AuthenticationPrincipal UserDetails ud) {
-        return ResponseEntity.ok(playlistRepository.findSharedWithUser(getUser(ud)));
+        return ResponseEntity.ok(withAvailability(playlistRepository.findSharedWithUser(getUser(ud))));
+    }
+
+    private List<Playlist> withAvailability(List<Playlist> playlists) {
+        playlists.forEach(playlist -> {
+            if (playlist.getTracks() == null) return;
+            playlist.getTracks().forEach(track -> track.setAvailable(
+                    !"nas".equalsIgnoreCase(track.getSource())
+                            || nasService.isTrackAvailable(track.getNasPathId(), track.getTrackPath())));
+        });
+        return playlists;
     }
 
     @Operation(summary = "Cambiar visibilidad de la playlist (pública/privada)")

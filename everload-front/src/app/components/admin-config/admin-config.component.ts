@@ -32,6 +32,24 @@ interface SystemInfoDto {
   dbSizeFormatted: string;
 }
 
+interface AdminDashboardDto {
+  totalUsers: number;
+  activeUsers: number;
+  pendingUsers: number;
+  totalDownloads: number;
+  downloadsToday: number;
+  downloadsLast7Days: number;
+  databaseSizeBytes: number;
+  volumeTotalBytes: number;
+  volumeUsableBytes: number;
+  processCpuPercent: number | null;
+  jvmHeapUsedBytes: number;
+  jvmHeapMaxBytes: number;
+  jvmHeapPercent: number;
+  downloadsByDay: Array<{ day: string; count: number }>;
+  recentDownloads: Array<{ title: string; platform: string; username: string; createdAt: string }>;
+}
+
 interface UpdateCheckDto {
   currentVersion: string;
   latestVersion: string;
@@ -95,25 +113,7 @@ interface AdminChatGroup {
   createdAt: string;
   memberCount: number;
   messageCount: number;
-  lastMessage?: string;
-  lastMessageTime?: string;
   createdByUsername?: string;
-}
-
-interface AdminChatMessage {
-  id: number;
-  senderUsername: string;
-  content: string;
-  messageType: string;
-  videoTitle?: string;
-  sentAt: string;
-}
-
-interface AdminChatMember {
-  username: string;
-  role: string;
-  avatarUrl?: string;
-  joinedAt: string;
 }
 
 @Component({
@@ -123,7 +123,11 @@ interface AdminChatMember {
 })
 export class AdminConfigComponent implements OnInit, OnDestroy {
 
-  activeTab: 'config' | 'authHero' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' | 'app' | 'sistema' = 'config';
+  activeTab: 'overview' | 'config' | 'authHero' | 'users' | 'nas' | 'logs' | 'history' | 'chat' | 'audit' | 'app' | 'sistema' = 'overview';
+  dashboard: AdminDashboardDto | null = null;
+  dashboardLoading = false;
+  dashboardError = false;
+  dashboardUpdatedAt: Date | null = null;
 
   private get BASE(): string {
     return this.apiBase.backendUrl;
@@ -151,6 +155,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   authHeroImageLoading = false;
   selectedAuthHeroSlot = 0;
   intervalId: any;
+  dashboardRefreshInterval: any;
   mensaje = '';
   cargando = false;
 
@@ -170,6 +175,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   // Gestión de usuarios
   pendingUsers: UserDto[] = [];
   activeUsers: UserDto[] = [];
+  inactiveUsers: UserDto[] = [];
   userMsg = '';
   roles = ['ADMIN', 'NAS_USER', 'BASIC_USER'];
 
@@ -181,11 +187,11 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   nasMsg = '';
 
   themes = [
-    { id: 'default', color: '#2a3b5f' },
-    { id: 'ocean',   color: '#1c3645' },
-    { id: 'forest',  color: '#1e7085' },
-    { id: 'sunset',  color: '#3d5bc4' },
-    { id: 'dark',    color: '#242424' }
+    { id: 'default', color: '#648cff' },
+    { id: 'ocean',   color: '#52c9c2' },
+    { id: 'forest',  color: '#d5ae67' },
+    { id: 'sunset',  color: '#f08168' },
+    { id: 'dark',    color: '#b28be8' }
   ];
   currentTheme = 'default';
   showThemePicker = false;
@@ -225,6 +231,8 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.loadDashboard();
+    this.dashboardRefreshInterval = setInterval(() => this.loadDashboard(), 30_000);
     this.http.get<AdminConfig>(`${this.BASE}/api/admin/config`).subscribe({
       next: data => this.config = {
         ...this.config,
@@ -242,12 +250,52 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
+    if (this.dashboardRefreshInterval) { clearInterval(this.dashboardRefreshInterval); this.dashboardRefreshInterval = null; }
     if (this.warnCountdownInterval) { clearInterval(this.warnCountdownInterval); this.warnCountdownInterval = null; }
   }
 
   changeLanguage(lang: string) {
     this.translate.use(lang);
     localStorage.setItem('language', lang);
+  }
+
+  loadDashboard(): void {
+    if (this.dashboardLoading) return;
+    this.dashboardLoading = true;
+    this.dashboardError = false;
+    this.http.get<AdminDashboardDto>(`${this.BASE}/api/admin/dashboard`).subscribe({
+      next: data => {
+        this.dashboard = data;
+        this.dashboardUpdatedAt = new Date();
+        this.dashboardLoading = false;
+      },
+      error: () => {
+        this.dashboardError = true;
+        this.dashboardLoading = false;
+      }
+    });
+  }
+
+  dashboardBarHeight(count: number): number {
+    const max = Math.max(1, ...(this.dashboard?.downloadsByDay || []).map(day => day.count));
+    return Math.min(100, Math.max(count > 0 ? 8 : 2, Math.round(count * 100 / max)));
+  }
+
+  dashboardDayLabel(day: string): string {
+    const [year, month, date] = day.split('-').map(Number);
+    return new Date(year, month - 1, date).toLocaleDateString(undefined, { weekday: 'short' });
+  }
+
+  formatDashboardBytes(bytes: number): string {
+    if (!bytes || bytes < 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    return `${(bytes / Math.pow(1024, unitIndex)).toFixed(unitIndex > 1 ? 1 : 0)} ${units[unitIndex]}`;
+  }
+
+  get dashboardVolumePercent(): number {
+    if (!this.dashboard?.volumeTotalBytes) return 0;
+    return Math.min(100, Math.max(0, (this.dashboard.volumeTotalBytes - this.dashboard.volumeUsableBytes) * 100 / this.dashboard.volumeTotalBytes));
   }
 
   toggleThemePicker() {
@@ -496,6 +544,25 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadInactiveUsers(): void {
+    this.http.get<UserDto[]>(`${this.BASE}/api/admin/users`).subscribe({
+      next: users => this.inactiveUsers = users.filter(user => user.status === 'REJECTED'),
+      error: () => {}
+    });
+  }
+
+  reactivateUser(user: UserDto): void {
+    this.http.put(`${this.BASE}/api/admin/users/${user.id}`, { role: user.role, status: 'ACTIVE' }).subscribe({
+      next: () => {
+        this.userMsg = this.translate.instant('ADMIN.USER_REACTIVATED', { username: user.username });
+        this.loadPendingUsers();
+        this.loadActiveUsers();
+        this.loadInactiveUsers();
+      },
+      error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_REACTIVATE_ERROR')
+    });
+  }
+
   approveUser(user: UserDto, role: string): void {
     this.http.put(`${this.BASE}/api/admin/users/${user.id}`, { role, status: 'ACTIVE' }).subscribe({
       next: () => {
@@ -512,6 +579,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       next: () => {
         this.userMsg = this.translate.instant('ADMIN.USER_REJECTED', { username: user.username });
         this.loadPendingUsers();
+        this.loadInactiveUsers();
       },
       error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_REJECT_ERROR')
     });
@@ -537,6 +605,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       next: () => {
         this.userMsg = this.translate.instant('ADMIN.USER_REVOKED', { username: user.username });
         this.loadActiveUsers();
+        this.loadInactiveUsers();
       },
       error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_REVOKE_ERROR')
     });
@@ -549,6 +618,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
         this.userMsg = this.translate.instant('ADMIN.USER_DELETED_SUCCESS', { username: user.username });
         this.loadPendingUsers();
         this.loadActiveUsers();
+        this.loadInactiveUsers();
       },
       error: () => this.userMsg = '❌ ' + this.translate.instant('ADMIN.USER_DELETE_ERROR')
     });
@@ -597,79 +667,36 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   chatGroups: AdminChatGroup[] = [];
   chatGroupSearch = '';
   chatMsg = '';
-  selectedChatGroup: AdminChatGroup | null = null;
-  chatGroupMessages: AdminChatMessage[] = [];
-  chatGroupMembers: AdminChatMember[] = [];
-  chatMessageSearch = '';
-  loadingChatDetail = false;
 
   loadChatGroups(): void {
     this.http.get<AdminChatGroup[]>(`${this.BASE}/api/admin/chat/groups`).subscribe({
-      next: data => this.chatGroups = data.sort((a, b) => (b.lastMessageTime ?? '').localeCompare(a.lastMessageTime ?? '')),
+      next: data => this.chatGroups = data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_LOAD')
-    });
-  }
-
-  selectChatGroup(group: AdminChatGroup): void {
-    if (this.selectedChatGroup?.id === group.id) {
-      this.selectedChatGroup = null;
-      return;
-    }
-    this.selectedChatGroup = group;
-    this.chatGroupMessages = [];
-    this.chatGroupMembers = [];
-    this.chatMessageSearch = '';
-    this.loadingChatDetail = true;
-
-    this.http.get<AdminChatMessage[]>(`${this.BASE}/api/admin/chat/groups/${group.id}/messages`).subscribe({
-      next: msgs => { this.chatGroupMessages = msgs; this.loadingChatDetail = false; },
-      error: () => { this.loadingChatDetail = false; }
-    });
-    this.http.get<AdminChatMember[]>(`${this.BASE}/api/admin/chat/groups/${group.id}/members`).subscribe({
-      next: members => this.chatGroupMembers = members,
-      error: () => {}
     });
   }
 
   deleteChatGroup(group: AdminChatGroup, event: Event): void {
     event.stopPropagation();
+    if (group.type === 'ANNOUNCEMENT') return;
     if (!confirm(this.translate.instant('ADMIN.CHAT_CONFIRM_DELETE_GROUP', { name: group.name }))) return;
     this.http.delete(`${this.BASE}/api/admin/chat/groups/${group.id}`).subscribe({
       next: () => {
         this.chatMsg = '✅ ' + this.translate.instant('ADMIN.CHAT_GROUP_DELETED', { name: group.name });
-        if (this.selectedChatGroup?.id === group.id) this.selectedChatGroup = null;
         this.loadChatGroups();
       },
       error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_DELETE_GROUP')
     });
   }
 
-  deleteChatMessage(msg: AdminChatMessage): void {
-    if (!confirm(this.translate.instant('ADMIN.CHAT_CONFIRM_DELETE_MSG'))) return;
-    this.http.delete(`${this.BASE}/api/admin/chat/messages/${msg.id}`).subscribe({
+  clearChatGroupMessages(group: AdminChatGroup): void {
+    if (!confirm(this.translate.instant('ADMIN.CHAT_CONFIRM_CLEAR_GROUP', { name: group.name }))) return;
+    this.http.delete(`${this.BASE}/api/admin/chat/groups/${group.id}/messages`).subscribe({
       next: () => {
-        this.chatGroupMessages = this.chatGroupMessages.filter(m => m.id !== msg.id);
-        if (this.selectedChatGroup) this.selectedChatGroup.messageCount--;
+        group.messageCount = 0;
+        this.chatMsg = '✅ ' + this.translate.instant('ADMIN.CHAT_GROUP_CLEARED', { name: group.name });
       },
-      error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_DELETE_MSG')
+      error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_CLEAR_GROUP')
     });
-  }
-
-  removeChatMember(username: string): void {
-    if (!this.selectedChatGroup) return;
-    if (!confirm(this.translate.instant('ADMIN.CHAT_CONFIRM_KICK', { username }))) return;
-    this.http.delete(`${this.BASE}/api/admin/chat/groups/${this.selectedChatGroup.id}/members/${username}`).subscribe({
-      next: () => {
-        this.chatGroupMembers = this.chatGroupMembers.filter(m => m.username !== username);
-        if (this.selectedChatGroup) this.selectedChatGroup.memberCount--;
-      },
-      error: () => this.chatMsg = '❌ ' + this.translate.instant('ADMIN.CHAT_ERROR_KICK')
-    });
-  }
-
-  getChatMessagePreview(msg: AdminChatMessage): string {
-    if (msg.messageType === 'YOUTUBE_SHARE') return '🎬 ' + (msg.videoTitle || 'Vídeo de YouTube');
-    return msg.content;
   }
 
   getGroupTypeBadge(type: string): string {
@@ -685,15 +712,6 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
       g.name.toLowerCase().includes(q) ||
       g.type.toLowerCase().includes(q) ||
       (g.createdByUsername ?? '').toLowerCase().includes(q)
-    );
-  }
-
-  get filteredChatMessages(): AdminChatMessage[] {
-    if (!this.chatMessageSearch.trim()) return this.chatGroupMessages;
-    const q = this.chatMessageSearch.toLowerCase();
-    return this.chatGroupMessages.filter(m =>
-      m.senderUsername.toLowerCase().includes(q) ||
-      m.content.toLowerCase().includes(q)
     );
   }
 

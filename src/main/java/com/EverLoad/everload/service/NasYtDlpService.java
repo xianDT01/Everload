@@ -45,14 +45,23 @@ public class NasYtDlpService {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
-    public String queue(String videoId, String title, Long nasPathId, String subPath, String format) {
+    public synchronized String queue(String videoId, String title, Long nasPathId, String subPath, String format) {
         String jobId = UUID.randomUUID().toString();
         String safeTitle = (title != null && !title.isBlank()) ? title : videoId;
         java.util.Set<String> validFormats = java.util.Set.of("mp3","m4a","flac","opus","ogg","wav","aac");
         String safeFormat = (format != null && validFormats.contains(format.toLowerCase())) ? format.toLowerCase() : "mp3";
         String safeSub = (subPath != null) ? subPath : "";
+        String username = downloadHistoryService.currentUsername();
+        for (YtDlpJob existing : jobs.values()) {
+            if (Objects.equals(existing.videoId, videoId) && existing.nasPathId == nasPathId &&
+                    existing.subPath.equals(safeSub) && existing.format.equals(safeFormat) &&
+                    Objects.equals(existing.username, username) &&
+                    (existing.status == YtDlpJob.Status.QUEUED || existing.status == YtDlpJob.Status.RUNNING ||
+                     (existing.status == YtDlpJob.Status.DONE && existing.resultPath != null &&
+                      nasService.isTrackAvailable(nasPathId, existing.resultPath)))) return existing.jobId;
+        }
         YtDlpJob job = new YtDlpJob(jobId, videoId, safeTitle, nasPathId, safeSub, safeFormat,
-                downloadHistoryService.currentUsername());
+                username);
         jobs.put(jobId, job);
         executor.submit(() -> execute(job));
         log.info("Queued yt-dlp job {} video={} path={}/{}", jobId, videoId, nasPathId, safeSub);
@@ -154,7 +163,7 @@ public class NasYtDlpService {
             refreshLibrary(job.nasPathId, saved);
             downloadHistoryService.recordDownload(new Download(tmp.getName(), "music (NAS)", "YouTube", job.username));
 
-            job.resultFilename = tmp.getName();
+            job.resultFilename = Path.of(saved).getFileName().toString();
             job.resultPath = saved;
             job.progress = 100;
             job.completedAt = System.currentTimeMillis();

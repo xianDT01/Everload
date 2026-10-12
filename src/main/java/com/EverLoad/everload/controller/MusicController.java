@@ -73,6 +73,27 @@ public class MusicController {
         }
     }
 
+    @GetMapping("/library-tracks")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Object> libraryTracks(@RequestParam Long pathId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "100") int size,
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(defaultValue = "title") String sort) {
+        if (page < 0 || size < 1 || size > 200 || query.length() > 200 ||
+                !java.util.Set.of("title", "artist", "date").contains(sort)) {
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Parametros de biblioteca invalidos"));
+        }
+        try {
+            return ResponseEntity.ok("title".equals(sort) ? musicService.getLibraryTracks(pathId, page, size, query)
+                    : musicService.getLibraryTracks(pathId, page, size, query, sort));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of(ERROR_KEY, "Ruta no accesible"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Ruta no disponible"));
+        }
+    }
+
     @Operation(summary = "Resumen cacheado de la biblioteca musical")
     @GetMapping("/library-overview")
     @PreAuthorize("isAuthenticated()")

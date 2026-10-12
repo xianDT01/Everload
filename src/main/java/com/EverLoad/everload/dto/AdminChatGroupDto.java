@@ -19,7 +19,5 @@ public class AdminChatGroupDto {
     private LocalDateTime createdAt;
     private int memberCount;
     private long messageCount;
-    private String lastMessage;
-    private LocalDateTime lastMessageTime;
     private String createdByUsername;
 }

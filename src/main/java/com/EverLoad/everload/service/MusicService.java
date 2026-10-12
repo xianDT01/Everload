@@ -2,6 +2,7 @@ package com.everload.everload.service;
 
 import com.everload.everload.dto.MusicMetadataDto;
 import com.everload.everload.dto.PagedMusicResult;
+import com.everload.everload.event.NasFilesChangedEvent;
 import com.everload.everload.model.NasPath;
 import com.everload.everload.model.TrackMetadataCache;
 import com.everload.everload.repository.NasPathRepository;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.MediaTypeFactory;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -130,14 +132,32 @@ public class MusicService {
         return pool.stream().limit(count).toList();
     }
 
+    public Map<String, Object> getLibraryTracks(Long pathId, int page, int size, String query) {
+        return getLibraryTracks(pathId, page, size, query, "title");
+    }
+
+    public Map<String, Object> getLibraryTracks(Long pathId, int page, int size, String query, String sort) {
+        nasService.getBasePath(pathId);
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        String search = query == null ? "" : query.trim().toLowerCase(java.util.Locale.ROOT);
+        var slice = "title".equals(sort) ? metadataCacheRepo.findLibraryPage(pathId, search, pageable)
+                : metadataCacheRepo.findSortedLibraryPage(pathId, search, sort, pageable);
+        var tracks = slice.getContent().stream().map(this::dtoFromCache)
+                .filter(track -> nasService.isTrackAvailable(pathId, track.getPath())).toList();
+        if (page == 0 && slice.isEmpty() && (query == null || query.isBlank())) startLibraryIndex(pathId);
+        return Map.of("tracks", tracks, "hasMore", slice.hasNext(), "page", page,
+                INDEXING_FIELD, libraryIndexInFlight.contains(pathId));
+    }
+
     public Map<String, Object> getLibraryOverview(Long pathId, int limit) {
-        List<MusicMetadataDto> tracks = metadataCacheRepo
-                .findOverviewSlice(pathId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)))
-                .stream()
+        List<TrackMetadataCache> cachedTracks = metadataCacheRepo
+                .findOverviewSlice(pathId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)));
+        List<MusicMetadataDto> tracks = cachedTracks.stream()
                 .map(this::dtoFromCache)
+                .filter(track -> nasService.isTrackAvailable(pathId, track.getPath()))
                 .toList();
 
-        if (tracks.isEmpty()) {
+        if (cachedTracks.isEmpty()) {
             startLibraryIndex(pathId);
         }
 
@@ -148,13 +168,14 @@ public class MusicService {
     }
 
     public List<MusicMetadataDto> getRecentTracks(Long pathId, int limit) {
-        List<MusicMetadataDto> tracks = metadataCacheRepo
-                .findByNasPathIdOrderByLastModifiedDesc(pathId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)))
-                .stream()
+        List<TrackMetadataCache> cachedTracks = metadataCacheRepo
+                .findByNasPathIdOrderByLastModifiedDesc(pathId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)));
+        List<MusicMetadataDto> tracks = cachedTracks.stream()
                 .map(this::dtoFromCache)
+                .filter(track -> nasService.isTrackAvailable(pathId, track.getPath()))
                 .toList();
 
-        if (tracks.isEmpty()) {
+        if (cachedTracks.isEmpty()) {
             startLibraryIndex(pathId);
         }
 
@@ -538,6 +559,12 @@ public class MusicService {
 
     public void invalidateBrowseCache(Long pathId) {
         browseResultCache.keySet().removeIf(k -> k.startsWith(pathId + "|"));
+        directoryListingCache.keySet().removeIf(k -> k.startsWith(pathId + CACHE_KEY_SEPARATOR));
+    }
+
+    @EventListener
+    public void onNasFilesChanged(NasFilesChangedEvent event) {
+        invalidateBrowseCache(event.nasPathId());
     }
 
     /**
@@ -1417,6 +1444,7 @@ public class MusicService {
             if (subPathFilter != null && !cached.getRelativePath().startsWith(subPathFilter)) continue;
             MusicMetadataDto dto = dtoFromCache(cached);
             dto.setNasPathId(pathId);
+            if (!nasService.isTrackAvailable(pathId, dto.getPath())) continue;
             int score = scoreSearchDto(dto, tokens);
             if (score > 0) scored.add(Map.entry(dto, score));
         }

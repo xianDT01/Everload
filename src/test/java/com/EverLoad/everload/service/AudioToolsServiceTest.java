@@ -2,10 +2,12 @@ package com.everload.everload.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -14,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.when;
 
 class AudioToolsServiceTest {
 
@@ -84,6 +88,53 @@ class AudioToolsServiceTest {
                 service, "runFfmpeg", List.of("definitely-missing-everload-ffmpeg"));
 
         assertEquals(-1, exit);
+    }
+
+    @Test
+    void trimRejectsInvalidTimeRangesBeforeStartingFfmpeg() {
+        MockMultipartFile audio = new MockMultipartFile(
+                "file", "track.mp3", "audio/mpeg", new byte[]{'I', 'D', '3', 0, 0});
+
+        assertEquals(400, service.trimAudio(audio, 4, 4).getStatusCode().value());
+        assertEquals(400, service.trimAudio(audio, 5, 4).getStatusCode().value());
+        assertEquals(400, service.trimAudio(audio, -1, 4).getStatusCode().value());
+    }
+
+    @Test
+    void conversionRejectsUnsupportedOutputFormat() {
+        MockMultipartFile audio = new MockMultipartFile(
+                "file", "track.mp3", "audio/mpeg", new byte[]{'I', 'D', '3', 0, 0});
+
+        assertThrows(IllegalArgumentException.class, () -> service.convertAudio(audio, "exe", null));
+    }
+
+    @Test
+    void ffmpegRunnerReturnsExitCodeAndPreservesInterrupt() {
+        Process success = mock(Process.class);
+        when(success.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        try (MockedConstruction<ProcessBuilder> ignored = mockConstruction(
+                ProcessBuilder.class, (builder, context) -> {
+                    when(builder.redirectErrorStream(true)).thenReturn(builder);
+                    when(builder.start()).thenReturn(success);
+                    when(success.waitFor()).thenReturn(0);
+                })) {
+            assertEquals(0, (int) ReflectionTestUtils.invokeMethod(
+                    service, "runFfmpeg", List.of("ffmpeg-test", "-version")));
+        }
+
+        Process interrupted = mock(Process.class);
+        when(interrupted.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        try (MockedConstruction<ProcessBuilder> ignored = mockConstruction(
+                ProcessBuilder.class, (builder, context) -> {
+                    when(builder.redirectErrorStream(true)).thenReturn(builder);
+                    when(builder.start()).thenReturn(interrupted);
+                    when(interrupted.waitFor()).thenThrow(new InterruptedException("stop"));
+                })) {
+            assertEquals(-1, (int) ReflectionTestUtils.invokeMethod(
+                    service, "runFfmpeg", List.of("ffmpeg-test", "-version")));
+            assertTrue(Thread.currentThread().isInterrupted());
+            Thread.interrupted();
+        }
     }
 
     private void assertValid(String filename, byte[] bytes) {

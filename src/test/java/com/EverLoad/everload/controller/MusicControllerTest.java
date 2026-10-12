@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
@@ -60,6 +61,33 @@ class MusicControllerTest {
 
     @Autowired
     MusicController controller;
+
+    @Test
+    void libraryTracksValidatesPagingBounds() throws Exception {
+        mvc.perform(get("/api/music/library-tracks").param("pathId", "1").param("page", "-1"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/music/library-tracks").param("pathId", "1").param("size", "10000"))
+                .andExpect(status().isBadRequest());
+        verify(musicService, never()).getLibraryTracks(anyLong(), anyInt(), anyInt(), anyString());
+    }
+
+    @Test
+    void libraryTracksForwardsPageAndSearch() throws Exception {
+        when(musicService.getLibraryTracks(1L, 2, 100, "Tacabro"))
+                .thenReturn(java.util.Map.of("tracks", java.util.List.of(), "hasMore", true));
+        mvc.perform(get("/api/music/library-tracks").param("pathId", "1").param("page", "2").param("query", "Tacabro"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasMore").value(true));
+    }
+
+    @Test
+    void libraryTracksForwardsSortAndRejectsUnsupportedValues() throws Exception {
+        when(musicService.getLibraryTracks(1L, 2, 100, "", "artist"))
+                .thenReturn(java.util.Map.of("tracks", java.util.List.of(), "hasMore", true));
+        mvc.perform(get("/api/music/library-tracks").param("pathId", "1").param("page", "2").param("sort", "artist"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.hasMore").value(true));
+        mvc.perform(get("/api/music/library-tracks").param("pathId", "1").param("sort", "unsupported"))
+                .andExpect(status().isBadRequest());
+    }
 
     @Test
     void cleanLyricsTermRemovesVideoAndFeaturedArtistSuffixes() {
@@ -151,5 +179,52 @@ class MusicControllerTest {
 
         mvc.perform(get("/api/music/folder-cover").param("pathId", "1").param("subPath", "album"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void searchMusicCapsLimitAndMapsSecurityAndInputErrors() throws Exception {
+        mvc.perform(get("/api/music/search").param("pathId", "1").param("query", "song")
+                        .param("limit", "900"))
+                .andExpect(status().isOk());
+        verify(musicService).searchMusic(1L, null, "song", 500);
+
+        when(musicService.searchMusic(1L, null, "forbidden", 200))
+                .thenThrow(new SecurityException("no access"));
+        mvc.perform(get("/api/music/search").param("pathId", "1").param("query", "forbidden"))
+                .andExpect(status().isForbidden());
+
+        when(musicService.searchMusic(1L, null, "invalid", 200))
+                .thenThrow(new IllegalArgumentException("bad query"));
+        mvc.perform(get("/api/music/search").param("pathId", "1").param("query", "invalid"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void youtubeMetadataValidatesQueryAndMapsLookupFailure() throws Exception {
+        mvc.perform(get("/api/music/youtube-metadata").param("query", " "))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/music/youtube-metadata").param("query", "a".repeat(301)))
+                .andExpect(status().isBadRequest());
+
+        when(musicService.lookupYoutubeMetadataMap("song")).thenThrow(new IllegalStateException("offline"));
+        mvc.perform(get("/api/music/youtube-metadata").param("query", "song"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").value("Error al buscar en YouTube: offline"));
+    }
+
+    @Test
+    void metadataUpdateRefreshesSnapshotAndTranslatesServiceErrors() throws Exception {
+        String payload = """
+                {"pathId":1,"relativePath":"song.mp3","title":"Title","artist":"Artist","album":"Album","year":"2026"}
+                """;
+        mvc.perform(put("/api/music/metadata").contentType("application/json").content(payload))
+                .andExpect(status().isOk());
+        verify(musicService).updateMetadata(1L, "song.mp3", "Title", "Artist", "Album", "2026");
+        verify(metadataSnapshotService).refreshTrack(1L, "song.mp3", "Title", "Artist", "Album");
+
+        doThrow(new SecurityException("forbidden")).when(musicService)
+                .updateMetadata(1L, "song.mp3", "Title", "Artist", "Album", "2026");
+        mvc.perform(put("/api/music/metadata").contentType("application/json").content(payload))
+                .andExpect(status().isForbidden());
     }
 }

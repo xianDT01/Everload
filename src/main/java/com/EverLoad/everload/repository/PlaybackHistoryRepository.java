@@ -68,7 +68,7 @@ public interface PlaybackHistoryRepository extends JpaRepository<PlaybackHistory
     @Query("UPDATE PlaybackHistory h " +
            "SET h.trackPath = CONCAT(:newPrefix, SUBSTRING(h.trackPath, :cutLen + 1)) " +
            "WHERE h.nasPathId = :nasPathId " +
-           "AND (h.trackPath = :exactOld OR h.trackPath LIKE :likePrefix)")
+           "AND (h.trackPath = :exactOld OR h.trackPath LIKE :likePrefix ESCAPE '!')")
     int renamePathPrefix(@Param("nasPathId") Long nasPathId,
                          @Param("exactOld") String exactOld,
                          @Param("likePrefix") String likePrefix,
@@ -79,7 +79,7 @@ public interface PlaybackHistoryRepository extends JpaRepository<PlaybackHistory
     @Transactional
     @Query("DELETE FROM PlaybackHistory h " +
            "WHERE h.nasPathId = :nasPathId " +
-           "AND (h.trackPath = :exactPath OR h.trackPath LIKE :likePrefix)")
+           "AND (h.trackPath = :exactPath OR h.trackPath LIKE :likePrefix ESCAPE '!')")
     int deleteByPathPrefix(@Param("nasPathId") Long nasPathId,
                            @Param("exactPath") String exactPath,
                            @Param("likePrefix") String likePrefix);

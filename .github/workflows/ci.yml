@@ -1,0 +1,58 @@
+name: Everload CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Run backend tests
+        run: ./mvnw --batch-mode --no-transfer-progress verify
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jacoco-report
+          path: target/site/jacoco/
+          if-no-files-found: warn
+
+  frontend:
+    name: Frontend tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: everload-front/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: everload-front
+        run: npm ci
+      - name: Run frontend tests
+        working-directory: everload-front
+        run: npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: everload-front/coverage/
+          if-no-files-found: warn
+      - name: Build production frontend
+        working-directory: everload-front
+        run: npm run build

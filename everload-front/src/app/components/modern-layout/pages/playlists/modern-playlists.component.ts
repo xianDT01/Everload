@@ -313,19 +313,28 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
 
   /** Reproduce la playlist abierta empezando por la pista [index] (al pulsar una canción). */
   playFrom(index: number) {
+    if (this.selectedPlaylist?.tracks?.[index]?.available === false) return;
     this.playFromPlaylist(this.selectedPlaylist, index);
   }
 
   private playFromPlaylist(pl: any, index: number) {
-    const pid = this.state.pathId ?? 0;
     if (!pl?.tracks?.length) return;
-    const tracks = pl.tracks.map((t: any) => ({
+    const playable = pl.tracks
+      .map((track: any, originalIndex: number) => ({ track, originalIndex }))
+      .filter(({ track }: any) => track.available !== false);
+    if (!playable.length) return;
+    const nextIndex = playable.findIndex(({ originalIndex }: any) => originalIndex >= index);
+    const startIndex = nextIndex < 0 ? playable.length - 1 : nextIndex;
+    const selectedTrack = playable[startIndex].track;
+    const pid = selectedTrack?.nasPathId ?? this.state.pathId ?? pl.tracks.find((t: any) => t.nasPathId != null)?.nasPathId ?? 0;
+    const tracks = playable.map(({ track: t }: any) => ({
       name: t.title, path: t.trackPath, directory: false, size: 0,
       lastModified: '', title: t.title, artist: t.artist, album: t.album,
       duration: t.durationSeconds ?? 0, format: '', hasCover: false, bpm: 0,
-      source: t.source || 'nas', nasPathId: t.nasPathId ?? pid
+      source: t.source || 'nas', nasPathId: t.nasPathId ?? pid,
+      available: t.available
     }));
-    this.music.setQueue(pid, tracks, Math.min(Math.max(index, 0), tracks.length - 1));
+    this.music.setQueue(pid, tracks, startIndex);
   }
 
   removeTrack(trackId: number) {

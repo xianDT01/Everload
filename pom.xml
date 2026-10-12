@@ -29,6 +29,16 @@
 	<properties>
 		<java.version>17</java.version>
 		<lombok.version>1.18.38</lombok.version>
+		<sonar.projectKey>everload</sonar.projectKey>
+		<sonar.projectName>Everload</sonar.projectName>
+		<sonar.sources>src/main/java,everload-front/src/app</sonar.sources>
+		<sonar.tests>src/test/java</sonar.tests>
+		<sonar.test.inclusions>src/test/java/**/*Test.java</sonar.test.inclusions>
+		<sonar.exclusions>everload-front/src/**/*.spec.ts</sonar.exclusions>
+		<sonar.java.binaries>target/classes</sonar.java.binaries>
+		<sonar.java.test.binaries>target/test-classes</sonar.java.test.binaries>
+		<sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.javascript.lcov.reportPaths>everload-front/coverage/everload-front/lcov.info</sonar.javascript.lcov.reportPaths>
 	</properties>
 	<dependencies>
 		<dependency>
