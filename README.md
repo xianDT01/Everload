@@ -44,24 +44,87 @@ El proyecto comenzó como un descargador de vídeo y ha crecido hasta convertirs
 
 | Área | Capacidades |
 | --- | --- |
-| **EverWave** | Reproductor moderno, artistas, álbumes, playlists, favoritos, historial, cola, letras LRC, crossfade, ecualizador y más de 20 temas. |
+| **Modern y Flow** | Reproductor musical con dos vistas de inicio, artistas, álbumes, favoritos, historial, cola, letras LRC, crossfade, ecualizador y más de 20 temas claros y oscuros. |
+| **Playlists** | Creación, importación desde YouTube o Spotify, duplicación, orden aleatorio inteligente, enlaces compartidos y colaboración entre usuarios. |
 | **YouTube Music** | Búsqueda, novedades, charts, álbumes, artistas, mixes, radio automática y streaming bajo demanda. |
 | **Biblioteca NAS** | Exploración, subida, streaming con rangos HTTP, ZIP, copiar, mover, renombrar, borrar y edición de metadatos ID3. |
-| **Descargas** | Vídeo y audio desde YouTube, X/Twitter, Facebook, Instagram, TikTok y playlists de Spotify resueltas mediante YouTube. |
-| **Radio online** | Emisoras nacionales e internacionales, búsqueda global, filtros, favoritos y reproducción por URL directa. |
+| **Descargas** | Vídeo y audio desde YouTube, X/Twitter, Facebook, Instagram y TikTok al dispositivo; incorporación de música al NAS desde Modern. |
+| **Radio online** | Emisoras nacionales e internacionales, búsqueda global, filtros, URL directa, soporte HLS y alternativas ante enlaces caídos. |
 | **Cabina DJ** | Dos decks, mezclador, pitch, crossfader, EQ, filtros, hot cues, VU meters y carga desde NAS o YouTube. |
 | **Herramientas de audio** | Conversión, compresión, recorte e inspección de MP3, M4A, WAV, OGG, AAC, FLAC, OPUS y WMA. |
-| **Modo Windows** | Escritorio inspirado en Windows XP con explorador NAS, reproductores, bloc de notas, calculadora, juegos y Messenger. |
-| **Usuarios y administración** | JWT, roles, aprobación de cuentas, perfiles, avatares, auditoría, backups, mantenimiento, logs y comprobación de APIs. |
-| **Experiencia instalada** | PWA, aplicación Android, traducciones ES/EN/GL, avisos offline y notificaciones. |
+| **Modo Windows** | Escritorio inspirado en Windows XP con explorador NAS, Winamp, Music Manager, ventanas redimensionables, utilidades, juegos y Messenger. |
+| **Chat y presencia** | Conversaciones privadas, grupos, canales de anuncios, presencia de usuarios, avisos de mensajes, contenido de YouTube compartido y zumbidos. |
+| **Usuarios y administración** | JWT, roles, aprobación y reactivación de cuentas, perfiles, avatares, métricas de recursos, historial de descargas por usuario, auditoría, backups y mantenimiento. |
+| **Experiencia instalada** | PWA, distribución de la APK Android, traducciones ES/EN/GL, avisos offline, notificaciones y controles multimedia del sistema. |
+
+## Música y biblioteca
+
+### Modern y Flow
+
+Modern organiza la biblioteca, artistas, álbumes, playlists, favoritos y actividad en una interfaz musical. Flow ofrece una vista alternativa del inicio con tarjetas de recomendaciones, sin sustituir Modern ni crear una biblioteca independiente.
+
+- Inicio personalizable y recomendaciones basadas en la actividad del usuario. Las cuentas nuevas pueden descubrir lo más escuchado por la comunidad mientras construyen sus propios gustos.
+- Biblioteca completa paginada, con búsqueda y ordenación por título, artista o fecha, sin limitar la colección a una muestra inicial.
+- Indexación en segundo plano, caché del catálogo y carga progresiva del inicio para reducir las esperas al consultar bibliotecas grandes.
+- Reproducción con cola, favoritos, repetición, mezcla aleatoria, ecualizador, crossfade y letras cuando estén disponibles.
+- Avisos de reproducción con identidad de EverLoad y carátula cuando exista. Al pulsar el aviso se abre el reproductor.
+- Integración con Media Session para mostrar título, artista, álbum, carátula, progreso y controles compatibles en el navegador o sistema operativo.
+
+### Playlists y descargas al servidor
+
+- Importación de playlists accesibles de YouTube y Spotify; las pistas de Spotify se resuelven mediante YouTube, no como audio descargado desde Spotify.
+- Duplicación, reproducción con orden aleatorio inteligente, playlists públicas y compartidas, y gestión de colaboradores.
+- Enlaces a playlists dentro de EverLoad: compartir el enlace no elimina los requisitos de sesión ni los permisos de acceso.
+- Búsqueda de canciones para añadir, con cancelación de solicitudes anteriores al cambiar la consulta o salir de la playlist.
+- Desde las descargas de Modern se puede buscar en YouTube, explorar las carpetas de un NAS con permiso de escritura, crear carpetas y elegir el destino antes de encolar una descarga.
+
+El descargador independiente está orientado a guardar archivos en el **dispositivo**. La incorporación de música a la biblioteca del **servidor/NAS** se realiza desde el reproductor Modern.
+
+### Organización y propiedades
+
+El explorador NAS permite trabajar con archivos y carpetas. En el modo Windows, Music Manager y las propiedades de las pistas reúnen la gestión musical: edición de título, artista, álbum y año, búsqueda de metadatos y subida de una carátula desde el equipo, según los permisos del usuario.
+
+Los datos corregidos se sincronizan con las referencias guardadas en la biblioteca personal. Las comprobaciones de disponibilidad permiten identificar pistas a las que ya no se puede acceder, en lugar de tratarlas como canciones reproducibles. La ruta NAS debe permanecer accesible y los cambios externos pueden requerir una nueva indexación.
+
+## Radio online
+
+El catálogo utiliza Radio Browser y una selección de emisoras nacionales. Permite buscar por nombre, filtrar por etiquetas o ámbito geográfico y reproducir una URL directa.
+
+- Servidores alternativos y tiempos de espera para consultar el catálogo.
+- Enlaces recientes del catálogo para actualizar emisoras fijadas, conservando alternativas guardadas.
+- Reproducción de emisiones de audio directo y HLS mediante `hls.js` cuando el navegador lo permite, con alternativa nativa en dispositivos compatibles.
+- Cambio de enlace ante errores o conexiones sin respuesta, sin dejar el reproductor cargando indefinidamente.
+- Aislamiento de los eventos de cada intento para que un error antiguo no interrumpa una emisora recién seleccionada.
+
+La disponibilidad de las emisoras depende de sus proveedores. EverLoad no evita restricciones geográficas, certificados inválidos ni bloqueos de reproducción impuestos por terceros.
+
+## Escritorio y administración
+
+El modo Windows recrea una experiencia de escritorio inspirada en XP: menú Inicio con usuario y avatar, iconos organizados, ventanas con foco y tamaño ajustables, Winamp, explorador NAS y utilidades. La bandeja incluye volumen y calendario; la información de red es una recreación visual, no un administrador de la conexión del equipo.
+
+El panel de administración incorpora:
+
+- Resumen de usuarios, descargas recientes y actividad por días.
+- CPU del proceso, uso de memoria de la JVM, tamaño de la base de datos y espacio del volumen. Estas métricas corresponden al entorno de EverLoad, no a todos los contenedores del servidor.
+- Historial de descargas con identificación del usuario, auditoría y logs.
+- Aprobación de cuentas, gestión de roles, listado de cuentas inactivas, reactivación y eliminación.
+- Gestión de rutas NAS e integraciones, copias de seguridad y modo mantenimiento.
+- Mantenimiento y limpieza del historial de grupos de chat.
+- Publicación de la APK Android, con versión, requisitos y notas de actualización visibles en la página de descarga.
+
+## PWA y Android
+
+La web puede instalarse como PWA en navegadores compatibles. EverLoad también dispone de un cliente Android complementario, cuyo código se mantiene por separado; este repositorio incluye los servicios y la página para distribuir su APK.
+
+La instalación como PWA no implica descargar automáticamente la biblioteca NAS para escucharla sin conexión. La reproducción desde el servidor necesita acceso a él. El aspecto y los controles de las notificaciones multimedia dependen del navegador y del sistema operativo; la web no puede imponer sus colores o diseño nativo.
 
 ## Galería
 
-### EverWave y YouTube Music
+### Modern y YouTube Music
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/everload-modern-player.png" alt="Inicio del reproductor EverWave"></td>
+    <td width="50%"><img src="docs/assets/everload-modern-player.png" alt="Inicio del reproductor Modern"></td>
     <td width="50%"><img src="docs/assets/everload-youtube-music.png" alt="Exploración de YouTube Music"></td>
   </tr>
   <tr>
@@ -78,7 +141,7 @@ El proyecto comenzó como un descargador de vídeo y ha crecido hasta convertirs
     <td width="50%"><img src="docs/assets/everload-radio.png" alt="Radio online de EverLoad"></td>
   </tr>
   <tr>
-    <td align="center"><strong>Vídeo, audio, búsqueda, cola y guardado en NAS</strong></td>
+    <td align="center"><strong>Descargas de vídeo y audio al dispositivo</strong></td>
     <td align="center"><strong>Catálogo nacional, búsqueda mundial y URL directa</strong></td>
   </tr>
 </table>
@@ -248,6 +311,7 @@ npm test -- --watch=false --browsers=ChromeHeadless
 | Audio | `/api/audio` |
 | Chat y presencia | `/api/chat`, `/api/presence` |
 | Notificaciones | `/api/notifications` |
+| Distribución Android | `/api/app-release/android` |
 | Administración | `/api/admin/*` |
 
 ## Estructura del repositorio
