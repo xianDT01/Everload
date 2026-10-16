@@ -456,8 +456,10 @@ public class NasService {
      * Returns the base path when subPath is blank/null.
      */
     public Path resolveValidatedPath(Long pathId, String subPath) {
-        NasPath nasPath = resolvePath(pathId);
-        Path basePath = Path.of(nasPath.getPath()).normalize();
+        return resolveWithinBase(getBasePath(pathId), subPath);
+    }
+
+    private Path resolveWithinBase(Path basePath, String subPath) {
         Path target = (subPath != null && !subPath.isBlank())
                 ? basePath.resolve(subPath).normalize()
                 : basePath;
@@ -476,11 +478,24 @@ public class NasService {
     public boolean isTrackAvailable(Long pathId, String relativePath) {
         if (pathId == null || relativePath == null || relativePath.isBlank()) return false;
         try {
-            Path file = resolveValidatedPath(pathId, relativePath);
-            return java.nio.file.Files.isRegularFile(file) && java.nio.file.Files.isReadable(file);
+            return trackAvailability(pathId).test(relativePath);
         } catch (RuntimeException ex) {
             return false;
         }
+    }
+
+    /** Resolves the NAS once for a batch, while checking every file on disk. */
+    public java.util.function.Predicate<String> trackAvailability(Long pathId) {
+        Path base = getBasePath(pathId);
+        return relativePath -> {
+            if (relativePath == null || relativePath.isBlank()) return false;
+            try {
+                Path file = resolveWithinBase(base, relativePath);
+                return Files.isRegularFile(file) && Files.isReadable(file);
+            } catch (RuntimeException ex) {
+                return false;
+            }
+        };
     }
 
     private NasPath resolvePath(Long pathId) {

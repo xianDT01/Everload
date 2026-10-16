@@ -98,6 +98,20 @@ class NasServiceTest {
     }
 
     @Test
+    void trackAvailabilityResolvesNasOnceAndStillChecksDeletionAndTraversal() throws Exception {
+        Path audio = Files.writeString(nasRoot.resolve("track.mp3"), "audio");
+        var available = nasService.trackAvailability(1L);
+        assertTrue(available.test("track.mp3"));
+        assertFalse(available.test("../outside.mp3"));
+        assertFalse(available.test("missing.mp3"));
+        assertFalse(available.test(null));
+        assertFalse(available.test(""));
+        Files.delete(audio);
+        assertFalse(available.test("track.mp3"));
+        verify(nasPathRepository, times(1)).findById(1L);
+    }
+
+    @Test
     void isTrackAvailable_distingueArchivoExistenteDeRutaRota() throws Exception {
         Files.writeString(nasRoot.resolve("pista.mp3"), "audio");
 

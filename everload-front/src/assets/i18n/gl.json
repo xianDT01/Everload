@@ -300,6 +300,7 @@
   "RADIO.ERROR_NOT_SAVED": "Aínda non teño esa emisora gardada; déixoche as nacionais dispoñibles.",
   "RADIO.ERROR_TRY_DIRECT": "Proba unha URL directa.",
   "RADIO.ERROR_STREAM_FAILED": "A emisora non responde agora mesmo. Proba outra ou pega unha URL directa.",
+  "RADIO.ERROR_PLAY_PERMISSION": "O navegador bloqueou a reproduci\u00f3n. Preme de novo a emisora para escoitala.",
   "WINDOWS.MY_MUSIC": "A Miña Música",
   "WINDOWS.MY_COMPUTER": "O Meu PC",
   "WINDOWS.START_NAS_EXPLORER_DESC": "Abrir cartafoles e cancións do NAS",

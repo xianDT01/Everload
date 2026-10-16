@@ -58,6 +58,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
 
   private sub!: Subscription;
   private artistRequestSub?: Subscription;
+  private loadSub?: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
   private imageRetryTimer?: ReturnType<typeof setTimeout>;
   private pendingArtistName = '';
@@ -70,6 +71,8 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.sub = this.state.pathId$.subscribe(pid => {
+      this.loadSub?.unsubscribe();
+      if (this.indexPoll) clearTimeout(this.indexPoll);
       this.pathId = pid;
       if (pid != null) this.load(pid);
     });
@@ -82,20 +85,23 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.sub?.unsubscribe();
     this.artistRequestSub?.unsubscribe();
+    this.loadSub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
     if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
   }
 
   private load(pathId: number) {
     this.loading = true;
-    forkJoin({
+    this.loadSub?.unsubscribe();
+    if (this.indexPoll) clearTimeout(this.indexPoll);
+    this.loadSub = forkJoin({
       overview: this.state.getOverview(pathId),
       profiles: this.music.getArtistProfiles()
     }).subscribe({
       next: ({ overview, profiles }) => {
         const tracks = overview.tracks || [];
         if (this.indexPoll) clearTimeout(this.indexPoll);
-        if (overview.indexing && tracks.length === 0) {
+        if (overview.indexing) {
           this.indexPoll = setTimeout(() => this.load(pathId), 6000);
         }
         const map = new Map<string, ArtistGroup>();

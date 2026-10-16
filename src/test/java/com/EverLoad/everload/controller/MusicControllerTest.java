@@ -72,6 +72,17 @@ class MusicControllerTest {
     }
 
     @Test
+    void libraryTracksSupportsLargerWebPagesWithoutChangingDefaultPageSize() throws Exception {
+        when(musicService.getLibraryTracks(1L, 0, 1000, ""))
+                .thenReturn(java.util.Map.of("tracks", java.util.List.of(), "hasMore", false));
+        mvc.perform(get("/api/music/library-tracks").param("pathId", "1").param("size", "1000"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/music/library-tracks").param("pathId", "1").param("size", "1001"))
+                .andExpect(status().isBadRequest());
+        verify(musicService).getLibraryTracks(1L, 0, 1000, "");
+    }
+
+    @Test
     void libraryTracksForwardsPageAndSearch() throws Exception {
         when(musicService.getLibraryTracks(1L, 2, 100, "Tacabro"))
                 .thenReturn(java.util.Map.of("tracks", java.util.List.of(), "hasMore", true));

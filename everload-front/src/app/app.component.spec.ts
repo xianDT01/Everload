@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 
 import { AppComponent } from './app.component';
 import { AuthService } from './services/auth.service';
@@ -43,7 +43,8 @@ describe('AppComponent', () => {
         { provide: ChatService, useValue: chatSpy },
         {
           provide: MusicService,
-          useValue: { mainPlayer: { state: { currentTrack: null } }, globalPlayerHidden: false }
+          useValue: { mainPlayer: { state: { currentTrack: null } }, globalPlayerHidden: false,
+            playerOpenRequested$: new Subject<void>(), nowPlayingPanelOpen: false }
         },
         { provide: NotificationService, useValue: jasmine.createSpyObj<NotificationService>('NotificationService', ['showToast']) },
         { provide: MaintenanceService, useValue: maintenanceSpy },
@@ -60,6 +61,22 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('opens the classic player from a notification without opening it over Modern', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const music = TestBed.inject(MusicService);
+    music.playerOpenRequested$.next();
+    expect(music.nowPlayingPanelOpen).toBeTrue();
+    music.nowPlayingPanelOpen = false;
+    fixture.componentInstance.currentUrl = '/modern/library';
+    music.playerOpenRequested$.next();
+    expect(music.nowPlayingPanelOpen).toBeFalse();
+    fixture.destroy();
+    fixture.componentInstance.currentUrl = '/';
+    music.playerOpenRequested$.next();
+    expect(music.nowPlayingPanelOpen).toBeFalse();
   });
 
   it(`should have as title 'everload-front'`, () => {

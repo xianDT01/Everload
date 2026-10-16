@@ -33,12 +33,18 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   private allTracks: MusicMetadataDto[] = [];
   private sub!: Subscription;
   private searchTimer?: ReturnType<typeof setTimeout>;
+  private librarySub?: Subscription;
+  private indexPoll?: ReturnType<typeof setTimeout>;
 
   constructor(public music: MusicService, private state: ModernStateService, private nas: NasService) {}
 
   ngOnInit() {
     this.sub = this.state.pathId$.subscribe(pid => {
       this.pathId = pid;
+      this.librarySub?.unsubscribe();
+      if (this.indexPoll) clearTimeout(this.indexPoll);
+      this.allTracks = [];
+      this.tracks = [];
       this.sortCol = null;
       this.sortDir = 'asc';
       this.query = '';
@@ -52,16 +58,21 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
+    this.librarySub?.unsubscribe();
+    if (this.indexPoll) clearTimeout(this.indexPoll);
     if (this.searchTimer) clearTimeout(this.searchTimer);
   }
 
   private load(pathId: number) {
     this.loading = true;
-    this.state.getOverview(pathId).subscribe({
-      next: ({ tracks }) => {
+    this.librarySub?.unsubscribe();
+    this.librarySub = this.state.getOverview(pathId).subscribe({
+      next: ({ tracks, indexing }) => {
         this.allTracks = tracks;
         this.applyFilterSort();
         this.loading = false;
+        if (this.indexPoll) clearTimeout(this.indexPoll);
+        if (indexing) this.indexPoll = setTimeout(() => this.load(pathId), 6000);
       },
       error: () => { this.loading = false; }
     });

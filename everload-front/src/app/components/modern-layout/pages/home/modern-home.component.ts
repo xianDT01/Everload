@@ -1,6 +1,6 @@
 ﻿import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { catchError, forkJoin, of, Subscription } from 'rxjs';
+import { catchError, combineLatest, concat, forkJoin, map, of, Subscription } from 'rxjs';
 import { ArtistProfileDto, CommunityDiscoverDto, MusicService, MusicMetadataDto, YtMusicDiscoverItemDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
 import { AuthService } from '../../../../services/auth.service';
@@ -72,6 +72,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
 
   private sub!: Subscription;
   private coverSub?: Subscription;
+  private loadSub?: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
   private imageRetryTimer?: ReturnType<typeof setTimeout>;
 
@@ -86,6 +87,8 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     this.isFlow = this.router.url.startsWith('/modern/flow');
     this.loadHomeConfig();
     this.sub = this.state.pathId$.subscribe(pid => {
+      this.loadSub?.unsubscribe();
+      if (this.indexPoll) clearTimeout(this.indexPoll);
       if (pid != null) this.load(pid);
     });
     this.sub.add(this.router.events.subscribe(event => {
@@ -112,6 +115,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.sub?.unsubscribe();
     this.coverSub?.unsubscribe();
+    this.loadSub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
     if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
     this.stopFeaturedRotation();
@@ -222,10 +226,15 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
 
   private load(pathId: number) {
     this.loading = true;
+    this.loadSub?.unsubscribe();
+    if (this.indexPoll) clearTimeout(this.indexPoll);
 
-    forkJoin({
+    this.loadSub = combineLatest({
       history: this.music.getHistory(24),
-      overview: this.state.getOverview(pathId),
+      overview: concat(
+        this.state.getOverview(pathId, 400).pipe(map(result => ({ ...result, indexing: false }))),
+        this.state.getOverview(pathId)
+      ),
       recent: this.music.getRecentTracks(pathId, 60),
       profiles: this.music.getArtistProfiles(),
       topArtists: this.music.getTopArtists(50),
@@ -242,7 +251,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         const existingAccount = !accountCreatedAt || accountCreatedAt < '2026-09-25T00:00:00';
         const personalWeight = existingAccount ? 1 : Math.min(1, personalSignals / 15);
         if (this.indexPoll) clearTimeout(this.indexPoll);
-        if (overview.indexing && tracks.length === 0) {
+        if (overview.indexing) {
           this.indexPoll = setTimeout(() => this.load(pathId), 6000);
         }
         const profileByKey = new Map<string, ArtistProfileDto>();

@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Subscription, catchError, of } from 'rxjs';
+import { Subscription, catchError, of, timeout } from 'rxjs';
 import { MusicService } from '../../services/music.service';
 import { TranslateService } from '@ngx-translate/core';
 import { RadioPlaybackService, RadioStation } from '../../services/radio-playback.service';
@@ -17,9 +17,9 @@ type RadioScope = 'ES' | 'WORLD';
 })
 export class RadioComponent implements OnInit, OnDestroy {
   readonly apiBases = [
-    'https://api.radio-browser.info',
     'https://de1.api.radio-browser.info',
-    'https://nl1.api.radio-browser.info',
+    'https://de2.api.radio-browser.info',
+    'https://all.api.radio-browser.info',
   ];
 
   readonly nationalPresets = [
@@ -66,8 +66,8 @@ export class RadioComponent implements OnInit, OnDestroy {
     {
       stationuuid: 'fallback-kyoto-fm',
       name: 'Kyoto FM',
-      url: 'https://sonic.mediatelekom.net/8148/stream',
-      url_resolved: 'https://sonic.mediatelekom.net/8148/stream',
+      url: 'https://sonic.mediatelekom.net/8272/stream',
+      url_resolved: 'https://sonic.mediatelekom.net/8272/stream',
       homepage: 'https://www.kyotofm.es',
       favicon: 'https://graph.facebook.com/kyotofm/picture?width=200&height=200',
       tags: 'dance, latin, pop, galicia, nacional',
@@ -81,15 +81,14 @@ export class RadioComponent implements OnInit, OnDestroy {
       clickcount: 9998,
       lastcheckok: 1,
       fallbackUrls: [
-        'http://178.32.60.136:8148/;',
-        'http://178.32.60.136:8148/;stream.nsv'
+        'https://sonic.mediatelekom.net/8148/stream'
       ]
     },
     {
       stationuuid: 'fallback-motiva-fm',
       name: 'Motiva FM',
-      url: 'https://stream.motivafm.com/listen/motiva/motiva.mp3',
-      url_resolved: 'https://stream.motivafm.com/listen/motiva/motiva.mp3',
+      url: 'https://stream.guadigo.es/listen/motiva/motiva.mp3',
+      url_resolved: 'https://stream.guadigo.es/listen/motiva/motiva.mp3',
       homepage: 'https://motivafm.com',
       favicon: 'https://media.motivafm.es/wp-content/uploads/2020/04/10224952/cropped-motiva-192x192.png',
       tags: 'reggaeton, urbano, latin, pop latino, nacional',
@@ -103,10 +102,7 @@ export class RadioComponent implements OnInit, OnDestroy {
       clickcount: 9997,
       lastcheckok: 1,
       fallbackUrls: [
-        'https://server12.mediasector.es/listen/motiva/motiva-alicante.mp3',
-        'https://stream.mediasector.es/radio/8120/motiva-alicante.mp3',
-        'https://stream.mediasector.es/radio/8120/radio.mp3',
-        'http://stream.mediasector.es/radio/8120/radio.mp3'
+        'https://stream.guadigo.es/listen/motiva/motivaalicante.mp3'
       ]
     },
     {
@@ -166,7 +162,6 @@ export class RadioComponent implements OnInit, OnDestroy {
       votes: 0,
       clickcount: 0,
       lastcheckok: 1,
-      fallbackUrls: ['https://flucast-b04-04.flumotion.com/cope/net2.mp3']
     },
     {
       stationuuid: 'fallback-rne',
@@ -185,7 +180,6 @@ export class RadioComponent implements OnInit, OnDestroy {
       votes: 0,
       clickcount: 0,
       lastcheckok: 1,
-      fallbackUrls: ['https://dispatcher.rndfnk.com/crtve/rne5/lcg/mp3/high']
     },
     {
       stationuuid: 'fallback-cadena-dial',
@@ -208,8 +202,9 @@ export class RadioComponent implements OnInit, OnDestroy {
     {
       stationuuid: 'fallback-rock-fm',
       name: 'Rock FM',
-      url: 'https://flucast-b04-04.flumotion.com/cope/rockfm.mp3',
-      url_resolved: 'https://flucast-b04-04.flumotion.com/cope/rockfm.mp3',
+      url: 'https://rockfm-cope-rrcast.flumotion.com/cope/rockfm.mp3',
+      url_resolved: 'https://rockfm-cope-rrcast.flumotion.com/cope/rockfm.mp3',
+      fallbackUrls: ['https://rockfm-cope.flumotion.com/playlist.m3u8'],
       homepage: 'https://www.rockfm.fm',
       favicon: 'https://graph.facebook.com/rockfm/picture?width=200&height=200',
       tags: 'rock, nacional',
@@ -247,8 +242,9 @@ export class RadioComponent implements OnInit, OnDestroy {
     {
       stationuuid: 'fallback-radio-galega',
       name: 'Radio Galega',
-      url: 'https://wecast-b03-03.flumotion.com/radiogalega/live.mp3',
-      url_resolved: 'https://wecast-b03-03.flumotion.com/radiogalega/live.mp3',
+      url: 'https://crtvg-radiogalega-hls.flumotion.cloud/playlist.m3u8',
+      url_resolved: 'https://crtvg-radiogalega-hls.flumotion.cloud/playlist.m3u8',
+      hls: 1,
       homepage: 'https://www.crtvg.es/rg',
       favicon: 'https://graph.facebook.com/aradiogalega/picture?width=200&height=200',
       tags: 'news, talk, galicia, nacional',
@@ -261,13 +257,13 @@ export class RadioComponent implements OnInit, OnDestroy {
       votes: 0,
       clickcount: 0,
       lastcheckok: 1,
-      fallbackUrls: ['http://wecast-b02-03.flumotion.com/radiogalega/live.mp3']
     },
     {
       stationuuid: 'fallback-radio-galega-musica',
       name: 'Radio Galega Musica',
-      url: 'https://wecast-b03-02.flumotion.com/radiogalega-musica/live.mp3',
-      url_resolved: 'https://wecast-b03-02.flumotion.com/radiogalega-musica/live.mp3',
+      url: 'https://crtvg-radiogalega-musica-hls.flumotion.cloud/playlist.m3u8',
+      url_resolved: 'https://crtvg-radiogalega-musica-hls.flumotion.cloud/playlist.m3u8',
+      hls: 1,
       homepage: 'https://www.crtvg.es/rg',
       favicon: 'https://graph.facebook.com/aradiogalega/picture?width=200&height=200',
       tags: 'music, galicia, nacional',
@@ -302,8 +298,9 @@ export class RadioComponent implements OnInit, OnDestroy {
     {
       stationuuid: 'fallback-capital-radio',
       name: 'Capital Radio',
-      url: 'https://capitalradio-live.flumotion.com/capital-radio/capitalradio.mp3',
-      url_resolved: 'https://capitalradio-live.flumotion.com/capital-radio/capitalradio.mp3',
+      url: 'https://mdstrm.com/audio/67d2a8685ae4234de49e40f6/live.m3u8',
+      url_resolved: 'https://mdstrm.com/audio/67d2a8685ae4234de49e40f6/live.m3u8',
+      hls: 1,
       homepage: 'https://www.capitalradio.es',
       favicon: 'https://graph.facebook.com/capitalradiob/picture?width=200&height=200',
       tags: 'news, economy, talk, nacional',
@@ -334,7 +331,6 @@ export class RadioComponent implements OnInit, OnDestroy {
 
   private sub?: Subscription;
   private playbackSub?: Subscription;
-  private apiIndex = 0;
   private brokenLogos = new Set<string>();
 
   constructor(
@@ -470,20 +466,19 @@ export class RadioComponent implements OnInit, OnDestroy {
     (event.target as HTMLImageElement).style.display = 'none';
   }
 
-  private fetchStations(params: HttpParams): void {
-    const base = this.apiBases[this.apiIndex % this.apiBases.length];
+  private fetchStations(params: HttpParams, apiIndex = 0): void {
+    const base = this.apiBases[apiIndex];
     this.sub?.unsubscribe();
     this.sub = this.http.get<RadioBrowserStation[]>(`${base}/json/stations/search`, { params })
-      .pipe(catchError(() => of(null)))
+      .pipe(timeout(6000), catchError(() => of(null)))
       .subscribe(result => {
-        if (result === null && this.apiIndex < this.apiBases.length - 1) {
-          this.apiIndex += 1;
-          this.fetchStations(params);
+        if ((!Array.isArray(result)) && apiIndex < this.apiBases.length - 1) {
+          this.fetchStations(params, apiIndex + 1);
           return;
         }
 
         this.loading = false;
-        if (result === null) {
+        if (!Array.isArray(result)) {
           this.useFallbackStations();
           return;
         }
@@ -536,12 +531,23 @@ export class RadioComponent implements OnInit, OnDestroy {
 
     const query = this.searchQuery.trim().toLowerCase();
     const tag = this.activeTag.toLowerCase();
+    const normalizeName = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]/g, '');
     const pinned = this.fallbackStations.filter(station => {
       const matchesQuery = !query ||
         station.name.toLowerCase().includes(query) ||
         station.tags.toLowerCase().includes(query);
       const matchesTag = this.activeTag === 'Todas' || station.tags.toLowerCase().includes(tag);
       return matchesQuery && matchesTag;
+    }).map(station => {
+      const fresh = stations.filter(item => normalizeName(item.name) === normalizeName(station.name));
+      if (!fresh.length) return station;
+      const preferred = fresh.find(item => (item.url || item.url_resolved).startsWith('https:')) || fresh[0];
+      return { ...station, url: preferred.url, url_resolved: preferred.url_resolved, hls: preferred.hls,
+        fallbackUrls: [...new Set([
+          ...fresh.flatMap(item => [item.url, item.url_resolved]),
+          station.url, station.url_resolved, ...(station.fallbackUrls || [])
+        ].filter(Boolean))] };
     });
 
     const seen = new Set<string>();

@@ -51,6 +51,9 @@ export class ModernLayoutComponent implements OnInit, OnDestroy {
     this.subs.push(
       this.modState.showQueue$.subscribe(v => this.showQueue = v),
       this.modState.showFullscreen$.subscribe(v => this.showFullscreen = v),
+      this.music.playerOpenRequested$.subscribe(() => {
+        if (!this.modState.showFullscreen) this.modState.toggleFullscreen();
+      }),
     );
   }
 

@@ -300,6 +300,7 @@
   "RADIO.ERROR_NOT_SAVED": "I do not have that station saved yet; here are the available national stations.",
   "RADIO.ERROR_TRY_DIRECT": "Try a direct URL.",
   "RADIO.ERROR_STREAM_FAILED": "The station is not responding right now. Try another one or paste a direct URL.",
+  "RADIO.ERROR_PLAY_PERMISSION": "Your browser blocked playback. Select the station again to listen.",
   "WINDOWS.MY_MUSIC": "My Music",
   "WINDOWS.MY_COMPUTER": "My Computer",
   "WINDOWS.START_NAS_EXPLORER_DESC": "Open NAS folders and songs",

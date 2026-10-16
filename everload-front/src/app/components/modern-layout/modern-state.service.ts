@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, shareReplay } from 'rxjs';
+import { BehaviorSubject, Observable, shareReplay, tap } from 'rxjs';
 import { NasPath, NasService } from '../../services/nas.service';
 import { LibraryOverviewDto, MusicService } from '../../services/music.service';
 
@@ -52,12 +52,20 @@ export class ModernStateService {
   }
 
   /** Shared overview cache. The home page uses a small slice; library views request the full slice. */
-  getOverview(pathId: number, limit = 5000): Observable<LibraryOverviewDto> {
+  getOverview(pathId: number, limit = 0): Observable<LibraryOverviewDto> {
     const now = Date.now();
     const cacheKey = this.cacheKey(pathId, limit);
     const cached = this.overviewCache.get(cacheKey);
     if (cached && now < cached.expiresAt) return cached.obs;
-    const obs = this.music.getLibraryOverview(pathId, limit).pipe(shareReplay(1));
+    const request = limit > 0 ? this.music.getLibraryOverview(pathId, limit)
+      : this.music.getFullLibraryOverview(pathId);
+    const obs = request.pipe(
+      tap({
+        next: result => { if (result.indexing) this.overviewCache.delete(cacheKey); },
+        error: () => this.overviewCache.delete(cacheKey)
+      }),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
     this.overviewCache.set(cacheKey, { obs, expiresAt: now + OVERVIEW_TTL_MS });
     return obs;
   }
@@ -77,7 +85,7 @@ export class ModernStateService {
   }
 
   private cacheKey(pathId: number, limit: number): string {
-    return `${pathId}:${Math.max(1, Math.min(limit, 10000))}`;
+    return `${pathId}:${limit > 0 ? Math.max(1, Math.min(limit, 10000)) : 'full'}`;
   }
 
   toggleQueue() { this._showQueue.next(!this._showQueue.value); }

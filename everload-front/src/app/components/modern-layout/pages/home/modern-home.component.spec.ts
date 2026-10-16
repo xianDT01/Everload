@@ -1,4 +1,5 @@
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
+import { fakeAsync, tick } from '@angular/core/testing';
 import { ModernHomeComponent } from './modern-home.component';
 
 describe('ModernHomeComponent recommendations', () => {
@@ -8,6 +9,8 @@ describe('ModernHomeComponent recommendations', () => {
     favorites?: any[];
     community?: { topArtists: any[]; topTracks: any[] };
     createdAt?: string;
+    indexing?: boolean;
+    fullOverview?: Subject<any>;
   }) {
     const music: any = {
       getHistory: () => of(data.history || []),
@@ -20,7 +23,8 @@ describe('ModernHomeComponent recommendations', () => {
       resolveArtistImages: jasmine.createSpy('resolveArtistImages'),
       BASE: 'http://backend'
     };
-    const state: any = { getOverview: () => of({ tracks: data.tracks || [], indexing: false }) };
+    const state: any = { getOverview: (_pathId: number, limit?: number) =>
+      !limit && data.fullOverview ? data.fullOverview : of({ tracks: data.tracks || [], indexing: data.indexing || false }) };
     const auth: any = { getCurrentUser: () => ({ createdAt: data.createdAt }) };
     const component = new ModernHomeComponent(music, state, {} as any, auth);
     spyOn<any>(component, 'checkFeaturedFav').and.stub();
@@ -30,6 +34,31 @@ describe('ModernHomeComponent recommendations', () => {
     (component as any).load(1);
     return component;
   }
+
+  it('renders the home before the full library arrives, then enriches it without a blocking spinner', () => {
+    const fullOverview = new Subject<any>();
+    const component = createComponent({ fullOverview,
+      tracks: [{ title: 'First', path: 'first.mp3', album: 'First album', artist: 'Artist' }] });
+    expect(component.loading).toBeFalse();
+    expect(component.listenNow.length).toBe(1);
+    fullOverview.next({ indexing: false, tracks: [
+      { title: 'First', path: 'first.mp3', album: 'First album', artist: 'Artist' },
+      { title: 'Second', path: 'second.mp3', album: 'Second album', artist: 'Artist' }
+    ] });
+    expect(component.loading).toBeFalse();
+    expect(component.listenNow.length).toBe(2);
+    component.ngOnDestroy();
+  });
+
+  it('refreshes nonempty partial recommendations and cancels polling on destroy', fakeAsync(() => {
+    const component = createComponent({ tracks: [{ path: 'song.mp3' }], indexing: true });
+    const load = spyOn<any>(component, 'load').and.callThrough();
+    tick(6000);
+    expect(load).toHaveBeenCalledTimes(1);
+    component.ngOnDestroy();
+    tick(12000);
+    expect(load).toHaveBeenCalledTimes(1);
+  }));
 
   it('uses community popularity for a new account with no listening signals', () => {
     const component = createComponent({

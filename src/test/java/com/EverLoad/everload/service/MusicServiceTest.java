@@ -55,6 +55,10 @@ class MusicServiceTest {
     void setUp() {
         nasService = mock(NasService.class);
         when(nasService.isTrackAvailable(anyLong(), anyString())).thenReturn(true);
+        when(nasService.trackAvailability(anyLong())).thenAnswer(invocation -> {
+            Long pathId = invocation.getArgument(0);
+            return (java.util.function.Predicate<String>) path -> nasService.isTrackAvailable(pathId, path);
+        });
         metadataRepository = mock(TrackMetadataCacheRepository.class);
         restTemplate = mock(RestTemplate.class);
         musicService = new MusicService(nasService, mock(NasPathRepository.class), metadataRepository,
@@ -175,8 +179,11 @@ class MusicServiceTest {
     }
 
     @Test
-    void libraryViewsMapCachedTracksWithoutStartingIndexer() {
+    void libraryViewsIndexPartialCacheOnceAndReuseCompletedIndex() {
         TrackMetadataCache cached = cachedTrack("albums/song.mp3", "Song", "Artist");
+        ExecutorService executor = mock(ExecutorService.class);
+        when(nasService.getBasePath(1L)).thenReturn(tempDir);
+        ReflectionTestUtils.setField(musicService, "metadataExecutor", executor);
         when(metadataRepository.findOverviewSlice(eq(1L), any())).thenReturn(List.of(cached));
         when(metadataRepository.findByNasPathIdOrderByLastModifiedDesc(eq(1L), any())).thenReturn(List.of(cached));
 
@@ -184,8 +191,117 @@ class MusicServiceTest {
         List<?> recent = musicService.getRecentTracks(1L, 10);
 
         assertEquals(1, ((List<?>) overview.get("tracks")).size());
-        assertEquals(false, overview.get("indexing"));
+        assertEquals(true, overview.get("indexing"));
         assertEquals(1, recent.size());
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).submit(task.capture());
+        task.getValue().run();
+        assertEquals(false, musicService.getLibraryOverview(1L, 10).get("indexing"));
+        musicService.getRecentTracks(1L, 10);
+        verify(executor, times(1)).submit(any(Runnable.class));
+
+        musicService.onNasFilesChanged(new NasFilesChangedEvent(1L));
+        assertEquals(true, musicService.getLibraryOverview(1L, 10).get("indexing"));
+        verify(executor, times(2)).submit(any(Runnable.class));
+    }
+
+    @Test
+    void fileChangeDuringIndexRequiresAnotherCompleteScan() {
+        ExecutorService executor = mock(ExecutorService.class);
+        when(nasService.getBasePath(1L)).thenReturn(tempDir);
+        ReflectionTestUtils.setField(musicService, "metadataExecutor", executor);
+        musicService.getLibraryOverview(1L, 10);
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).submit(task.capture());
+        musicService.onNasFilesChanged(new NasFilesChangedEvent(1L));
+        task.getValue().run();
+
+        assertEquals(true, musicService.getLibraryOverview(1L, 10).get("indexing"));
+        verify(executor, times(2)).submit(any(Runnable.class));
+    }
+
+    @Test
+    void failedScanPreservesMetadataAndCanRetry() throws Exception {
+        Path root = Files.createDirectory(tempDir.resolve("temporary-library"));
+        ExecutorService executor = mock(ExecutorService.class);
+        when(nasService.getBasePath(1L)).thenReturn(root);
+        ReflectionTestUtils.setField(musicService, "metadataExecutor", executor);
+        musicService.getLibraryOverview(1L, 10);
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).submit(task.capture());
+        Files.delete(root);
+        assertDoesNotThrow(task.getValue()::run);
+        verify(metadataRepository, never()).deleteAll(any());
+        Files.createDirectory(root);
+
+        assertEquals(true, musicService.getLibraryOverview(1L, 10).get("indexing"));
+        verify(executor, times(2)).submit(any(Runnable.class));
+    }
+
+    @Test
+    void completedIndexServesCatalogWithoutProbingEveryTrackAndInvalidatesOnChanges() throws Exception {
+        Files.writeString(tempDir.resolve("song.mp3"), "invalid headers");
+        ExecutorService executor = mock(ExecutorService.class);
+        when(nasService.getBasePath(1L)).thenReturn(tempDir);
+        ReflectionTestUtils.setField(musicService, "metadataExecutor", executor);
+        when(metadataRepository.findOverviewSlice(eq(1L), any()))
+                .thenReturn(List.of(cachedTrack("song.mp3", "Song", "Artist")));
+        musicService.startLibraryIndex(1L);
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).submit(task.capture());
+        task.getValue().run();
+
+        assertEquals(1, ((List<?>) musicService.getLibraryOverview(1L, 10).get("tracks")).size());
+        verify(nasService, never()).trackAvailability(anyLong());
+        musicService.onNasFilesChanged(new NasFilesChangedEvent(1L));
+        musicService.getLibraryOverview(1L, 10);
+        verify(nasService).trackAvailability(1L);
+    }
+
+    @Test
+    void unreadableTagsStillProduceIndexedTracksWithoutOverwritingExistingMetadata() throws Exception {
+        Path audio = Files.writeString(tempDir.resolve("broken-tags.mp3"), "invalid audio headers");
+        var track = ReflectionTestUtils.invokeMethod(musicService, "buildDto", audio.toFile(), tempDir,
+                1L, Map.of(), true);
+        assertEquals("broken-tags", ((com.everload.everload.dto.MusicMetadataDto) track).getTitle());
+        ArgumentCaptor<TrackMetadataCache> saved = ArgumentCaptor.forClass(TrackMetadataCache.class);
+        verify(metadataRepository).save(saved.capture());
+        assertEquals("broken-tags.mp3", saved.getValue().getRelativePath());
+        assertEquals(Files.getLastModifiedTime(audio).toMillis(), saved.getValue().getLastModified());
+
+        TrackMetadataCache existing = cachedTrack("broken-tags.mp3", "Original title", "Original artist");
+        existing.setLastModified(-1L);
+        var retained = ReflectionTestUtils.invokeMethod(musicService, "buildDto", audio.toFile(), tempDir,
+                1L, Map.of("broken-tags.mp3", existing), true);
+        assertEquals("Original title", ((com.everload.everload.dto.MusicMetadataDto) retained).getTitle());
+        assertEquals("Original artist", ((com.everload.everload.dto.MusicMetadataDto) retained).getArtist());
+    }
+
+    @Test
+    void overviewRemainsPartialWhenIndexCompletesWhileReadingMetadata() {
+        ExecutorService executor = mock(ExecutorService.class);
+        when(nasService.getBasePath(1L)).thenReturn(tempDir);
+        ReflectionTestUtils.setField(musicService, "metadataExecutor", executor);
+        musicService.startLibraryIndex(1L);
+        ArgumentCaptor<Runnable> task = ArgumentCaptor.forClass(Runnable.class);
+        verify(executor).submit(task.capture());
+        when(metadataRepository.findOverviewSlice(eq(1L), any())).thenAnswer(invocation -> {
+            task.getValue().run();
+            return List.of(cachedTrack("song.mp3", "Song", "Artist"));
+        });
+
+        assertEquals(true, musicService.getLibraryOverview(1L, 10).get("indexing"));
+    }
+
+    @Test
+    void rejectedIndexSubmissionCanRetry() {
+        ExecutorService executor = mock(ExecutorService.class);
+        when(nasService.getBasePath(1L)).thenReturn(tempDir);
+        when(executor.submit(any(Runnable.class))).thenThrow(new RejectedExecutionException()).thenReturn(null);
+        ReflectionTestUtils.setField(musicService, "metadataExecutor", executor);
+
+        assertThrows(RejectedExecutionException.class, () -> musicService.startLibraryIndex(1L));
+        assertEquals(true, musicService.startLibraryIndex(1L).get("started"));
     }
 
     @Test
@@ -426,6 +542,45 @@ class MusicServiceTest {
         when(nasService.getBasePath(2L)).thenReturn(tempDir.resolve("missing"));
 
         assertThrows(IllegalArgumentException.class, () -> musicService.startLibraryIndex(2L));
+    }
+
+    @Test
+    void indexedSearchDoesNotProbeFilesThatDoNotMatch() {
+        var other = cachedTrack("other.mp3", "Unrelated", "Someone else");
+        var match = cachedTrack("tacata.mp3", "Tacata", "Tacabro");
+        when(metadataRepository.findByNasPathId(1L)).thenReturn(List.of(other, match));
+
+        var results = musicService.searchMusic(1L, null, "tacata", 50);
+
+        assertEquals(List.of("tacata.mp3"), results.stream().map(com.everload.everload.dto.MusicMetadataDto::getPath).toList());
+        verify(nasService, never()).isTrackAvailable(1L, "other.mp3");
+        verify(nasService).isTrackAvailable(1L, "tacata.mp3");
+        verify(nasService).trackAvailability(1L);
+    }
+
+    @Test
+    void indexedSearchChecksRankedMatchesOnlyUntilItFindsEnoughAvailableResults() {
+        var missing = cachedTrack("missing.mp3", "Tacata", "Tacabro");
+        var first = cachedTrack("first.mp3", "Tacata remix", "Tacabro");
+        var later = cachedTrack("later.mp3", "Another song", "Tacata band");
+        when(metadataRepository.findByNasPathId(1L)).thenReturn(List.of(later, first, missing));
+        when(nasService.isTrackAvailable(1L, "missing.mp3")).thenReturn(false);
+
+        var results = musicService.searchMusic(1L, "", "tacata", 1);
+
+        assertEquals(List.of("first.mp3"), results.stream().map(com.everload.everload.dto.MusicMetadataDto::getPath).toList());
+        verify(nasService).isTrackAvailable(1L, "missing.mp3");
+        verify(nasService).isTrackAvailable(1L, "first.mp3");
+        verify(nasService, never()).isTrackAvailable(1L, "later.mp3");
+    }
+
+    @Test
+    void indexedSearchWithNoMatchesNeverChecksIndividualFiles() {
+        when(metadataRepository.findByNasPathId(1L))
+                .thenReturn(List.of(cachedTrack("other.mp3", "Unrelated", "Someone else")));
+
+        assertEquals(List.of(), musicService.searchMusic(1L, null, "zznomatch", 50));
+        verify(nasService, never()).isTrackAvailable(anyLong(), anyString());
     }
 
     @Test

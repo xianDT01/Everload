@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
-import { BehaviorSubject, firstValueFrom, from, mergeMap, Observable, of, Subject, tap, shareReplay } from 'rxjs';
+import { BehaviorSubject, EMPTY, expand, firstValueFrom, from, map, mergeMap, Observable, of, reduce, Subject, tap, shareReplay } from 'rxjs';
 import { ApiBaseService } from './api-base.service';
 
 export interface PagedMusicResult {
@@ -1004,7 +1004,10 @@ export class MusicService {
   get ytMusicAutomix() { return this._ytMusicAutomix; }
 
   nowPlayingPanelOpen = false;
+  readonly playerOpenRequested$ = new Subject<void>();
   globalPlayerHidden = false;
+  private mediaMetadataKey = '';
+  private mediaArtworkImage: HTMLImageElement | null = null;
 
   coverOverrideMap = new Map<string, string>();
   private readonly trackCoverBust = new Map<string, number>();
@@ -1083,36 +1086,72 @@ export class MusicService {
   private setupMediaSession(): void {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
 
-    navigator.mediaSession.setActionHandler('play', () => {
-      this.mainPlayer.resumeAudioContext().then(() => this.mainPlayer.play());
-    });
-    navigator.mediaSession.setActionHandler('pause',         () => this.mainPlayer.pause());
-    navigator.mediaSession.setActionHandler('nexttrack', () => {
-      this.mainPlayer.resumeAudioContext().then(() => this.playNextMain());
-    });
-    navigator.mediaSession.setActionHandler('previoustrack', () => {
-      this.mainPlayer.resumeAudioContext().then(() => this.playPrevMain());
-    });
-    navigator.mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime != null) this.mainPlayer.seek(details.seekTime);
+    const actions: Array<[MediaSessionAction, MediaSessionActionHandler]> = [
+      ['play', () => {
+        this.mainPlayer.resumeAudioContext().then(() => this.mainPlayer.play());
+      }],
+      ['pause', () => this.mainPlayer.pause()],
+      ['nexttrack', () => {
+        this.mainPlayer.resumeAudioContext().then(() => this.playNextMain());
+      }],
+      ['previoustrack', () => {
+        this.mainPlayer.resumeAudioContext().then(() => this.playPrevMain());
+      }],
+      ['seekto', details => {
+        if (details.seekTime != null && Number.isFinite(details.seekTime)) this.mainPlayer.seek(details.seekTime);
+      }],
+      ['seekbackward', details => this.mainPlayer.seek(Math.max(0,
+        this.mainPlayer.state.currentTime - (details.seekOffset ?? 10)))],
+      ['seekforward', details => this.mainPlayer.seek(Math.min(this.mainPlayer.state.duration || Infinity,
+        this.mainPlayer.state.currentTime + (details.seekOffset ?? 10)))]
+    ];
+    actions.forEach(([action, handler]) => {
+      try { navigator.mediaSession.setActionHandler(action, handler); } catch { /* Optional browser action. */ }
     });
 
     this.mainPlayer.state$.subscribe(state => {
-      navigator.mediaSession.playbackState = state.playing ? 'playing' : 'paused';
-
-      if (state.currentTrack) {
-        const track = state.currentTrack;
-        const pathId = state.pathId ?? 0;
-        const artworkUrl = this.getAbsoluteCoverUrl(pathId, track);
-        const artwork: MediaImage[] = artworkUrl ? [{ src: artworkUrl, sizes: '512x512', type: 'image/jpeg' }] : [];
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title:  track.title  || track.name,
-          artist: track.artist || '',
-          album:  track.album  || '',
-          artwork,
-        });
-      }
+      navigator.mediaSession.playbackState = !state.currentTrack ? 'none' : state.playing ? 'playing' : 'paused';
+      this.refreshMediaSessionMetadata();
+      try {
+        if (state.currentTrack && Number.isFinite(state.duration) && state.duration > 0) {
+          navigator.mediaSession.setPositionState?.({ duration: state.duration,
+            position: Math.max(0, Math.min(state.duration, state.currentTime || 0)),
+            playbackRate: Number.isFinite(state.playbackRate) && state.playbackRate > 0 ? state.playbackRate : 1 });
+        } else navigator.mediaSession.setPositionState?.();
+      } catch { /* Some backends do not expose a finite timeline. */ }
     });
+    this.coverReady$.subscribe(path => {
+      if (this.mainPlayer.state.currentTrack?.path === path) this.refreshMediaSessionMetadata();
+    });
+  }
+
+  refreshMediaSessionMetadata(): void {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+    const state = this.mainPlayer.state;
+    const track = state.currentTrack;
+    const logo = new URL('icons/icon-512x512.png', document.baseURI).href;
+    const cover = track ? this.getAbsoluteCoverUrl(state.pathId ?? 0, track) : '';
+    const key = JSON.stringify([state.pathId, track?.source, track?.path, track?.title, track?.name,
+      track?.artist, track?.album, cover]);
+    if (key === this.mediaMetadataKey) return;
+    this.mediaMetadataKey = key;
+    if (this.mediaArtworkImage) this.mediaArtworkImage.onerror = null;
+    this.mediaArtworkImage = null;
+    if (!track) { navigator.mediaSession.metadata = null; return; }
+    const metadata: MediaMetadataInit = { title: track.title || track.name || 'Everload',
+      artist: track.artist || '', album: track.album || '',
+      artwork: [{ src: cover || logo, sizes: '512x512', ...(cover ? {} : { type: 'image/png' }) }] };
+    navigator.mediaSession.metadata = new MediaMetadata(metadata);
+    if (cover) {
+      const image = new Image();
+      this.mediaArtworkImage = image;
+      image.onerror = () => {
+        if (this.mediaMetadataKey !== key) return;
+        navigator.mediaSession.metadata = new MediaMetadata({ ...metadata,
+          artwork: [{ src: logo, sizes: '512x512', type: 'image/png' }] });
+      };
+      image.src = cover;
+    }
   }
 
   private setupNativeAudioSession(): void {
@@ -1188,44 +1227,60 @@ export class MusicService {
   private setupNowPlayingNotifications(): void {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
 
-    let lastNotifiedPath: string | null = null;
+    let lastNotifiedKey: string | null = null;
     let activeNotification: Notification | null = null;
 
     this.mainPlayer.state$.subscribe(state => {
-      if (!state.playing || !state.currentTrack) return;
-      if (state.currentTrack.path === lastNotifiedPath) return;
+      if (!state.playing || !state.currentTrack) {
+        activeNotification?.close();
+        activeNotification = null;
+        if (!state.currentTrack) lastNotifiedKey = null;
+        return;
+      }
+      const key = JSON.stringify([state.pathId, state.currentTrack.source, state.currentTrack.path]);
+      if (key === lastNotifiedKey) return;
 
-      lastNotifiedPath = state.currentTrack.path;
+      lastNotifiedKey = key;
       this.showNowPlayingNotification(state.currentTrack, state.pathId ?? 0, (n) => {
         activeNotification?.close();
         activeNotification = n;
-      });
+      }, () => this.mainPlayer.state.playing && lastNotifiedKey === key);
     });
   }
 
   private showNowPlayingNotification(
     track: MusicMetadataDto,
     pathId: number,
-    onCreated: (n: Notification) => void
+    onCreated: (n: Notification) => void,
+    isCurrent: () => boolean = () => true
   ): void {
     const doShow = () => {
-      if (Notification.permission !== 'granted') return;
-      const icon = this.getAbsoluteCoverUrl(pathId, track) || undefined;
-      const n = new Notification(track.title || track.name, {
-        body:  [track.artist, track.album].filter(Boolean).join(' — '),
-        icon,
-        image: icon,
-        silent: true,
-        tag:   'now-playing',
-      } as NotificationOptions);
-      setTimeout(() => n.close(), 5000);
-      onCreated(n);
+      if (Notification.permission !== 'granted' || !isCurrent()) return;
+      try {
+        const n = new Notification(track.title || track.name || 'Everload', {
+          body: ['Everload', [track.artist, track.album].filter(Boolean).join(' \u00b7 ')].filter(Boolean).join('\n'),
+          icon: new URL('icons/icon-192x192.png', document.baseURI).href,
+          badge: new URL('icons/icon-96x96.png', document.baseURI).href,
+          image: this.getAbsoluteCoverUrl(pathId, track) || undefined,
+          silent: true,
+          tag: 'everload-now-playing'
+        } as NotificationOptions);
+        const timer = setTimeout(() => n.close(), 7000);
+        n.onclose = () => clearTimeout(timer);
+        n.onclick = event => {
+          event.preventDefault();
+          window.focus();
+          this.playerOpenRequested$.next();
+          n.close();
+        };
+        onCreated(n);
+      } catch { /* A denied or unsupported notification must not interrupt audio. */ }
     };
 
     if (Notification.permission === 'granted') {
       doShow();
     } else if (Notification.permission === 'default') {
-      Notification.requestPermission().then(perm => { if (perm === 'granted') doShow(); });
+      Notification.requestPermission().then(perm => { if (perm === 'granted') doShow(); }).catch(() => {});
     }
   }
 
@@ -1582,6 +1637,20 @@ export class MusicService {
 
   getLibraryOverview(pathId: number, limit = 5000): Observable<LibraryOverviewDto> {
     return this.http.get<LibraryOverviewDto>(`${this.api}/library-overview?pathId=${pathId}&limit=${limit}`);
+  }
+
+  getFullLibraryOverview(pathId: number): Observable<LibraryOverviewDto> {
+    type Page = LibraryOverviewDto & { hasMore: boolean; page: number };
+    const fetchPage = (page: number) => this.http.get<Page>(
+      `${this.api}/library-tracks?pathId=${pathId}&page=${page}&size=1000`
+    );
+    return fetchPage(0).pipe(
+      expand(page => page.hasMore ? fetchPage(page.page + 1) : EMPTY, 1),
+      reduce((result, page) => {
+        return { tracks: [...result.tracks, ...page.tracks], indexing: result.indexing || page.indexing };
+      }, { tracks: [], indexing: false } as LibraryOverviewDto),
+      map(result => ({ ...result, tracks: [...new Map(result.tracks.map(track => [track.path, track])).values()] }))
+    );
   }
 
   getRecentTracks(pathId: number, limit = 40): Observable<MusicMetadataDto[]> {

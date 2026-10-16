@@ -42,6 +42,34 @@ describe('MusicService', () => {
     localStorage.clear();
   });
 
+  describe('complete library', () => {
+    it('loads every page beyond 5000 tracks and retains indexing status from earlier pages', () => {
+      let result: any;
+      service.getFullLibraryOverview(7).subscribe(value => result = value);
+      for (let page = 0; page < 6; page++) {
+        const count = page === 5 ? 182 : 1000;
+        httpMock.expectOne(`${BACKEND}/api/music/library-tracks?pathId=7&page=${page}&size=1000`).flush({
+          tracks: Array.from({ length: count }, (_, i) => ({ path: `${page * 1000 + i}.mp3` })),
+          hasMore: page < 5, page, indexing: page === 0
+        });
+      }
+      expect(result.tracks.length).toBe(5182);
+      expect(result.indexing).toBeTrue();
+    });
+
+    it('continues after an empty page and deduplicates paths across pages', () => {
+      let result: any;
+      service.getFullLibraryOverview(7).subscribe(value => result = value);
+      [[], [{ path: 'song.mp3' }], [{ path: 'song.mp3' }]].forEach((tracks, page) => {
+        httpMock.expectOne(`${BACKEND}/api/music/library-tracks?pathId=7&page=${page}&size=1000`).flush({
+          tracks, hasMore: page < 2, page, indexing: false
+        });
+      });
+      expect(result.tracks.length).toBe(1);
+      expect(result.indexing).toBeFalse();
+    });
+  });
+
   describe('stream quality preference', () => {
     it('exposes the four quality presets with their bitrate metadata', () => {
       const values = MusicService.QUALITY_OPTIONS.map(o => o.value);

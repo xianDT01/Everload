@@ -1789,13 +1789,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.metadataSuggestion = null;
         this.musicManagerStatus = 'WINDOWS.MANAGER_METADATA_SAVED';
         // Also update the MediaSession if available
-        if (navigator.mediaSession?.metadata) {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: this.metaTitle,
-            artist: this.metaArtist,
-            album: this.metaAlbum,
-          });
-        }
+        this.musicService.refreshMediaSessionMetadata();
       },
       error: (err) => {
         this.metadataLoading = false;

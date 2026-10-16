@@ -101,6 +101,11 @@ public class MusicService {
     private final Map<String, Optional<String>> albumCoverLookupCache = new ConcurrentHashMap<>();
     private final Set<String> metadataWarmupInFlight = ConcurrentHashMap.newKeySet();
     private final Set<Long> libraryIndexInFlight = ConcurrentHashMap.newKeySet();
+    private record LibraryIndexState(Path base, long revision) {}
+    private record CompletedLibraryIndex(LibraryIndexState state, Set<String> paths, long completedAt) {}
+    private static final long LIBRARY_INDEX_TTL_MS = 15 * 60 * 1000L;
+    private final Map<Long, CompletedLibraryIndex> completedLibraryIndexes = new ConcurrentHashMap<>();
+    private final Map<Long, Long> libraryRevisions = new ConcurrentHashMap<>();
     private final ExecutorService metadataExecutor = Executors.newFixedThreadPool(2, r -> {
         Thread t = new Thread(r, "everload-metadata-cache");
         t.setDaemon(true);
@@ -138,51 +143,71 @@ public class MusicService {
 
     public Map<String, Object> getLibraryTracks(Long pathId, int page, int size, String query, String sort) {
         nasService.getBasePath(pathId);
+        if (page == 0) ensureLibraryIndex(pathId);
+        boolean indexing = libraryIndexInFlight.contains(pathId);
         var pageable = org.springframework.data.domain.PageRequest.of(page, size);
         String search = query == null ? "" : query.trim().toLowerCase(java.util.Locale.ROOT);
         var slice = "title".equals(sort) ? metadataCacheRepo.findLibraryPage(pathId, search, pageable)
                 : metadataCacheRepo.findSortedLibraryPage(pathId, search, sort, pageable);
+        var available = libraryAvailability(pathId);
         var tracks = slice.getContent().stream().map(this::dtoFromCache)
-                .filter(track -> nasService.isTrackAvailable(pathId, track.getPath())).toList();
-        if (page == 0 && slice.isEmpty() && (query == null || query.isBlank())) startLibraryIndex(pathId);
+                .filter(track -> available.test(track.getPath())).toList();
         return Map.of("tracks", tracks, "hasMore", slice.hasNext(), "page", page,
-                INDEXING_FIELD, libraryIndexInFlight.contains(pathId));
+                INDEXING_FIELD, indexing || libraryIndexInFlight.contains(pathId));
     }
 
     public Map<String, Object> getLibraryOverview(Long pathId, int limit) {
+        ensureLibraryIndex(pathId);
+        boolean indexing = libraryIndexInFlight.contains(pathId);
         List<TrackMetadataCache> cachedTracks = metadataCacheRepo
                 .findOverviewSlice(pathId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)));
+        var available = libraryAvailability(pathId);
         List<MusicMetadataDto> tracks = cachedTracks.stream()
                 .map(this::dtoFromCache)
-                .filter(track -> nasService.isTrackAvailable(pathId, track.getPath()))
+                .filter(track -> available.test(track.getPath()))
                 .toList();
-
-        if (cachedTracks.isEmpty()) {
-            startLibraryIndex(pathId);
-        }
 
         return Map.of(
                 "tracks", tracks,
-                INDEXING_FIELD, libraryIndexInFlight.contains(pathId)
+                INDEXING_FIELD, indexing || libraryIndexInFlight.contains(pathId)
         );
     }
 
     public List<MusicMetadataDto> getRecentTracks(Long pathId, int limit) {
+        ensureLibraryIndex(pathId);
         List<TrackMetadataCache> cachedTracks = metadataCacheRepo
                 .findByNasPathIdOrderByLastModifiedDesc(pathId, org.springframework.data.domain.PageRequest.of(0, Math.max(1, limit)));
+        var available = libraryAvailability(pathId);
         List<MusicMetadataDto> tracks = cachedTracks.stream()
                 .map(this::dtoFromCache)
-                .filter(track -> nasService.isTrackAvailable(pathId, track.getPath()))
+                .filter(track -> available.test(track.getPath()))
                 .toList();
-
-        if (cachedTracks.isEmpty()) {
-            startLibraryIndex(pathId);
-        }
 
         return tracks;
     }
 
-    public Map<String, Object> startLibraryIndex(Long pathId) {
+    private void ensureLibraryIndex(Long pathId) {
+        LibraryIndexState current = new LibraryIndexState(nasService.getBasePath(pathId),
+                libraryRevisions.getOrDefault(pathId, 0L));
+        CompletedLibraryIndex completed = completedLibraryIndexes.get(pathId);
+        if (completed == null || !current.equals(completed.state())
+                || System.currentTimeMillis() - completed.completedAt() >= LIBRARY_INDEX_TTL_MS) {
+            startLibraryIndex(pathId);
+        }
+    }
+
+    private java.util.function.Predicate<String> libraryAvailability(Long pathId) {
+        Path base = nasService.getBasePath(pathId);
+        CompletedLibraryIndex completed = completedLibraryIndexes.get(pathId);
+        LibraryIndexState current = new LibraryIndexState(base, libraryRevisions.getOrDefault(pathId, 0L));
+        if (completed != null && current.equals(completed.state())) {
+            boolean readable = Files.isDirectory(base) && Files.isReadable(base);
+            return path -> readable && completed.paths().contains(path);
+        }
+        return nasService.trackAvailability(pathId);
+    }
+
+    public synchronized Map<String, Object> startLibraryIndex(Long pathId) {
         Path base = nasService.getBasePath(pathId);
         if (!Files.isDirectory(base) || !Files.isReadable(base)) {
             throw new IllegalArgumentException("Ruta NAS no accesible");
@@ -192,13 +217,22 @@ public class MusicService {
             return Map.of("started", false, INDEXING_FIELD, true);
         }
 
-        metadataExecutor.submit(() -> {
-            try {
-                indexLibrary(pathId, base);
-            } finally {
-                libraryIndexInFlight.remove(pathId);
-            }
-        });
+        LibraryIndexState state = new LibraryIndexState(base, libraryRevisions.getOrDefault(pathId, 0L));
+        try {
+            metadataExecutor.submit(() -> {
+                try {
+                    Set<String> paths = indexLibrary(pathId, base);
+                    completedLibraryIndexes.put(pathId, new CompletedLibraryIndex(state, paths, System.currentTimeMillis()));
+                } catch (Exception e) {
+                    log.warn("Could not index NAS path {}: {}", pathId, e.getMessage());
+                } finally {
+                    libraryIndexInFlight.remove(pathId);
+                }
+            });
+        } catch (RuntimeException e) {
+            libraryIndexInFlight.remove(pathId);
+            throw e;
+        }
 
         return Map.of("started", true, INDEXING_FIELD, true);
     }
@@ -471,10 +505,13 @@ public class MusicService {
         return removed;
     }
 
-    private void indexLibrary(Long pathId, Path base) {
-        File root = base.toFile();
-        List<File> audioFiles = new ArrayList<>();
-        collectAudioFilesForSearch(root, audioFiles, SEARCH_SCAN_LIMIT);
+    private Set<String> indexLibrary(Long pathId, Path base) throws IOException {
+        List<File> audioFiles;
+        // A full index must finish traversal before pruning, without the search sampling limit.
+        try (var paths = Files.walk(base)) {
+            audioFiles = paths.filter(Files::isRegularFile).map(Path::toFile)
+                    .filter(this::isAudio).toList();
+        }
         Map<String, TrackMetadataCache> cacheMap = batchFetchCacheChunked(pathId, audioFiles, base);
         Set<String> foundPaths = new HashSet<>();
 
@@ -494,6 +531,7 @@ public class MusicService {
         } catch (Exception e) {
             log.debug("Could not prune stale metadata for NAS path {}: {}", pathId, e.getMessage());
         }
+        return Set.copyOf(foundPaths);
     }
 
     private void collectAudioFiles(File dir, Long pathId, Path base, List<MusicMetadataDto> out, int maxDepth, int maxFiles) {
@@ -564,6 +602,7 @@ public class MusicService {
 
     @EventListener
     public void onNasFilesChanged(NasFilesChangedEvent event) {
+        libraryRevisions.merge(event.nasPathId(), 1L, Long::sum);
         invalidateBrowseCache(event.nasPathId());
     }
 
@@ -1444,12 +1483,14 @@ public class MusicService {
             if (subPathFilter != null && !cached.getRelativePath().startsWith(subPathFilter)) continue;
             MusicMetadataDto dto = dtoFromCache(cached);
             dto.setNasPathId(pathId);
-            if (!nasService.isTrackAvailable(pathId, dto.getPath())) continue;
             int score = scoreSearchDto(dto, tokens);
             if (score > 0) scored.add(Map.entry(dto, score));
         }
         scored.sort(this::compareScoredSearchResults);
-        return scored.stream().limit(Math.max(1, limit)).map(Map.Entry::getKey).toList();
+        var available = nasService.trackAvailability(pathId);
+        return scored.stream().map(Map.Entry::getKey)
+                .filter(track -> available.test(track.getPath()))
+                .limit(Math.max(1, limit)).toList();
     }
 
     private int compareScoredSearchResults(Map.Entry<MusicMetadataDto, Integer> first,
@@ -1738,6 +1779,14 @@ public class MusicService {
 
         } catch (Exception e) {
             b.title(stripExtension(f.getName())).format(extension(f.getName()));
+            if (pathId != null) {
+                TrackMetadataCache entry = cached != null ? cached : TrackMetadataCache.builder()
+                        .nasPathId(pathId).relativePath(relPath).title(stripExtension(f.getName()))
+                        .artist("").album("").year("").format(extension(f.getName())).build();
+                entry.setLastModified(lastMod);
+                saveScannedMetadata(entry);
+                return buildCachedMetadata(b, entry, f);
+            }
         }
 
         return b.build();

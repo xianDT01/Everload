@@ -81,10 +81,9 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
     this.linkSub?.unsubscribe();
     this.actionSub?.unsubscribe();
     this.importSub?.unsubscribe();
-    this.searchSub?.unsubscribe();
+    this.cancelTrackSearch();
     this.userSearchSub?.unsubscribe();
     this.routerSub?.unsubscribe();
-    clearTimeout(this.searchDebounce);
     clearTimeout(this.userSearchDebounce);
   }
 
@@ -150,6 +149,7 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   }
 
   openPlaylist(pl: any) {
+    this.cancelTrackSearch();
     this.shareLink = '';
     this.linkCopied = false;
     this.selectedPlaylist = pl;
@@ -159,6 +159,7 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
   }
 
   back() {
+    this.cancelTrackSearch();
     this.view = 'list';
     this.selectedPlaylist = null;
     this.router.navigate([], { relativeTo: this.route, queryParams: { playlist: null }, queryParamsHandling: 'merge' });
@@ -357,20 +358,29 @@ export class ModernPlaylistsComponent implements OnInit, OnDestroy {
     }
   }
 
-  onSearchInput() {
+  private cancelTrackSearch() {
     clearTimeout(this.searchDebounce);
-    if (!this.searchQuery.trim()) { this.searchResults = []; return; }
+    this.searchSub?.unsubscribe();
+    this.searching = false;
+  }
+
+  onSearchInput() {
+    this.cancelTrackSearch();
+    this.searchResults = [];
+    if (!this.searchQuery.trim()) return;
+    this.searching = true;
     this.searchDebounce = setTimeout(() => this.doSearch(), 250);
   }
 
   doSearch() {
     const pid = this.state.pathId;
-    if (!this.searchQuery.trim() || pid == null) return;
+    const query = this.searchQuery.trim();
     this.searchSub?.unsubscribe();
+    if (!query || pid == null) { this.searching = false; this.searchResults = []; return; }
     this.searching = true;
-    this.searchSub = this.music.search(pid, undefined, this.searchQuery, 50).subscribe({
+    this.searchSub = this.music.search(pid, undefined, query, 50).subscribe({
       next: r => { this.searchResults = r; this.searching = false; },
-      error: () => { this.searching = false; }
+      error: () => { this.searchResults = []; this.searching = false; }
     });
   }
 

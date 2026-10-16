@@ -80,7 +80,7 @@ public class MusicController {
             @RequestParam(defaultValue = "100") int size,
             @RequestParam(defaultValue = "") String query,
             @RequestParam(defaultValue = "title") String sort) {
-        if (page < 0 || size < 1 || size > 200 || query.length() > 200 ||
+        if (page < 0 || size < 1 || size > 1000 || query.length() > 200 ||
                 !java.util.Set.of("title", "artist", "date").contains(sort)) {
             return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Parametros de biblioteca invalidos"));
         }

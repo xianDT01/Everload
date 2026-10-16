@@ -34,6 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private authSub?: Subscription;
   private alertSub?: Subscription;
   private maintenanceSub?: Subscription;
+  private playerOpenSub?: Subscription;
   private heartbeatRef: any = null;
   private installPrompt: InstallPromptEvent | null = null;
 
@@ -68,6 +69,9 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.playerOpenSub = this.musicService.playerOpenRequested$.subscribe(() => {
+      if (!this.isModernRoute) this.musicService.nowPlayingPanelOpen = true;
+    });
     window.addEventListener('beforeinstallprompt', this.onBeforeInstallPrompt);
     window.addEventListener('appinstalled', this.onAppInstalled);
 
@@ -133,6 +137,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.authSub?.unsubscribe();
     this.alertSub?.unsubscribe();
     this.maintenanceSub?.unsubscribe();
+    this.playerOpenSub?.unsubscribe();
     this.stopHeartbeat();
   }
 

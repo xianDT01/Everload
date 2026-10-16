@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
+import type Hls from 'hls.js';
 
 export interface RadioStation {
   stationuuid: string;
@@ -20,6 +21,7 @@ export interface RadioStation {
   clickcount: number;
   lastcheckok: number;
   fallbackUrls?: string[];
+  hls?: number;
 }
 
 export interface RadioPlaybackState {
@@ -43,6 +45,9 @@ export class RadioPlaybackService {
   private audio: HTMLAudioElement | null = null;
   private streamCandidates: string[] = [];
   private streamCandidateIndex = 0;
+  private hls: Hls | null = null;
+  private streamTimer?: ReturnType<typeof setTimeout>;
+  private readonly streamTimeoutMs = 12000;
   private stateSubject = new BehaviorSubject<RadioPlaybackState>(this.initialState);
 
   readonly state$ = this.stateSubject.asObservable();
@@ -54,10 +59,12 @@ export class RadioPlaybackService {
   }
 
   playStation(station: RadioStation): void {
-    this.streamCandidates = [
-      station.url_resolved || station.url,
+    const urls = /\.(m3u|pls)(?:[?#]|$)/i.test(station.url)
+      ? [station.url_resolved, station.url] : [station.url, station.url_resolved];
+    this.streamCandidates = this.usableUrls([
+      ...urls,
       ...(station.fallbackUrls || []),
-    ].filter(Boolean);
+    ]);
     this.streamCandidateIndex = 0;
     this.patchState({ selectedStation: station });
     this.playStream(this.streamCandidates[0]);
@@ -83,62 +90,133 @@ export class RadioPlaybackService {
       lastcheckok: 1,
     };
 
-    this.streamCandidates = [url];
-    this.streamCandidateIndex = 0;
-    this.patchState({ selectedStation: station });
-    this.playStream(url);
+    this.playStation(station);
   }
 
   pause(): void {
-    this.audio?.pause();
+    this.releaseAudio();
     this.patchState({ playing: false, buffering: false });
   }
 
   stop(): void {
-    if (!this.audio) return;
-    this.audio.pause();
-    this.audio.src = '';
-    this.audio.load();
-    this.patchState({ playing: false, buffering: false });
+    this.releaseAudio();
+    this.patchState({ playing: false, buffering: false, error: '' });
   }
 
   setVolume(volume: number): void {
+    if (!Number.isFinite(volume)) return;
+    volume = Math.max(0, Math.min(1, volume));
     if (this.audio) this.audio.volume = volume;
     this.patchState({ volume });
   }
 
   private playStream(url: string): void {
+    this.releaseAudio();
     this.patchState({ error: '', buffering: true, playing: false });
-
-    const audio = this.ensureAudio();
-    audio.pause();
-    audio.src = url;
-    audio.volume = this.snapshot.volume;
-    audio.load();
-    audio.play().catch(() => {
+    if (!url) {
       this.tryNextStreamCandidate();
+      return;
+    }
+    // Each attempt owns its audio element so late events cannot skip a new stream.
+    const audio = this.audio = new Audio();
+    audio.preload = 'none';
+    audio.volume = this.snapshot.volume;
+    const isCurrent = () => this.audio === audio;
+    const fail = () => { if (isCurrent()) this.tryNextStreamCandidate(); };
+    const armTimeout = () => {
+      this.clearStreamTimer();
+      this.streamTimer = setTimeout(fail, this.streamTimeoutMs);
+    };
+    audio.addEventListener('playing', () => {
+      if (!isCurrent()) return;
+      this.clearStreamTimer();
+      this.patchState({ playing: true, buffering: false, error: '' });
+    });
+    audio.addEventListener('waiting', () => {
+      if (!isCurrent()) return;
+      this.patchState({ buffering: true });
+      if (!this.streamTimer) armTimeout();
+    });
+    audio.addEventListener('error', fail);
+    audio.addEventListener('ended', fail);
+    armTimeout();
+    void this.startAudio(audio, url).catch(error => {
+      if (!isCurrent()) return;
+      if (error?.name === 'NotAllowedError') {
+        this.releaseAudio();
+        this.patchState({ playing: false, buffering: false,
+          error: this.translate.instant('RADIO.ERROR_PLAY_PERMISSION') });
+      } else fail();
     });
   }
 
-  private ensureAudio(): HTMLAudioElement {
-    if (this.audio) return this.audio;
+  private async startAudio(audio: HTMLAudioElement, url: string): Promise<void> {
+    const isHls = /\.m3u8(?:[?#]|$)/i.test(url) ||
+      (this.snapshot.selectedStation?.hls === 1 && !/\.(mp3|aac|ogg)(?:[?#]|$)/i.test(url));
+    if (isHls) {
+      const HlsCtor = await this.loadHlsConstructor();
+      if (this.audio !== audio) return;
+      // Some Chromium versions advertise native HLS but cannot decode live AAC playlists.
+      if (!HlsCtor.isSupported()) {
+        if (!audio.canPlayType('application/vnd.apple.mpegurl')) throw new Error('HLS unsupported');
+        audio.src = url;
+        audio.load();
+        await audio.play();
+        return;
+      }
+      const hls = this.hls = new HlsCtor({ maxBufferLength: 15, maxMaxBufferLength: 30 });
+      hls.on(HlsCtor.Events.ERROR, (_, data) => {
+        if (data.fatal && this.audio === audio) this.tryNextStreamCandidate();
+      });
+      await new Promise<void>((resolve, reject) => {
+        hls.on(HlsCtor.Events.MANIFEST_PARSED, () => {
+          if (this.audio !== audio) { resolve(); return; }
+          audio.play().then(resolve, reject);
+        });
+        hls.on(HlsCtor.Events.DESTROYING, () => resolve());
+        hls.attachMedia(audio);
+        hls.loadSource(url);
+      });
+    } else {
+      audio.src = url;
+      audio.load();
+      await audio.play();
+    }
+  }
 
-    this.audio = new Audio();
-    this.audio.preload = 'none';
-    this.audio.addEventListener('playing', () => {
-      this.patchState({ playing: true, buffering: false, error: '' });
-    });
-    this.audio.addEventListener('waiting', () => {
-      if (this.snapshot.selectedStation) this.patchState({ buffering: true });
-    });
-    this.audio.addEventListener('pause', () => {
-      this.patchState({ playing: false, buffering: false });
-    });
-    this.audio.addEventListener('error', () => {
-      this.tryNextStreamCandidate();
-    });
+  private async loadHlsConstructor(): Promise<typeof Hls> {
+    return (await import('hls.js')).default;
+  }
 
-    return this.audio;
+  private usableUrls(urls: string[]): string[] {
+    const valid: string[] = [];
+    for (const value of urls) {
+      try {
+        const url = new URL(value);
+        if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) continue;
+        if (location.protocol === 'https:' && url.protocol === 'http:') url.protocol = 'https:';
+        valid.push(url.href);
+      } catch { /* Invalid catalog entries are not playable streams. */ }
+    }
+    return [...new Set(valid)];
+  }
+
+  private clearStreamTimer(): void {
+    if (this.streamTimer !== undefined) clearTimeout(this.streamTimer);
+    this.streamTimer = undefined;
+  }
+
+  private releaseAudio(): void {
+    this.clearStreamTimer();
+    const audio = this.audio;
+    this.audio = null;
+    this.hls?.destroy();
+    this.hls = null;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+    }
   }
 
   private tryNextStreamCandidate(): void {
@@ -148,6 +226,7 @@ export class RadioPlaybackService {
       return;
     }
 
+    this.releaseAudio();
     this.patchState({
       playing: false,
       buffering: false,
