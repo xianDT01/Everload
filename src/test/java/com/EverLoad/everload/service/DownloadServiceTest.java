@@ -2,7 +2,10 @@ package com.everload.everload.service;
 
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedConstruction;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -47,6 +50,11 @@ class DownloadServiceTest {
         // Campo @Value — sin contexto Spring queda a 0 y el pool no puede crearse
         org.springframework.test.util.ReflectionTestUtils.setField(downloadService, "maxConcurrent", 2);
         downloadService.init();
+    }
+
+    @AfterEach
+    void tearDown() {
+        downloadService.shutdown();
     }
 
     // ── Validación de videoId ─────────────────────────────────────────────────
@@ -187,7 +195,114 @@ class DownloadServiceTest {
         verify(historyService, never()).recordDownload(org.mockito.ArgumentMatchers.any(Download.class));
     }
 
+    @Test
+    void deviceAudioRefreshesRejectedMediaLinkAndRecordsSuccessOnce() throws Exception {
+        File file = Files.writeString(tempDir.resolve("audio.mp3"), "audio").toFile();
+        var job = new DownloadService.DirectDownloadJob("refresh-job", "jNQXAC9IVRw", "mp3", "test-user");
+        ReflectionTestUtils.setField(downloadService, "ytDlpPath", "yt-dlp-test");
+        Process failed = downloadProcess("", "ERROR: unable to download video data: HTTP Error 403: Forbidden", 0);
+        Process success = downloadProcess(file.getAbsolutePath(), "", 0);
+
+        try (MockedConstruction<ProcessBuilder> builders = mockConstruction(ProcessBuilder.class,
+                (builder, context) -> when(builder.start()).thenReturn(context.getCount() == 1 ? failed : success))) {
+            ReflectionTestUtils.invokeMethod(downloadService, "executeQueuedMusicDownload", job);
+            assertEquals(2, builders.constructed().size());
+        }
+
+        assertEquals(DownloadService.DirectDownloadStatus.DONE, job.status);
+        assertEquals(file.getAbsolutePath(), job.filePath);
+        verify(historyService).recordDownload(org.mockito.ArgumentMatchers.any(Download.class));
+        verify(musicService).ensureMetadata(file, "audio.mp3", "");
+        assertEquals(2, ((java.util.concurrent.Semaphore)
+                ReflectionTestUtils.getField(downloadService, "downloadSemaphore")).availablePermits());
+    }
+
+    @Test
+    void deviceAudioStopsAfterOneRefreshAndDoesNotExposeRawError() throws Exception {
+        var job = new DownloadService.DirectDownloadJob("failed-job", "jNQXAC9IVRw", "mp3", "test-user");
+        ReflectionTestUtils.setField(downloadService, "ytDlpPath", "yt-dlp-test");
+        String error = "ERROR: unable to download video data: HTTP Error 403: Forbidden https://secret.invalid/token";
+        Process first = downloadProcess("", error, 1);
+        Process second = downloadProcess("", error, 1);
+        try (MockedConstruction<ProcessBuilder> builders = mockConstruction(ProcessBuilder.class,
+                (builder, context) -> when(builder.start()).thenReturn(context.getCount() == 1 ? first : second))) {
+            ReflectionTestUtils.invokeMethod(downloadService, "executeQueuedMusicDownload", job);
+            assertEquals(2, builders.constructed().size());
+        }
+        assertEquals(DownloadService.DirectDownloadStatus.ERROR, job.status);
+        assertTrue(job.error.contains("HTTP 403"));
+        assertFalse(job.error.contains("secret.invalid"));
+        verify(historyService, never()).recordDownload(org.mockito.ArgumentMatchers.any(Download.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ERROR: Private video", "ERROR: Video unavailable",
+            "ERROR: Requested format is not available", "ERROR: HTTP Error 403: Forbidden", ""})
+    void deviceAudioDoesNotRetryOtherFailures(String error) throws Exception {
+        var job = new DownloadService.DirectDownloadJob("permanent-job", "jNQXAC9IVRw", "mp3", "test-user");
+        ReflectionTestUtils.setField(downloadService, "ytDlpPath", "yt-dlp-test");
+        Process failed = downloadProcess("", error, 1);
+        try (MockedConstruction<ProcessBuilder> builders = mockConstruction(ProcessBuilder.class,
+                (builder, context) -> when(builder.start()).thenReturn(failed))) {
+            ReflectionTestUtils.invokeMethod(downloadService, "executeQueuedMusicDownload", job);
+            assertEquals(1, builders.constructed().size());
+        }
+        assertEquals(DownloadService.DirectDownloadStatus.ERROR, job.status);
+        verify(historyService, never()).recordDownload(org.mockito.ArgumentMatchers.any(Download.class));
+    }
+
+    private Process downloadProcess(String output, String error, int exitCode) throws Exception {
+        Process process = mock(Process.class);
+        when(process.getInputStream()).thenReturn(new ByteArrayInputStream(output.getBytes(StandardCharsets.UTF_8)));
+        when(process.getErrorStream()).thenReturn(new ByteArrayInputStream(error.getBytes(StandardCharsets.UTF_8)));
+        when(process.waitFor()).thenReturn(exitCode);
+        return process;
+    }
+
     // ── Estado de jobs ────────────────────────────────────────────────────────
+
+    @Test
+    void preparedFileRemainsAvailableForRepeatedDeliveryAndRetry() throws Exception {
+        File file = Files.writeString(tempDir.resolve("100% Music.mp3"), "audio").toFile();
+        var job = new DownloadService.DirectDownloadJob("retry-job", "jNQXAC9IVRw", "mp3", "test-user");
+        job.status = DownloadService.DirectDownloadStatus.DONE;
+        job.completedAt = System.currentTimeMillis();
+        job.filePath = file.getAbsolutePath();
+        job.filename = file.getName();
+        @SuppressWarnings("unchecked")
+        var jobs = (java.util.Map<String, DownloadService.DirectDownloadJob>)
+                ReflectionTestUtils.getField(downloadService, "directDownloadJobs");
+        jobs.put(job.jobId, job);
+
+        var first = downloadService.downloadQueuedFile(job.jobId);
+        var retry = downloadService.downloadQueuedFile(job.jobId);
+
+        assertEquals(HttpStatus.OK, first.getStatusCode());
+        assertEquals(HttpStatus.OK, retry.getStatusCode());
+        assertEquals(file, retry.getBody().getFile());
+        assertSame(job, downloadService.getDirectDownloadJob(job.jobId));
+        assertTrue(file.exists());
+        verify(historyService, never()).recordDownload(org.mockito.ArgumentMatchers.any(Download.class));
+    }
+
+    @Test
+    void retentionStillPrunesExpiredPreparedFiles() throws Exception {
+        Path folder = Files.createDirectory(tempDir.resolve("expired"));
+        File file = Files.writeString(folder.resolve("expired.mp3"), "audio").toFile();
+        var job = new DownloadService.DirectDownloadJob("expired-job", "jNQXAC9IVRw", "mp3", "test-user");
+        job.status = DownloadService.DirectDownloadStatus.DONE;
+        job.completedAt = System.currentTimeMillis() - java.util.concurrent.TimeUnit.HOURS.toMillis(2);
+        job.filePath = file.getAbsolutePath();
+        @SuppressWarnings("unchecked")
+        var jobs = (java.util.Map<String, DownloadService.DirectDownloadJob>)
+                ReflectionTestUtils.getField(downloadService, "directDownloadJobs");
+        jobs.put(job.jobId, job);
+
+        ReflectionTestUtils.invokeMethod(downloadService, "pruneOldJobs");
+
+        assertNull(downloadService.getDirectDownloadJob(job.jobId));
+        assertFalse(file.exists());
+    }
 
     @Test
     void jobInexistenteDevuelveNullY404() {

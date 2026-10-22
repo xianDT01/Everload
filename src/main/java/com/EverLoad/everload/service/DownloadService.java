@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
 
 @Service
@@ -170,6 +171,8 @@ public class DownloadService {
 
     public DirectDownloadJob queueMusicDownload(String videoId, String format) {
         DirectDownloadJob job = createJob(videoId, format);
+        logger.info("Device audio download queued: job={} user={} video={} format={}",
+                job.jobId, job.username, job.videoId, job.format);
         directDownloadExecutor.submit(() -> executeQueuedMusicDownload(job));
         return job;
     }
@@ -210,9 +213,9 @@ public class DownloadService {
             logger.warn("downloadQueuedFile: file not found at path '{}' for job {}", job.filePath, jobId);
             return ResponseEntity.notFound().build();
         }
-        logger.info("downloadQueuedFile: serving {} ({} bytes) for job {}", file.getName(), file.length(), jobId);
+        logger.info("downloadQueuedFile: serving {} ({} bytes) for job {} user={}", file.getName(), file.length(), jobId, job.username);
         ResponseEntity<FileSystemResource> response = sendFile(file);
-        directDownloadJobs.remove(jobId);
+        // Keep the completed job for retries until the existing retention cleanup.
         return response;
     }
 
@@ -315,12 +318,13 @@ public class DownloadService {
         try {
             job.status = DirectDownloadStatus.RUNNING;
             job.progress = 5;
-            File finalFile = runAudioDownload(job, tempDirPath);
+            File finalFile = runDeviceAudioDownload(job, tempDirPath);
             downloadHistoryService.recordDownload(new Download(finalFile.getName(), MUSIC_CATEGORY, YOUTUBE_SOURCE, job.username));
 
             job.filename = finalFile.getName();
             job.filePath = finalFile.getAbsolutePath();
             completeJob(job);
+            logger.info("Device audio download ready: job={} user={} bytes={}", job.jobId, job.username, finalFile.length());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             failJob(job, "Descarga interrumpida");
@@ -328,7 +332,7 @@ public class DownloadService {
             cleanupTempDir(tempDirPath);
         } catch (Exception e) {
             failJob(job, e.getMessage());
-            logger.error("Queued music download failed for {}: {}", job.videoId, e.getMessage());
+            logger.error("Queued music download failed: job={} user={} video={}: {}", job.jobId, job.username, job.videoId, e.getMessage());
             cleanupTempDir(tempDirPath);
         } finally {
             downloadSemaphore.release();
@@ -398,6 +402,25 @@ public class DownloadService {
         };
     }
 
+    private File runDeviceAudioDownload(DirectDownloadJob job, String tempDirPath)
+            throws IOException, InterruptedException {
+        try {
+            return runAudioDownload(job, tempDirPath);
+        } catch (ExpiredMediaLinkException e) {
+            // Re-extract once to replace a rejected signed media URL, without retrying permanent errors.
+            logger.warn("Refreshing rejected audio link: job={} user={} video={}",
+                    job.jobId, job.username, job.videoId);
+            Thread.sleep(1500);
+            return runAudioDownload(job, tempDirPath);
+        }
+    }
+
+    private static class ExpiredMediaLinkException extends IOException {
+        private ExpiredMediaLinkException() {
+            super("YouTube ha rechazado temporalmente el enlace de audio (HTTP 403). Intentalo de nuevo mas tarde.");
+        }
+    }
+
     /** Descarga el audio de un job actualizando su progreso y devuelve el archivo final. */
     private File runAudioDownload(DirectDownloadJob job, String tempDirPath)
             throws IOException, InterruptedException {
@@ -411,11 +434,16 @@ public class DownloadService {
      */
     private File runYtDlp(String[] cmd, IntConsumer onProgress) throws IOException, InterruptedException {
         Process process = new ProcessBuilder(cmd).start();
+        AtomicBoolean rejectedMediaLink = new AtomicBoolean();
 
         Thread stderrThread = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
+                    if (line.contains("ERROR:") && line.contains("unable to download video data:")
+                            && line.contains("HTTP Error 403")) {
+                        rejectedMediaLink.set(true);
+                    }
                     if (line.contains("nsig extraction failed")) continue;
                     OptionalInt progress = YtDlpProgressParser.parse(line);
                     if (progress.isPresent()) {
@@ -447,7 +475,8 @@ public class DownloadService {
         stderrThread.join(5000);
 
         if (exit != 0 || finalPaths.isEmpty()) {
-            throw new IOException("yt-dlp falló o no devolvió la ruta del archivo");
+            if (rejectedMediaLink.get()) throw new ExpiredMediaLinkException();
+            throw new IOException("No se pudo preparar el archivo. Comprueba que el contenido sea publico y este disponible.");
         }
         File file = finalPaths.stream()
                 .map(File::new)

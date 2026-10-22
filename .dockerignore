@@ -13,4 +13,5 @@ downloads/
 *.iml
 sonarqube/
 .env
+tmp/
 config.json

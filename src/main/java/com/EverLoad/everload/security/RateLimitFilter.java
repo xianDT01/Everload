@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
  * Tiers (per unique client IP):
  *  - AUTH     /api/auth/**        - 10  req/min  (brute-force protection)
  *  - DOWNLOAD download/search     - 8   req/min  (heavy resource use)
+ *  - GLOBAL   job status polling  - 300 req/min (frequent lightweight polling)
  *  - UPLOAD   upload/write jobs   - 15  req/min  (file writes)
  *  - GLOBAL   all other /api/**   - 300 req/min  (flood protection)
  *
@@ -80,7 +81,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
         String ip = resolveClientIp(request);
         String path = request.getServletPath();
-        Tier tier = classifyTier(path);
+        Tier tier = classifyTier(request);
 
         pruneBucketsIfNeeded();
         TimestampedBucket entry = buckets.computeIfAbsent(tier.name() + ":" + ip,
@@ -111,8 +112,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private enum Tier { AUTH, DOWNLOAD, UPLOAD, GLOBAL }
 
-    private Tier classifyTier(String path) {
+    private Tier classifyTier(HttpServletRequest request) {
+        String path = request.getServletPath();
         if (path.startsWith("/api/auth/")) return Tier.AUTH;
+        // Music download clients poll every 2.5 seconds while yt-dlp prepares the
+        // file. Keep status reads out of the 8/minute heavy-download bucket.
+        if ("GET".equalsIgnoreCase(request.getMethod())
+                && path.matches("^/api/downloadMusic/jobs/[^/]+$")) {
+            return Tier.GLOBAL;
+        }
         if (path.startsWith("/api/download")
                 || path.startsWith("/api/playlistVideos")
                 || path.startsWith("/api/youtube/search")

@@ -428,6 +428,29 @@ class MusicServiceTest {
     }
 
     @Test
+    void randomTracksCanShuffleMultipleCoveredTracks() throws Exception {
+        var paths = mock(NasPathRepository.class);
+        when(paths.findAll()).thenReturn(List.of(com.everload.everload.model.NasPath.builder()
+                .id(1L).name("Music").path(tempDir.toString()).build()));
+        var service = new MusicService(nasService, paths, metadataRepository, restTemplate);
+        for (String name : List.of("one.mp3", "two.mp3", "no-cover.mp3")) {
+            var file = Files.writeString(tempDir.resolve(name), "audio");
+            var track = cachedTrack(name, name, "Artist");
+            track.setLastModified(file.toFile().lastModified());
+            track.setHasCover(!name.equals("no-cover.mp3"));
+            when(metadataRepository.findByNasPathIdAndRelativePath(1L, name)).thenReturn(Optional.of(track));
+        }
+
+        var tracks = service.getRandomTracks(5);
+
+        assertEquals(2, tracks.size());
+        assertTrue(tracks.stream().allMatch(com.everload.everload.dto.MusicMetadataDto::isHasCover));
+        assertEquals(java.util.Set.of("one.mp3", "two.mp3"), tracks.stream()
+                .map(com.everload.everload.dto.MusicMetadataDto::getPath).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(1, service.getRandomTracks(1).size());
+    }
+
+    @Test
     void artistImageUsesLocalFileAndThenMemoryCache() throws Exception {
         Path artistDir = Files.createDirectories(tempDir.resolve("artists-auto"));
         Files.writeString(artistDir.resolve("david_guetta.jpg"), "image");

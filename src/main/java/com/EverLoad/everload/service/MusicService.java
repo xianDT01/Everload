@@ -132,7 +132,7 @@ public class MusicService {
                 .filter(MusicMetadataDto::isHasCover)
                 .toList();
 
-        List<MusicMetadataDto> pool = withCovers.isEmpty() ? candidates : withCovers;
+        List<MusicMetadataDto> pool = new ArrayList<>(withCovers.isEmpty() ? candidates : withCovers);
         Collections.shuffle(pool);
         return pool.stream().limit(count).toList();
     }

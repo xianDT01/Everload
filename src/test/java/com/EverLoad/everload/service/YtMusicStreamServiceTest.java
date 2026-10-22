@@ -27,6 +27,47 @@ class YtMusicStreamServiceTest {
 
     private HttpServer server;
 
+    @Test
+    void concurrentPreparationAndPlaybackResolveOnlyOnce() throws Exception {
+        var resolver = resolver("slow");
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        when(resolver.resolve("video-concurrent")).thenAnswer(invocation -> {
+            entered.countDown();
+            assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            return YtStreamResolution.success(stream("https://audio.test/track", "webm"));
+        });
+        var service = serviceWith(resolver);
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var preparation = executor.submit(() -> service.resolveStream("video-concurrent"));
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            var playback = executor.submit(() -> service.resolveStream("video-concurrent"));
+            release.countDown();
+            assertEquals(preparation.get(5, java.util.concurrent.TimeUnit.SECONDS), playback.get(5, java.util.concurrent.TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+        }
+        verify(resolver, times(1)).resolve("video-concurrent");
+    }
+
+    @Test
+    void proxyFlushesFirstAudioChunkBeforeClosing() throws Exception {
+        var resolver = resolver("local");
+        when(resolver.resolve("video-flush")).thenReturn(YtStreamResolution.success(stream(startServer(new byte[]{1, 2, 3}, 200), "webm")));
+        var response = mock(HttpServletResponse.class);
+        var output = mock(ServletOutputStream.class);
+        when(response.getOutputStream()).thenReturn(output);
+
+        serviceWith(resolver).streamAudioToResponse("video-flush", null, response);
+
+        var order = org.mockito.Mockito.inOrder(output);
+        order.verify(output).write(org.mockito.ArgumentMatchers.any(byte[].class), org.mockito.ArgumentMatchers.eq(0), org.mockito.ArgumentMatchers.eq(3));
+        order.verify(output, org.mockito.Mockito.atLeastOnce()).flush();
+        order.verify(output).close();
+    }
+
     @AfterEach
     void tearDown() {
         if (server != null) server.stop(0);

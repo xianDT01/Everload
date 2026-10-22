@@ -1,6 +1,6 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
 import { NO_ERRORS_SCHEMA, Pipe, PipeTransform } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
@@ -122,4 +122,121 @@ describe('YoutubeDownloadsComponent', () => {
 
     expect(component.isLoading).toBeTrue();
   });
+
+  describe('device audio delivery', () => {
+    let http: HttpTestingController;
+    let deliver: jasmine.Spy;
+    const job = { jobId: 'test-job', status: 'QUEUED', progress: 5, filename: "Don't Stop 100%.mp3" };
+    const statusUrl = '/api/downloadMusic/jobs/test-job';
+    const fileUrl = `${statusUrl}/file`;
+    const item = () => ({ id: 'item', videoId: 'jNQXAC9IVRw', type: 'music', title: 'Demo',
+      audioFormat: 'mp3', progress: 0, status: 'pending' } as any);
+    const start = (entry: any) => {
+      (component as any).processMusicItemAsJob(entry);
+      http.expectOne(r => r.method === 'POST' && r.url === '/api/downloadMusic/jobs').flush(job);
+    };
+    beforeEach(() => {
+      http = TestBed.inject(HttpTestingController);
+      deliver = spyOn<any>(component, 'triggerDownload');
+    });
+    afterEach(() => { (component as any).cancelActiveDownload?.(); http.verify(); });
+
+    it('does not overlap slow status requests or fetch a prepared file twice', fakeAsync(() => {
+      const entry = item(); start(entry);
+      const status = http.expectOne(statusUrl);
+      tick(7500);
+      http.expectNone(statusUrl);
+      status.flush({ ...job, status: 'DONE' });
+      const file = http.expectOne(fileUrl);
+      tick(7500);
+      http.expectNone(statusUrl);
+      http.expectNone(fileUrl);
+      file.flush(new Blob(['audio']), { headers: { 'Content-Disposition': `attachment; filename="${job.filename}"` } });
+      flushMicrotasks();
+      tick(10000);
+      expect(entry.status).toBe('completed');
+      expect(deliver).toHaveBeenCalledOnceWith(jasmine.any(Blob), job.filename);
+    }));
+
+    it('waits after each response before scheduling another progress read', fakeAsync(() => {
+      const entry = item(); start(entry);
+      http.expectOne(statusUrl).flush({ ...job, status: 'RUNNING' });
+      tick(2499); http.expectNone(statusUrl);
+      tick(1); http.expectOne(statusUrl).flush({ ...job, status: 'ERROR', error: 'Unavailable' });
+      flushMicrotasks();
+      expect(entry.status).toBe('failed');
+      expect(entry.error).toBe('Unavailable');
+    }));
+
+    it('honors Retry-After on a temporary rate limit', fakeAsync(() => {
+      const entry = item(); start(entry);
+      http.expectOne(statusUrl).flush({}, { status: 429, statusText: 'Too Many Requests', headers: { 'Retry-After': '60' } });
+      tick(59999); http.expectNone(statusUrl);
+      tick(1); http.expectOne(statusUrl).flush({ ...job, status: 'ERROR', error: 'Unavailable' });
+      flushMicrotasks();
+      expect(entry.status).toBe('failed');
+    }));
+
+    it('times out a hung status request and permits retry', fakeAsync(() => {
+      const entry = item(); start(entry);
+      const first = http.expectOne(statusUrl);
+      tick(15000);
+      expect(first.cancelled).toBeTrue();
+      tick(2500);
+      http.expectOne(statusUrl).flush({ ...job, status: 'ERROR', error: 'Unavailable' });
+      flushMicrotasks();
+      expect(entry.status).toBe('failed');
+    }));
+
+    it('retries delivery of the prepared audio without starting another extraction', fakeAsync(() => {
+      const entry = item(); start(entry);
+      http.expectOne(statusUrl).flush({ ...job, status: 'DONE' });
+      http.expectOne(fileUrl).flush(new Blob(), { status: 503, statusText: 'Unavailable' });
+      flushMicrotasks();
+      expect(entry.status).toBe('failed');
+      (component as any).processMusicItemAsJob(entry);
+      http.expectNone(r => r.method === 'POST');
+      http.expectOne(fileUrl).flush(new Blob(['audio']));
+      flushMicrotasks();
+      expect(entry.status).toBe('completed');
+      expect(deliver).toHaveBeenCalledTimes(1);
+    }));
+
+    it('clears an expired file so the next retry can start a new download', fakeAsync(() => {
+      const entry = item(); start(entry);
+      http.expectOne(statusUrl).flush({ ...job, status: 'DONE' });
+      http.expectOne(fileUrl).flush(new Blob(), { status: 404, statusText: 'Not Found' });
+      flushMicrotasks();
+      expect(entry.preparedDownload).toBeUndefined();
+      expect(entry.status).toBe('failed');
+    }));
+
+    it('cancels an active request without issuing another poll', fakeAsync(() => {
+      const entry = item(); start(entry);
+      const request = http.expectOne(statusUrl);
+      (component as any).cancelActiveDownload();
+      flushMicrotasks(); tick(30000);
+      expect(request.cancelled).toBeTrue();
+      expect(entry.status).toBe('cancelled');
+      http.expectNone(statusUrl);
+    }));
+  });
+
+  it('parses filenames without decoding literal percent signs or truncating apostrophes', () => {
+    const filename = (header: string | null) => (component as any).downloadFilename(header, 'fallback.mp3');
+    expect(filename(`attachment; filename="Don't Stop 100%.mp3"`)).toBe("Don't Stop 100%.mp3");
+    expect(filename(`attachment; filename="100%20mix.mp3"`)).toBe('100%20mix.mp3');
+    expect(filename(`attachment; filename="fallback.mp3"; filename*=UTF-8''Canci%C3%B3n.mp3`)).toBe('Canci\u00f3n.mp3');
+    expect(filename(`attachment; filename*=UTF-8''bad%ZZ.mp3; filename="safe.mp3"`)).toBe('safe.mp3');
+    expect(filename(null)).toBe('fallback.mp3');
+  });
+
+  it('keeps the blob URL alive while the browser starts saving the audio', fakeAsync(() => {
+    spyOn(window.URL, 'createObjectURL').and.returnValue('blob:test');
+    const revoke = spyOn(window.URL, 'revokeObjectURL');
+    spyOn(HTMLAnchorElement.prototype, 'click');
+    (component as any).triggerDownload(new Blob(['audio']), 'song.mp3');
+    tick(59999); expect(revoke).not.toHaveBeenCalled();
+    tick(1); expect(revoke).toHaveBeenCalledWith('blob:test');
+  }));
 });

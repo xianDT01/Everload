@@ -83,6 +83,40 @@ class RateLimitFilterTest {
     }
 
     @Test
+    void pollingDeDescargasNoAgotaElLimiteDeDescargasPesadas() throws Exception {
+        String jobId = "d7b9bb07-3e9f-4874-a2ad-4f92a0df5001";
+        for (int i = 0; i < 12; i++) {
+            MockHttpServletRequest poll = new MockHttpServletRequest(
+                    "GET", "/api/downloadMusic/jobs/" + jobId);
+            poll.setServletPath("/api/downloadMusic/jobs/" + jobId);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            filter.doFilter(poll, response, chain);
+
+            assertEquals(200, response.getStatus(), "el polling debe usar el límite global");
+        }
+
+        for (int i = 0; i < 8; i++) {
+            MockHttpServletRequest start = new MockHttpServletRequest(
+                    "POST", "/api/downloadMusic/jobs");
+            start.setServletPath("/api/downloadMusic/jobs");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+
+            filter.doFilter(start, response, chain);
+
+            assertEquals(200, response.getStatus(), "las descargas pesadas conservan su límite");
+        }
+        MockHttpServletRequest file = new MockHttpServletRequest(
+                "GET", "/api/downloadMusic/jobs/" + jobId + "/file");
+        file.setServletPath("/api/downloadMusic/jobs/" + jobId + "/file");
+        MockHttpServletResponse blocked = new MockHttpServletResponse();
+
+        filter.doFilter(file, blocked, chain);
+
+        assertEquals(429, blocked.getStatus(), "la descarga del archivo conserva el límite pesado");
+    }
+
+    @Test
     void lasImagenesYPortadasNoSeFiltran() {
         MockHttpServletRequest cover = new MockHttpServletRequest("GET", "/api/music/cover");
         cover.setServletPath("/api/music/cover");

@@ -19,6 +19,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Orchestrates the registered {@link YtStreamResolver} strategies in order
@@ -55,6 +58,7 @@ public class YtMusicStreamService {
             .build();
 
     private YtMusicCache<String, YtStreamInfoDto> streamCache;
+    private final ConcurrentHashMap<String, CompletableFuture<YtStreamInfoDto>> resolving = new ConcurrentHashMap<>();
 
     @Value("${ytmusic.stream.cache-ttl-seconds:1800}")
     private long streamCacheTtlSeconds;
@@ -75,7 +79,26 @@ public class YtMusicStreamService {
         if (videoId == null || videoId.isBlank()) {
             throw new IllegalArgumentException("videoId requerido");
         }
-        return streamCache.getOrCompute(videoId, () -> resolveUncached(videoId));
+        var pending = new CompletableFuture<YtStreamInfoDto>();
+        var existing = resolving.putIfAbsent(videoId, pending);
+        if (existing != null) {
+            try {
+                return existing.join();
+            } catch (CompletionException error) {
+                if (error.getCause() instanceof RuntimeException cause) throw cause;
+                throw error;
+            }
+        }
+        try {
+            var stream = streamCache.getOrCompute(videoId, () -> resolveUncached(videoId));
+            pending.complete(stream);
+            return stream;
+        } catch (RuntimeException | Error error) {
+            pending.completeExceptionally(error);
+            throw error;
+        } finally {
+            resolving.remove(videoId, pending);
+        }
     }
 
     private YtStreamInfoDto resolveUncached(String videoId) {
@@ -160,8 +183,13 @@ public class YtMusicStreamService {
         try (InputStream in = upstream.body(); OutputStream out = response.getOutputStream()) {
             byte[] buffer = new byte[STREAM_BUFFER_SIZE_BYTES];
             int read;
+            boolean firstChunk = true;
             while ((read = in.read(buffer)) != -1) {
                 out.write(buffer, 0, read);
+                if (firstChunk) {
+                    out.flush();
+                    firstChunk = false;
+                }
             }
             out.flush();
         } catch (IOException e) {

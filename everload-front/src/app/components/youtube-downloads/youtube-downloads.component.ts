@@ -8,6 +8,7 @@ import { NotificationService } from '../../services/notification.service';
 import { ChatService, ChatGroupDto, ActiveUser } from '../../services/chat.service';
 import { ApiBaseService } from '../../services/api-base.service';
 import { NasService, NasPath } from '../../services/nas.service';
+import { timeout } from 'rxjs';
 
 interface QueueItem {
   id: string;
@@ -25,6 +26,7 @@ interface QueueItem {
   filename?: string;
   error?: string;
   downloadJobId?: string;
+  preparedDownload?: DirectDownloadJob;
 }
 
 interface DirectDownloadJob {
@@ -247,13 +249,13 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       let statusSub: any = null;
       let fileSub: any = null;
       let settled = false;
+      let downloadingFile = false;
       let pollErrors = 0;
-      let pollCount = 0;
       const MAX_POLL_ERRORS = 3;
-      const MAX_POLL_ATTEMPTS = 480; // 20 min at 2.5s intervals
+      const deadline = Date.now() + 20 * 60 * 1000;
 
       const cleanup = () => {
-        if (pollTimer) clearInterval(pollTimer);
+        if (pollTimer) clearTimeout(pollTimer);
         startSub?.unsubscribe?.();
         statusSub?.unsubscribe?.();
         fileSub?.unsubscribe?.();
@@ -289,7 +291,10 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
       };
 
       const downloadPreparedFile = (job: DirectDownloadJob) => {
-        if (pollTimer) clearInterval(pollTimer);
+        if (settled || downloadingFile) return;
+        downloadingFile = true;
+        item.preparedDownload = job;
+        if (pollTimer) clearTimeout(pollTimer);
         this.ngZone.run(() => {
           item.progress = Math.max(item.progress, 95);
           item.filename = job.filename;
@@ -300,22 +305,24 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         }).subscribe({
           next: (response) => {
             const contentDisposition = response.headers?.get('content-disposition');
-            const match = contentDisposition?.match(/filename\*?=(?:UTF-8'')?["']?([^"';\n]+)/i);
-            const filename = match ? decodeURIComponent(match[1].trim()) : (job.filename || `${item.videoId}.mp3`);
+            const filename = this.downloadFilename(contentDisposition, job.filename || `${item.videoId}.${item.audioFormat || 'mp3'}`);
             completeWithBlob(response.body!, filename);
           },
-          error: (err) => fail(`El archivo se preparó, pero no se pudo descargar (${err?.status ?? 'red'})`)
+          error: (err) => {
+            if (err?.status === 404) item.preparedDownload = undefined;
+            fail(`El archivo se preparó, pero no se pudo descargar (${err?.status ?? 'red'})`);
+          }
         });
       };
 
       const pollJob = () => {
-        if (!item.downloadJobId || settled) return;
-        pollCount++;
-        if (pollCount > MAX_POLL_ATTEMPTS) {
+        if (!item.downloadJobId || settled || downloadingFile) return;
+        if (Date.now() >= deadline) {
           fail('La descarga tardó demasiado (más de 20 min). Comprueba la conexión del servidor.');
           return;
         }
-        statusSub = this.http.get<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs/${item.downloadJobId}`).subscribe({
+        statusSub = this.http.get<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs/${item.downloadJobId}`)
+          .pipe(timeout(15000)).subscribe({
           next: job => {
             pollErrors = 0;
             this.ngZone.run(() => {
@@ -326,6 +333,8 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
               downloadPreparedFile(job);
             } else if (job.status === 'ERROR') {
               fail(job.error || 'yt-dlp no pudo preparar la canción');
+            } else {
+              pollTimer = setTimeout(pollJob, 2500);
             }
           },
           error: (err) => {
@@ -337,6 +346,11 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
               } else {
                 fail('No se pudo consultar el progreso de la descarga');
               }
+            } else {
+              const retryAfter = Number(err?.headers?.get('Retry-After'));
+              const wait = err?.status === 429 && Number.isFinite(retryAfter) && retryAfter > 0
+                ? Math.min(retryAfter * 1000, 60000) : 2500;
+              pollTimer = setTimeout(pollJob, wait);
             }
           }
         });
@@ -349,20 +363,6 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         item.error = undefined;
       });
 
-      startSub = this.http.post<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs`, null, {
-        params: { videoId: item.videoId, format: item.audioFormat || 'mp3' }
-      }).subscribe({
-        next: job => {
-          this.ngZone.run(() => {
-            item.downloadJobId = job.jobId;
-            item.progress = Math.max(item.progress, job.progress || 5);
-          });
-          pollJob();
-          pollTimer = setInterval(pollJob, 2500);
-        },
-        error: err => fail(err?.error?.error || 'No se pudo iniciar la descarga')
-      });
-
       this.cancelActiveDownload = () => {
         if (settled) return;
         settled = true;
@@ -373,6 +373,25 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
         });
         resolve();
       };
+
+      if (item.preparedDownload) {
+        downloadPreparedFile(item.preparedDownload);
+        return;
+      }
+
+      startSub = this.http.post<DirectDownloadJob>(`${this.backendUrl}/downloadMusic/jobs`, null, {
+        params: { videoId: item.videoId, format: item.audioFormat || 'mp3' }
+      }).subscribe({
+        next: job => {
+          this.ngZone.run(() => {
+            item.downloadJobId = job.jobId;
+            item.progress = Math.max(item.progress, job.progress || 5);
+          });
+          pollJob();
+        },
+        error: err => fail(err?.error?.error || 'No se pudo iniciar la descarga')
+      });
+
     });
   }
 
@@ -574,7 +593,17 @@ export class YoutubeDownloadsComponent implements OnInit, OnDestroy {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+  }
+
+  private downloadFilename(contentDisposition: string | null | undefined, fallback: string): string {
+    const encoded = contentDisposition?.match(/filename\*\s*=\s*UTF-8'[^']*'([^;\r\n]+)/i);
+    if (encoded) {
+      try { return decodeURIComponent(encoded[1].trim().replace(/^"|"$/g, '')); }
+      catch { /* Use the plain filename if the extended value is malformed. */ }
+    }
+    const plain = contentDisposition?.match(/filename\s*=\s*(?:"((?:\\.|[^"\\])*)"|([^;\r\n]+))/i);
+    return plain ? (plain[1] ?? plain[2]).trim().replace(/\\(["\\])/g, '$1') : fallback;
   }
 
   embedUrl: SafeResourceUrl | null = null;
