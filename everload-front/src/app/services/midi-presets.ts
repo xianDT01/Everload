@@ -1,13 +1,15 @@
 export interface MidiPreset {
   name: string;
+  /** Only exact, hardware-verified models may be applied without confirmation. */
+  verified?: boolean;
   /** messageId ("status-data1") → actionId */
   mappings: Record<string, string>;
 }
 
 /**
  * Each entry: pattern matched against the MIDI input device name (case-insensitive).
- * First match wins. Mappings are applied automatically on device connect when the
- * device has no stored user mappings.
+ * First match wins. Family-wide mappings are manual suggestions, not verified
+ * drivers for every model. Only verified exact-model presets may auto-apply.
  *
  * Status byte reference:
  *   Note On  Ch1=144  Ch2=145  Ch3=146  Ch4=147

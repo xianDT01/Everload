@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef, NgZone, inject } from '@angular/core';
 import { Subscription } from 'rxjs';
+import { DjDeck, DeckPerformance, newDeckPerformance, tapTempo, snapToBeat, loopRange } from './dj-performance';
 import { MusicMetadataDto, MusicService, PlayerState } from '../../../services/music.service';
 
 interface QueueItem {
@@ -28,13 +29,13 @@ interface TreeNode {
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../../services/auth.service';
 import { NasPath, NasService } from '../../../services/nas.service';
-import { MidiService, MidiDevice } from '../../../services/midi.service';
+import { MidiService, MidiDevice, MidiActionPayload } from '../../../services/midi.service';
 import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-deck-mode',
   templateUrl: './deck-mode.component.html',
-  styleUrls: ['./deck-mode.component.css']
+  styleUrls: ['./deck-mode.component.css', './deck-console.css', './deck-pro.css', './deck-theme.css']
 })
 export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
@@ -42,6 +43,16 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('spectrumB') canvasB?: ElementRef<HTMLCanvasElement>;
 
   private animFrameId: number | null = null;
+  skin: 'classic' | 'pro' = 'pro';
+  darkTheme = false;
+  @ViewChild('waveMonitor') waveMonitor?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('meterA') meterA?: ElementRef<HTMLElement>;
+  @ViewChild('meterB') meterB?: ElementRef<HTMLElement>;
+  @ViewChild('masterMeter') masterMeter?: ElementRef<HTMLMeterElement>;
+  performance: Record<DjDeck, DeckPerformance> = { A: newDeckPerformance(), B: newDeckPerformance() };
+  readonly beatJumpOptions = [1, 2, 4, 8, 16];
+  jumpBeats = 4;
+  private lastVisualFrame = 0;
   private translate = inject(TranslateService);
 
   paths: NasPath[] = [];
@@ -117,7 +128,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── Vertical resize (decks / browser split) ───────────────────────────────
   private static readonly DECK_HEIGHT_KEY = 'ev_dj_deck_height_pct';
-  deckHeightPct = 58; // % of total height given to .decks-section
+  deckHeightPct = 46; // % of total height given to .decks-section
   private resizeDragging = false;
   private resizeStartY = 0;
   private resizeStartPct = 0;
@@ -161,7 +172,16 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     { id: 'EQ_MID_B', label: 'MUSIC.DJ_MIDI_EQ_MID', params: { deck: 'B' } },
     { id: 'EQ_HIGH_B', label: 'MUSIC.DJ_MIDI_EQ_HIGH', params: { deck: 'B' } },
     { id: 'PITCH_A', label: 'MUSIC.DJ_MIDI_PITCH', params: { deck: 'A' } },
-    { id: 'PITCH_B', label: 'MUSIC.DJ_MIDI_PITCH', params: { deck: 'B' } }
+    { id: 'PITCH_B', label: 'MUSIC.DJ_MIDI_PITCH', params: { deck: 'B' } },
+    ...(['A', 'B'] as const).flatMap(deck => [
+      { id: `TAP_${deck}`, label: 'DJ.MIDI_TAP', params: { deck } },
+      { id: `JUMP_BACK_${deck}`, label: 'DJ.MIDI_BACK', params: { deck } },
+      { id: `JUMP_FORWARD_${deck}`, label: 'DJ.MIDI_FORWARD', params: { deck } },
+      { id: `LOOP_HALF_${deck}`, label: 'DJ.MIDI_HALF', params: { deck } },
+      { id: `LOOP_DOUBLE_${deck}`, label: 'DJ.MIDI_DOUBLE', params: { deck } },
+      ...[4, 8, 16].map(beats => ({ id: `LOOP_${beats}_${deck}`, label: 'DJ.MIDI_LOOP', params: { deck, beats } })),
+      ...[1, 2, 3, 4].map(cue => ({ id: `HOTCUE_${cue}_${deck}`, label: 'DJ.MIDI_CUE', params: { deck, cue } }))
+    ])
   ];
 
   constructor(
@@ -174,6 +194,11 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    try {
+      const skin = localStorage.getItem('everload.dj.skin');
+      if (skin === 'classic' || skin === 'pro') this.skin = skin;
+      this.darkTheme = localStorage.getItem('everload.dj.theme') === 'dark';
+    } catch { /* A blocked preference store must not prevent playback. */ }
     const saved = localStorage.getItem(DeckModeComponent.DECK_HEIGHT_KEY);
     if (saved) {
       const n = parseFloat(saved);
@@ -189,6 +214,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.subs.push(
       this.musicService.deckAPlayer.state$.subscribe(s => {
+        this.refreshPerformance('A', s);
         this.stateA = s;
         this.checkQueueAdvance('A', s);
         if (s.currentTrack?.path !== this.lastCoverPath.A) {
@@ -197,6 +223,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       }),
       this.musicService.deckBPlayer.state$.subscribe(s => {
+        this.refreshPerformance('B', s);
         this.stateB = s;
         this.checkQueueAdvance('B', s);
         if (s.currentTrack?.path !== this.lastCoverPath.B) {
@@ -221,9 +248,12 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.ngZone.runOutsideAngular(() => {
-      const loop = () => {
-        this.drawSpectrum('A');
-        this.drawSpectrum('B');
+      const loop = (now: number) => {
+        const interval = this.stateA?.playing || this.stateB?.playing ? 1000 / 24 : 500;
+        if (!document.hidden && now - this.lastVisualFrame >= interval) {
+          this.lastVisualFrame = now;
+          this.drawMonitor();
+        }
         this.animFrameId = requestAnimationFrame(loop);
       };
       this.animFrameId = requestAnimationFrame(loop);
@@ -233,6 +263,10 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.animFrameId !== null) cancelAnimationFrame(this.animFrameId);
     this.subs.forEach(s => s.unsubscribe());
+    clearTimeout(this.nasSearchDebounce);
+    clearTimeout(this.midiToastTimer);
+    clearTimeout(this.historyTimers.A);
+    clearTimeout(this.historyTimers.B);
     this.musicService.deckAPlayer.pause();
     this.musicService.deckBPlayer.pause();
     this.removeResizeListeners();
@@ -422,6 +456,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setEqValue(deck: 'A'|'B', band: 'low'|'mid'|'high', value: number) {
+    if (!this.effectsAvailable(deck)) return;
     if (deck === 'A') {
       this.eqA[band] = value;
       this.musicService.deckAPlayer.setEq(band, value);
@@ -443,6 +478,9 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   setPitchValue(deck: 'A'|'B', value: number) {
+    if (!this.effectsAvailable(deck)) return;
+    if (!Number.isFinite(value)) return;
+    value = Math.max(-0.1, Math.min(0.1, value));
     // value is -0.1 to +0.1
     if (deck === 'A') {
        this.pitchA = value;
@@ -458,11 +496,10 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getCurrentBpm(deck: 'A' | 'B'): number {
-    const state = deck === 'A' ? this.stateA : this.stateB;
     const pitch = deck === 'A' ? this.pitchA : this.pitchB;
-    const originalBpm = state?.currentTrack?.bpm || 0;
+    const originalBpm = this.baseBpm(deck);
     if (!originalBpm) return 0;
-    return originalBpm * (1 + pitch);
+    return originalBpm * (this.effectsAvailable(deck) ? 1 + pitch : 1);
   }
 
   getPitchPct(deck: 'A' | 'B'): string {
@@ -474,6 +511,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Combo Filter & FX ─────────────────────────────────────────────────────
 
   onFilterChange(deck: 'A' | 'B', e: Event) {
+    if (!this.effectsAvailable(deck)) return;
     const val = +(e.target as HTMLInputElement).value;
     if (deck === 'A') {
       this.filterA = val;
@@ -495,6 +533,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onFxChange(deck: 'A' | 'B', param: 'level' | 'feedback' | 'time', e: Event) {
+    if (!this.effectsAvailable(deck)) return;
     const val = +(e.target as HTMLInputElement).value;
     const fx = deck === 'A' ? this.fxA : this.fxB;
     (fx as any)[param] = val;
@@ -512,7 +551,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const refDeck = targetDeck === 'A' ? 'B' : 'A';
     const refBpm = this.getCurrentBpm(refDeck);
     const targetState = targetDeck === 'A' ? this.stateA : this.stateB;
-    const originalBpm = targetState?.currentTrack?.bpm || 0;
+    const originalBpm = this.baseBpm(targetDeck);
 
     if (!refBpm || !originalBpm) return;
 
@@ -527,7 +566,9 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const state = deck === 'A' ? this.stateA : this.stateB;
     if (!state) return;
     const cues = deck === 'A' ? this.hotCuesA : this.hotCuesB;
-    cues[index] = state.currentTime;
+    if (!state.currentTrack || !Number.isFinite(state.currentTime)) return;
+    const p = this.performance[deck];
+    cues[index] = p.quantize ? snapToBeat(state.currentTime, this.baseBpm(deck), p.anchor) : state.currentTime;
   }
 
   jumpToHotCue(deck: 'A' | 'B', index: number) {
@@ -551,16 +592,165 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
     const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
     if (!state?.currentTrack || !state.duration) return;
 
-    if (state.loopActive) {
+    const p = this.performance[deck];
+    if (state.loopActive && p.loopBeats === beats) {
       player.disableLoop();
     } else {
-      const bpm = this.getCurrentBpm(deck) || 120;
-      const beatDuration = 60 / bpm;
-      const loopDuration = beatDuration * beats;
-      const start = state.currentTime;
-      const end = Math.min(state.duration, start + loopDuration);
-      player.setLoop(start, end, true);
+      // Loop positions are media seconds, not wall-clock seconds after pitch.
+      const start = state.loopActive ? state.loopStart : (p.quantize
+        ? snapToBeat(state.currentTime, this.baseBpm(deck), p.anchor) : state.currentTime);
+      const range = loopRange(start, beats, this.baseBpm(deck), state.duration);
+      if (!range) return;
+      p.loopBeats = beats;
+      player.setLoop(range[0], range[1], true);
     }
+  }
+
+  deckState(deck: DjDeck): PlayerState | null { return deck === 'A' ? this.stateA : this.stateB; }
+  setSkin(skin: 'classic' | 'pro'): void {
+    this.skin = skin;
+    try { localStorage.setItem('everload.dj.skin', skin); } catch { /* Session-only preference. */ }
+  }
+  setDarkTheme(dark: boolean): void {
+    this.darkTheme = dark;
+    try { localStorage.setItem('everload.dj.theme', dark ? 'dark' : 'graphite'); } catch { /* Session-only preference. */ }
+  }
+  deckPerformance(deck: DjDeck): DeckPerformance { return this.performance[deck]; }
+
+  baseBpm(deck: DjDeck): number {
+    return this.performance[deck].bpm || this.deckState(deck)?.currentTrack?.bpm || 0;
+  }
+
+  tapBpm(deck: DjDeck, now = performance.now()): void {
+    const state = this.deckState(deck);
+    if (!state?.currentTrack) return;
+    const p = this.performance[deck];
+    const result = tapTempo(p.taps, now);
+    p.taps = result.taps;
+    if (result.bpm) {
+      const rate = this.effectsAvailable(deck) ? state.playbackRate || 1 : 1;
+      p.bpm = result.bpm / rate;
+      p.anchor = state.currentTime;
+    }
+  }
+
+  toggleQuantize(deck: DjDeck): void {
+    if (!this.baseBpm(deck)) return;
+    this.performance[deck].quantize = !this.performance[deck].quantize;
+  }
+
+  beatJump(deck: DjDeck, direction: number): void {
+    const state = this.deckState(deck);
+    const bpm = this.baseBpm(deck);
+    if (!state?.currentTrack || !state.duration || !bpm) return;
+    const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+    if (state.loopActive) player.disableLoop();
+    const p = this.performance[deck];
+    const target = state.currentTime + direction * this.jumpBeats * 60 / bpm;
+    player.seek(Math.max(0, Math.min(state.duration, p.quantize ? snapToBeat(target, bpm, p.anchor) : target)));
+  }
+
+  resizeLoop(deck: DjDeck, factor: number): void {
+    const state = this.deckState(deck);
+    if (!state?.loopActive) return;
+    const beats = Math.max(0.25, Math.min(64, this.performance[deck].loopBeats * factor));
+    if (beats !== this.performance[deck].loopBeats) this.toggleLoop(deck, beats);
+  }
+
+  effectsAvailable(deck: DjDeck): boolean { return this.deckState(deck)?.currentTrack?.source !== 'youtube'; }
+
+  private refreshPerformance(deck: DjDeck, state: PlayerState): void {
+    const track = state.currentTrack;
+    const identity = track ? `${track.source}:${state.pathId}:${track.path}` : '';
+    if (identity === this.performance[deck].identity) return;
+    this.performance[deck] = newDeckPerformance(identity);
+    if (deck === 'A') this.hotCuesA = []; else this.hotCuesB = [];
+    const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+    // Defer to avoid a nested state emission while a new track is being published.
+    if (state.loopActive) queueMicrotask(() => player.disableLoop());
+  }
+
+  async toggleFullscreen(): Promise<void> {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await this.vdjLayoutRef?.nativeElement.requestFullscreen();
+    } catch { /* Browser policy may refuse fullscreen without affecting playback. */ }
+  }
+
+  private drawMonitor(): void {
+    const canvas = this.waveMonitor?.nativeElement;
+    if (!canvas) return;
+    const width = Math.round(canvas.clientWidth);
+    const height = Math.round(canvas.clientHeight);
+    if (width <= 0 || height <= 0) return;
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#080b0d'; ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = '#283036'; ctx.lineWidth = 1;
+    for (let x = 0; x < width; x += 64) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+    }
+    let combinedLevel = 0;
+    for (const deck of ['A', 'B'] as const) {
+      const state = this.deckState(deck);
+      const player = deck === 'A' ? this.musicService.deckAPlayer : this.musicService.deckBPlayer;
+      const data = state?.playing && this.effectsAvailable(deck) ? player.getTimeDomainData() : null;
+      const mid = deck === 'A' ? height * 0.25 : height * 0.75;
+      ctx.strokeStyle = deck === 'A' ? '#12bfee' : '#ff3447';
+      ctx.beginPath();
+      let sum = 0;
+      if (data) {
+        let peak = 0;
+        for (const value of data) peak = Math.max(peak, Math.abs(value - 128) / 128);
+        const visualGain = peak > 0.005 ? Math.min(12, 0.8 / peak) : 1;
+        for (let x = 0; x < width; x++) {
+          const sample = (data[Math.floor(x / width * data.length)] - 128) / 128;
+          const y = mid - sample * visualGain * height * 0.22;
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          sum += sample * sample;
+        }
+      } else { ctx.moveTo(0, mid); ctx.lineTo(width, mid); }
+      ctx.stroke();
+      if (this.skin === 'pro' && data) {
+        ctx.lineTo(width, mid); ctx.lineTo(0, mid); ctx.closePath();
+        ctx.fillStyle = deck === 'A' ? '#12bfee66' : '#ff344766';
+        ctx.fill();
+      }
+      const level = data && state ? Math.min(1, Math.sqrt(sum / width) * state.volume * 2) : 0;
+      combinedLevel += level;
+      const meter = deck === 'A' ? this.meterA : this.meterB;
+      if (meter) meter.nativeElement.style.transform = `scaleY(${level})`;
+    }
+    if (this.masterMeter) this.masterMeter.nativeElement.value = Math.min(1, combinedLevel);
+    ctx.strokeStyle = '#dfe5e9'; ctx.beginPath();
+    ctx.moveTo(width / 2, 0); ctx.lineTo(width / 2, height); ctx.stroke();
+  }
+
+  get galleryTracks(): MusicMetadataDto[] {
+    if (this.browserTab === 'local') return this.localItems.filter(item => !item.directory).slice(0, 8);
+    if (this.browserTab === 'history') return this.sessionHistory.slice(-8);
+    return (this.nasSearchResults ?? this.tracks).slice(0, 8);
+  }
+
+  get selectedBrowserTrack(): MusicMetadataDto | null {
+    const items = this.browserTab === 'local' ? this.localItems.filter(item => !item.directory)
+      : this.browserTab === 'history' ? this.sessionHistory : this.nasSearchResults ?? this.tracks;
+    return items[this.selectedIndex] ?? null;
+  }
+
+  browserCover(track: MusicMetadataDto): string {
+    if (track.source === 'youtube') return `https://img.youtube.com/vi/${track.path}/mqdefault.jpg`;
+    const override = this.coverOverrideMap.get(track.path);
+    if (override) return override;
+    return track.hasCover && this.selectedPathId ? this.musicService.getCoverUrl(this.selectedPathId, track.path, track.source) : '';
+  }
+
+  loadBrowserTrack(deck: DjDeck, track: MusicMetadataDto): void {
+    if (track.source === 'local') void this.loadLocalTrack(deck, track);
+    else if (track.source === 'youtube') this.loadYoutube(deck, { id: track.path, snippet: { title: track.title, channelTitle: track.artist } });
+    else this.loadNas(deck, track);
   }
 
   // ── History ──────────────────────────────────────────────────────────────
@@ -1490,8 +1680,32 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // ── MIDI Handling ─────────────────────────────────────────────────────────
 
-  handleMidiAction(action: any) {
-    const isButtonRelease = action.rawValue === 0;
+  enableMidi(): void {
+    void this.musicService.deckAPlayer.resumeAudioContext();
+    void this.musicService.deckBPlayer.resumeAudioContext();
+    void this.midiService.requestAccess();
+  }
+
+  handleMidiAction(action: MidiActionPayload) {
+    const isButtonRelease = action.pressed === false || action.rawValue === 0;
+    const performanceAction = action.actionId.match(/^(TAP|JUMP_BACK|JUMP_FORWARD|LOOP_HALF|LOOP_DOUBLE|LOOP_4|LOOP_8|LOOP_16|HOTCUE_[1-4])_([AB])$/);
+    if (performanceAction) {
+      if (isButtonRelease) return;
+      const deck = performanceAction[2] as DjDeck;
+      const command = performanceAction[1];
+      if (command === 'TAP') this.tapBpm(deck);
+      else if (command === 'JUMP_BACK') this.beatJump(deck, -1);
+      else if (command === 'JUMP_FORWARD') this.beatJump(deck, 1);
+      else if (command === 'LOOP_HALF') this.resizeLoop(deck, 0.5);
+      else if (command === 'LOOP_DOUBLE') this.resizeLoop(deck, 2);
+      else if (command.startsWith('LOOP_')) this.toggleLoop(deck, Number(command.slice(5)));
+      else {
+        const index = Number(command.slice(7)) - 1;
+        const cues = deck === 'A' ? this.hotCuesA : this.hotCuesB;
+        if (cues[index] === undefined) this.setHotCue(deck, index); else this.jumpToHotCue(deck, index);
+      }
+      return;
+    }
 
     switch (action.actionId) {
       case 'VOL_A':

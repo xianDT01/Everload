@@ -1,4 +1,91 @@
-<div class="vdj-layout" #vdjLayout>
+<div class="vdj-layout" [class.pro-skin]="skin === 'pro'" [class.dark-skin]="darkTheme" #vdjLayout>
+
+  <header class="console-toolbar">
+    <strong class="console-brand">EVERLOAD <b>DJ</b></strong>
+    <span class="console-mode">{{ 'DJ.TWO_DECKS' | translate }}</span>
+    <div class="skin-selector" role="group" [attr.aria-label]="'DJ.DESIGN' | translate">
+      <button type="button" [class.selected]="skin === 'classic'" [attr.aria-pressed]="skin === 'classic'" (click)="setSkin('classic')">{{ 'DJ.CLASSIC' | translate }}</button>
+      <button type="button" [class.selected]="skin === 'pro'" [attr.aria-pressed]="skin === 'pro'" (click)="setSkin('pro')">Pro</button>
+    </div>
+    <label class="dj-theme-toggle" [title]="'DJ.DARK_THEME' | translate">
+      <input type="checkbox" role="switch" [checked]="darkTheme" (change)="setDarkTheme($any($event.target).checked)" [attr.aria-label]="'DJ.DARK_THEME' | translate" />
+      <span>{{ 'DJ.DARK' | translate }}</span>
+    </label>
+    <span class="console-live">{{ 'DJ.SIGNAL' | translate }}</span>
+    <label class="master-label">{{ 'DJ.MASTER' | translate }} <meter #masterMeter min="0" max="1" low="0.65" high="0.9" optimum="0.4" value="0" [attr.aria-label]="'DJ.MASTER' | translate"></meter></label>
+    <button type="button" (click)="showMidiConfig = true" title="MIDI">MIDI</button>
+    <button type="button" (click)="showHelp = true" [title]="'COMMON.HELP' | translate">?</button>
+    <button type="button" (click)="toggleFullscreen()" [title]="'DJ.FULLSCREEN' | translate" [attr.aria-label]="'DJ.FULLSCREEN' | translate">&#x26F6;</button>
+  </header>
+  <div class="console-waveforms">
+    <canvas #waveMonitor [attr.aria-label]="'DJ.SIGNAL' | translate"></canvas>
+    <div class="signal-label signal-a">A <span *ngIf="!effectsAvailable('A')">{{ 'DJ.YT_SIGNAL' | translate }}</span></div>
+    <div class="signal-label signal-b">B <span *ngIf="!effectsAvailable('B')">{{ 'DJ.YT_SIGNAL' | translate }}</span></div>
+  </div>
+
+  <ng-template #proTransport let-deck="deck">
+    <div class="deck-controls pro-transport">
+      <button type="button" class="btn-ctrl" (click)="prevTrack(deck)" [title]="'COMMON.PREVIOUS' | translate">&#x23EE;</button>
+      <button type="button" class="btn-cue" (click)="cue(deck)">{{ 'MUSIC.DECK_CUE' | translate }}</button>
+      <button type="button" class="btn-play" [class.playing]="deckState(deck)?.playing" (click)="togglePlay(deck)" [attr.aria-label]="'DJ.PLAY_PAUSE' | translate">
+        <span aria-hidden="true">&#x25B6;&#x2161;</span>
+      </button>
+      <button type="button" class="btn-sync-bpm" (click)="syncBpm(deck)" [disabled]="!effectsAvailable(deck) || !baseBpm('A') || !baseBpm('B')" [title]="'MUSIC.DJ_BPM_SYNC' | translate">{{ 'MUSIC.DJ_SYNC' | translate }}</button>
+      <button type="button" class="btn-ctrl pro-next" (click)="nextTrack(deck)" [title]="'COMMON.NEXT' | translate">&#x23ED;</button>
+    </div>
+  </ng-template>
+
+  <ng-template #proTools let-deck="deck">
+    <details class="pro-deck-tools" *ngIf="skin === 'pro'">
+      <summary [attr.aria-label]="'DJ.DECK_TOOLS' | translate" [title]="'DJ.DECK_TOOLS' | translate">&#x22EF;</summary>
+      <div>
+        <button type="button" (click)="deck === 'A' ? showQueueA = !showQueueA : showQueueB = !showQueueB">{{ 'COMMON.QUEUE' | translate }}</button>
+        <button type="button" (click)="resetTrack(deck)">{{ 'MUSIC.DJ_HELP_RESET' | translate }}</button>
+        <button type="button" (click)="sync(deck)" [disabled]="!canSync(deck)">{{ 'COMMON.SYNC' | translate }}: {{ 'COMMON.POSITION' | translate }}</button>
+      </div>
+    </details>
+  </ng-template>
+
+  <ng-template #performanceRack let-deck="deck">
+    <div class="performance-rack" [class.rack-b]="deck === 'B'">
+      <span class="rack-label">{{ 'DJ.HOT_CUES' | translate }}</span>
+      <div class="rack-cues">
+        <button type="button" *ngFor="let i of [0,1,2,3]" class="cue-pad"
+                [disabled]="!deckState(deck)?.currentTrack"
+                [class.has-cue]="(deck === 'A' ? hotCuesA : hotCuesB)[i] !== undefined"
+                [title]="'DJ.CUE_HELP' | translate"
+                (click)="(deck === 'A' ? hotCuesA : hotCuesB)[i] === undefined ? setHotCue(deck, i) : jumpToHotCue(deck, i)"
+                (contextmenu)="$event.preventDefault(); clearHotCue(deck, i, $event)">{{ i + 1 }}</button>
+      </div>
+      <label class="rack-label" [attr.for]="'echo-' + deck">{{ 'MUSIC.DJ_ECHO' | translate }}</label>
+      <input [id]="'echo-' + deck" type="range" class="fx-slider" min="0" max="1" step="0.01"
+             [disabled]="!effectsAvailable(deck)" [title]="(effectsAvailable(deck) ? 'MUSIC.DJ_ECHO' : 'DJ.YT_FX') | translate"
+             [value]="deck === 'A' ? fxA.level : fxB.level" (input)="onFxChange(deck, 'level', $event)" />
+      <span class="rack-label">{{ 'DJ.LOOP' | translate }} <output *ngIf="deckState(deck)?.loopActive">{{ deckPerformance(deck).loopBeats }}</output></span>
+      <div class="rack-loop">
+        <button type="button" *ngFor="let beats of [4,8,16]" class="loop-btn"
+                [disabled]="!baseBpm(deck) || !deckState(deck)?.duration"
+                [class.active-loop]="deckState(deck)?.loopActive && deckPerformance(deck).loopBeats === beats"
+                (click)="toggleLoop(deck, beats)">{{ beats }}</button>
+      </div>
+      <div class="rack-loop">
+        <button type="button" (click)="resizeLoop(deck, 0.5)" [disabled]="!deckState(deck)?.loopActive || deckPerformance(deck).loopBeats <= 0.25" [title]="'DJ.HALF_LOOP' | translate">/2</button>
+        <button type="button" (click)="resizeLoop(deck, 2)" [disabled]="!deckState(deck)?.loopActive || deckPerformance(deck).loopBeats >= 64" [title]="'DJ.DOUBLE_LOOP' | translate">x2</button>
+      </div>
+      <span class="rack-label">{{ 'DJ.BEAT_JUMP' | translate }}</span>
+      <div class="rack-jump">
+        <button type="button" (click)="beatJump(deck, -1)" [disabled]="!baseBpm(deck) || !deckState(deck)?.duration" [title]="'COMMON.PREVIOUS' | translate">&#x25C0;</button>
+        <select [(ngModel)]="jumpBeats" [attr.aria-label]="'DJ.BEATS' | translate"><option *ngFor="let beats of beatJumpOptions" [ngValue]="beats">{{ beats }}</option></select>
+        <button type="button" (click)="beatJump(deck, 1)" [disabled]="!baseBpm(deck) || !deckState(deck)?.duration" [title]="'COMMON.NEXT' | translate">&#x25B6;</button>
+      </div>
+      <div class="rack-timing">
+        <button type="button" (click)="tapBpm(deck)" [disabled]="!deckState(deck)?.currentTrack" [title]="'DJ.TAP_HELP' | translate">TAP</button>
+        <label class="quantize-control" [title]="'DJ.QUANTIZE_HELP' | translate"><span class="quantize-short">Q</span><span class="quantize-full">{{ 'DJ.QUANTIZE' | translate }}</span>
+          <input type="checkbox" [checked]="deckPerformance(deck).quantize" [disabled]="!baseBpm(deck)" (change)="toggleQuantize(deck)" [attr.aria-label]="'DJ.QUANTIZE_HELP' | translate" />
+        </label>
+      </div>
+    </div>
+  </ng-template>
 
   <!-- ══ DECK A + MIXER + DECK B ═══════════════════════════════════════════ -->
   <div class="decks-section" [style.height.%]="deckHeightPct" [style.min-height.px]="180">
@@ -6,6 +93,7 @@
     <!-- ── DECK A ─────────────────────────────────────────────────────────── -->
     <div class="deck deck-a" [class.is-playing]="stateA?.playing">
       <div class="deck-topbar deck-a-bar">
+        <strong class="pro-deck-letter" *ngIf="skin === 'pro'">A</strong>
         <span class="deck-label">{{ 'MUSIC.DECK_A' | translate }}</span>
         <span class="topbar-status">
           <span class="loading-pulse" *ngIf="stateA?.loading">●</span>
@@ -14,6 +102,8 @@
       </div>
 
       <div class="deck-body">
+        <ng-container *ngTemplateOutlet="proTools; context: { deck: 'A' }"></ng-container>
+        <ng-container *ngTemplateOutlet="performanceRack; context: { deck: 'A' }"></ng-container>
 
         <!-- Vinyl disc -->
         <div class="vinyl-wrapper">
@@ -28,7 +118,8 @@
           <!-- Pitch Slider A -->
           <div class="pitch-container">
             <span class="pitch-label" (dblclick)="resetPitch('A')">{{ 'MUSIC.DJ_PITCH' | translate }}</span>
-            <input type="range" class="pitch-slider" orient="vertical" min="-0.1" max="-0.1" step="0.001" [value]="pitchA" (input)="onPitchChange('A', $event)" />
+            <input type="range" class="pitch-slider" orient="vertical" min="-0.1" max="0.1" step="0.001" [disabled]="!effectsAvailable('A')" [title]="(effectsAvailable('A') ? 'MUSIC.DJ_PITCH' : 'DJ.YT_FX') | translate" [value]="pitchA" (input)="onPitchChange('A', $event)" />
+            <output class="pitch-readout">{{ getPitchPct('A') }}</output>
           </div>
         </div>
 
@@ -46,11 +137,11 @@
               </ng-template>
             </span>
             <span class="bpm-badge" *ngIf="stateA?.currentTrack?.bpm; else pitchOnlyA">
-              {{ getCurrentBpm('A') | number:'1.1-1' }} <small>({{ stateA?.currentTrack?.bpm }})</small> {{ 'MUSIC.DJ_BPM' | translate }}
+              {{ getCurrentBpm('A') | number:'1.1-1' }} <small>BPM</small>
             </span>
             <ng-template #pitchOnlyA>
               <span class="bpm-badge bpm-rate" [title]="'MUSIC.DJ_SPEED_TITLE' | translate">
-                {{ (1 + pitchA) | number:'1.2-2' }}x
+                {{ baseBpm('A') ? (getCurrentBpm('A') | number:'1.1-1') : ((1 + pitchA) | number:'1.2-2') }} {{ baseBpm('A') ? 'BPM' : 'x' }}
               </span>
             </ng-template>
             <span class="pitch-badge" [class.pitch-active]="pitchA !== 0" (dblclick)="resetPitch('A')">
@@ -69,11 +160,13 @@
           <div class="progress-bar">
             <div class="progress-fill fill-a" [style.width.%]="progressPct(stateA)"></div>
             <div class="progress-head head-a"  [style.left.%]="progressPct(stateA)"></div>
-          </div>
-          <input type="range" class="progress-seek"
+            <input type="range" class="progress-seek" min="0" step="0.01"
                  [max]="stateA?.duration || 0"
                  [value]="stateA?.currentTime || 0"
+                 [disabled]="!stateA?.duration"
+                 [attr.aria-label]="('DJ.SEEK' | translate) + ' A'"
                  (input)="onSeek('A', $event)" />
+          </div>
           <div class="progress-times">
             <span class="pt-elapsed col-a">{{ fmt(stateA?.currentTime) }}</span>
             <span class="pt-dur">{{ fmt(stateA?.duration) }}</span>
@@ -85,7 +178,8 @@
         <canvas #spectrumA class="spectrum-canvas"></canvas>
 
         <!-- Controls: PREV · CUE · PLAY · RESET · SYNC · NEXT -->
-        <div class="deck-controls">
+        <ng-container *ngIf="skin === 'pro'" [ngTemplateOutlet]="proTransport" [ngTemplateOutletContext]="{ deck: 'A' }"></ng-container>
+        <div class="deck-controls" *ngIf="skin === 'classic'">
           <button class="btn-ctrl" (click)="prevTrack('A')" [title]="'COMMON.PREVIOUS' | translate">⏮</button>
           <button class="btn-cue btn-cue-a" [class.active-cue]="!stateA?.playing && (stateA?.currentTime || 0) > 0" (click)="cue('A')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
           <button class="btn-play btn-play-a" [class.playing]="stateA?.playing" (click)="togglePlay('A')">
@@ -93,7 +187,7 @@
             <svg *ngIf="stateA?.playing"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
           </button>
           <button class="btn-ctrl btn-reset" (click)="resetTrack('A')" [title]="'MUSIC.DJ_HELP_RESET' | translate">⏮</button>
-          <button class="btn-sync-bpm" (click)="syncBpm('A')" [title]="('COMMON.SYNC' | translate) + ' BPM A → B'">{{ 'MUSIC.DJ_BPM_SYNC' | translate }}</button>
+          <button class="btn-sync-bpm" (click)="syncBpm('A')" [disabled]="!effectsAvailable('A') || !baseBpm('A') || !baseBpm('B')" [title]="('COMMON.SYNC' | translate) + ' BPM A → B'">{{ 'MUSIC.DJ_BPM_SYNC' | translate }}</button>
           <button class="btn-sync btn-sync-a"
                   [class.sync-ready]="canSync('A')"
                   (click)="sync('A')"
@@ -184,27 +278,31 @@
         <div class="ch-fader">
           <div class="ch-header">
             <span class="ch-label a-label">A</span>
-            <button class="mute-btn mute-a" [class.muted]="muteA" (click)="toggleMute('A')" [title]="('MUSIC.DJ_HELP_MUTE' | translate) + ' A'">{{ 'MUSIC.DJ_MUTE' | translate }}</button>
+            <button class="mute-btn mute-a" [class.muted]="muteA" (click)="toggleMute('A')" [title]="('MUSIC.DJ_HELP_MUTE' | translate) + ' A'">{{ (skin === 'pro' ? 'DJ.MUTE' : 'MUSIC.DJ_MUTE') | translate }}</button>
           </div>
           
           <!-- Filter strip A (fuera del eq-rack) -->
           <div class="filter-strip">
             <span class="filter-lbl" (dblclick)="resetFilter('A')">{{ 'MUSIC.DJ_FILTER' | translate }}</span>
-            <input type="range" class="filter-knob" min="-100" max="100" step="1" [value]="filterA" (input)="onFilterChange('A', $event)" />
+            <span class="dial-face filter-dial" aria-hidden="true" [style.transform]="'rotate(' + (filterA * 1.35) + 'deg)' "></span>
+            <input type="range" class="filter-knob" min="-100" max="100" step="1" [disabled]="!effectsAvailable('A')" [value]="filterA" (input)="onFilterChange('A', $event)" />
           </div>
           <!-- EQ Rack A (solo HI / MID / LOW) -->
-          <div class="eq-rack">
+          <div class="eq-rack" [attr.inert]="effectsAvailable('A') ? null : ''" [class.effects-unavailable]="!effectsAvailable('A')" [title]="!effectsAvailable('A') ? ('DJ.YT_FX' | translate) : ''">
             <div class="eq-band">
               <span class="eq-label" (dblclick)="resetEq('A','high')">{{ 'MUSIC.DJ_HI' | translate }}</span>
-              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqA.high" (input)="onEqChange('A','high', $event)" />
+              <span class="dial-face" aria-hidden="true" [style.transform]="'rotate(' + (eqA.high * 9) + 'deg)' "></span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [attr.aria-label]="('MUSIC.DJ_HI' | translate) + ' A'" [title]="eqA.high + ' dB'" [value]="eqA.high" (input)="onEqChange('A','high', $event)" />
             </div>
             <div class="eq-band">
               <span class="eq-label" (dblclick)="resetEq('A','mid')">{{ 'MUSIC.DJ_MID' | translate }}</span>
-              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqA.mid" (input)="onEqChange('A','mid', $event)" />
+              <span class="dial-face" aria-hidden="true" [style.transform]="'rotate(' + (eqA.mid * 9) + 'deg)' "></span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [attr.aria-label]="('MUSIC.DJ_MID' | translate) + ' A'" [title]="eqA.mid + ' dB'" [value]="eqA.mid" (input)="onEqChange('A','mid', $event)" />
             </div>
             <div class="eq-band">
               <span class="eq-label" (dblclick)="resetEq('A','low')">{{ 'MUSIC.DJ_LOW' | translate }}</span>
-              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqA.low" (input)="onEqChange('A','low', $event)" />
+              <span class="dial-face" aria-hidden="true" [style.transform]="'rotate(' + (eqA.low * 9) + 'deg)' "></span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [attr.aria-label]="('MUSIC.DJ_LOW' | translate) + ' A'" [title]="eqA.low + ' dB'" [value]="eqA.low" (input)="onEqChange('A','low', $event)" />
             </div>
           </div>
 
@@ -218,35 +316,39 @@
 
         <!-- VU meters (animated, reflect mute state) -->
         <div class="vu-meters">
-          <div class="vu a" [class.vu-active]="stateA?.playing && !muteA"></div>
-          <div class="vu b" [class.vu-active]="stateB?.playing && !muteB"></div>
+          <div class="console-vu"><div #meterA class="console-vu-fill"></div><span>A</span></div>
+          <div class="console-vu"><div #meterB class="console-vu-fill"></div><span>B</span></div>
         </div>
 
         <!-- Channel B fader + mute -->
         <div class="ch-fader">
           <div class="ch-header ch-header-b">
-            <button class="mute-btn mute-b" [class.muted]="muteB" (click)="toggleMute('B')" [title]="('MUSIC.DJ_HELP_MUTE' | translate) + ' B'">{{ 'MUSIC.DJ_MUTE' | translate }}</button>
+            <button class="mute-btn mute-b" [class.muted]="muteB" (click)="toggleMute('B')" [title]="('MUSIC.DJ_HELP_MUTE' | translate) + ' B'">{{ (skin === 'pro' ? 'DJ.MUTE' : 'MUSIC.DJ_MUTE') | translate }}</button>
             <span class="ch-label b-label">B</span>
           </div>
           
           <!-- Filter strip B (fuera del eq-rack) -->
           <div class="filter-strip">
             <span class="filter-lbl" (dblclick)="resetFilter('B')">{{ 'MUSIC.DJ_FILTER' | translate }}</span>
-            <input type="range" class="filter-knob" min="-100" max="100" step="1" [value]="filterB" (input)="onFilterChange('B', $event)" />
+            <span class="dial-face filter-dial" aria-hidden="true" [style.transform]="'rotate(' + (filterB * 1.35) + 'deg)' "></span>
+            <input type="range" class="filter-knob" min="-100" max="100" step="1" [disabled]="!effectsAvailable('B')" [value]="filterB" (input)="onFilterChange('B', $event)" />
           </div>
           <!-- EQ Rack B (solo HI / MID / LOW) -->
-          <div class="eq-rack">
+          <div class="eq-rack" [attr.inert]="effectsAvailable('B') ? null : ''" [class.effects-unavailable]="!effectsAvailable('B')" [title]="!effectsAvailable('B') ? ('DJ.YT_FX' | translate) : ''">
             <div class="eq-band">
               <span class="eq-label" (dblclick)="resetEq('B','high')">{{ 'MUSIC.DJ_HI' | translate }}</span>
-              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqB.high" (input)="onEqChange('B','high', $event)" />
+              <span class="dial-face" aria-hidden="true" [style.transform]="'rotate(' + (eqB.high * 9) + 'deg)' "></span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [attr.aria-label]="('MUSIC.DJ_HI' | translate) + ' B'" [title]="eqB.high + ' dB'" [value]="eqB.high" (input)="onEqChange('B','high', $event)" />
             </div>
             <div class="eq-band">
               <span class="eq-label" (dblclick)="resetEq('B','mid')">{{ 'MUSIC.DJ_MID' | translate }}</span>
-              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqB.mid" (input)="onEqChange('B','mid', $event)" />
+              <span class="dial-face" aria-hidden="true" [style.transform]="'rotate(' + (eqB.mid * 9) + 'deg)' "></span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [attr.aria-label]="('MUSIC.DJ_MID' | translate) + ' B'" [title]="eqB.mid + ' dB'" [value]="eqB.mid" (input)="onEqChange('B','mid', $event)" />
             </div>
             <div class="eq-band">
               <span class="eq-label" (dblclick)="resetEq('B','low')">{{ 'MUSIC.DJ_LOW' | translate }}</span>
-              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [value]="eqB.low" (input)="onEqChange('B','low', $event)" />
+              <span class="dial-face" aria-hidden="true" [style.transform]="'rotate(' + (eqB.low * 9) + 'deg)' "></span>
+              <input type="range" class="eq-knob" orient="vertical" min="-15" max="15" step="0.5" [attr.aria-label]="('MUSIC.DJ_LOW' | translate) + ' B'" [title]="eqB.low + ' dB'" [value]="eqB.low" (input)="onEqChange('B','low', $event)" />
             </div>
           </div>
 
@@ -282,6 +384,7 @@
     <!-- ── DECK B ─────────────────────────────────────────────────────────── -->
     <div class="deck deck-b" [class.is-playing]="stateB?.playing">
       <div class="deck-topbar deck-b-bar">
+        <strong class="pro-deck-letter" *ngIf="skin === 'pro'">B</strong>
         <span class="topbar-status">
           <span class="loading-pulse" *ngIf="stateB?.loading">●</span>
           <span class="deck-error-dot" *ngIf="stateB?.error && !stateB?.loading" [title]="stateB?.error ?? ''">⚠</span>
@@ -290,6 +393,8 @@
       </div>
 
       <div class="deck-body">
+        <ng-container *ngTemplateOutlet="proTools; context: { deck: 'B' }"></ng-container>
+        <ng-container *ngTemplateOutlet="performanceRack; context: { deck: 'B' }"></ng-container>
 
         <!-- Vinyl disc -->
         <div class="vinyl-wrapper">
@@ -304,7 +409,8 @@
           <!-- Pitch Slider B -->
           <div class="pitch-container">
             <span class="pitch-label" (dblclick)="resetPitch('B')">{{ 'MUSIC.DJ_PITCH' | translate }}</span>
-            <input type="range" class="pitch-slider" orient="vertical" min="-0.1" max="0.1" step="0.001" [value]="pitchB" (input)="onPitchChange('B', $event)" />
+            <input type="range" class="pitch-slider" orient="vertical" min="-0.1" max="0.1" step="0.001" [disabled]="!effectsAvailable('B')" [title]="(effectsAvailable('B') ? 'MUSIC.DJ_PITCH' : 'DJ.YT_FX') | translate" [value]="pitchB" (input)="onPitchChange('B', $event)" />
+            <output class="pitch-readout">{{ getPitchPct('B') }}</output>
           </div>
         </div>
 
@@ -312,11 +418,11 @@
         <div class="deck-info">
           <div class="deck-meta-row deck-meta-b" *ngIf="stateB?.currentTrack; else noTrackB">
             <span class="bpm-badge" *ngIf="stateB?.currentTrack?.bpm; else pitchOnlyB">
-              {{ getCurrentBpm('B') | number:'1.1-1' }} <small>({{ stateB?.currentTrack?.bpm }})</small> {{ 'MUSIC.DJ_BPM' | translate }}
+              {{ getCurrentBpm('B') | number:'1.1-1' }} <small>BPM</small>
             </span>
             <ng-template #pitchOnlyB>
               <span class="bpm-badge bpm-rate" [title]="'MUSIC.DJ_SPEED_TITLE' | translate">
-                {{ (1 + pitchB) | number:'1.2-2' }}x
+                {{ baseBpm('B') ? (getCurrentBpm('B') | number:'1.1-1') : ((1 + pitchB) | number:'1.2-2') }} {{ baseBpm('B') ? 'BPM' : 'x' }}
               </span>
             </ng-template>
             <span class="pitch-badge" [class.pitch-active]="pitchB !== 0" (dblclick)="resetPitch('B')">
@@ -345,11 +451,13 @@
           <div class="progress-bar">
             <div class="progress-fill fill-b" [style.width.%]="progressPct(stateB)"></div>
             <div class="progress-head head-b"  [style.left.%]="progressPct(stateB)"></div>
-          </div>
-          <input type="range" class="progress-seek"
+            <input type="range" class="progress-seek" min="0" step="0.01"
                  [max]="stateB?.duration || 0"
                  [value]="stateB?.currentTime || 0"
+                 [disabled]="!stateB?.duration"
+                 [attr.aria-label]="('DJ.SEEK' | translate) + ' B'"
                  (input)="onSeek('B', $event)" />
+          </div>
           <div class="progress-times">
             <span class="pt-elapsed col-b">{{ fmt(stateB?.currentTime) }}</span>
             <span class="pt-dur">{{ fmt(stateB?.duration) }}</span>
@@ -361,7 +469,8 @@
         <canvas #spectrumB class="spectrum-canvas"></canvas>
 
         <!-- Controls: PREV · SYNC · PLAY · RESET · CUE · NEXT -->
-        <div class="deck-controls">
+        <ng-container *ngIf="skin === 'pro'" [ngTemplateOutlet]="proTransport" [ngTemplateOutletContext]="{ deck: 'B' }"></ng-container>
+        <div class="deck-controls" *ngIf="skin === 'classic'">
           <button class="btn-queue-toggle btn-queue-b" (click)="showQueueB = !showQueueB" [title]="('COMMON.QUEUE' | translate) + ' Deck B'">
             ☰<span class="queue-badge" *ngIf="queueB.length > 0">{{ queueB.length }}</span>
           </button>
@@ -377,7 +486,7 @@
           </button>
           <button class="btn-ctrl btn-reset" (click)="resetTrack('B')" [title]="'MUSIC.DJ_HELP_RESET' | translate">⏮</button>
           <button class="btn-cue btn-cue-b" [class.active-cue]="!stateB?.playing && (stateB?.currentTime || 0) > 0" (click)="cue('B')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
-          <button class="btn-sync-bpm" (click)="syncBpm('B')" [title]="('COMMON.SYNC' | translate) + ' BPM B → A'">{{ 'MUSIC.DJ_BPM_SYNC' | translate }}</button>
+          <button class="btn-sync-bpm" (click)="syncBpm('B')" [disabled]="!effectsAvailable('B') || !baseBpm('A') || !baseBpm('B')" [title]="('COMMON.SYNC' | translate) + ' BPM B → A'">{{ 'MUSIC.DJ_BPM_SYNC' | translate }}</button>
           <button class="btn-ctrl" (click)="nextTrack('B')" [title]="'COMMON.NEXT' | translate">⏭</button>
         </div>
 
@@ -443,7 +552,7 @@
   </div>
 
   <!-- ══ RESIZE HANDLE ════════════════════════════════════════════════════ -->
-  <div class="vdj-resize-handle" (mousedown)="onResizeStart($event)" title="Arrastrar para redimensionar"></div>
+  <div class="vdj-resize-handle" (mousedown)="onResizeStart($event)" [title]="'DJ.RESIZE' | translate"></div>
 
   <!-- ══ BROWSER ════════════════════════════════════════════════════════════ -->
   <div class="browser-section-wrapper">
@@ -515,6 +624,8 @@
     <div class="browser-content">
 
       <div class="browser-tabs">
+        <button class="b-tab" (click)="showQueueA = !showQueueA; showQueueB = showQueueA">{{ 'DJ.QUEUE' | translate }} ({{ queueA.length + queueB.length }})</button>
+        <button class="b-tab" (click)="showMidiConfig = true">MIDI</button>
         <!-- Ficheros NAS -->
         <button class="b-tab" [class.active]="browserTab === 'nas'" (click)="browserTab = 'nas'">
           <svg class="tab-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
@@ -583,6 +694,13 @@
             </nav>
           </div>
 
+          <div class="cover-strip" *ngIf="galleryTracks.length">
+            <button type="button" *ngFor="let item of galleryTracks; let i = index" (click)="selectedIndex = i" [title]="item.title || item.name">
+              <img *ngIf="browserCover(item) as cover; else galleryFallback" [src]="cover" alt="" loading="lazy" />
+              <ng-template #galleryFallback><span class="cover-fallback">&#x266B;</span></ng-template>
+              <span>{{ item.title || item.name }}</span>
+            </button>
+          </div>
           <div class="browser-list">
             <table>
               <thead>
@@ -590,6 +708,8 @@
                   <th class="bc-icon"></th>
                   <th class="bc-name">{{ 'MUSIC.DECK_COL_NAME' | translate }}</th>
                   <th class="bc-artist">{{ 'MUSIC.DECK_COL_ARTIST' | translate }}</th>
+                  <th *ngIf="skin === 'pro'" class="bc-album">{{ 'NAS.METADATA_ALBUM' | translate }}</th>
+                  <th *ngIf="skin === 'pro'" class="bc-bpm">BPM</th>
                   <th class="bc-dur">{{ 'MUSIC.DECK_COL_DUR' | translate }}</th>
                   <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
                 </tr>
@@ -601,6 +721,8 @@
                     <td class="bc-icon">🎵</td>
                     <td class="bc-name">{{ item.title || item.name }}</td>
                     <td class="bc-artist">{{ item.artist || '—' }}</td>
+                    <td *ngIf="skin === 'pro'" class="bc-album">{{ item.album || '—' }}</td>
+                    <td *ngIf="skin === 'pro'" class="bc-bpm">{{ item.bpm || '—' }}</td>
                     <td class="bc-dur">{{ fmt(item.duration) }}</td>
                     <td class="bc-load">
                       <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
@@ -610,7 +732,7 @@
                     </td>
                   </tr>
                   <tr *ngIf="nasSearchResults.length === 0 && !nasSearchLoading">
-                    <td colspan="5" class="brow-empty">{{ 'MUSIC.SEARCH_NO_RESULTS_FOR' | translate }} "{{ nasSearchQuery }}"</td>
+                    <td [attr.colspan]="skin === 'pro' ? 7 : 5" class="brow-empty">{{ 'MUSIC.SEARCH_NO_RESULTS_FOR' | translate }} "{{ nasSearchQuery }}"</td>
                   </tr>
                 </ng-container>
 
@@ -618,13 +740,15 @@
                 <ng-container *ngIf="nasSearchResults === null">
                   <tr *ngFor="let item of folders" class="brow-folder" (click)="navigate(item)">
                     <td class="bc-icon">📁</td>
-                    <td class="bc-name" colspan="3">{{ item.name }}</td>
+                    <td class="bc-name" [attr.colspan]="skin === 'pro' ? 5 : 3">{{ item.name }}</td>
                     <td></td>
                   </tr>
                   <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i" (dblclick)="loadToIdleDeck(item)">
                     <td class="bc-icon">🎵</td>
                     <td class="bc-name">{{ item.title || item.name }}</td>
                     <td class="bc-artist">{{ item.artist || '—' }}</td>
+                    <td *ngIf="skin === 'pro'" class="bc-album">{{ item.album || '—' }}</td>
+                    <td *ngIf="skin === 'pro'" class="bc-bpm">{{ item.bpm || '—' }}</td>
                     <td class="bc-dur">{{ fmt(item.duration) }}</td>
                     <td class="bc-load">
                       <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
@@ -634,7 +758,7 @@
                     </td>
                   </tr>
                   <tr *ngIf="items.length === 0">
-                    <td colspan="5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
+                    <td [attr.colspan]="skin === 'pro' ? 7 : 5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
                   </tr>
                 </ng-container>
               </tbody>
@@ -831,6 +955,16 @@
 
     </div><!-- /browser-content -->
 
+    <aside class="track-inspector" *ngIf="browserTab === 'nas' && selectedBrowserTrack as track">
+      <img *ngIf="browserCover(track) as cover; else inspectorFallback" [src]="cover" alt="" />
+      <ng-template #inspectorFallback><div class="inspector-fallback">&#x266B;</div></ng-template>
+      <span>{{ track.artist || ('MUSIC.DECK_COL_ARTIST' | translate) }}</span>
+      <strong>{{ track.title || track.name }}</strong>
+      <span>{{ track.album }}</span>
+      <dl><dt>BPM</dt><dd>{{ track.bpm || '--' }}</dd><dt>{{ 'MUSIC.DECK_COL_DUR' | translate }}</dt><dd>{{ fmt(track.duration) }}</dd></dl>
+      <div><button type="button" class="load-a" (click)="loadBrowserTrack('A', track)">{{ 'MUSIC.DECK_COL_LOAD' | translate }} A</button><button type="button" class="load-b" (click)="loadBrowserTrack('B', track)">{{ 'MUSIC.DECK_COL_LOAD' | translate }} B</button></div>
+    </aside>
+
   </div><!-- /browser-section-wrapper -->
 
   <!-- ══ Ayuda DJ Overlay ════════════════════════════════════════════════════ -->
@@ -859,15 +993,15 @@
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_PLAY_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">⏮ (Reset)</span>
+              <span class="help-key">⏮ ({{ 'DJ.RESET' | translate }})</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_RESET_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">BPM SYNC</span>
+              <span class="help-key">{{ 'MUSIC.DJ_BPM_SYNC' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_BPM_SYNC_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">SYNC</span>
+              <span class="help-key">{{ 'MUSIC.DJ_SYNC' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_SYNC_DESC' | translate }}</span>
             </div>
             <div class="help-item">
@@ -875,11 +1009,11 @@
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_QUEUE_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">PITCH</span>
+              <span class="help-key">{{ 'MUSIC.DJ_PITCH' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_PITCH_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">Pads 1–4</span>
+              <span class="help-key">{{ 'DJ.HOT_CUES' | translate }} 1–4</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_HOTCUES_DESC' | translate }}</span>
             </div>
             <div class="help-item">
@@ -887,7 +1021,7 @@
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_LOOPS_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">ECHO</span>
+              <span class="help-key">{{ 'MUSIC.DJ_ECHO' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_ECHO_DESC' | translate }}</span>
             </div>
           </div>
@@ -898,23 +1032,23 @@
           <div class="help-section-title">{{ 'MUSIC.DJ_HELP_SECTION_MIXER' | translate }}</div>
           <div class="help-grid">
             <div class="help-item">
-              <span class="help-key">FILTER</span>
+              <span class="help-key">{{ 'MUSIC.DJ_FILTER' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_FILTER_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">HI / MID / LOW</span>
+              <span class="help-key">{{ 'MUSIC.DJ_HI' | translate }} / {{ 'MUSIC.DJ_MID' | translate }} / {{ 'MUSIC.DJ_LOW' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_EQ_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">M (Mute)</span>
+              <span class="help-key">M ({{ 'DJ.MUTE' | translate }})</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_MUTE_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">Fader A / B</span>
+              <span class="help-key">{{ 'MUSIC.DJ_HELP_FADER' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_FADER_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">Crossfader</span>
+              <span class="help-key">{{ 'MUSIC.DJ_HELP_CROSSFADER' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_CROSSFADER_DESC' | translate }}</span>
             </div>
           </div>
@@ -929,7 +1063,7 @@
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_SPECTRUM_DESC' | translate }}</span>
             </div>
             <div class="help-item">
-              <span class="help-key">Progress</span>
+              <span class="help-key">{{ 'DJ.PROGRESS' | translate }}</span>
               <span class="help-desc">{{ 'MUSIC.DJ_HELP_PROGRESS_DESC' | translate }}</span>
             </div>
         <!-- BIBLIOTECA -->
@@ -963,6 +1097,12 @@
       </div>
 
       <div class="midi-modal-body">
+        <div class="midi-connection">
+          <button type="button" (click)="enableMidi()" [disabled]="!midiService.isSupported || (midiService.status$ | async) === 'CONNECTING'">{{ 'DJ.MIDI_CONNECT' | translate }}</button>
+          <span role="status">{{ ('DJ.MIDI_' + (midiService.status$ | async)) | translate }}</span>
+          <code *ngIf="midiService.lastMessage$ | async as message">{{ 'DJ.MIDI_MESSAGE' | translate }} {{ message }}</code>
+          <span *ngIf="(midiService.status$ | async) === 'READY' && midiDevices.length === 0">{{ 'DJ.MIDI_EMPTY' | translate }}</span>
+        </div>
         <div *ngIf="!midiService.isSupported" class="midi-unsupported">
           ⚠️ {{ 'MUSIC.DJ_MIDI_UNSUPPORTED' | translate }}
         </div>
@@ -970,12 +1110,12 @@
         <div *ngIf="midiService.isSupported" class="midi-config-inner">
           <div class="midi-toolbar">
             <span class="md-label">{{ 'MUSIC.DJ_MIDI_DEVICE' | translate }}</span>
-            <select class="md-select" [value]="activeMidiDeviceId || ''" (change)="selectMidiDevice($event)">
+            <select class="md-select" [ngModel]="activeMidiDeviceId || ''" (ngModelChange)="midiService.setActiveDevice($event || null)">
               <option value="">{{ 'MUSIC.DJ_MIDI_NONE' | translate }}</option>
               <option *ngFor="let d of midiDevices" [value]="d.id">{{ d.name }}</option>
             </select>
             <span class="midi-preset-badge" *ngIf="midiService.getActivePresetName() as pname">
-              ✓ {{ pname }}
+              {{ 'DJ.MIDI_TEMPLATE' | translate }}: {{ pname }}
             </span>
           </div>
 
@@ -999,13 +1139,13 @@
                     <div class="midi-mapping-cell">
                       <span class="map-val" *ngIf="midiService.getMappingForAction(action.id) as mapping">
                         <code>{{ mapping }}</code>
-                        <button class="clr-map-btn" (click)="clearMidiMapping(action.id)" title="Borrar mapeo">✖</button>
+                        <button class="clr-map-btn" (click)="clearMidiMapping(action.id)" [title]="'DJ.MIDI_CLEAR' | translate">✖</button>
                       </span>
                       <span class="map-none" *ngIf="!midiService.getMappingForAction(action.id)">—</span>
                     </div>
                   </td>
                   <td class="ma-btn-cell">
-                    <button *ngIf="midiService.learningActionId !== action.id" class="btn-learn" (click)="learnMidi(action.id)">LEARN</button>
+                    <button *ngIf="midiService.learningActionId !== action.id" class="btn-learn" (click)="learnMidi(action.id)">{{ 'DJ.MIDI_LEARN' | translate }}</button>
                     <button *ngIf="midiService.learningActionId === action.id" class="btn-learning-pulse" (click)="cancelLearnMidi()">
                       {{ 'MUSIC.DJ_MIDI_LEARNING' | translate }}
                     </button>
@@ -1017,8 +1157,8 @@
         </div>
       </div>
       <div class="midi-modal-footer">
-        <button *ngIf="midiService.getActivePresetName()" class="btn-reset-preset" (click)="resetMidiToPreset()" title="Restaurar mapeo del preset detectado">
-          ↺ Preset: {{ midiService.getActivePresetName() }}
+        <button *ngIf="midiService.getActivePresetName()" class="btn-reset-preset" (click)="resetMidiToPreset()" [title]="'DJ.MIDI_TEMPLATE' | translate">
+          {{ 'DJ.MIDI_APPLY_TEMPLATE' | translate }}: {{ midiService.getActivePresetName() }}
         </button>
         <button class="btn-modal-close" (click)="showMidiConfig = false">{{ 'MUSIC.DJ_HELP_CLOSE' | translate }}</button>
       </div>

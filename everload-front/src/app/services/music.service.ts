@@ -184,6 +184,7 @@ export class DeckPlayer {
 
   private audioCtx: AudioContext | null = null;
   private analyserNode: AnalyserNode | null = null;
+  private timeDomainData: Uint8Array | null = null;
   private analyserData: Uint8Array | null = null;
 
   // EQ Filters (5-band: 60Hz, 250Hz, 1kHz, 4kHz, 16kHz)
@@ -733,9 +734,11 @@ export class DeckPlayer {
 
   getTimeDomainData(): Uint8Array | null {
     if (!this.analyserNode) return null;
-    const buf = new Uint8Array(this.analyserNode.fftSize);
-    this.analyserNode.getByteTimeDomainData(buf);
-    return buf;
+    if (!this.timeDomainData || this.timeDomainData.length !== this.analyserNode.fftSize) {
+      this.timeDomainData = new Uint8Array(this.analyserNode.fftSize);
+    }
+    this.analyserNode.getByteTimeDomainData(this.timeDomainData as any);
+    return this.timeDomainData;
   }
 
   setEqBand(index: number, dB: number) {
