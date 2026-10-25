@@ -3,6 +3,30 @@ import { BehaviorSubject, of, Subject } from 'rxjs';
 import { ModernLibraryComponent } from './modern-library.component';
 
 describe('ModernLibraryComponent indexing', () => {
+  it('preserves the visible list, search and sorting while an index refresh is pending', fakeAsync(() => {
+    const refresh = new Subject<any>();
+    const state: any = {
+      pathId$: new BehaviorSubject(1),
+      getOverview: jasmine.createSpy().and.returnValues(
+        of({ tracks: [{ path: 'first.mp3', title: 'First' }], indexing: true }), refresh
+      )
+    };
+    const component = new ModernLibraryComponent({ getPlaylists: () => of([]) } as any, state, {} as any);
+    component.ngOnInit();
+    component.query = 'First';
+    component.sortCol = 'title';
+    component.sortDir = 'desc';
+    tick(6000);
+    expect(component.loading).toBeFalse();
+    expect(component.tracks[0].path).toBe('first.mp3');
+    refresh.next({ tracks: [{ path: 'first.mp3', title: 'First' }, { path: 'second.mp3', title: 'Second' }], indexing: false });
+    refresh.complete();
+    expect(component.query).toBe('First');
+    expect(component.sortDir).toBe('desc');
+    expect(component.tracks.map(track => track.path)).toEqual(['first.mp3']);
+    component.ngOnDestroy();
+  }));
+
   it('refreshes a nonempty partial library and stops polling when indexing finishes', fakeAsync(() => {
     const state: any = {
       pathId$: new BehaviorSubject(1),

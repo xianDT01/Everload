@@ -112,7 +112,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   desktopStartAllPrograms = false;
   desktopTaskbarHeight = 40;
   desktopStartMenuSize = { width: 470, height: 500 };
-  winampScale = 1.1;
+  winampScale = 1.65;
   desktopExplorerOpen = true;
   musicManagerOpen = false;
   messengerOpen = false;
@@ -522,11 +522,15 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   get desktopPanelStyle(): Record<string, string> {
     if (!this.isDesktopWmp || this.isFullscreen) return {};
     const isWinamp = this.playerSkin === 'winamp';
+    const size = isWinamp ? this.getWinampWindowSize() : this.desktopPanelSize;
+    const position = isWinamp
+      ? this.clampWindowPosition(this.desktopPanelPosition.x, this.desktopPanelPosition.y, size)
+      : this.desktopPanelPosition;
     return {
-      left: `${this.desktopPanelPosition.x}px`,
-      top: `${this.desktopPanelPosition.y}px`,
-      width: isWinamp ? `${Math.ceil(300 * this.winampScale) + 8}px` : `${this.desktopPanelSize.width}px`,
-      height: isWinamp ? `${Math.ceil(this.getWinampContentHeight() * this.winampScale) + 8}px` : `${this.desktopPanelSize.height}px`,
+      left: `${position.x}px`,
+      top: `${position.y}px`,
+      width: `${size.width}px`,
+      height: `${size.height}px`,
       zIndex: String(this.getWindowZIndex('player')),
       transform: 'none'
     };
@@ -890,7 +894,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       kind, startX: event.clientX, startY: event.clientY,
       startHeight: kind === 'taskbar' ? this.desktopTaskbarHeight : this.desktopStartMenuSize.height,
       startWidth: this.desktopStartMenuSize.width,
-      startScale: this.winampScale
+      startScale: this.effectiveWinampScale
     };
   }
 
@@ -907,7 +911,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         height: Math.round(Math.max(380, Math.min(Math.min(680, window.innerHeight - this.desktopTaskbarHeight - 12), state.startHeight - dy)))
       };
     } else {
-      this.winampScale = Math.round(Math.max(0.85, Math.min(1.5, state.startScale + Math.max(dx, dy) / 360)) * 100) / 100;
+      const delta = Math.abs(dx) >= Math.abs(dy) ? dx / 300 : dy / this.getWinampContentHeight();
+      this.winampScale = Math.max(0.85, Math.min(2.5, state.startScale + delta));
+      this.fitPlayerWindowToSkin();
     }
   }
 
@@ -919,7 +925,10 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         width: Math.max(400, Math.min(620, Number(saved.startWidth) || 470)),
         height: Math.max(380, Math.min(680, Number(saved.startHeight) || 500))
       };
-      this.winampScale = Math.max(0.85, Math.min(1.5, Number(saved.winampScale) || 1.1));
+      const scale = Number(saved.winampScale);
+      const legacyDefault = scale === 1.1 && saved.winampSizingVersion !== 2;
+      this.winampScale = Number.isFinite(scale) && scale > 0 && !legacyDefault
+        ? Math.max(0.85, Math.min(2.5, scale)) : 1.65;
     } catch { /* Ignore invalid local sizing preferences. */ }
   }
 
@@ -929,7 +938,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         taskbarHeight: this.desktopTaskbarHeight,
         startWidth: this.desktopStartMenuSize.width,
         startHeight: this.desktopStartMenuSize.height,
-        winampScale: this.winampScale
+        winampScale: this.winampScale,
+        winampSizingVersion: 2
       }));
     } catch { /* Storage may be unavailable in private browsing. */ }
   }
@@ -1002,6 +1012,21 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   private getWinampContentHeight(): number {
     return 145 + (this.waEqVisible ? 132 : 0) + (this.waPlVisible ? 172 : 0);
+  }
+
+  get effectiveWinampScale(): number {
+    const preferred = Math.max(0.85, Math.min(2.5, this.winampScale));
+    if (typeof window === 'undefined') return preferred;
+    const taskbarHeight = this.isDesktopWmp && !this.isFullscreen ? this.desktopTaskbarHeight : 0;
+    return Math.min(preferred, (window.innerWidth - 24) / 300,
+      (window.innerHeight - taskbarHeight - 24) / this.getWinampContentHeight());
+  }
+
+  private getWinampWindowSize(): { width: number; height: number } {
+    return {
+      width: Math.ceil(300 * this.effectiveWinampScale) + 8,
+      height: Math.ceil(this.getWinampContentHeight() * this.effectiveWinampScale) + 8
+    };
   }
 
   getWindowZIndex(target: DesktopWindowTarget): number {
@@ -2079,7 +2104,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   private getWindowSize(target: DesktopWindowTarget): { width: number; height: number } {
     switch (target) {
-      case 'player':     return this.desktopPanelSize;
+      case 'player':     return this.playerSkin === 'winamp' ? this.getWinampWindowSize() : this.desktopPanelSize;
       case 'explorer':   return this.explorerWindowSize;
       case 'manager':    return this.musicManagerWindowSize;
       case 'messenger':  return this.messengerWindowSize;
@@ -2135,6 +2160,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (target === 'notepad' && this.notepadMaximized) return;
     if (target === 'equalizer' && this.equalizerMaximized) return;
     this.focusWindow(target);
+    if (target === 'player' && this.playerSkin === 'winamp') this.fitPlayerWindowToSkin();
     const position = this.getWindowPosition(target);
     this.dragState = { target, offsetX: event.clientX - position.x, offsetY: event.clientY - position.y };
     event.preventDefault();
@@ -3351,7 +3377,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.desktopPanelPosition = this.clampWindowPosition(
       this.desktopPanelPosition.x,
       this.desktopPanelPosition.y,
-      this.desktopPanelSize
+      this.getWindowSize('player')
     );
     if (this.explorerMaximized) {
       this.applyExplorerMaximizedBounds();
@@ -3468,7 +3494,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   private getDefaultPlayerWindowSize(skin: 'wmp' | 'winamp' | 'macos' | 'foobar' = this.playerSkin): { width: number; height: number } {
     if (skin === 'winamp') {
-      return { width: 520, height: 600 };
+      return this.getWinampWindowSize();
     }
     if (typeof window === 'undefined') return { width: 1060, height: 690 };
     return {
@@ -3479,7 +3505,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   private fitPlayerWindowToSkin(): void {
     if (typeof window === 'undefined' || !this.isDesktopWmp || this.isFullscreen) return;
-    const size = this.clampWindowSize('player', this.getDefaultPlayerWindowSize(this.playerSkin).width, this.getDefaultPlayerWindowSize(this.playerSkin).height);
+    const defaults = this.getDefaultPlayerWindowSize();
+    const size = this.playerSkin === 'winamp' ? defaults : this.clampWindowSize('player', defaults.width, defaults.height);
     this.desktopPanelSize = size;
     this.desktopPanelPosition = this.clampWindowPosition(this.desktopPanelPosition.x, this.desktopPanelPosition.y, size);
   }

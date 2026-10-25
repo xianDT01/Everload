@@ -1,12 +1,8 @@
-<div class="vdj-layout" [class.pro-skin]="skin === 'pro'" [class.dark-skin]="darkTheme" #vdjLayout>
+<div class="vdj-layout pro-skin" [class.dark-skin]="darkTheme" #vdjLayout>
 
   <header class="console-toolbar">
     <strong class="console-brand">EVERLOAD <b>DJ</b></strong>
     <span class="console-mode">{{ 'DJ.TWO_DECKS' | translate }}</span>
-    <div class="skin-selector" role="group" [attr.aria-label]="'DJ.DESIGN' | translate">
-      <button type="button" [class.selected]="skin === 'classic'" [attr.aria-pressed]="skin === 'classic'" (click)="setSkin('classic')">{{ 'DJ.CLASSIC' | translate }}</button>
-      <button type="button" [class.selected]="skin === 'pro'" [attr.aria-pressed]="skin === 'pro'" (click)="setSkin('pro')">Pro</button>
-    </div>
     <label class="dj-theme-toggle" [title]="'DJ.DARK_THEME' | translate">
       <input type="checkbox" role="switch" [checked]="darkTheme" (change)="setDarkTheme($any($event.target).checked)" [attr.aria-label]="'DJ.DARK_THEME' | translate" />
       <span>{{ 'DJ.DARK' | translate }}</span>
@@ -36,7 +32,7 @@
   </ng-template>
 
   <ng-template #proTools let-deck="deck">
-    <details class="pro-deck-tools" *ngIf="skin === 'pro'">
+    <details class="pro-deck-tools">
       <summary [attr.aria-label]="'DJ.DECK_TOOLS' | translate" [title]="'DJ.DECK_TOOLS' | translate">&#x22EF;</summary>
       <div>
         <button type="button" (click)="deck === 'A' ? showQueueA = !showQueueA : showQueueB = !showQueueB">{{ 'COMMON.QUEUE' | translate }}</button>
@@ -93,7 +89,7 @@
     <!-- ── DECK A ─────────────────────────────────────────────────────────── -->
     <div class="deck deck-a" [class.is-playing]="stateA?.playing">
       <div class="deck-topbar deck-a-bar">
-        <strong class="pro-deck-letter" *ngIf="skin === 'pro'">A</strong>
+        <strong class="pro-deck-letter">A</strong>
         <span class="deck-label">{{ 'MUSIC.DECK_A' | translate }}</span>
         <span class="topbar-status">
           <span class="loading-pulse" *ngIf="stateA?.loading">●</span>
@@ -177,27 +173,7 @@
         <!-- Spectrum Analyzer A -->
         <canvas #spectrumA class="spectrum-canvas"></canvas>
 
-        <!-- Controls: PREV · CUE · PLAY · RESET · SYNC · NEXT -->
-        <ng-container *ngIf="skin === 'pro'" [ngTemplateOutlet]="proTransport" [ngTemplateOutletContext]="{ deck: 'A' }"></ng-container>
-        <div class="deck-controls" *ngIf="skin === 'classic'">
-          <button class="btn-ctrl" (click)="prevTrack('A')" [title]="'COMMON.PREVIOUS' | translate">⏮</button>
-          <button class="btn-cue btn-cue-a" [class.active-cue]="!stateA?.playing && (stateA?.currentTime || 0) > 0" (click)="cue('A')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
-          <button class="btn-play btn-play-a" [class.playing]="stateA?.playing" (click)="togglePlay('A')">
-            <svg *ngIf="!stateA?.playing" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            <svg *ngIf="stateA?.playing"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-          </button>
-          <button class="btn-ctrl btn-reset" (click)="resetTrack('A')" [title]="'MUSIC.DJ_HELP_RESET' | translate">⏮</button>
-          <button class="btn-sync-bpm" (click)="syncBpm('A')" [disabled]="!effectsAvailable('A') || !baseBpm('A') || !baseBpm('B')" [title]="('COMMON.SYNC' | translate) + ' BPM A → B'">{{ 'MUSIC.DJ_BPM_SYNC' | translate }}</button>
-          <button class="btn-sync btn-sync-a"
-                  [class.sync-ready]="canSync('A')"
-                  (click)="sync('A')"
-                  [disabled]="!canSync('A')"
-                  [title]="('COMMON.SYNC' | translate) + ' A → ' + ('COMMON.POSITION' | translate) + ' B'">{{ 'MUSIC.DJ_SYNC' | translate }}</button>
-          <button class="btn-ctrl" (click)="nextTrack('A')" [title]="'COMMON.NEXT' | translate">⏭</button>
-          <button class="btn-queue-toggle btn-queue-a" (click)="showQueueA = !showQueueA" [title]="('COMMON.QUEUE' | translate) + ' Deck A'">
-            ☰<span class="queue-badge" *ngIf="queueA.length > 0">{{ queueA.length }}</span>
-          </button>
-        </div>
+        <ng-container [ngTemplateOutlet]="proTransport" [ngTemplateOutletContext]="{ deck: 'A' }"></ng-container>
 
         <!-- Hot Cues & Loops A -->
         <div class="deck-extra-tools">
@@ -278,7 +254,7 @@
         <div class="ch-fader">
           <div class="ch-header">
             <span class="ch-label a-label">A</span>
-            <button class="mute-btn mute-a" [class.muted]="muteA" (click)="toggleMute('A')" [title]="('MUSIC.DJ_HELP_MUTE' | translate) + ' A'">{{ (skin === 'pro' ? 'DJ.MUTE' : 'MUSIC.DJ_MUTE') | translate }}</button>
+            <button class="mute-btn mute-a" [class.muted]="muteA" (click)="toggleMute('A')" [title]="('MUSIC.DJ_HELP_MUTE' | translate) + ' A'">{{ 'DJ.MUTE' | translate }}</button>
           </div>
           
           <!-- Filter strip A (fuera del eq-rack) -->
@@ -323,7 +299,7 @@
         <!-- Channel B fader + mute -->
         <div class="ch-fader">
           <div class="ch-header ch-header-b">
-            <button class="mute-btn mute-b" [class.muted]="muteB" (click)="toggleMute('B')" [title]="('MUSIC.DJ_HELP_MUTE' | translate) + ' B'">{{ (skin === 'pro' ? 'DJ.MUTE' : 'MUSIC.DJ_MUTE') | translate }}</button>
+            <button class="mute-btn mute-b" [class.muted]="muteB" (click)="toggleMute('B')" [title]="('MUSIC.DJ_HELP_MUTE' | translate) + ' B'">{{ 'DJ.MUTE' | translate }}</button>
             <span class="ch-label b-label">B</span>
           </div>
           
@@ -384,7 +360,7 @@
     <!-- ── DECK B ─────────────────────────────────────────────────────────── -->
     <div class="deck deck-b" [class.is-playing]="stateB?.playing">
       <div class="deck-topbar deck-b-bar">
-        <strong class="pro-deck-letter" *ngIf="skin === 'pro'">B</strong>
+        <strong class="pro-deck-letter">B</strong>
         <span class="topbar-status">
           <span class="loading-pulse" *ngIf="stateB?.loading">●</span>
           <span class="deck-error-dot" *ngIf="stateB?.error && !stateB?.loading" [title]="stateB?.error ?? ''">⚠</span>
@@ -468,27 +444,7 @@
         <!-- Spectrum Analyzer B -->
         <canvas #spectrumB class="spectrum-canvas"></canvas>
 
-        <!-- Controls: PREV · SYNC · PLAY · RESET · CUE · NEXT -->
-        <ng-container *ngIf="skin === 'pro'" [ngTemplateOutlet]="proTransport" [ngTemplateOutletContext]="{ deck: 'B' }"></ng-container>
-        <div class="deck-controls" *ngIf="skin === 'classic'">
-          <button class="btn-queue-toggle btn-queue-b" (click)="showQueueB = !showQueueB" [title]="('COMMON.QUEUE' | translate) + ' Deck B'">
-            ☰<span class="queue-badge" *ngIf="queueB.length > 0">{{ queueB.length }}</span>
-          </button>
-          <button class="btn-ctrl" (click)="prevTrack('B')" [title]="'COMMON.PREVIOUS' | translate">⏮</button>
-          <button class="btn-sync btn-sync-b"
-                  [class.sync-ready]="canSync('B')"
-                  (click)="sync('B')"
-                  [disabled]="!canSync('B')"
-                  [title]="('COMMON.SYNC' | translate) + ' B → ' + ('COMMON.POSITION' | translate) + ' A'">{{ 'MUSIC.DJ_SYNC' | translate }}</button>
-          <button class="btn-play btn-play-b" [class.playing]="stateB?.playing" (click)="togglePlay('B')">
-            <svg *ngIf="!stateB?.playing" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            <svg *ngIf="stateB?.playing"  width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-          </button>
-          <button class="btn-ctrl btn-reset" (click)="resetTrack('B')" [title]="'MUSIC.DJ_HELP_RESET' | translate">⏮</button>
-          <button class="btn-cue btn-cue-b" [class.active-cue]="!stateB?.playing && (stateB?.currentTime || 0) > 0" (click)="cue('B')">{{ 'MUSIC.DECK_CUE' | translate }}</button>
-          <button class="btn-sync-bpm" (click)="syncBpm('B')" [disabled]="!effectsAvailable('B') || !baseBpm('A') || !baseBpm('B')" [title]="('COMMON.SYNC' | translate) + ' BPM B → A'">{{ 'MUSIC.DJ_BPM_SYNC' | translate }}</button>
-          <button class="btn-ctrl" (click)="nextTrack('B')" [title]="'COMMON.NEXT' | translate">⏭</button>
-        </div>
+        <ng-container [ngTemplateOutlet]="proTransport" [ngTemplateOutletContext]="{ deck: 'B' }"></ng-container>
 
         <!-- Hot Cues & Loops B -->
         <div class="deck-extra-tools">
@@ -708,8 +664,8 @@
                   <th class="bc-icon"></th>
                   <th class="bc-name">{{ 'MUSIC.DECK_COL_NAME' | translate }}</th>
                   <th class="bc-artist">{{ 'MUSIC.DECK_COL_ARTIST' | translate }}</th>
-                  <th *ngIf="skin === 'pro'" class="bc-album">{{ 'NAS.METADATA_ALBUM' | translate }}</th>
-                  <th *ngIf="skin === 'pro'" class="bc-bpm">BPM</th>
+                  <th class="bc-album">{{ 'NAS.METADATA_ALBUM' | translate }}</th>
+                  <th class="bc-bpm">BPM</th>
                   <th class="bc-dur">{{ 'MUSIC.DECK_COL_DUR' | translate }}</th>
                   <th class="bc-load">{{ 'MUSIC.DECK_COL_LOAD' | translate }}</th>
                 </tr>
@@ -721,8 +677,8 @@
                     <td class="bc-icon">🎵</td>
                     <td class="bc-name">{{ item.title || item.name }}</td>
                     <td class="bc-artist">{{ item.artist || '—' }}</td>
-                    <td *ngIf="skin === 'pro'" class="bc-album">{{ item.album || '—' }}</td>
-                    <td *ngIf="skin === 'pro'" class="bc-bpm">{{ item.bpm || '—' }}</td>
+                    <td class="bc-album">{{ item.album || '—' }}</td>
+                    <td class="bc-bpm">{{ item.bpm || '—' }}</td>
                     <td class="bc-dur">{{ fmt(item.duration) }}</td>
                     <td class="bc-load">
                       <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
@@ -732,7 +688,7 @@
                     </td>
                   </tr>
                   <tr *ngIf="nasSearchResults.length === 0 && !nasSearchLoading">
-                    <td [attr.colspan]="skin === 'pro' ? 7 : 5" class="brow-empty">{{ 'MUSIC.SEARCH_NO_RESULTS_FOR' | translate }} "{{ nasSearchQuery }}"</td>
+                    <td colspan="7" class="brow-empty">{{ 'MUSIC.SEARCH_NO_RESULTS_FOR' | translate }} "{{ nasSearchQuery }}"</td>
                   </tr>
                 </ng-container>
 
@@ -740,15 +696,15 @@
                 <ng-container *ngIf="nasSearchResults === null">
                   <tr *ngFor="let item of folders" class="brow-folder" (click)="navigate(item)">
                     <td class="bc-icon">📁</td>
-                    <td class="bc-name" [attr.colspan]="skin === 'pro' ? 5 : 3">{{ item.name }}</td>
+                    <td class="bc-name" colspan="5">{{ item.name }}</td>
                     <td></td>
                   </tr>
                   <tr *ngFor="let item of tracks; let i = index" class="brow-track" [class.selected]="i === selectedIndex" (click)="selectedIndex = i" (dblclick)="loadToIdleDeck(item)">
                     <td class="bc-icon">🎵</td>
                     <td class="bc-name">{{ item.title || item.name }}</td>
                     <td class="bc-artist">{{ item.artist || '—' }}</td>
-                    <td *ngIf="skin === 'pro'" class="bc-album">{{ item.album || '—' }}</td>
-                    <td *ngIf="skin === 'pro'" class="bc-bpm">{{ item.bpm || '—' }}</td>
+                    <td class="bc-album">{{ item.album || '—' }}</td>
+                    <td class="bc-bpm">{{ item.bpm || '—' }}</td>
                     <td class="bc-dur">{{ fmt(item.duration) }}</td>
                     <td class="bc-load">
                       <button class="load-a" (click)="loadNas('A', item)">▲ A</button>
@@ -758,7 +714,7 @@
                     </td>
                   </tr>
                   <tr *ngIf="items.length === 0">
-                    <td [attr.colspan]="skin === 'pro' ? 7 : 5" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
+                    <td colspan="7" class="brow-empty">{{ 'MUSIC.DECK_NO_AUDIO' | translate }}</td>
                   </tr>
                 </ng-container>
               </tbody>

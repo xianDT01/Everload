@@ -1676,7 +1676,7 @@
     </div>
 
     <!-- ═══════════════ WINAMP SKIN ═══════════════ -->
-    <div *ngSwitchCase="'winamp'" class="wa-shell" [style.transform]="'scale(' + winampScale + ')'" (mousedown)="beginWindowDrag($event, 'player')">
+    <div *ngSwitchCase="'winamp'" class="wa-shell" [style.transform]="'scale(' + effectiveWinampScale + ')'" (mousedown)="beginWindowDrag($event, 'player')">
 
       <!-- ── MAIN PLAYER ── -->
       <div class="wa-main">

@@ -43,7 +43,6 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('spectrumB') canvasB?: ElementRef<HTMLCanvasElement>;
 
   private animFrameId: number | null = null;
-  skin: 'classic' | 'pro' = 'pro';
   darkTheme = false;
   @ViewChild('waveMonitor') waveMonitor?: ElementRef<HTMLCanvasElement>;
   @ViewChild('meterA') meterA?: ElementRef<HTMLElement>;
@@ -195,8 +194,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     try {
-      const skin = localStorage.getItem('everload.dj.skin');
-      if (skin === 'classic' || skin === 'pro') this.skin = skin;
+      localStorage.removeItem('everload.dj.skin');
       this.darkTheme = localStorage.getItem('everload.dj.theme') === 'dark';
     } catch { /* A blocked preference store must not prevent playback. */ }
     const saved = localStorage.getItem(DeckModeComponent.DECK_HEIGHT_KEY);
@@ -607,10 +605,6 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   deckState(deck: DjDeck): PlayerState | null { return deck === 'A' ? this.stateA : this.stateB; }
-  setSkin(skin: 'classic' | 'pro'): void {
-    this.skin = skin;
-    try { localStorage.setItem('everload.dj.skin', skin); } catch { /* Session-only preference. */ }
-  }
   setDarkTheme(dark: boolean): void {
     this.darkTheme = dark;
     try { localStorage.setItem('everload.dj.theme', dark ? 'dark' : 'graphite'); } catch { /* Session-only preference. */ }
@@ -713,7 +707,7 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       } else { ctx.moveTo(0, mid); ctx.lineTo(width, mid); }
       ctx.stroke();
-      if (this.skin === 'pro' && data) {
+      if (data) {
         ctx.lineTo(width, mid); ctx.lineTo(0, mid); ctx.closePath();
         ctx.fillStyle = deck === 'A' ? '#12bfee66' : '#ff344766';
         ctx.fill();

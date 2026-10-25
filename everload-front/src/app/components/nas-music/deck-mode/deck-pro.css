@@ -1,8 +1,5 @@
-/* Pro is isolated from the preserved Classic console. */
+/* Equipment layout layered over the shared console styles. */
 .dial-face, .quantize-full { display: none; }
-.skin-selector { display: flex; align-items: center; border: 1px solid #080b0d; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
-.console-toolbar .skin-selector button { border: 0; border-radius: 0; min-width: 42px; padding: 0 9px; font-size: 11px; color: #adb5b9; }
-.console-toolbar .skin-selector button.selected { background: #133340; color: #22c9ff; box-shadow: inset 0 -2px #12bfee; }
 
 .pro-skin { background: #121516; --col-a: #00bbf3; --col-b: #ff2439; }
 .pro-skin .console-toolbar { height: 34px; flex-basis: 34px; background: repeating-linear-gradient(0deg, #ffffff02 0 1px, transparent 1px 3px), linear-gradient(#282e31, #131719); }
@@ -182,7 +179,6 @@
 }
 @media (max-width: 768px) {
   .console-toolbar { gap: 5px; padding: 0 5px; }
-  .console-toolbar .skin-selector button { min-width: 30px; padding: 0 6px; font-size: 10px; }
   .pro-skin .console-brand { font-size: 14px; padding: 0; border: 0; }
   .pro-skin .console-toolbar { position: sticky; }
   .pro-skin .console-mode, .pro-skin .master-label { display: none; }

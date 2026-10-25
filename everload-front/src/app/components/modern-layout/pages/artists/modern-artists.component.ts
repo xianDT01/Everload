@@ -90,8 +90,8 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
     if (this.imageRetryTimer) clearTimeout(this.imageRetryTimer);
   }
 
-  private load(pathId: number) {
-    this.loading = true;
+  private load(pathId: number, background = false) {
+    this.loading = !background;
     this.loadSub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
     this.loadSub = forkJoin({
@@ -102,7 +102,7 @@ export class ModernArtistsComponent implements OnInit, OnDestroy {
         const tracks = overview.tracks || [];
         if (this.indexPoll) clearTimeout(this.indexPoll);
         if (overview.indexing) {
-          this.indexPoll = setTimeout(() => this.load(pathId), 6000);
+          this.indexPoll = setTimeout(() => this.load(pathId, true), 6000);
         }
         const map = new Map<string, ArtistGroup>();
         const profileByKey = new Map<string, ArtistProfileDto>();

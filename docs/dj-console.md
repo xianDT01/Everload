@@ -4,16 +4,15 @@ The two-deck console keeps Everload's NAS browser, local files, YouTube player,
 queues, session history and MIDI mappings. Its equipment-style layout uses a cyan
 deck A, a red deck B and a central mixer.
 
-The header offers Classic and Pro skins. Classic preserves the previous console;
-Pro uses larger platters, mirrored performance racks and rotary-style EQ controls.
+Pro is the only console layout, with larger platters, mirrored performance racks
+and rotary-style EQ controls. The Classic layout and its selector were removed.
 Its platter size follows the available compartment rather than a fixed pixel size.
 The five primary transport buttons are previous, cue, play/pause, BPM sync and
 next. The per-deck overflow menu keeps queue access, reset and positional sync.
-Both skins share the same component/player instances, queues, cues and MIDI
-mappings. Switching changes styling only, without pausing playback. The browser
-remembers the selected skin using `everload.dj.skin`.
-The independent Dark switch restores a neutral black palette for either skin.
-Its `everload.dj.theme` preference does not alter playback or the selected layout.
+The obsolete `everload.dj.skin` preference is cleared on startup, so returning
+users always receive Pro without affecting their queues, cues or MIDI mappings.
+The Dark switch restores a neutral black palette. Its `everload.dj.theme`
+preference does not alter playback or the layout.
 
 ## Performance Controls
 

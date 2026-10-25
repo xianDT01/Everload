@@ -1,5 +1,82 @@
 import { NowPlayingPanelComponent } from './now-playing-panel.component';
 
+describe('Winamp window sizing', () => {
+  let component: NowPlayingPanelComponent;
+  let viewportWidth: jasmine.Spy;
+  let viewportHeight: jasmine.Spy;
+  const storageKey = 'everload.windows.desktopSizing';
+  let originalPreference: string | null;
+
+  beforeEach(() => {
+    originalPreference = localStorage.getItem(storageKey);
+    viewportWidth = spyOnProperty(window, 'innerWidth', 'get').and.returnValue(1920);
+    viewportHeight = spyOnProperty(window, 'innerHeight', 'get').and.returnValue(1080);
+    component = Object.create(NowPlayingPanelComponent.prototype);
+    Object.assign(component, {
+      winampScale: 1.65, waEqVisible: true, waPlVisible: true,
+      desktopTaskbarHeight: 40, playerSkin: 'winamp',
+      desktopStartMenuSize: { width: 470, height: 500 },
+      desktopPanelPosition: { x: 1800, y: 950 },
+      desktopWindowZOrder: { player: 10 }
+    });
+  });
+
+  afterEach(() => {
+    if (originalPreference === null) localStorage.removeItem(storageKey);
+    else localStorage.setItem(storageKey, originalPreference);
+  });
+
+  it('opens at a larger readable size and keeps all panels above the taskbar', () => {
+    const style = component.desktopPanelStyle;
+    expect(parseFloat(style['width'])).toBe(503);
+    expect(parseFloat(style['left']) + parseFloat(style['width'])).toBeLessThanOrEqual(1912);
+    expect(parseFloat(style['top']) + parseFloat(style['height'])).toBeLessThanOrEqual(1032);
+  });
+
+  it('fits a laptop viewport without losing the preferred size on a larger screen', () => {
+    viewportHeight.and.returnValue(768);
+    expect(component.effectiveWinampScale).toBeLessThan(1.65);
+    expect(component.winampScale).toBe(1.65);
+    viewportHeight.and.returnValue(1080);
+    expect(component.effectiveWinampScale).toBe(1.65);
+  });
+
+  it('fits a narrow viewport and allows larger sizes when EQ and playlist are hidden', () => {
+    viewportWidth.and.returnValue(390);
+    expect(300 * component.effectiveWinampScale).toBeLessThanOrEqual(366);
+    viewportWidth.and.returnValue(1920);
+    component.winampScale = 2.5;
+    component.waEqVisible = false;
+    component.waPlVisible = false;
+    expect(component.effectiveWinampScale).toBe(2.5);
+  });
+
+  it('upgrades the old default but preserves a manually chosen size and other preferences', () => {
+    localStorage.setItem(storageKey, JSON.stringify({ winampScale: 1.1, taskbarHeight: 48 }));
+    (component as any).loadDesktopSizing();
+    expect(component.winampScale).toBe(1.65);
+    expect(component.desktopTaskbarHeight).toBe(48);
+    localStorage.setItem(storageKey, JSON.stringify({ winampScale: 1.4 }));
+    (component as any).loadDesktopSizing();
+    expect(component.winampScale).toBe(1.4);
+    component.winampScale = 1.1;
+    (component as any).saveDesktopSizing();
+    (component as any).loadDesktopSizing();
+    expect(component.winampScale).toBe(1.1);
+  });
+
+  it('shrinks when dragging left even if the pointer moves down', () => {
+    component.desktopPanelPosition = { x: 8, y: 8 };
+    (component as any).chromeResizeState = {
+      kind: 'winamp', startX: 500, startY: 500, startScale: 1.65
+    };
+    (component as any).handleChromeResize({ clientX: 410, clientY: 510 });
+    expect(component.winampScale).toBeCloseTo(1.35, 5);
+    (component as any).saveDesktopSizing();
+    expect(JSON.parse(localStorage.getItem(storageKey)!).winampScale).toBeCloseTo(1.35, 5);
+  });
+});
+
 describe('NowPlayingPanelComponent unavailable NAS tracks', () => {
   let component: NowPlayingPanelComponent;
   let music: jasmine.SpyObj<any>;

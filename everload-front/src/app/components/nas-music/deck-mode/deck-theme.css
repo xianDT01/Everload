@@ -4,7 +4,7 @@
 .dj-theme-toggle input:checked { background: #174b60; border-color: #38c5f0; }
 .dj-theme-toggle input:checked::after { left: 14px; background: #e0f6ff; }
 
-/* Palette only: both layouts keep their dimensions and playback state. */
+/* Palette only: changing the theme preserves dimensions and playback state. */
 .vdj-layout.dark-skin { --col-bg: #080808; --col-panel: #121212; --col-border: #050505; --col-text: #ededed; --col-dim: #a4a4a4; background: #080808; color: #ededed; }
 .vdj-layout.dark-skin .console-toolbar,
 .vdj-layout.dark-skin .deck-topbar,

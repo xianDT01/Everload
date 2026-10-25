@@ -45,9 +45,9 @@ export class ModernStateService {
   }
 
   selectPath(id: number) {
-    this._pathId.next(id);
-    localStorage.setItem('modern_path_id', String(id));
     this.invalidateOverview(id); // force refresh on explicit path change
+    localStorage.setItem('modern_path_id', String(id));
+    this._pathId.next(id);
     this.prefetchOverview(id);
   }
 

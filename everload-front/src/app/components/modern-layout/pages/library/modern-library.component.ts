@@ -63,8 +63,8 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
     if (this.searchTimer) clearTimeout(this.searchTimer);
   }
 
-  private load(pathId: number) {
-    this.loading = true;
+  private load(pathId: number, background = false) {
+    this.loading = !background;
     this.librarySub?.unsubscribe();
     this.librarySub = this.state.getOverview(pathId).subscribe({
       next: ({ tracks, indexing }) => {
@@ -72,7 +72,7 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
         this.applyFilterSort();
         this.loading = false;
         if (this.indexPoll) clearTimeout(this.indexPoll);
-        if (indexing) this.indexPoll = setTimeout(() => this.load(pathId), 6000);
+        if (indexing) this.indexPoll = setTimeout(() => this.load(pathId, true), 6000);
       },
       error: () => { this.loading = false; }
     });

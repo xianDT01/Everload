@@ -224,14 +224,14 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
     };
   }
 
-  private load(pathId: number) {
-    this.loading = true;
+  private load(pathId: number, background = false) {
+    this.loading = !background;
     this.loadSub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
 
     this.loadSub = combineLatest({
       history: this.music.getHistory(24),
-      overview: concat(
+      overview: background ? this.state.getOverview(pathId) : concat(
         this.state.getOverview(pathId, 400).pipe(map(result => ({ ...result, indexing: false }))),
         this.state.getOverview(pathId)
       ),
@@ -252,7 +252,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         const personalWeight = existingAccount ? 1 : Math.min(1, personalSignals / 15);
         if (this.indexPoll) clearTimeout(this.indexPoll);
         if (overview.indexing) {
-          this.indexPoll = setTimeout(() => this.load(pathId), 6000);
+          this.indexPoll = setTimeout(() => this.load(pathId, true), 6000);
         }
         const profileByKey = new Map<string, ArtistProfileDto>();
         profiles.forEach(profile => this.profileKeys(profile).forEach(key => profileByKey.set(key, profile)));
@@ -471,6 +471,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         this.loading = false;
       },
       error: () => {
+        if (background) {
+          this.loading = false;
+          return;
+        }
         forkJoin({
           random: this.music.getRandomTracks(14),
           profiles: this.music.getArtistProfiles()

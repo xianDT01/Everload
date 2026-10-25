@@ -226,36 +226,19 @@ describe('DeckModeComponent pitch controls', () => {
     expect(select.value).toBe(device.id);
   }));
 
-  it('switches skins without replacing player state, cues or queues', () => {
-    loadedTrack();
-    const state = component.stateA;
-    const queue = component.queueA;
-    component.hotCuesA = [10];
-    component.setSkin('classic');
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.pro-skin')).toBeNull();
-    component.setSkin('pro');
-    fixture.detectChanges();
+  it('always renders Pro without a layout selector', () => {
     expect(fixture.nativeElement.querySelector('.pro-skin')).not.toBeNull();
-    expect(component.stateA).toBe(state);
-    expect(component.queueA).toBe(queue);
-    expect(component.hotCuesA).toEqual([10]);
-    expect(playerA.pause).not.toHaveBeenCalled();
-    expect(playerB.pause).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('.skin-selector')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.btn-queue-toggle')).toBeNull();
   });
 
-  it('renders five Pro transport commands while preserving Classic controls', () => {
+  it('renders five Pro transport commands and the additional controls menu', () => {
     for (const deck of ['a', 'b']) {
       const panel = fixture.nativeElement.querySelector(`.deck-${deck}`);
       expect(panel.querySelectorAll('.pro-transport button').length).toBe(5);
       expect(panel.querySelector('.pro-deck-letter').textContent.trim()).toBe(deck.toUpperCase());
       expect(panel.querySelector('.pro-deck-tools')).not.toBeNull();
     }
-    component.setSkin('classic');
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.pro-transport')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.deck-a .btn-reset')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.deck-b .btn-queue-toggle')).not.toBeNull();
   });
 
   it('opens the Pro queue and keeps positional sync and reset available', () => {
@@ -271,7 +254,7 @@ describe('DeckModeComponent pitch controls', () => {
     expect(buttons[2].disabled).toBeTrue();
   });
 
-  it('applies the dark palette independently of either skin without interrupting playback', () => {
+  it('applies the dark palette without interrupting playback', () => {
     loadedTrack();
     const state = component.stateA;
     const queue = component.queueA;
@@ -281,14 +264,11 @@ describe('DeckModeComponent pitch controls', () => {
     fixture.detectChanges();
     expect(component.darkTheme).toBeTrue();
     expect(fixture.nativeElement.querySelector('.pro-skin.dark-skin')).not.toBeNull();
-    component.setSkin('classic');
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.dark-skin')).not.toBeNull();
     expect(toggle.checked).toBeTrue();
     component.setDarkTheme(false);
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.dark-skin')).toBeNull();
-    expect(component.skin).toBe('classic');
+    expect(fixture.nativeElement.querySelector('.pro-skin')).not.toBeNull();
     expect(component.stateA).toBe(state);
     expect(component.queueA).toBe(queue);
     expect(playerA.pause).not.toHaveBeenCalled();
@@ -306,22 +286,19 @@ describe('DeckModeComponent pitch controls', () => {
     expect(component.darkTheme).toBeTrue();
   });
 
-  it('anchors each seek input to its visible bar in both skins and preserves fractional seconds', () => {
+  it('anchors each seek input to its visible bar and preserves fractional seconds', () => {
     loadedTrack();
     component.stateB = { ...component.stateA! };
-    for (const skin of ['classic', 'pro'] as const) {
-      component.setSkin(skin);
-      fixture.detectChanges();
-      for (const deck of ['A', 'B'] as const) {
-        const input: HTMLInputElement = fixture.nativeElement.querySelector(`.deck-${deck.toLowerCase()} .progress-seek`);
-        expect(input.parentElement!.classList.contains('progress-bar')).toBeTrue();
-        expect(input.min).toBe('0');
-        expect(input.step).toBe('0.01');
-        expect(input.disabled).toBeFalse();
-        input.value = '123.45';
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        expect((deck === 'A' ? playerA : playerB).seek).toHaveBeenCalledWith(123.45);
-      }
+    fixture.detectChanges();
+    for (const deck of ['A', 'B'] as const) {
+      const input: HTMLInputElement = fixture.nativeElement.querySelector(`.deck-${deck.toLowerCase()} .progress-seek`);
+      expect(input.parentElement!.classList.contains('progress-bar')).toBeTrue();
+      expect(input.min).toBe('0');
+      expect(input.step).toBe('0.01');
+      expect(input.disabled).toBeFalse();
+      input.value = '123.45';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      expect((deck === 'A' ? playerA : playerB).seek).toHaveBeenCalledWith(123.45);
     }
   });
 
@@ -331,12 +308,4 @@ describe('DeckModeComponent pitch controls', () => {
     }
   });
 
-  it('remembers the skin and tolerates blocked browser storage', () => {
-    const save = spyOn(localStorage, 'setItem');
-    component.setSkin('classic');
-    expect(save).toHaveBeenCalledWith('everload.dj.skin', 'classic');
-    save.and.throwError('Storage blocked');
-    expect(() => component.setSkin('pro')).not.toThrow();
-    expect(component.skin).toBe('pro');
-  });
 });

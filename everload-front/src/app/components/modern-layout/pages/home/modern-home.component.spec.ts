@@ -60,6 +60,47 @@ describe('ModernHomeComponent recommendations', () => {
     expect(load).toHaveBeenCalledTimes(1);
   }));
 
+  it('keeps the complete home visible during a slow index refresh without replaying the small preview', fakeAsync(() => {
+    const fullOverview = new Subject<any>();
+    const first = { title: 'First', path: 'first.mp3', album: 'First album', artist: 'Artist' };
+    const second = { title: 'Second', path: 'second.mp3', album: 'Second album', artist: 'Artist' };
+    const component = createComponent({ fullOverview, tracks: [first] });
+    fullOverview.next({ tracks: [first, second], indexing: true });
+    fullOverview.complete();
+    const refresh = new Subject<any>();
+    const overview = spyOn((component as any).state, 'getOverview').and.returnValue(refresh);
+
+    tick(6000);
+    expect(component.loading).toBeFalse();
+    expect(component.listenNow.length).toBe(2);
+    expect(overview).toHaveBeenCalledOnceWith(1);
+    tick(1200);
+    expect(component.loading).toBeFalse();
+    refresh.next({ tracks: [first, second], indexing: false });
+    refresh.complete();
+    tick(12000);
+    expect(overview).toHaveBeenCalledTimes(1);
+    component.ngOnDestroy();
+  }));
+
+  it('retains personalized recommendations when a background refresh fails', fakeAsync(() => {
+    const fullOverview = new Subject<any>();
+    const track = { title: 'Favorite', path: 'favorite.mp3', album: 'My album', artist: 'Artist' };
+    const component = createComponent({ fullOverview, tracks: [track] });
+    fullOverview.next({ tracks: [track], indexing: true });
+    fullOverview.complete();
+    const refresh = new Subject<any>();
+    spyOn((component as any).state, 'getOverview').and.returnValue(refresh);
+    const fallback = jasmine.createSpy('getRandomTracks');
+    (component as any).music.getRandomTracks = fallback;
+    tick(6000);
+    refresh.error(new Error('Temporary network failure'));
+    expect(component.loading).toBeFalse();
+    expect(component.listenNow[0].album).toBe('My album');
+    expect(fallback).not.toHaveBeenCalled();
+    component.ngOnDestroy();
+  }));
+
   it('uses community popularity for a new account with no listening signals', () => {
     const component = createComponent({
       createdAt: '2026-09-26T00:00:00',
