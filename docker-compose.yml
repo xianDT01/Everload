@@ -36,6 +36,7 @@ services:
       args:
         # Injected by deploy.sh / deploy.ps1 so the admin panel shows the deployed commit.
         GIT_COMMIT: ${GIT_COMMIT:-unknown}
+        GIT_BRANCH: ${GIT_BRANCH:-main}
     image: everload:latest
     container_name: everload
     logging:

@@ -11,7 +11,7 @@
   </div>
 </div>
 
-<div class="main-content-layout" [ngClass]="!isModernRoute && musicService.mainPlayer.state.currentTrack ? 'player-' + playerMode : ''">
+<div class="main-content-layout" *ngIf="!maintenanceState.active || authService.isAdmin() || currentUrl.startsWith('/login')" [ngClass]="!isModernRoute && musicService.mainPlayer.state.currentTrack ? 'player-' + playerMode : ''">
   <router-outlet></router-outlet>
 </div>
 

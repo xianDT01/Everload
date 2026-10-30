@@ -22,7 +22,7 @@ public class MaintenanceController {
     /** Public endpoint — Angular app polls this to show maintenance screen to non-admin users. */
     @GetMapping("/api/maintenance/status")
     public ResponseEntity<MaintenanceStatusDto> publicStatus() {
-        return ResponseEntity.ok(maintenanceService.getStatus());
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(maintenanceService.getStatus());
     }
 
     /** Admin: get full maintenance status. */
@@ -40,6 +40,7 @@ public class MaintenanceController {
     @PutMapping("/api/admin/maintenance")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MaintenanceStatusDto> setStatus(@RequestBody Map<String, Object> body) {
+        if (!(body.get("active") instanceof Boolean)) return ResponseEntity.badRequest().build();
         boolean active = Boolean.TRUE.equals(body.get("active"));
         String message = body.get("message") instanceof String s ? s : null;
 
@@ -49,6 +50,7 @@ public class MaintenanceController {
                     "Mensaje: " + maintenanceService.getMessage());
         } else {
             maintenanceService.deactivate();
+            maintenanceService.updateMessage(message);
             auditLogService.log("MAINTENANCE_DISABLED", "System", "maintenance", null);
         }
 

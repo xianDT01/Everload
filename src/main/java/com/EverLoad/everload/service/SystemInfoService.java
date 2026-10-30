@@ -3,6 +3,8 @@ package com.everload.everload.service;
 import com.everload.everload.config.AdminConfigService;
 import com.everload.everload.dto.SystemInfoDto;
 import com.everload.everload.dto.UpdateCheckDto;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -16,12 +18,17 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.math.BigInteger;
 
 @Slf4j
 @Service
 public class SystemInfoService {
 
     private static final String UNKNOWN_COMMIT = "unknown";
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${app.version:1.0.0}")
     private String appVersion;
@@ -80,13 +87,18 @@ public class SystemInfoService {
                     .connectTimeout(Duration.ofSeconds(8))
                     .build();
 
+            URI checkUri = URI.create(updateCheckUrl.replace("{branch}",
+                    URLEncoder.encode(readBuildResource("git-branch.txt", "main"), StandardCharsets.UTF_8)));
             HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create(updateCheckUrl))
+                    .uri(checkUri)
                     .header("User-Agent", "EverLoad/" + appVersion)
                     .header("Accept", "application/json")
                     .timeout(Duration.ofSeconds(8))
                     .GET();
-            if (!githubToken.isBlank()) {
+            if (!githubToken.isBlank() && "https".equalsIgnoreCase(checkUri.getScheme())
+                    && "api.github.com".equalsIgnoreCase(checkUri.getHost())
+                    && (checkUri.getPort() == -1 || checkUri.getPort() == 443)
+                    && checkUri.getUserInfo() == null) {
                 reqBuilder.header("Authorization", "Bearer " + githubToken);
             }
             HttpRequest request = reqBuilder.build();
@@ -147,13 +159,15 @@ public class SystemInfoService {
      * URL: /repos/{owner}/{repo}/commits/{branch}
      * Compares the deployed commit hash against the latest commit on the branch.
      */
-    private UpdateCheckDto parseCommitsApiResponse(String body) {
+    private UpdateCheckDto parseCommitsApiResponse(String body) throws IOException {
         String deployedCommit = readDeployedCommit();
-
-        String latestSha    = extractJsonString(body, "sha");
-        String htmlUrl      = extractJsonString(body, "html_url");
-        String commitMsg    = extractJsonString(body, "message");
-        String commitDate   = extractJsonString(body, "date");
+        JsonNode root = objectMapper.readTree(body);
+        if (root == null || !root.isObject()) throw new IOException("Respuesta de revision vacia o no valida");
+        String latestSha = root.path("sha").asText("");
+        if (!latestSha.matches("[a-fA-F0-9]{7,40}")) throw new IOException("Respuesta de revision no valida");
+        String htmlUrl = root.path("html_url").asText("");
+        String commitMsg = root.path("commit").path("message").asText("");
+        String commitDate = root.path("commit").path("committer").path("date").asText("");
 
         // GitHub returns the full SHA — we only show the first 7 chars
         String latestShort   = latestSha.length() >= 7 ? latestSha.substring(0, 7) : latestSha;
@@ -167,14 +181,15 @@ public class SystemInfoService {
                 : commitMsg.trim();
         if (shortMsg.length() > 80) shortMsg = shortMsg.substring(0, 80) + "…";
 
-        boolean updateAvailable = !latestSha.isBlank()
-                && !deployedCommit.equals(UNKNOWN_COMMIT)
-                && !latestSha.startsWith(deployedCommit)
-                && !deployedCommit.startsWith(latestShort);
+        boolean comparable = deployedCommit.matches("[a-fA-F0-9]{7,40}");
+        boolean updateAvailable = comparable
+                && !latestSha.toLowerCase(java.util.Locale.ROOT).startsWith(deployedCommit.toLowerCase(java.util.Locale.ROOT))
+                && !deployedCommit.toLowerCase(java.util.Locale.ROOT).startsWith(latestSha.toLowerCase(java.util.Locale.ROOT));
 
         return UpdateCheckDto.builder()
                 .checkConfigured(true)
                 .updateAvailable(updateAvailable)
+                .error(comparable ? null : "La compilacion no tiene una revision limpia identificable; no se puede confirmar si esta actualizada")
                 .currentCommit(deployedShort)
                 .latestCommit(latestShort)
                 .commitMessage(shortMsg)
@@ -190,13 +205,29 @@ public class SystemInfoService {
      * Parses the GitHub Releases API response (kept for compatibility).
      * URL: /repos/{owner}/{repo}/releases/latest
      */
-    private UpdateCheckDto parseReleasesApiResponse(String body) {
-        String latestVersion = extractJsonString(body, "tag_name").replaceFirst("^v", "");
-        String releaseUrl    = extractJsonString(body, "html_url");
-        String releaseNotes  = extractJsonString(body, "body");
+    private UpdateCheckDto parseReleasesApiResponse(String body) throws IOException {
+        JsonNode root = objectMapper.readTree(body);
+        if (root == null || !root.isObject()) throw new IOException("Respuesta de version vacia o no valida");
+        String latestVersion = root.path("tag_name").asText("").replaceFirst("^v", "");
+        String releaseUrl = root.path("html_url").asText("");
+        String releaseNotes = root.path("body").asText("");
         if (releaseNotes.length() > 500) releaseNotes = releaseNotes.substring(0, 500) + "…";
 
-        boolean updateAvailable = !latestVersion.isBlank() && !latestVersion.equals(appVersion);
+        String currentVersion = appVersion.replaceFirst("^v", "");
+        if (!latestVersion.matches("\\d+(?:\\.\\d+){0,3}")
+                || !currentVersion.matches("\\d+(?:\\.\\d+){0,3}")
+                || root.path("draft").asBoolean() || root.path("prerelease").asBoolean()) {
+            throw new IOException("No se puede comparar esta version con una publicacion estable");
+        }
+        String[] latestParts = latestVersion.split("\\.");
+        String[] currentParts = currentVersion.split("\\.");
+        int comparison = 0;
+        for (int i = 0; i < Math.max(latestParts.length, currentParts.length) && comparison == 0; i++) {
+            BigInteger latest = new BigInteger(i < latestParts.length ? latestParts[i] : "0");
+            BigInteger current = new BigInteger(i < currentParts.length ? currentParts[i] : "0");
+            comparison = latest.compareTo(current);
+        }
+        boolean updateAvailable = comparison > 0;
 
         return UpdateCheckDto.builder()
                 .checkConfigured(true)
@@ -215,12 +246,19 @@ public class SystemInfoService {
      * Returns "unknown" if the file is not present (e.g. local dev without Docker).
      */
     private String readDeployedCommit() {
+        return readBuildResource("git-commit.txt", UNKNOWN_COMMIT);
+    }
+
+    private String readBuildResource(String name, String fallback) {
         try {
-            ClassPathResource res = new ClassPathResource("git-commit.txt");
-            if (!res.exists()) return UNKNOWN_COMMIT;
-            return new String(res.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            ClassPathResource res = new ClassPathResource(name);
+            if (!res.exists()) return fallback;
+            try (InputStream stream = res.getInputStream()) {
+                String value = new String(stream.readAllBytes(), StandardCharsets.UTF_8).trim();
+                return value.isBlank() ? fallback : value;
+            }
         } catch (Exception e) {
-            return UNKNOWN_COMMIT;
+            return fallback;
         }
     }
 
@@ -232,22 +270,4 @@ public class SystemInfoService {
         return String.format("%.1f MB", bytes / 1_048_576.0);
     }
 
-    /** Minimal JSON string extractor — avoids an extra Jackson call for this single use. */
-    private String extractJsonString(String json, String key) {
-        String search = "\"" + key + "\":";
-        int idx = json.indexOf(search);
-        if (idx == -1) return "";
-        int start = json.indexOf('"', idx + search.length());
-        if (start == -1) return "";
-        int end = start + 1;
-        while (end < json.length()) {
-            char c = json.charAt(end);
-            if (c == '"' && json.charAt(end - 1) != '\\') break;
-            end++;
-        }
-        return json.substring(start + 1, end)
-                .replace("\\n", "\n")
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\");
-    }
 }

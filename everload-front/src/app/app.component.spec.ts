@@ -93,6 +93,21 @@ describe('AppComponent', () => {
     expect(compiled.querySelector('.maintenance-overlay')).toBeNull();
   });
 
+  it('remounts user views after maintenance and leaves admin access available', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.maintenanceState = { active: true, message: 'Working' };
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.main-content-layout')).toBeNull();
+    authSpy.isAdmin.and.returnValue(true);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.main-content-layout')).not.toBeNull();
+    authSpy.isAdmin.and.returnValue(false);
+    fixture.componentInstance.maintenanceState = { active: false, message: '' };
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.main-content-layout')).not.toBeNull();
+  });
+
   it('starts global chat polling and stops it again as the auth state changes', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();

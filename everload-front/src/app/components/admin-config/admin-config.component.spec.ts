@@ -195,6 +195,33 @@ describe('AdminConfigComponent', () => {
     expect(component.userMsg).toBe('ADMIN.USER_REACTIVATED');
   });
 
+  it('notifies users without scheduling preparation in a browser timer', () => {
+    flushConfigRequest();
+    component.warnMaintenance();
+    component.warnMaintenance();
+    const request = httpMock.expectOne(`${BACKEND}/api/admin/system/warn-maintenance`);
+    expect(request.request.body).toEqual({});
+    request.flush({ ok: true });
+    expect(component.warnMaintenanceLoading).toBeFalse();
+    expect(component.prepareUpdateMsg).toBe('ADMIN.MAINTENANCE_NOTICE_SENT');
+    httpMock.expectNone(`${BACKEND}/api/admin/system/prepare-update`);
+  });
+
+  it('prevents duplicate preparations and refreshes the actual state after failure', () => {
+    flushConfigRequest();
+    const maintenance = spyOn(component, 'loadMaintenance');
+    const backups = spyOn(component, 'loadBackups');
+    component.prepareUpdate();
+    component.prepareUpdate();
+    httpMock.expectOne(`${BACKEND}/api/admin/system/prepare-update`).flush({ message: 'Backup failed' },
+      { status: 500, statusText: 'Internal Server Error' });
+    expect(component.prepareUpdateLoading).toBeFalse();
+    expect(component.prepareUpdateHasError).toBeTrue();
+    expect(component.prepareUpdateMsg).toContain('Backup failed');
+    expect(maintenance).toHaveBeenCalledTimes(1);
+    expect(backups).toHaveBeenCalledTimes(1);
+  });
+
   it('clears a group chat history without loading message content', () => {
     flushConfigRequest();
     spyOn(window, 'confirm').and.returnValue(true);

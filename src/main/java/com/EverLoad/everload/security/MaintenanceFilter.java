@@ -1,6 +1,7 @@
 package com.everload.everload.security;
 
 import com.everload.everload.service.MaintenanceService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,13 +13,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Intercepts all /api/** requests while maintenance mode is active.
  *
  * <p>Exemptions (always pass-through):
  * <ul>
- *   <li>/api/auth/** — login/register remains accessible</li>
+ *   <li>Login, logout and session refresh remain accessible; registration is blocked</li>
  *   <li>/api/maintenance/status — public status check for the Angular app</li>
  *   <li>ADMIN-role requests — administrators can work normally</li>
  *   <li>Non-API paths — Angular static assets are never blocked</li>
@@ -32,6 +34,7 @@ import java.io.IOException;
 public class MaintenanceFilter extends OncePerRequestFilter {
 
     private final MaintenanceService maintenanceService;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -48,8 +51,9 @@ public class MaintenanceFilter extends OncePerRequestFilter {
 
         // Always allow: auth endpoints, public status check, non-API paths
         if (!path.startsWith("/api/")
-                || path.startsWith("/api/auth/")
-                || path.startsWith("/api/maintenance/status")) {
+                || path.equals("/api/auth/login") || path.equals("/api/auth/logout")
+                || path.equals("/api/auth/refresh") || path.equals("/api/auth/session/refresh")
+                || path.equals("/api/maintenance/status")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -66,10 +70,9 @@ public class MaintenanceFilter extends OncePerRequestFilter {
         // Return 503 Service Unavailable with JSON payload
         response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
         response.setContentType("application/json;charset=UTF-8");
-        String escapedMessage = maintenanceService.getMessage()
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"");
-        response.getWriter().write(
-                "{\"maintenance\":true,\"message\":\"" + escapedMessage + "\"}");
+        response.setHeader("Retry-After", "30");
+        response.setHeader("Cache-Control", "no-store");
+        objectMapper.writeValue(response.getWriter(), Map.of(
+                "maintenance", true, "message", maintenanceService.getMessage()));
     }
 }

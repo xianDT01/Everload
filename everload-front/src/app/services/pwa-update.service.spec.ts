@@ -3,6 +3,7 @@ import { of, Subject, throwError } from 'rxjs';
 import { AndroidReleaseService } from './android-release.service';
 import { ApiBaseService } from './api-base.service';
 import { PwaUpdateService } from './pwa-update.service';
+import { fakeAsync, tick } from '@angular/core/testing';
 
 describe('PwaUpdateService', () => {
   let updates: PwaUpdateService;
@@ -23,6 +24,19 @@ describe('PwaUpdateService', () => {
       apiBase
     );
   });
+
+  afterEach(() => updates.ngOnDestroy());
+
+  it('initializes once, checks periodically and releases its timer on destroy', fakeAsync(() => {
+    const check = spyOn(updates, 'checkForUpdate');
+    updates.init();
+    updates.init();
+    tick(15 * 60 * 1000);
+    expect(check).toHaveBeenCalledTimes(1);
+    updates.ngOnDestroy();
+    tick(15 * 60 * 1000);
+    expect(check).toHaveBeenCalledTimes(1);
+  }));
 
   it('does not request Android releases in a browser', () => {
     updates.checkAndroidUpdate();

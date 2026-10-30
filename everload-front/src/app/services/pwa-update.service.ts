@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { AndroidRelease, AndroidReleaseService } from './android-release.service';
 import { ApiBaseService } from './api-base.service';
@@ -19,13 +19,21 @@ export interface AppUpdatePrompt {
 }
 
 @Injectable({ providedIn: 'root' })
-export class PwaUpdateService {
+export class PwaUpdateService implements OnDestroy {
   private _updateAvailable = new BehaviorSubject<boolean>(false);
   readonly updateAvailable$ = this._updateAvailable.asObservable();
   private _updatePrompt = new BehaviorSubject<AppUpdatePrompt | null>(null);
   readonly updatePrompt$ = this._updatePrompt.asObservable();
   private androidCheckInFlight = false;
   private checkTimer?: number;
+  private initialized = false;
+  private webCheckInFlight = false;
+  private versionSub?: Subscription;
+  private readonly onResume = () => {
+    if (document.hidden) return;
+    this.checkForUpdate();
+    this.checkAndroidUpdate();
+  };
 
   constructor(
     private swUpdate: SwUpdate,
@@ -34,15 +42,20 @@ export class PwaUpdateService {
   ) {}
 
   init(): void {
+    if (this.initialized) return;
+    this.initialized = true;
     if (this.swUpdate.isEnabled) {
       // Detect when a new version is downloaded and ready to activate
-      this.swUpdate.versionUpdates
+      this.versionSub = this.swUpdate.versionUpdates
         .pipe(filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY'))
         .subscribe(() => {
           this.showWebUpdate();
         });
 
       this.checkForUpdate();
+      navigator.serviceWorker?.ready.then(() => {
+        if (this.initialized) this.checkForUpdate();
+      }).catch(() => {});
     }
 
     this.checkAndroidUpdate();
@@ -51,13 +64,25 @@ export class PwaUpdateService {
       this.checkTimer = window.setInterval(() => {
         this.checkForUpdate();
         this.checkAndroidUpdate();
-      }, 6 * 60 * 60 * 1000);
+      }, 15 * 60 * 1000);
     }
+    document.addEventListener('visibilitychange', this.onResume);
+    window.addEventListener('online', this.onResume);
+  }
+
+  ngOnDestroy(): void {
+    this.initialized = false;
+    if (this.checkTimer) window.clearInterval(this.checkTimer);
+    this.checkTimer = undefined;
+    this.versionSub?.unsubscribe();
+    document.removeEventListener('visibilitychange', this.onResume);
+    window.removeEventListener('online', this.onResume);
   }
 
   checkForUpdate(): void {
-    if (this.swUpdate.isEnabled) {
-      this.swUpdate.checkForUpdate().catch(() => {});
+    if (this.swUpdate.isEnabled && !this.webCheckInFlight) {
+      this.webCheckInFlight = true;
+      this.swUpdate.checkForUpdate().catch(() => {}).finally(() => { this.webCheckInFlight = false; });
     }
   }
 

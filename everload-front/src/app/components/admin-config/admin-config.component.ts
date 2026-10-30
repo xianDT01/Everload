@@ -251,7 +251,6 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
     if (this.dashboardRefreshInterval) { clearInterval(this.dashboardRefreshInterval); this.dashboardRefreshInterval = null; }
-    if (this.warnCountdownInterval) { clearInterval(this.warnCountdownInterval); this.warnCountdownInterval = null; }
   }
 
   changeLanguage(lang: string) {
@@ -975,8 +974,8 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   systemMsg = '';
   prepareUpdateMsg = '';
   prepareUpdateLoading = false;
-  warnCountdown = 0;
-  private warnCountdownInterval: any = null;
+  warnMaintenanceLoading = false;
+  prepareUpdateHasError = false;
 
   loadSystemInfo(): void {
     this.systemLoading = true;
@@ -1011,36 +1010,27 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     });
   }
 
-  warnAndPrepare(): void {
+  warnMaintenance(): void {
+    if (this.warnMaintenanceLoading || this.prepareUpdateLoading) return;
+    this.warnMaintenanceLoading = true;
+    this.prepareUpdateHasError = false;
     this.prepareUpdateMsg = '';
-    this.http.post<any>(`${this.BASE}/api/admin/system/warn-maintenance`, { minutes: 1 }).subscribe({
+    this.http.post<any>(`${this.BASE}/api/admin/system/warn-maintenance`, {}).subscribe({
       next: () => {
-        this.warnCountdown = 60;
-        this.warnCountdownInterval = setInterval(() => {
-          this.warnCountdown--;
-          if (this.warnCountdown <= 0) {
-            clearInterval(this.warnCountdownInterval);
-            this.warnCountdownInterval = null;
-            this.warnCountdown = 0;
-            this.prepareUpdate();
-          }
-        }, 1000);
+        this.warnMaintenanceLoading = false;
+        this.prepareUpdateMsg = this.translate.instant('ADMIN.MAINTENANCE_NOTICE_SENT');
       },
       error: () => {
+        this.warnMaintenanceLoading = false;
+        this.prepareUpdateHasError = true;
         this.prepareUpdateMsg = '❌ ' + this.translate.instant('ADMIN.WARN_MAINTENANCE_ERROR');
       }
     });
   }
 
-  cancelWarn(): void {
-    if (this.warnCountdownInterval) {
-      clearInterval(this.warnCountdownInterval);
-      this.warnCountdownInterval = null;
-    }
-    this.warnCountdown = 0;
-  }
-
   prepareUpdate(): void {
+    if (this.prepareUpdateLoading || this.warnMaintenanceLoading) return;
+    this.prepareUpdateHasError = false;
     this.prepareUpdateLoading = true;
     this.prepareUpdateMsg = this.translate.instant('ADMIN.UPDATE_PREPARING_LONG');
     this.http.post<any>(`${this.BASE}/api/admin/system/prepare-update`, {
@@ -1048,13 +1038,17 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: (res) => {
         this.prepareUpdateLoading = false;
+        this.prepareUpdateHasError = res.success === false;
         this.prepareUpdateMsg = res.message;
         this.loadMaintenance();
         this.loadBackups();
       },
       error: (err) => {
         this.prepareUpdateLoading = false;
-        this.prepareUpdateMsg = '❌ ' + (err?.error?.error || this.translate.instant('ADMIN.UPDATE_PREPARING_ERROR'));
+        this.prepareUpdateHasError = true;
+        this.prepareUpdateMsg = '❌ ' + (err?.error?.error || err?.error?.message || this.translate.instant('ADMIN.UPDATE_PREPARING_ERROR'));
+        this.loadMaintenance();
+        this.loadBackups();
       }
     });
   }

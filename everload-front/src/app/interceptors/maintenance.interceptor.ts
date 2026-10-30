@@ -3,8 +3,8 @@ import {
   HttpInterceptor, HttpRequest, HttpHandler,
   HttpEvent, HttpErrorResponse
 } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { from, Observable, throwError } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
 import { MaintenanceService } from '../services/maintenance.service';
 
 @Injectable()
@@ -16,18 +16,24 @@ export class MaintenanceInterceptor implements HttpInterceptor {
     return next.handle(req).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 503) {
-          try {
-            const body = error.error;
-            // Backend sets { maintenance: true, message: "..." } when in maintenance mode
-            if (body && body.maintenance === true) {
-              this.maintenanceService.setMaintenance(true, body.message);
-            }
-          } catch {
-            // Not a maintenance 503 — ignore
-          }
+          return from(this.recordMaintenance(error.error)).pipe(
+            mergeMap(() => throwError(() => error))
+          );
         }
         return throwError(() => error);
       })
     );
+  }
+
+  private async recordMaintenance(payload: unknown): Promise<void> {
+    try {
+      let body: any = payload;
+      if (body instanceof Blob) body = await body.text();
+      if (typeof body === 'string') body = JSON.parse(body);
+      if (body?.maintenance === true) {
+        this.maintenanceService.setMaintenance(true,
+          typeof body.message === 'string' ? body.message : undefined);
+      }
+    } catch { /* Ordinary overload/proxy responses are not maintenance announcements. */ }
   }
 }

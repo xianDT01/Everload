@@ -40,8 +40,7 @@
       "urls": [
         "/api/chat/**",
         "/api/notifications/**",
-        "/api/presence/**",
-        "/api/maintenance/**"
+        "/api/presence/**"
       ],
       "cacheConfig": {
         "strategy": "freshness",

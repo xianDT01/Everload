@@ -18,7 +18,9 @@ COPY . .
 # Embed the current git commit hash so the app knows what revision is deployed.
 # Passed from docker-compose (or deploy script) via --build-arg GIT_COMMIT=$(git rev-parse HEAD).
 ARG GIT_COMMIT=unknown
+ARG GIT_BRANCH=main
 RUN echo "$GIT_COMMIT" > src/main/resources/git-commit.txt
+RUN printf '%s\n' "$GIT_BRANCH" > src/main/resources/git-branch.txt
 
 # Asegura permisos para el wrapper, por si existe
 RUN chmod +x mvnw || true

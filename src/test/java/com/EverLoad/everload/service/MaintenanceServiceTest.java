@@ -75,7 +75,7 @@ class MaintenanceServiceTest {
         restored.loadFromDisk();
 
         assertTrue(restored.isActive());
-        assertEquals("Restored message", restored.getMessage());
+        assertEquals("Restored message\nignored second line", restored.getMessage());
 
         Files.writeString(flag, "  \nother");
         MaintenanceService blank = new MaintenanceService();
@@ -86,28 +86,29 @@ class MaintenanceServiceTest {
     }
 
     @Test
-    void loadFromDiskIgnoresMissingFlagAndReadFailure() throws Exception {
+    void loadFromDiskAllowsMissingFlagButFailsClosedForUnreadableFlag() throws Exception {
         service.loadFromDisk();
         assertFalse(service.isActive());
 
         Files.createDirectories(flag.getParent());
         Files.createDirectory(flag);
         service.loadFromDisk();
-        assertFalse(service.isActive());
+        assertTrue(service.isActive());
     }
 
     @Test
-    void persistenceFailuresDoNotPreventStateChanges() throws Exception {
+    void persistenceFailuresRejectChangesInsteadOfClaimingSuccess() throws Exception {
         Files.createDirectories(flag.getParent());
         Files.createDirectory(flag);
 
-        service.activate("Still active");
-        assertTrue(service.isActive());
-        assertEquals("Still active", service.getMessage());
-
         Files.writeString(flag.resolve("child"), "keep directory non-empty");
-        service.deactivate();
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.activate("Still active"));
         assertFalse(service.isActive());
+        service.loadFromDisk();
+        assertTrue(service.isActive());
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, service::deactivate);
+        assertTrue(service.isActive());
         assertTrue(Files.exists(flag));
     }
 }

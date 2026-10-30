@@ -24,6 +24,8 @@ import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mockConstruction;
 
 class SystemInfoControllerTest {
 
@@ -82,7 +84,53 @@ class SystemInfoControllerTest {
         assertEquals("backup.zip", body.get("backup"));
         assertEquals(true, body.get("maintenanceActive"));
         verify(maintenanceService).activate("Actualizando");
+        var order = inOrder(maintenanceService, backupService);
+        order.verify(maintenanceService).activate("Actualizando");
+        order.verify(backupService).createBackup();
+        assertEquals(true, body.get("preparedOnly"));
         verify(auditLogService).log("UPDATE_STARTED", "System", "update", "backup=backup.zip | maintenance=ON");
+    }
+
+    @Test
+    void warningWithoutDeadlineDoesNotPromiseAnAutomaticScheduledUpdate() {
+        Map<?, ?> body = (Map<?, ?>) controller.warnMaintenance(null).getBody();
+        assertTrue(String.valueOf(body.get("message")).contains("proximo mantenimiento"));
+        assertEquals(400, controller.warnMaintenance(Map.of("minutes", -1)).getStatusCode().value());
+    }
+
+    @Test
+    void failedBackupRestoresThePreviousMaintenanceState() throws Exception {
+        when(backupService.createBackup()).thenThrow(new java.io.IOException("disk unavailable"));
+        assertEquals(500, controller.prepareUpdate(Map.of()).getStatusCode().value());
+        verify(maintenanceService).deactivate();
+        when(maintenanceService.isActive()).thenReturn(true);
+        when(maintenanceService.getMessage()).thenReturn("Already servicing");
+        assertEquals(500, controller.prepareUpdate(Map.of()).getStatusCode().value());
+        verify(maintenanceService).activate("Already servicing");
+    }
+
+    @Test
+    void simultaneousPreparationIsRejected() throws Exception {
+        when(backupService.createBackup()).thenAnswer(invocation -> {
+            assertEquals(409, controller.prepareUpdate(Map.of()).getStatusCode().value());
+            return BackupDto.builder().name("backup.zip").build();
+        });
+        assertEquals(200, controller.prepareUpdate(Map.of()).getStatusCode().value());
+    }
+
+    @Test
+    void scriptTimeoutTerminatesTheProcessAndLeavesMaintenanceActive() throws Exception {
+        when(backupService.createBackup()).thenReturn(BackupDto.builder().name("backup.zip").build());
+        ReflectionTestUtils.setField(controller, "updateScript", "test-script");
+        Process process = mock(Process.class);
+        when(process.isAlive()).thenReturn(true);
+        when(process.waitFor(120, TimeUnit.SECONDS)).thenReturn(false);
+        try (var ignored = mockConstruction(ProcessBuilder.class,
+                (builder, context) -> when(builder.start()).thenReturn(process))) {
+            Map<?, ?> body = (Map<?, ?>) controller.prepareUpdate(Map.of()).getBody();
+            assertEquals(false, body.get("success"));
+            verify(process).destroyForcibly();
+        }
     }
 
     @Test

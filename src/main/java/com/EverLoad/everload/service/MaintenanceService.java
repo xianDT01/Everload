@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Maintenance mode state — persisted to a flag file so it survives Docker restarts.
@@ -35,12 +38,12 @@ public class MaintenanceService {
         Path flag = Path.of(flagFilePath);
         if (!Files.exists(flag)) return;
         try {
-            List<String> lines = Files.readAllLines(flag);
+            String saved = Files.readString(flag);
+            this.message = saved.isBlank() ? DEFAULT_MESSAGE : saved;
             this.active = true;
-            this.message = (!lines.isEmpty() && !lines.get(0).isBlank())
-                    ? lines.get(0) : DEFAULT_MESSAGE;
             log.info("Maintenance mode restored from flag file: {}", flag);
         } catch (IOException e) {
+            this.active = true;
             log.warn("Could not read maintenance flag file '{}': {}", flag, e.getMessage());
         }
     }
@@ -48,35 +51,50 @@ public class MaintenanceService {
     public boolean isActive() { return active; }
     public String getMessage() { return message; }
 
-    public MaintenanceStatusDto getStatus() {
+    public synchronized MaintenanceStatusDto getStatus() {
         return new MaintenanceStatusDto(active, message);
     }
 
-    public void activate(String customMessage) {
-        this.message = (customMessage != null && !customMessage.isBlank()) ? customMessage : DEFAULT_MESSAGE;
+    public synchronized void activate(String customMessage) {
+        String nextMessage = (customMessage != null && !customMessage.isBlank()) ? customMessage : DEFAULT_MESSAGE;
+        writeFlagFile(nextMessage);
+        this.message = nextMessage;
         this.active = true;
-        writeFlagFile();
     }
 
-    public void deactivate() {
-        this.active = false;
+    public synchronized void deactivate() {
         deleteFlagFile();
+        this.active = false;
     }
 
-    public void updateMessage(String customMessage) {
+    public synchronized void updateMessage(String customMessage) {
         if (customMessage != null && !customMessage.isBlank()) {
+            if (this.active) writeFlagFile(customMessage);
             this.message = customMessage;
-            if (this.active) writeFlagFile();
         }
     }
 
-    private void writeFlagFile() {
-        Path flag = Path.of(flagFilePath);
+    private void writeFlagFile(String nextMessage) {
+        Path flag = Path.of(flagFilePath).toAbsolutePath();
+        Path temporary = null;
         try {
-            if (flag.getParent() != null) Files.createDirectories(flag.getParent());
-            Files.writeString(flag, this.message);
+            Files.createDirectories(flag.getParent());
+            temporary = Files.createTempFile(flag.getParent(), "maintenance-", ".tmp");
+            Files.writeString(temporary, nextMessage);
+            try {
+                Files.move(temporary, flag, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temporary, flag, StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             log.error("Could not write maintenance flag file '{}': {}", flag, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "No se pudo guardar el estado de mantenimiento", e);
+        } finally {
+            if (temporary != null) {
+                try { Files.deleteIfExists(temporary); }
+                catch (IOException e) { log.warn("Could not remove temporary maintenance file", e); }
+            }
         }
     }
 
@@ -85,6 +103,8 @@ public class MaintenanceService {
             Files.deleteIfExists(Path.of(flagFilePath));
         } catch (IOException e) {
             log.warn("Could not delete maintenance flag file '{}': {}", flagFilePath, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "No se pudo desactivar el mantenimiento de forma persistente", e);
         }
     }
 }

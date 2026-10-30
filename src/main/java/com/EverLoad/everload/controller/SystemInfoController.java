@@ -17,6 +17,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Tag(name = "System", description = "Información del sistema y gestión de actualizaciones")
@@ -41,6 +43,7 @@ public class SystemInfoController {
 
     @Value("${app.update.script:}")
     private String updateScript;
+    private final AtomicBoolean preparing = new AtomicBoolean();
 
     // ── System info ────────────────────────────────────────────────────────────
 
@@ -63,15 +66,22 @@ public class SystemInfoController {
 
     @PostMapping("/warn-maintenance")
     public ResponseEntity<Object> warnMaintenance(@RequestBody(required = false) Map<String, Object> body) {
-        int minutes = 1;
+        int minutes = 0;
         String customMsg = null;
         if (body != null) {
-            if (body.get("minutes") instanceof Number n) minutes = n.intValue();
+            if (body.containsKey("minutes")) {
+                if (!(body.get("minutes") instanceof Number n) || n.doubleValue() != n.intValue()
+                        || n.intValue() < 1 || n.intValue() > 1440) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "El plazo debe estar entre 1 y 1440 minutos"));
+                }
+                minutes = n.intValue();
+            }
             if (body.get(MESSAGE_KEY) instanceof String s && !s.isBlank()) customMsg = s;
         }
         String minuteLabel = minutes == 1 ? "minuto" : "minutos";
-        String defaultMessage = "⚠️ El sistema entrará en mantenimiento en " + minutes + " " + minuteLabel
-                + " para realizar una actualización.";
+        String defaultMessage = minutes > 0
+                ? "El sistema entrara en mantenimiento en " + minutes + " " + minuteLabel + "."
+                : "Se ha anunciado un proximo mantenimiento. Guarda los cambios pendientes.";
         String msg = customMsg != null ? customMsg : defaultMessage;
         notificationService.createForAllActiveUsers("admin_notice", "⚠️ Mantenimiento próximo", msg);
         auditLogService.log("MAINTENANCE_WARNING", AUDIT_SYSTEM, "maintenance",
@@ -84,8 +94,8 @@ public class SystemInfoController {
     /**
      * Pre-update routine:
      * <ol>
-     *   <li>Create an automatic backup</li>
      *   <li>Activate maintenance mode</li>
+     *   <li>Create an automatic backup; restore the prior mode if it fails</li>
      *   <li>Optionally run the configured update script</li>
      * </ol>
      *
@@ -93,11 +103,25 @@ public class SystemInfoController {
      */
     @PostMapping("/prepare-update")
     public ResponseEntity<Object> prepareUpdate(@RequestBody(required = false) Map<String, String> body) {
+        if (!preparing.compareAndSet(false, true)) {
+            return ResponseEntity.status(409).body(Map.of("error", "Ya hay una preparacion en curso"));
+        }
+        try {
+            return prepareUpdateInternal(body);
+        } finally {
+            preparing.set(false);
+        }
+    }
+
+    private ResponseEntity<Object> prepareUpdateInternal(Map<String, String> body) {
         String maintenanceMsg = (body != null && body.containsKey(MESSAGE_KEY))
                 ? body.get(MESSAGE_KEY)
                 : "La aplicación está actualizándose. Vuelve en unos minutos.";
 
-        // Step 1 — Auto backup
+        boolean wasActive = maintenanceService.isActive();
+        String previousMessage = maintenanceService.getMessage();
+        maintenanceService.activate(maintenanceMsg);
+        // Block new user writes before taking the pre-update snapshot.
         String backupName = null;
         try {
             BackupDto backup = backupService.createBackup();
@@ -105,25 +129,28 @@ public class SystemInfoController {
             log.info("[UPDATE] Pre-update backup created: {}", backupName);
         } catch (Exception e) {
             log.error("[UPDATE] Pre-update backup failed: {}", e.getMessage());
+            if (wasActive) maintenanceService.activate(previousMessage);
+            else maintenanceService.deactivate();
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "No se pudo crear la copia de seguridad previa: "
-                                          + e.getMessage()));
+                    .body(Map.of("error", "No se pudo crear la copia de seguridad previa. No se ha preparado la actualizacion."));
         }
 
-        // Step 2 — Activate maintenance
-        maintenanceService.activate(maintenanceMsg);
         auditLogService.log("UPDATE_STARTED", AUDIT_SYSTEM, AUDIT_UPDATE,
                 "backup=" + backupName + " | maintenance=ON");
 
         // Step 3 — Run update script (optional)
         if (updateScript != null && !updateScript.isBlank()) {
+            Process process = null;
             try {
                 log.info("[UPDATE] Running update script: {}", updateScript);
                 ProcessBuilder pb = new ProcessBuilder(updateScript.split("\\s+"));
-                pb.redirectErrorStream(true);
-                Process process = pb.start();
-                String output = new String(process.getInputStream().readAllBytes());
-                int exitCode = process.waitFor();
+                pb.redirectError(ProcessBuilder.Redirect.DISCARD);
+                pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+                process = pb.start();
+                if (!process.waitFor(120, TimeUnit.SECONDS)) {
+                    throw new java.io.IOException("El script ha superado el limite de 120 segundos");
+                }
+                int exitCode = process.exitValue();
 
                 if (exitCode == 0) {
                     maintenanceService.deactivate();
@@ -132,7 +159,6 @@ public class SystemInfoController {
                     return ResponseEntity.ok(Map.of(
                             SUCCESS_KEY, true,
                             BACKUP_KEY, backupName,
-                            "scriptOutput", output,
                             MESSAGE_KEY, "✅ Actualización completada. Mantenimiento desactivado."));
                 } else {
                     auditLogService.log(UPDATE_FAILED_EVENT, AUDIT_SYSTEM, AUDIT_UPDATE,
@@ -140,7 +166,6 @@ public class SystemInfoController {
                     return ResponseEntity.ok(Map.of(
                             SUCCESS_KEY, false,
                             BACKUP_KEY, backupName,
-                            "scriptOutput", output,
                             MESSAGE_KEY, "⚠️ El script de actualización falló (código " + exitCode + "). " +
                                        "El modo mantenimiento sigue activo. Revisa los logs y desactívalo manualmente."));
                 }
@@ -163,16 +188,19 @@ public class SystemInfoController {
                                 BACKUP_KEY, backupName,
                                 MESSAGE_KEY, "❌ Error al ejecutar el script: " + e.getMessage()
                                          + ". El mantenimiento sigue activo."));
+            } finally {
+                if (process != null && process.isAlive()) process.destroyForcibly();
             }
         }
 
         // No script configured — return instructions for manual update
         return ResponseEntity.ok(Map.of(
                 SUCCESS_KEY, true,
+                "preparedOnly", true,
                 BACKUP_KEY, backupName,
                 "maintenanceActive", true,
                 MESSAGE_KEY, "✅ Copia de seguridad creada y modo mantenimiento activado. " +
-                           "Realiza la actualización manualmente (p. ej. docker pull + restart) " +
+                           "Realiza el despliegue desde el servidor, comprueba la salud del contenedor " +
                            "y desactiva el mantenimiento desde el panel cuando termines."));
     }
 }

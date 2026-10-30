@@ -80,10 +80,11 @@ class SystemInfoServiceTest {
     void commitParserMapsLatestCommitDetails() {
         String body = """
                 {
-                  "sha":"1234567890abcdef",
-                  "html_url":"https://github.test/commit/123",
-                  "message":"First line\\nSecond line",
-                  "date":"2026-07-13T10:00:00Z"
+                  "sha" : "1234567890abcdef",
+                  "html_url" : "https://github.test/commit/123",
+                  "commit": {"message":"First line\\nSecond line",
+                    "committer":{"date":"2026-07-13T10:00:00Z"}},
+                  "author":{"html_url":"https://github.test/not-the-commit"}
                 }
                 """;
 
@@ -93,6 +94,53 @@ class SystemInfoServiceTest {
         assertEquals("First line", result.getCommitMessage());
         assertEquals("https://github.test/commit/123", result.getCommitUrl());
         assertFalse(result.isUpdateAvailable());
+        assertNotNull(result.getError());
+    }
+
+    @Test
+    void releasesDoNotOfferDowngradesAndParseEscapedJson() {
+        UpdateCheckDto older = ReflectionTestUtils.invokeMethod(service, "parseReleasesApiResponse",
+                "{\"tag_name\":\"v1.9\",\"body\":\"Text \\\"quoted\\\"\\nnext line\"}");
+        assertFalse(older.isUpdateAvailable());
+        assertEquals("Text \"quoted\"\nnext line", older.getReleaseNotes());
+        UpdateCheckDto newer = ReflectionTestUtils.invokeMethod(service, "parseReleasesApiResponse",
+                "{\"tag_name\":\"v2.10.0\"}");
+        assertTrue(newer.isUpdateAvailable());
+    }
+
+    @Test
+    void customUpdateEndpointsNeverReceiveTheGithubToken() throws Exception {
+        var authorization = new java.util.concurrent.atomic.AtomicReference<String>();
+        var server = com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/releases/latest", exchange -> {
+            authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+            byte[] response = "{\"tag_name\":\"v2.1.0\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, response.length);
+            try (var output = exchange.getResponseBody()) { output.write(response); }
+        });
+        server.start();
+        try {
+            when(configService.getConfig()).thenReturn(Map.of("githubToken", "test-token-not-a-real-credential"));
+            ReflectionTestUtils.setField(service, "updateCheckUrl",
+                    "http://127.0.0.1:" + server.getAddress().getPort() + "/releases/latest");
+            assertTrue(service.checkUpdate().isUpdateAvailable());
+            org.junit.jupiter.api.Assertions.assertNull(authorization.get());
+        } finally { server.stop(0); }
+    }
+
+    @Test
+    void dirtyBuildCannotBePresentedAsUpToDate() throws Exception {
+        try (MockedConstruction<ClassPathResource> ignored = mockConstruction(ClassPathResource.class,
+                (resource, context) -> {
+                    when(resource.exists()).thenReturn(true);
+                    when(resource.getInputStream()).thenReturn(new java.io.ByteArrayInputStream(
+                            "1234567-dirty".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                })) {
+            UpdateCheckDto result = ReflectionTestUtils.invokeMethod(service, "parseCommitsApiResponse",
+                    "{\"sha\":\"1234567890abcdef\",\"commit\":{\"message\":\"Example\"}}");
+            assertFalse(result.isUpdateAvailable());
+            assertNotNull(result.getError());
+        }
     }
 
     @Test

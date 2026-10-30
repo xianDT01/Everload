@@ -920,7 +920,7 @@
           <div class="update-available-badge" *ngIf="updateCheck.updateAvailable">
             🆕 {{ 'ADMIN.UPDATE_NEW_COMMITS' | translate }}
           </div>
-          <div class="update-ok-badge" *ngIf="!updateCheck.updateAvailable">
+          <div class="update-ok-badge" *ngIf="!updateCheck.updateAvailable && !updateCheck.error">
             ✅ {{ 'ADMIN.UPDATE_UP_TO_DATE' | translate }}
           </div>
           <div class="commit-comparison">
@@ -964,23 +964,11 @@
           {{ 'ADMIN.PREPARE_UPDATE_DESC' | translate }}
         </p>
 
-        <!-- Countdown active -->
-        <div *ngIf="warnCountdown > 0" class="warn-countdown-block">
-          <div class="warn-countdown-header">
-            <span>⚠️ {{ 'ADMIN.WARN_COUNTDOWN_MSG' | translate: { s: warnCountdown } }}</span>
-            <button class="btn secondary small" (click)="cancelWarn()">{{ 'ADMIN.WARN_CANCEL' | translate }}</button>
-          </div>
-          <div class="warn-countdown-bar">
-            <div class="warn-countdown-fill" [style.width.%]="(warnCountdown / 60) * 100"></div>
-          </div>
-        </div>
-
-        <!-- Buttons (hidden during countdown or prepare) -->
-        <div *ngIf="warnCountdown === 0 && !prepareUpdateLoading" class="prepare-update-btns">
-          <button class="btn warning" (click)="warnAndPrepare()">
+        <div *ngIf="!prepareUpdateLoading" class="prepare-update-btns">
+          <button class="btn warning" (click)="warnMaintenance()" [disabled]="warnMaintenanceLoading">
             {{ 'ADMIN.WARN_AND_PREPARE_BTN' | translate }}
           </button>
-          <button class="btn secondary small" (click)="prepareUpdate()">
+          <button class="btn secondary small" (click)="prepareUpdate()" [disabled]="warnMaintenanceLoading">
             {{ 'ADMIN.PREPARE_UPDATE_BTN' | translate }}
           </button>
         </div>
@@ -989,7 +977,7 @@
           {{ prepareUpdateMsg }}
         </div>
         <div *ngIf="prepareUpdateMsg && !prepareUpdateLoading" class="prepare-update-msg"
-             [class.error]="prepareUpdateMsg.includes('❌')">
+             [class.error]="prepareUpdateHasError">
           {{ prepareUpdateMsg }}
         </div>
       </div>
