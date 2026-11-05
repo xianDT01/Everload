@@ -25,4 +25,5 @@ public class UserDto {
     private boolean online;
     private LocalDateTime lastSeen;
     private boolean showLastSeen;
+    private String floatingPlayerStyle;
 }

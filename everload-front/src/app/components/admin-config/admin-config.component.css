@@ -1,5 +1,7 @@
 
 .dashboard {
+  border-top: var(--floating-player-clearance, 0px) solid #15181e;
+  background-origin: border-box;
   --admin-bg: linear-gradient(135deg, #1e2a45 0%, #2a3b5f 100%);
   --admin-panel-bg: linear-gradient(135deg, #263759, #32476d);
   --admin-primary: #4e9af1;

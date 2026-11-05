@@ -873,6 +873,7 @@
     </div>
     <div class="np-messenger-chatwrap">
       <app-chat
+        [embedded]="true"
         (messageSent)="playMsnMessageSent()"
         (buzzReceived)="onMessengerBuzzReceived($event)">
       </app-chat>

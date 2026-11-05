@@ -9,6 +9,7 @@
 }
 
 .radio-page {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
   min-height: 100vh;
   padding: 24px;
   box-sizing: border-box;
@@ -75,7 +76,7 @@ h1 {
   padding: 18px;
   align-self: start;
   position: sticky;
-  top: 18px;
+  top: calc(18px + var(--floating-player-clearance, 0px));
 }
 
 .tuner-visual {

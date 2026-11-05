@@ -53,7 +53,7 @@
 
 .home-button {
   position: absolute;
-  top: 24px;
+  top: calc(24px + var(--floating-player-clearance, 0px));
   left: 24px;
   display: inline-flex;
   align-items: center;
@@ -82,7 +82,7 @@
 }
 .lang-switch{
   position:absolute;
-  top:24px; right:24px;
+  top:calc(24px + var(--floating-player-clearance, 0px)); right:24px;
   display:flex; gap:.4rem;
   z-index:10;
   animation: fadeIn 1s ease-out 0.2s both;
@@ -216,7 +216,7 @@
   min-height:100svh;
   display:grid;
   place-items:center;
-  padding:4rem 1rem;
+  padding:calc(4rem + var(--floating-player-clearance, 0px)) 1rem 4rem;
   box-sizing:border-box;
 }
 .developer-center{
@@ -343,7 +343,7 @@
 
 @media (max-width: 768px){
   .about-platforms{
-    padding:2rem 1rem;
+    padding:calc(2rem + var(--floating-player-clearance, 0px)) 1rem 2rem;
   }
   .developer-card{
     width:min(480px, 95vw);
@@ -361,7 +361,7 @@
   }
   .home-button,
   .lang-switch{
-    top:16px;
+    top:calc(16px + var(--floating-player-clearance, 0px));
   }
   .home-button{
     left:16px;

@@ -1,5 +1,41 @@
 <ng-container *ngIf="mode !== 'hidden' && !!state?.currentTrack">
 
+  <section *ngIf="mode === 'island'" #island class="player-island" [class.floating-island]="!headerIsland" [class.positioned-island]="!!islandPosition" [style.left.px]="islandPosition?.x" [style.top.px]="islandPosition?.y" [class.expanded]="islandExpanded" [class.is-playing]="state?.playing" [attr.aria-label]="'CHAT.PLAYER' | translate">
+    <div class="island-top">
+      <button type="button" class="island-button island-drag" [disabled]="islandLocked" (pointerdown)="startIslandDrag($event)" (keydown)="moveIslandWithKeyboard($event)" [title]="'CHAT.MOVE_PLAYER' | translate" [attr.aria-label]="'CHAT.MOVE_PLAYER' | translate"><mat-icon>drag_indicator</mat-icon></button>
+      <button type="button" class="island-summary" (click)="toggleIsland()" [attr.aria-expanded]="islandExpanded" aria-controls="island-details" [title]="(islandExpanded ? 'CHAT.COLLAPSE_PLAYER' : 'CHAT.EXPAND_PLAYER') | translate">
+        <span class="island-art">
+          <img *ngIf="playerHasCover() && !islandCoverFailed; else islandPlaceholder" [src]="playerCoverUrl()" alt="" (error)="islandCoverFailed = true" />
+          <ng-template #islandPlaceholder><mat-icon aria-hidden="true">music_note</mat-icon></ng-template>
+        </span>
+        <span class="island-track"><strong>{{ state?.currentTrack?.title || state?.currentTrack?.name }}</strong><span>{{ state?.currentTrack?.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</span></span>
+        <span class="island-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      </button>
+      <button type="button" class="island-button island-play" (click)="togglePlay()" [title]="(state?.playing ? 'RADIO.PAUSE' : 'COMMON.PLAY') | translate" [attr.aria-label]="(state?.playing ? 'RADIO.PAUSE' : 'COMMON.PLAY') | translate"><mat-icon>{{ state?.playing ? 'pause' : 'play_arrow' }}</mat-icon></button>
+      <button type="button" class="island-button island-lock" (click)="toggleIslandLock()" [attr.aria-pressed]="islandLocked" [title]="(islandLocked ? 'CHAT.UNLOCK_PLAYER' : 'CHAT.LOCK_PLAYER') | translate" [attr.aria-label]="(islandLocked ? 'CHAT.UNLOCK_PLAYER' : 'CHAT.LOCK_PLAYER') | translate"><mat-icon>{{ islandLocked ? 'lock' : 'lock_open' }}</mat-icon></button>
+    </div>
+    <div class="island-details" id="island-details" *ngIf="islandExpanded">
+      <button type="button" class="island-button island-reset" (click)="resetIslandPosition()" [title]="'CHAT.RESET_PLAYER_POSITION' | translate" [attr.aria-label]="'CHAT.RESET_PLAYER_POSITION' | translate"><mat-icon>center_focus_strong</mat-icon></button>
+      <div class="island-actions">
+        <button type="button" class="island-button" *ngIf="isNasTrack" (click)="toggleLike($event)" [class.liked]="isLiked" [attr.aria-pressed]="isLiked" [title]="'MUSIC.LIKE' | translate" [attr.aria-label]="'MUSIC.LIKE' | translate"><mat-icon>{{ isLiked ? 'favorite' : 'favorite_border' }}</mat-icon></button>
+        <div class="island-transport">
+          <button type="button" class="island-button" (click)="prev()" [title]="'MUSIC.PREV' | translate" [attr.aria-label]="'MUSIC.PREV' | translate"><mat-icon>skip_previous</mat-icon></button>
+          <button type="button" class="island-button" [class.active]="shuffle" (click)="toggleShuffle()" [attr.aria-pressed]="shuffle" [title]="'MUSIC.SHUFFLE' | translate" [attr.aria-label]="'MUSIC.SHUFFLE' | translate"><mat-icon>shuffle</mat-icon></button>
+          <button type="button" class="island-button" (click)="next()" [title]="'MUSIC.NEXT' | translate" [attr.aria-label]="'MUSIC.NEXT' | translate"><mat-icon>skip_next</mat-icon></button>
+        </div>
+        <button type="button" class="island-button" (click)="goToLibrary()" [title]="'CHAT.OPEN_LIBRARY' | translate" [attr.aria-label]="'CHAT.OPEN_LIBRARY' | translate"><mat-icon>open_in_full</mat-icon></button>
+        <button type="button" class="island-button" (click)="toggleIsland()" [title]="'CHAT.COLLAPSE_PLAYER' | translate" [attr.aria-label]="'CHAT.COLLAPSE_PLAYER' | translate"><mat-icon>expand_less</mat-icon></button>
+      </div>
+      <div class="island-progress">
+        <span>{{ fmt(state?.currentTime || 0) }}</span>
+        <input type="range" min="0" [max]="state?.duration || 0" step="0.1" [value]="state?.currentTime || 0" [disabled]="!state?.duration" (input)="onSeek($event)" [attr.aria-label]="'CHAT.PLAYBACK_POSITION' | translate" [style.--progress]="progressPct() + '%'" />
+        <span>{{ fmt(state?.duration || 0) }}</span>
+      </div>
+      <label class="island-volume"><mat-icon aria-hidden="true">{{ state?.volume === 0 ? 'volume_off' : 'volume_up' }}</mat-icon><input type="range" min="0" max="1" step="0.02" [value]="state?.volume ?? 1" (input)="onVolume($event)" [attr.aria-label]="'RADIO.VOLUME' | translate" [style.--progress]="(state?.volume ?? 1) * 100 + '%'" /></label>
+      <p class="island-error" role="status" *ngIf="state?.error">{{ state?.error }}</p>
+    </div>
+  </section>
+
   <!-- ══ MINI PLAYER ══════════════════════════════════════════════════════════ -->
   <div *ngIf="mode === 'mini'" class="mini-bar" (click)="goToLibrary()">
 

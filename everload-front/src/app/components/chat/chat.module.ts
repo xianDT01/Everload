@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
+import { MatIconModule } from '@angular/material/icon';
 
 import { ChatComponent } from './chat.component';
 import { CreateGroupModalComponent } from './create-group-modal/create-group-modal.component';
@@ -23,6 +24,7 @@ const routes: Routes = [
   imports: [
     CommonModule,
     FormsModule,
+    MatIconModule,
     TranslateModule,
     RouterModule.forChild(routes),
   ],

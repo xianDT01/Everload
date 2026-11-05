@@ -1,17 +1,20 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked, HostListener, Output, EventEmitter, Input } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ChatService, ChatGroupDto, ChatMessageDto, ActiveUser, YoutubeSharePayload, MemberDto } from '../../services/chat.service';
 import { NotificationService } from '../../services/notification.service';
 import { AuthService } from '../../services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
+import { MusicService } from '../../services/music.service';
+import { PlayerPreferencesService } from '../../services/player-preferences.service';
 
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.component.html',
-  styleUrls: ['./chat.component.css']
+  styleUrls: ['./chat.component.css', './chat-modern.css']
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @Input() embedded = false;
   @Output() messageSent = new EventEmitter<void>();
   @Output() buzzReceived = new EventEmitter<ChatMessageDto>();
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
@@ -22,6 +25,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   messageInput = '';
   sidebarVisible = true;
   groupSearch = '';
+  conversationFilter: 'all' | 'online' | 'unread' = 'all';
 
   showCreateGroupModal = false;
   showPrivateChatModal = false;
@@ -45,7 +49,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   currentTheme = 'everload';
   showThemePicker = false;
   readonly themes = [
-    { id: 'everload', label: 'EverLoad', color: '#e94560' },
+    { id: 'everload', label: 'EverLoad', color: '#6bd5c8' },
     { id: 'whatsapp', label: 'WhatsApp', color: '#25d366' },
     { id: 'telegram', label: 'Telegram', color: '#2aabee' },
     { id: 'discord', label: 'Discord', color: '#5865f2' }
@@ -86,16 +90,21 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('chatOptionsBtnRef') chatOptionsBtnRef!: ElementRef;
 
   private groupsSub!: Subscription;
+  private routeSub?: Subscription;
+  private pendingGroupId: number | null = null;
+  private messagesSub?: Subscription;
   private shouldScrollToBottom = false;
   private userScrolledUp = false;  // true when user has scrolled above the bottom
 
   constructor(
     public chatService: ChatService,
     private notificationService: NotificationService,
-    private authService: AuthService,
+    public authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
-    private translate: TranslateService
+    private translate: TranslateService,
+    public musicService: MusicService,
+    public playerPreferences: PlayerPreferencesService
   ) {}
 
   ngOnInit(): void {
@@ -108,33 +117,35 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     this.groupsSub = this.chatService.groups$.subscribe(groups => {
       this.groups = groups;
+      if (this.selectedGroup) {
+        this.selectedGroup = groups.find(g => g.id === this.selectedGroup!.id) || this.selectedGroup;
+      }
+      this.openPendingGroup();
     });
 
     this.chatService.refreshGroups();
     this.chatService.startGroupsPolling();
 
     // Auto-open group from notification action
-    this.route.queryParamMap.subscribe(params => {
+    this.routeSub = this.route.queryParamMap.subscribe(params => {
       const groupId = params.get('group');
-      if (groupId) {
-        const id = parseInt(groupId, 10);
-        const found = this.groups.find(g => g.id === id);
-        if (found) {
-          this.selectGroup(found);
-        } else {
-          // groups may not be loaded yet; store pending and open after refresh
-          this.chatService.refreshGroups();
-          const sub = this.chatService.groups$.subscribe(groups => {
-            const g = groups.find(gr => gr.id === id);
-            if (g) { this.selectGroup(g); sub.unsubscribe(); }
-          });
-        }
-      }
+      const id = Number(groupId);
+      this.pendingGroupId = groupId && Number.isSafeInteger(id) && id > 0 ? id : null;
+      this.openPendingGroup();
     });
+  }
+
+  private openPendingGroup(): void {
+    const group = this.groups.find(g => g.id === this.pendingGroupId);
+    if (!group) return;
+    this.pendingGroupId = null;
+    this.selectGroup(group);
   }
 
   ngOnDestroy(): void {
     this.groupsSub?.unsubscribe();
+    this.routeSub?.unsubscribe();
+    this.messagesSub?.unsubscribe();
     this.chatService.stopPolling();
     this.chatService.stopGroupsPolling();
   }
@@ -171,11 +182,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         )
       : this.groups;
     // Keep server-side order (already sorted by lastMessageTime desc)
+    if (this.conversationFilter === 'online') {
+      return base.filter(g => this.isPartnerOnline(g) || (g.type !== 'PRIVATE' && (g.onlineCount ?? 0) > 0));
+    }
+    if (this.conversationFilter === 'unread') return base.filter(g => this.chatService.isGroupUnread(g));
     return base;
   }
 
   selectGroup(group: ChatGroupDto): void {
-    if (this.selectedGroup?.id === group.id) return;
+    if (this.selectedGroup?.id === group.id && !this.sidebarVisible) return;
     this.selectedGroup = group;
     this.messages = [];
     this.sidebarVisible = false;
@@ -186,12 +201,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.searchResults = null;
     this.showMentionDropdown = false;
     this.groupMembers = [];
+    this.showMutePicker = false;
+    this.showChatOptions = false;
+    this.messagesSub?.unsubscribe();
     this.chatService.stopPolling();
 
     // Load members for @mention autocomplete
     if (group.type !== 'PRIVATE') {
       this.chatService.getMembers(group.id).subscribe({
-        next: members => { this.groupMembers = members; },
+        next: members => { if (this.selectedGroup?.id === group.id) this.groupMembers = members; },
         error: () => {}
       });
     } else if (group.privatePartnerUsername) {
@@ -208,8 +226,9 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     this.chatService.markRead(group.id).subscribe({ error: () => {} });
     this.readStatus = {};
 
-    this.chatService.getMessages(group.id).subscribe({
+    this.messagesSub = this.chatService.getMessages(group.id).subscribe({
       next: msgs => {
+        if (this.selectedGroup?.id !== group.id) return;
         this.messages = msgs;
         this.shouldScrollToBottom = true;
         this.refreshReadStatus(group.id);
@@ -222,6 +241,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     });
 
     this.chatService.startPolling(group.id, (msgs) => {
+      if (this.selectedGroup?.id !== group.id) return;
       const lastKnown = this.messages.length > 0 ? this.messages[this.messages.length - 1].id : -1;
       const lastNew   = msgs.length > 0 ? msgs[msgs.length - 1].id : -1;
       const changed = lastNew !== lastKnown || msgs.length !== this.messages.length;
@@ -369,7 +389,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   private getDateLocale(): string {
     const lang = this.translate.currentLang || 'es';
-    return lang === 'en' ? 'en-GB' : 'es-ES';
+    return lang === 'en' ? 'en-GB' : lang === 'gl' ? 'gl-ES' : 'es-ES';
   }
 
   formatTime(dateStr?: string): string {
@@ -606,17 +626,17 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   /** Returns the online status line shown below the group name in the header. */
   getPresenceSubtitle(group: ChatGroupDto): string {
     if (group.type === 'PRIVATE') {
-      if (group.partnerOnline) return 'En línea';
-      if (group.partnerLastSeen) return 'Visto ' + this.formatLastSeen(group.partnerLastSeen);
-      return 'Desconectado';
+      if (group.partnerOnline) return this.translate.instant('CHAT.ONLINE');
+      if (group.partnerLastSeen) return this.translate.instant('CHAT.LAST_SEEN', { time: this.formatLastSeen(group.partnerLastSeen) });
+      return this.translate.instant('CHAT.OFFLINE');
     }
     // GROUP or ANNOUNCEMENT
     const total = group.memberCount;
     const online = group.onlineCount ?? 0;
     if (online > 0) {
-      return `${total} miembros · ${online} en línea`;
+      return this.translate.instant('CHAT.MEMBERS_ONLINE', { count: total, online });
     }
-    return `${total} miembros`;
+    return this.translate.instant('CHAT.MEMBER_COUNT', { count: total });
   }
 
   /** Human-readable "hace X min" from an ISO date string. */
@@ -624,10 +644,10 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-    if (diff < 60) return 'hace un momento';
-    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
-    return `el ${date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}`;
+    if (diff < 60) return this.translate.instant('CHAT.JUST_NOW');
+    if (diff < 3600) return this.translate.instant('CHAT.MINUTES_AGO', { count: Math.floor(diff / 60) });
+    if (diff < 86400) return this.translate.instant('CHAT.HOURS_AGO', { count: Math.floor(diff / 3600) });
+    return date.toLocaleDateString(this.getDateLocale(), { day: '2-digit', month: 'short' });
   }
 
   /** Whether to show the green online dot on a group item in the sidebar. */
@@ -813,16 +833,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
-    if (date.toDateString() === today.toDateString()) return 'Hoy';
-    if (date.toDateString() === yesterday.toDateString()) return 'Ayer';
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+    if (date.toDateString() === today.toDateString()) return this.translate.instant('CHAT.TODAY');
+    if (date.toDateString() === yesterday.toDateString()) return this.translate.instant('CHAT.YESTERDAY');
+    return date.toLocaleDateString(this.getDateLocale(), { day: '2-digit', month: 'long', year: 'numeric' });
   }
 
   // ── Read receipts ─────────────────────────────────────────────────────────
 
   private refreshReadStatus(groupId: number): void {
     this.chatService.getReadStatus(groupId).subscribe({
-      next: status => { this.readStatus = status; },
+      next: status => { if (this.selectedGroup?.id === groupId) this.readStatus = status; },
       error: () => {}
     });
   }

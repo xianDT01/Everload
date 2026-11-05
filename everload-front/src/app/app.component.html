@@ -11,7 +11,7 @@
   </div>
 </div>
 
-<div class="main-content-layout" *ngIf="!maintenanceState.active || authService.isAdmin() || currentUrl.startsWith('/login')" [ngClass]="!isModernRoute && musicService.mainPlayer.state.currentTrack ? 'player-' + playerMode : ''">
+<div class="main-content-layout" [class.player-has-header]="hasPlayerHeader" *ngIf="!maintenanceState.active || authService.isAdmin() || currentUrl.startsWith('/login')" [ngClass]="!isModernRoute && musicService.mainPlayer.state.currentTrack && !musicService.globalPlayerHidden ? 'player-' + playerMode : ''">
   <router-outlet></router-outlet>
 </div>
 
@@ -26,7 +26,7 @@
   <button class="pwa-install-action" type="button" (click)="installApp()">{{ 'PWA.INSTALL_ACTION' | translate }}</button>
   <button class="pwa-install-close" type="button" (click)="dismissInstall()" [attr.aria-label]="'PWA.INSTALL_DISMISS' | translate">&times;</button>
 </aside>
-<app-global-player *ngIf="!isModernRoute && !musicService.globalPlayerHidden" [mode]="playerMode"></app-global-player>
+<app-global-player *ngIf="!isModernRoute && !musicService.globalPlayerHidden" [mode]="playerMode" [headerIsland]="hasPlayerHeader"></app-global-player>
 <app-now-playing-panel *ngIf="!isModernRoute"></app-now-playing-panel>
 <app-notification-toast></app-notification-toast>
 <app-pwa-update-banner></app-pwa-update-banner>

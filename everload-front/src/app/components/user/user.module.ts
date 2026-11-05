@@ -4,6 +4,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { TranslateModule } from '@ngx-translate/core';
+import { MatIconModule } from '@angular/material/icon';
 
 import { UserProfileComponent } from '../user-profile/user-profile.component';
 import { AboutAppComponent } from '../about-app/about-app.component';
@@ -21,6 +22,7 @@ const routes: Routes = [
   imports: [
     CommonModule,
     FormsModule,
+    MatIconModule,
     HttpClientModule,
     TranslateModule,
     RouterModule.forChild(routes),

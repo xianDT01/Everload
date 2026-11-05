@@ -1,4 +1,6 @@
 .android-page {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
+  background-origin: border-box;
   min-height: 100vh;
   padding: 28px;
   box-sizing: border-box;
@@ -8,6 +10,7 @@
     url('/assets/EverLoad home logo.png') center 28px / 360px auto no-repeat,
     radial-gradient(circle at 10% 10%, rgba(41, 194, 130, 0.22), transparent 30%),
     #07111f;
+  background-origin: border-box;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 

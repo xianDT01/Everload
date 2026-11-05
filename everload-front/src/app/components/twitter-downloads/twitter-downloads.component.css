@@ -22,7 +22,10 @@
 }
 
 .left-panel {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
+  background-origin: border-box;
   background: linear-gradient(135deg, #1da1f2 0%, #42a5f5 100%);
+  background-origin: border-box;
   flex: 1;
   display: flex;
   justify-content: center;
@@ -38,7 +41,10 @@
 }
 
 .right-panel {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
+  background-origin: border-box;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background-origin: border-box;
   flex: 1;
   display: flex;
   justify-content: center;
@@ -154,6 +160,7 @@
 }
 
 @media (max-width: 768px) {
+  .right-panel { border-top-width: 0; }
   .login-split-container {
     flex-direction: column;
   }

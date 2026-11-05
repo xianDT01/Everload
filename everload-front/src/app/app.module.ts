@@ -2,6 +2,7 @@ import { NgModule, LOCALE_ID, APP_INITIALIZER, isDevMode } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
 import { HttpClientModule, HttpClient, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
@@ -74,6 +75,7 @@ export function initRuntimeConfig(apiBase: ApiBaseService): () => Promise<void> 
     BrowserModule,
     AppRoutingModule,
     FormsModule,
+    MatIconModule,
     ReactiveFormsModule,
     HttpClientModule,
     ChatModule,

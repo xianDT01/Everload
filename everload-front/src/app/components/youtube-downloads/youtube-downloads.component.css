@@ -1,5 +1,7 @@
 /* Estilos mejorados */
 .youtube-container {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
+  background-origin: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;

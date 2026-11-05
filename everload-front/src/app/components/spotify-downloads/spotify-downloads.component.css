@@ -8,8 +8,11 @@
 }
 
 .left-panel {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
+  background-origin: border-box;
   flex: 1;
   background: linear-gradient(135deg, #1db954 0%, #1ed760 100%);
+  background-origin: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -24,6 +27,8 @@
 }
 
 .right-panel {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
+  background-origin: border-box;
   flex: 1;
   background-color: #121212;
   display: flex;
@@ -311,6 +316,7 @@
 
 
 @media (max-width: 768px) {
+  .right-panel { border-top-width: 0; }
   .spotify-split-container {
     flex-direction: column;
   }

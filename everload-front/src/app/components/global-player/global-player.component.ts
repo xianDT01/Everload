@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, OnInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, Input, OnInit, OnDestroy, HostListener, ViewChild, NgZone, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import anime from 'animejs/lib/anime.es.js';
@@ -7,11 +7,36 @@ import { MusicService, PlayerState, MusicMetadataDto } from '../../services/musi
 @Component({
   selector: 'app-global-player',
   templateUrl: './global-player.component.html',
-  styleUrls: ['./global-player.component.css']
+  styleUrls: ['./global-player.component.css', './player-island.css']
 })
 export class GlobalPlayerComponent implements OnInit, OnDestroy {
 
-  @Input() mode: 'full' | 'mini' | 'hidden' = 'mini';
+  private currentMode: 'full' | 'mini' | 'island' | 'hidden' = 'mini';
+  @Input() set mode(value: 'full' | 'mini' | 'island' | 'hidden') {
+    this.stopIslandDrag();
+    this.currentMode = value;
+    this.islandExpanded = false;
+  }
+  get mode(): 'full' | 'mini' | 'island' | 'hidden' { return this.currentMode; }
+  islandExpanded = false;
+  @Input() headerIsland = true;
+  islandCoverFailed = false;
+  islandLocked = false;
+  islandPosition: { x: number; y: number } | null = null;
+  private readonly islandStorageKey = 'everload.island-position.v1';
+  private islandElement?: HTMLElement;
+  private islandFrame = 0;
+  private islandDrag: { id: number; x: number; y: number; left: number; top: number } | null = null;
+  private readonly islandPointerMove = (event: PointerEvent) => {
+    this.moveIsland(event);
+    this.changeDetector.detectChanges();
+  };
+  private readonly islandPointerEnd = (event: PointerEvent) => this.endIslandDrag(event);
+
+  @ViewChild('island') set islandView(ref: ElementRef<HTMLElement> | undefined) {
+    this.islandElement = ref?.nativeElement;
+    this.scheduleIslandFit();
+  }
 
   state: PlayerState | null = null;
   shuffle = false;
@@ -24,18 +49,29 @@ export class GlobalPlayerComponent implements OnInit, OnDestroy {
   constructor(
     public musicService: MusicService,
     private router: Router,
-    private host: ElementRef<HTMLElement>
+    private host: ElementRef<HTMLElement>,
+    private zone: NgZone,
+    private changeDetector: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    try {
+      const saved = JSON.parse(localStorage.getItem(this.islandStorageKey) || 'null');
+      if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+        this.islandPosition = { x: saved.x, y: saved.y };
+        this.islandLocked = saved.locked === true;
+      }
+    } catch { /* Storage may be unavailable or contain an old value. */ }
     // Player state subscription
     this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => {
       const prevTrack = this.state?.currentTrack?.path;
+      const prevPathId = this.state?.pathId;
       const wasPlaying = this.state?.playing;
       this.state = s;
       
       // If track changed, update liked status and fetch cover
-      if (s.currentTrack && s.currentTrack.path !== prevTrack) {
+      if (s.currentTrack && (s.currentTrack.path !== prevTrack || s.pathId !== prevPathId)) {
+        this.islandCoverFailed = false;
         this.checkLiked(s.currentTrack);
         this.musicService.fetchCoverIfNeeded(s.currentTrack);
         this.animateTrackChange();
@@ -50,11 +86,127 @@ export class GlobalPlayerComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    cancelAnimationFrame(this.islandFrame);
+    this.stopIslandDrag();
     this.aquaAmbientAnimation?.pause();
     this.subs.forEach(s => s.unsubscribe());
   }
 
   // ── Controls ──────────────────────────────────────────────────────────────
+
+  toggleIsland(): void {
+    this.islandExpanded = !this.islandExpanded;
+    this.changeDetector.detectChanges();
+    this.scheduleIslandFit();
+  }
+
+  startIslandDrag(event: PointerEvent): void {
+    if (this.islandLocked || this.islandDrag || event.button !== 0 || !this.islandElement) return;
+    event.preventDefault();
+    const rect = this.islandElement.getBoundingClientRect();
+    this.islandDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    this.zone.runOutsideAngular(() => {
+      document.addEventListener('pointermove', this.islandPointerMove);
+      document.addEventListener('pointerup', this.islandPointerEnd);
+      document.addEventListener('pointercancel', this.islandPointerEnd);
+    });
+  }
+
+  moveIsland(event: PointerEvent): void {
+    const drag = this.islandDrag;
+    if (!drag || event.pointerId !== drag.id) return;
+    this.islandPosition = { x: drag.left + event.clientX - drag.x, y: drag.top + event.clientY - drag.y };
+    this.fitIsland();
+  }
+
+  endIslandDrag(event: PointerEvent): void {
+    if (this.islandDrag?.id !== event.pointerId) return;
+    this.stopIslandDrag();
+    this.saveIslandPosition();
+  }
+
+  private stopIslandDrag(): void {
+    this.islandDrag = null;
+    document.removeEventListener('pointermove', this.islandPointerMove);
+    document.removeEventListener('pointerup', this.islandPointerEnd);
+    document.removeEventListener('pointercancel', this.islandPointerEnd);
+  }
+
+  moveIslandWithKeyboard(event: KeyboardEvent): void {
+    if (this.islandLocked || !this.islandElement) return;
+    const step = event.shiftKey ? 40 : 10;
+    const directions: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    const delta = directions[event.key];
+    if (!delta) return;
+    event.preventDefault();
+    const rect = this.islandElement.getBoundingClientRect();
+    this.islandPosition = { x: rect.left + delta[0], y: rect.top + delta[1] };
+    this.fitIsland();
+    this.saveIslandPosition();
+    this.changeDetector.detectChanges();
+  }
+
+  toggleIslandLock(): void {
+    if (!this.islandPosition && this.islandElement) {
+      const rect = this.islandElement.getBoundingClientRect();
+      this.islandPosition = { x: rect.left, y: rect.top };
+    }
+    this.islandLocked = !this.islandLocked;
+    this.stopIslandDrag();
+    this.saveIslandPosition();
+    this.changeDetector.detectChanges();
+  }
+
+  resetIslandPosition(): void {
+    this.stopIslandDrag();
+    this.islandPosition = null;
+    this.islandLocked = false;
+    try { localStorage.removeItem(this.islandStorageKey); } catch { /* Optional browser preference. */ }
+    this.changeDetector.detectChanges();
+  }
+
+  @HostListener('window:resize')
+  onIslandViewportResize(): void {
+    this.fitIsland();
+    this.changeDetector.detectChanges();
+  }
+
+  fitIsland(): void {
+    if (!this.islandPosition || !this.islandElement) return;
+    const rect = this.islandElement.getBoundingClientRect();
+    const width = Math.min(this.islandExpanded ? 460 : 350, window.innerWidth - 32);
+    this.islandPosition = {
+      x: Math.max(12, Math.min(this.islandPosition.x, window.innerWidth - width - 12)),
+      y: Math.max(12, Math.min(this.islandPosition.y, window.innerHeight - rect.height - 12))
+    };
+  }
+
+  private scheduleIslandFit(): void {
+    cancelAnimationFrame(this.islandFrame);
+    this.islandFrame = requestAnimationFrame(() => {
+      this.fitIsland();
+      this.changeDetector.detectChanges();
+    });
+  }
+
+  private saveIslandPosition(): void {
+    if (!this.islandPosition) return;
+    try { localStorage.setItem(this.islandStorageKey, JSON.stringify({ ...this.islandPosition, locked: this.islandLocked })); }
+    catch { /* Playback remains usable when storage is disabled. */ }
+  }
+
+  @HostListener('document:click', ['$event'])
+  closeIslandOutside(event: MouseEvent): void {
+    if (!this.host.nativeElement.contains(event.target as Node)) this.islandExpanded = false;
+  }
+
+  @HostListener('document:keydown.escape')
+  collapseIsland(): void {
+    if (!this.islandExpanded) return;
+    this.islandExpanded = false;
+    this.host.nativeElement.querySelector<HTMLButtonElement>('.island-summary')?.focus();
+  }
 
   togglePlay()  { this.musicService.mainPlayer.togglePlay(); this.animateControlTap('.pb-play, .mini-play'); }
   next()        { this.musicService.playNextMain(); this.animateSkipTap(1); }
@@ -131,12 +283,17 @@ export class GlobalPlayerComponent implements OnInit, OnDestroy {
   // ── Favorites ─────────────────────────────────────────────────────────────
 
   private checkLiked(track: MusicMetadataDto) {
-    if (!track || !this.state?.pathId) {
+    if (!track || this.state?.pathId == null) {
       this.isLiked = false;
       return;
     }
-    this.musicService.checkFavorite(track.path, this.state.pathId).subscribe(res => {
-      this.isLiked = !!res.isFavorite;
+    const pathId = this.state.pathId;
+    this.isLiked = false;
+    this.musicService.checkFavorite(track.path, pathId).subscribe({
+      next: res => {
+        if (this.state?.currentTrack?.path === track.path && this.state?.pathId === pathId) this.isLiked = !!res.isFavorite;
+      },
+      error: () => {}
     });
   }
 

@@ -159,4 +159,37 @@ class ProfileServiceTest {
                 .showLastSeen(true)
                 .build();
     }
+
+    @Test
+    void playerPreferenceIsPersistedWithoutChangingOtherProfileFields() {
+        User user = user();
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setFloatingPlayerStyle("island");
+        when(userRepository.findByUsername("xian")).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+        UserDto result = service.updateProfile("xian", request);
+        assertEquals("island", result.getFloatingPlayerStyle());
+        assertEquals("xian", result.getUsername());
+        assertEquals("xian@example.test", result.getEmail());
+        assertTrue(result.isShowLastSeen());
+    }
+
+    @Test
+    void privacyAndProfileEditsPreservePlayerPreference() {
+        User user = user();
+        user.setFloatingPlayerStyle("bar");
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setShowLastSeen(false);
+        when(userRepository.findByUsername("xian")).thenReturn(Optional.of(user));
+        when(userRepository.save(user)).thenReturn(user);
+        assertEquals("bar", service.updateProfile("xian", request).getFloatingPlayerStyle());
+    }
+
+    @Test
+    void unsupportedPlayerPreferenceDoesNotPersistAnything() {
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setFloatingPlayerStyle("other");
+        assertThrows(IllegalArgumentException.class, () -> service.updateProfile("xian", request));
+        verify(userRepository, never()).save(any());
+    }
 }

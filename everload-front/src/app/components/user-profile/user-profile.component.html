@@ -1,148 +1,81 @@
-<div class="acct-wrap">
-  <div class="acct-inner">
-
-    <!-- Cabecera -->
-    <div class="acct-head">
-      <div>
-        <div class="acct-eyebrow">{{ 'PROFILE.MY_ACCOUNT' | translate }}</div>
-        <h1 class="acct-title">{{ 'PROFILE.SETTINGS' | translate }}</h1>
-        <p class="acct-sub">{{ 'PROFILE.SUBTITLE' | translate }}</p>
+<div class="settings-page" [class.has-island]="!!state?.currentTrack && playerPreferences.style$.value === 'island' && !musicService.globalPlayerHidden">
+  <header class="settings-header">
+    <a class="settings-brand" routerLink="/">Everload<span></span></a>
+    <nav [attr.aria-label]="'CHAT.NAVIGATION' | translate"><a routerLink="/modern">{{ 'CHAT.MUSIC' | translate }}</a><a routerLink="/chat">Chat</a><a routerLink="/youtube-downloads">{{ 'CHAT.DOWNLOADS' | translate }}</a></nav>
+    <button type="button" class="header-avatar" (click)="scrollTo('datos')" [attr.aria-label]="'PROFILE.ACCOUNT_DETAILS' | translate"><img *ngIf="avatarUrl; else headerInitials" [src]="avatarUrl" [alt]="'PROFILE.AVATAR_ALT' | translate"><ng-template #headerInitials><span>{{ initials }}</span></ng-template><mat-icon aria-hidden="true">expand_more</mat-icon></button>
+  </header>
+  <div class="settings-layout">
+    <aside class="settings-sidebar">
+      <h1>{{ 'PROFILE.SETTINGS' | translate }}</h1>
+      <div class="settings-identity">
+        <div class="identity-avatar"><img *ngIf="avatarUrl; else profileInitials" [src]="avatarUrl" [alt]="'PROFILE.AVATAR_ALT' | translate"><ng-template #profileInitials><span>{{ initials }}</span></ng-template><button type="button" (click)="openAvatarPicker()" [disabled]="avatarLoading || !profile" [title]="'PROFILE.CHANGE_PHOTO' | translate" [attr.aria-label]="'PROFILE.CHANGE_PHOTO' | translate"><mat-icon>photo_camera</mat-icon></button></div>
+        <div class="identity-copy"><strong>{{ profile?.username || authService.getCurrentUser()?.username }}</strong><span>{{ 'PROFILE.MY_ACCOUNT' | translate }}</span></div>
       </div>
-      <button class="acct-back" (click)="goBack()">
-        <span class="dot"></span> {{ 'PROFILE.BACK_TO_EVERLOAD' | translate }}
-      </button>
-    </div>
-
-    <!-- Layout de 2 columnas -->
-    <div class="acct-grid">
-
-      <!-- Columna izquierda: perfil + navegación -->
-      <aside class="acct-aside">
-        <div class="profile-card">
-          <div class="avatar-ring">
-            <div class="avatar-inner">
-              <img *ngIf="avatarUrl" [src]="avatarUrl" [alt]="'PROFILE.AVATAR_ALT' | translate">
-              <span *ngIf="!avatarUrl">{{ initials }}</span>
+      <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarFileSelected($event)">
+      <p class="msg-error" role="alert" *ngIf="avatarError">{{ avatarError }}</p>
+      <nav class="settings-nav" [attr.aria-label]="'PROFILE.SETTINGS' | translate">
+        <button type="button" [class.active]="activeSection === 'datos'" [attr.aria-pressed]="activeSection === 'datos'" (click)="scrollTo('datos')"><mat-icon aria-hidden="true">person_outline</mat-icon>{{ 'PROFILE.ACCOUNT' | translate }}</button>
+        <button type="button" [class.active]="activeSection === 'reproduccion'" [attr.aria-pressed]="activeSection === 'reproduccion'" (click)="scrollTo('reproduccion')"><mat-icon aria-hidden="true">play_circle_outline</mat-icon>{{ 'PROFILE.PLAYBACK' | translate }}</button>
+        <button type="button" [class.active]="activeSection === 'privacidad'" [attr.aria-pressed]="activeSection === 'privacidad'" (click)="scrollTo('privacidad')"><mat-icon aria-hidden="true">lock_outline</mat-icon>{{ 'PROFILE.PRIVACY' | translate }}</button>
+        <button type="button" [class.active]="activeSection === 'seguridad'" [attr.aria-pressed]="activeSection === 'seguridad'" (click)="scrollTo('seguridad')"><mat-icon aria-hidden="true">verified_user</mat-icon>{{ 'PROFILE.SECURITY' | translate }}</button>
+      </nav>
+      <a class="settings-back" routerLink="/"><mat-icon aria-hidden="true">arrow_back</mat-icon>{{ 'PROFILE.BACK_TO_EVERLOAD' | translate }}</a>
+    </aside>
+    <main class="settings-main">
+      <p class="msg-error" role="alert" *ngIf="profileError">{{ profileError }}</p>
+      <section *ngIf="activeSection === 'reproduccion'" class="settings-section playback-section">
+        <h2>{{ 'PROFILE.PLAYBACK' | translate }}</h2>
+        <fieldset class="player-options" [disabled]="savingPlayback || !profile">
+          <legend>{{ 'PROFILE.FLOATING_PLAYER' | translate }}</legend>
+          <div class="player-option-grid">
+            <label class="player-option" [class.selected]="playerStyle === 'island'">
+              <span class="option-heading"><strong>{{ 'PROFILE.DYNAMIC_ISLAND' | translate }}</strong><input type="radio" name="floating-player" value="island" [(ngModel)]="playerStyle"></span>
+              <span class="option-scene" aria-hidden="true"><span class="scene-toolbar"><i></i><i></i><i></i></span><span class="scene-content"><i></i><span><i></i><i></i></span></span>
+                <span class="option-mini-island"><span class="option-art"><img *ngIf="coverUrl as cover; else optionMusic" [src]="cover" alt="" (error)="coverFailed = true"><ng-template #optionMusic><mat-icon>music_note</mat-icon></ng-template></span><span class="option-track"><b>{{ trackTitle }}</b><small>{{ trackArtist }}</small></span><span class="preview-wave"><i></i><i></i><i></i><i></i><i></i></span><mat-icon>{{ state?.playing ? 'pause' : 'play_arrow' }}</mat-icon></span>
+              </span>
+            </label>
+            <label class="player-option" [class.selected]="playerStyle === 'bar'">
+              <span class="option-heading"><strong>{{ 'PROFILE.CURRENT_BAR' | translate }}</strong><input type="radio" name="floating-player" value="bar" [(ngModel)]="playerStyle"></span>
+              <span class="option-scene" aria-hidden="true"><span class="scene-content"><i></i><span><i></i><i></i></span></span><span class="option-mini-bar"><span class="option-art"><mat-icon>music_note</mat-icon></span><span class="option-track"><b>{{ trackTitle }}</b><small>{{ trackArtist }}</small></span><mat-icon>skip_previous</mat-icon><mat-icon>{{ state?.playing ? 'pause' : 'play_arrow' }}</mat-icon><mat-icon>skip_next</mat-icon><span class="option-progress"></span></span></span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="preview-heading"><mat-icon aria-hidden="true">music_note</mat-icon><h3>{{ 'PROFILE.PREVIEW' | translate }}</h3></div>
+        <div class="player-preview-stage">
+          <div class="settings-player-preview" [class.bar-preview]="playerStyle === 'bar'">
+            <span class="preview-art"><img *ngIf="coverUrl as cover; else previewMusic" [src]="cover" alt="" (error)="coverFailed = true"><ng-template #previewMusic><mat-icon aria-hidden="true">music_note</mat-icon></ng-template></span>
+            <div class="preview-track"><strong>{{ trackTitle }}</strong><span>{{ trackArtist }}</span></div>
+            <div class="preview-controls">
+              <button type="button" (click)="likePreview()" [disabled]="!state?.currentTrack || state?.pathId == null || liking" [class.liked]="previewLiked" [attr.aria-pressed]="previewLiked" [title]="'MUSIC.LIKE' | translate" [attr.aria-label]="'MUSIC.LIKE' | translate"><mat-icon>{{ previewLiked ? 'favorite' : 'favorite_border' }}</mat-icon></button>
+              <button type="button" (click)="musicService.playPrevMain()" [disabled]="!state?.currentTrack" [title]="'MUSIC.PREV' | translate" [attr.aria-label]="'MUSIC.PREV' | translate"><mat-icon>skip_previous</mat-icon></button>
+              <button type="button" (click)="musicService.mainPlayer.togglePlay()" [disabled]="!state?.currentTrack" [title]="(state?.playing ? 'RADIO.PAUSE' : 'COMMON.PLAY') | translate" [attr.aria-label]="(state?.playing ? 'RADIO.PAUSE' : 'COMMON.PLAY') | translate"><mat-icon>{{ state?.playing ? 'pause' : 'play_arrow' }}</mat-icon></button>
+              <button type="button" (click)="musicService.playNextMain()" [disabled]="!state?.currentTrack" [title]="'MUSIC.NEXT' | translate" [attr.aria-label]="'MUSIC.NEXT' | translate"><mat-icon>skip_next</mat-icon></button>
             </div>
+            <div class="preview-progress"><span>{{ previewTime(state?.currentTime || 0) }} / {{ previewTime(state?.duration || 0) }}</span><input type="range" min="0" [max]="state?.duration || 0" [value]="state?.currentTime || 0" [disabled]="!state?.duration" (input)="seekPreview($event)" [attr.aria-label]="'CHAT.PLAYBACK_POSITION' | translate"></div>
+            <label class="preview-volume"><mat-icon aria-hidden="true">volume_up</mat-icon><input type="range" min="0" max="1" step="0.02" [value]="state?.volume ?? 1" (input)="volumePreview($event)" [disabled]="!state?.currentTrack" [attr.aria-label]="'RADIO.VOLUME' | translate"></label>
           </div>
-          <div class="profile-name">{{ profile?.username || '—' }}</div>
-          <div class="profile-email">{{ profile?.email }}</div>
-          <span class="role-pill" [ngClass]="getRoleBadge()">{{ profile?.role }}</span>
-
-          <div class="avatar-msg" *ngIf="avatarError">{{ avatarError }}</div>
-
-          <div class="profile-actions">
-            <button class="btn-primary" (click)="openAvatarPicker()" [disabled]="avatarLoading">
-              {{ avatarLoading ? ('PROFILE.UPLOADING' | translate) : ('PROFILE.CHANGE_PHOTO' | translate) }}
-            </button>
-            <button class="btn-danger-outline" (click)="removeAvatar()" [disabled]="avatarLoading || !avatarUrl">
-              {{ 'PROFILE.REMOVE' | translate }}
-            </button>
-          </div>
-          <input #avatarInput type="file" accept="image/*" hidden (change)="onAvatarFileSelected($event)">
         </div>
-
-        <nav class="acct-nav">
-          <button type="button" class="nav-item" [class.active]="activeSection==='datos'" (click)="scrollTo('datos')">{{ 'PROFILE.ACCOUNT_DETAILS' | translate }}</button>
-          <button type="button" class="nav-item" [class.active]="activeSection==='privacidad'" (click)="scrollTo('privacidad')">{{ 'PROFILE.PRIVACY' | translate }}</button>
-          <button type="button" class="nav-item" [class.active]="activeSection==='seguridad'" (click)="scrollTo('seguridad')">{{ 'PROFILE.CHANGE_PASSWORD' | translate }}</button>
-        </nav>
-      </aside>
-
-      <!-- Columna derecha: secciones -->
-      <main class="acct-main">
-
-        <!-- Datos de la cuenta -->
-        <section id="datos" class="acct-card">
-          <div class="sec-head">
-            <span class="sec-dot"></span>
-            <h2>{{ 'PROFILE.ACCOUNT_DETAILS' | translate }}</h2>
-          </div>
-          <p class="sec-sub">{{ 'PROFILE.ACCOUNT_DETAILS_DESC' | translate }}</p>
-
-          <div class="field-grid">
-            <label class="field">
-              <span>{{ 'PROFILE.USERNAME' | translate }}</span>
-              <input type="text" [(ngModel)]="editUsername" [placeholder]="'PROFILE.USERNAME' | translate">
-            </label>
-            <label class="field">
-              <span>{{ 'PROFILE.EMAIL' | translate }}</span>
-              <input type="email" [(ngModel)]="editEmail" placeholder="tu@email.com">
-            </label>
-          </div>
-
-          <div class="msg-error" *ngIf="profileError">{{ profileError }}</div>
-          <div class="msg-ok" *ngIf="profileMsg">{{ profileMsg }}</div>
-
-          <div class="sec-actions">
-            <button class="btn-primary" (click)="saveProfile()" [disabled]="savingProfile">
-              {{ savingProfile ? ('PROFILE.SAVING' | translate) : ('PROFILE.SAVE_CHANGES' | translate) }}
-            </button>
-          </div>
-        </section>
-
-        <!-- Privacidad -->
-        <section id="privacidad" class="acct-card">
-          <div class="sec-head">
-            <span class="sec-dot"></span>
-            <h2>{{ 'PROFILE.PRIVACY' | translate }}</h2>
-          </div>
-          <p class="sec-sub">{{ 'PROFILE.PRIVACY_DESC' | translate }}</p>
-
-          <div class="toggle-row">
-            <div>
-              <div class="toggle-title">{{ 'PROFILE.SHOW_LAST_SEEN' | translate }}</div>
-              <div class="toggle-desc">{{ 'PROFILE.SHOW_LAST_SEEN_DESC' | translate }}</div>
-            </div>
-            <button type="button" class="switch" [class.on]="showLastSeen" (click)="showLastSeen = !showLastSeen">
-              <span class="knob"></span>
-            </button>
-          </div>
-
-          <div class="msg-ok" *ngIf="privacyMsg">{{ privacyMsg }}</div>
-
-          <div class="sec-actions">
-            <button class="btn-primary" (click)="savePrivacy()" [disabled]="savingPrivacy">
-              {{ savingPrivacy ? ('PROFILE.SAVING' | translate) : ('PROFILE.SAVE_PRIVACY' | translate) }}
-            </button>
-          </div>
-        </section>
-
-        <!-- Cambiar contraseña -->
-        <section id="seguridad" class="acct-card">
-          <div class="sec-head">
-            <span class="sec-dot"></span>
-            <h2>{{ 'PROFILE.CHANGE_PASSWORD' | translate }}</h2>
-          </div>
-          <p class="sec-sub">{{ 'PROFILE.PASSWORD_DESC' | translate }}</p>
-
-          <label class="field full">
-            <span>{{ 'PROFILE.CURRENT_PASSWORD' | translate }}</span>
-            <input type="password" [(ngModel)]="currentPassword" [placeholder]="'PROFILE.CURRENT_PASSWORD' | translate">
-          </label>
-
-          <div class="field-grid">
-            <label class="field">
-              <span>{{ 'PROFILE.NEW_PASSWORD' | translate }}</span>
-              <input type="password" [(ngModel)]="newPassword" [placeholder]="'PROFILE.PASSWORD_MIN_LENGTH' | translate">
-            </label>
-            <label class="field">
-              <span>{{ 'PROFILE.CONFIRM_NEW_PASSWORD' | translate }}</span>
-              <input type="password" [(ngModel)]="confirmPassword" [placeholder]="'PROFILE.REPEAT_NEW_PASSWORD' | translate">
-            </label>
-          </div>
-
-          <div class="msg-error" *ngIf="passwordError">{{ passwordError }}</div>
-          <div class="msg-ok" *ngIf="passwordMsg">{{ passwordMsg }}</div>
-
-          <div class="sec-actions">
-            <button class="btn-primary" (click)="changePassword()" [disabled]="savingPassword">
-              {{ savingPassword ? ('PROFILE.CHANGING' | translate) : ('PROFILE.CHANGE_PASSWORD' | translate) }}
-            </button>
-          </div>
-        </section>
-
-      </main>
-    </div>
+        <p class="msg-ok" role="status" *ngIf="playbackMessage">{{ playbackMessage }}</p><p class="msg-error" role="alert" *ngIf="playbackError">{{ playbackError }}</p>
+        <div class="section-actions"><button type="button" class="button-quiet" (click)="cancelPlayback()" [disabled]="savingPlayback">{{ 'PROFILE.CANCEL' | translate }}</button><button type="button" class="button-save" (click)="savePlayback()" [disabled]="savingPlayback || !profile">{{ (savingPlayback ? 'PROFILE.SAVING' : 'PROFILE.SAVE_CHANGES') | translate }}</button></div>
+        <button type="button" class="section-next" (click)="scrollTo('datos')">{{ 'PROFILE.ACCOUNT_DETAILS' | translate }}<mat-icon aria-hidden="true">chevron_right</mat-icon></button>
+      </section>
+      <section *ngIf="activeSection === 'datos'" class="settings-section">
+        <h2>{{ 'PROFILE.ACCOUNT_DETAILS' | translate }}</h2>
+        <form (ngSubmit)="saveProfile()" class="settings-form">
+          <div class="field-grid"><label class="field"><span>{{ 'PROFILE.USERNAME' | translate }}</span><input type="text" name="username" autocomplete="username" [(ngModel)]="editUsername" required minlength="3" maxlength="50"></label><label class="field"><span>{{ 'PROFILE.EMAIL' | translate }}</span><input type="email" name="email" autocomplete="email" [(ngModel)]="editEmail" required></label></div>
+          <div class="account-photo-row"><span>{{ 'PROFILE.AVATAR_ALT' | translate }}</span><div><button type="button" class="button-outline" (click)="openAvatarPicker()" [disabled]="avatarLoading || !profile">{{ (avatarLoading ? 'PROFILE.UPLOADING' : 'PROFILE.CHANGE_PHOTO') | translate }}</button><button type="button" class="button-quiet danger" (click)="removeAvatar()" [disabled]="avatarLoading || !avatarUrl">{{ 'PROFILE.REMOVE' | translate }}</button></div></div>
+          <p class="msg-ok" role="status" *ngIf="profileMsg">{{ profileMsg }}</p><div class="section-actions"><button type="submit" class="button-save" [disabled]="savingProfile || !profile">{{ (savingProfile ? 'PROFILE.SAVING' : 'PROFILE.SAVE_CHANGES') | translate }}</button></div>
+        </form>
+      </section>
+      <section *ngIf="activeSection === 'privacidad'" class="settings-section">
+        <h2>{{ 'PROFILE.PRIVACY' | translate }}</h2>
+        <div class="privacy-row"><label for="profile-last-seen">{{ 'PROFILE.SHOW_LAST_SEEN' | translate }}</label><input id="profile-last-seen" class="settings-switch" type="checkbox" role="switch" [(ngModel)]="showLastSeen" [disabled]="savingPrivacy || !profile"></div>
+        <p class="msg-ok" role="status" *ngIf="privacyMsg">{{ privacyMsg }}</p><p class="msg-error" role="alert" *ngIf="privacyError">{{ privacyError }}</p><div class="section-actions"><button type="button" class="button-save" (click)="savePrivacy()" [disabled]="savingPrivacy || !profile">{{ (savingPrivacy ? 'PROFILE.SAVING' : 'PROFILE.SAVE_PRIVACY') | translate }}</button></div>
+      </section>
+      <section *ngIf="activeSection === 'seguridad'" class="settings-section">
+        <h2>{{ 'PROFILE.CHANGE_PASSWORD' | translate }}</h2>
+        <form (ngSubmit)="changePassword()" class="settings-form"><label class="field"><span>{{ 'PROFILE.CURRENT_PASSWORD' | translate }}</span><input type="password" name="currentPassword" autocomplete="current-password" [(ngModel)]="currentPassword" required></label><div class="field-grid"><label class="field"><span>{{ 'PROFILE.NEW_PASSWORD' | translate }}</span><input type="password" name="newPassword" autocomplete="new-password" [(ngModel)]="newPassword" required minlength="6"></label><label class="field"><span>{{ 'PROFILE.CONFIRM_NEW_PASSWORD' | translate }}</span><input type="password" name="confirmPassword" autocomplete="new-password" [(ngModel)]="confirmPassword" required minlength="6"></label></div><p class="msg-error" role="alert" *ngIf="passwordError">{{ passwordError }}</p><p class="msg-ok" role="status" *ngIf="passwordMsg">{{ passwordMsg }}</p><div class="section-actions"><button type="submit" class="button-save" [disabled]="savingPassword || !profile">{{ (savingPassword ? 'PROFILE.CHANGING' : 'PROFILE.CHANGE_PASSWORD') | translate }}</button></div></form>
+      </section>
+    </main>
   </div>
 </div>

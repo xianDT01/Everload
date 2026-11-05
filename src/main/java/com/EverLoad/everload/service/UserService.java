@@ -85,6 +85,7 @@ public class UserService {
                 // Admin view: always include lastSeen for full visibility
                 .lastSeen(user.getLastSeen())
                 .showLastSeen(!Boolean.FALSE.equals(user.getShowLastSeen()))
+                .floatingPlayerStyle(user.getFloatingPlayerStyle())
                 .build();
     }
 

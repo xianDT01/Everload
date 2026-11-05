@@ -11,6 +11,7 @@ html, body {
 }
 
 .home-container {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -20,6 +21,7 @@ html, body {
     radial-gradient(circle at 52% 16%, rgba(255, 160, 51, 0.075), transparent 30%),
     radial-gradient(circle at 82% 90%, rgba(35, 155, 105, 0.045), transparent 32%),
     linear-gradient(140deg, #050507 0%, #080707 56%, #040405 100%);
+  background-origin: border-box;
   color: white;
   text-align: center;
   padding: 12px 15px;
@@ -577,7 +579,7 @@ main { transition: filter 0.3s ease; }
 /* ══ BOTÓN HAMBURGUESA ═════════════════════════════════════════════════════ */
 .burger-btn {
   position: fixed;
-  top: 18px;
+  top: calc(18px + var(--floating-player-clearance, 0px));
   left: 18px;
   z-index: 1100;
   background: rgba(255,255,255,0.08);

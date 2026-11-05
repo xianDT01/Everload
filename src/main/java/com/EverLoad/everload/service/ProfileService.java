@@ -28,6 +28,10 @@ public class ProfileService {
     }
 
     public UserDto updateProfile(String username, UpdateProfileRequest request) {
+        if (request.getFloatingPlayerStyle() != null
+                && !List.of("island", "bar").contains(request.getFloatingPlayerStyle())) {
+            throw new IllegalArgumentException("Invalid floating player style");
+        }
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND));
 
@@ -53,6 +57,10 @@ public class ProfileService {
 
         if (request.getShowLastSeen() != null) {
             user.setShowLastSeen(request.getShowLastSeen());
+        }
+
+        if (request.getFloatingPlayerStyle() != null) {
+            user.setFloatingPlayerStyle(request.getFloatingPlayerStyle());
         }
 
         return toDto(userRepository.save(user));
@@ -84,6 +92,7 @@ public class ProfileService {
                 .updatedAt(user.getUpdatedAt())
                 .lastSeen(user.getLastSeen())
                 .showLastSeen(!Boolean.FALSE.equals(user.getShowLastSeen()))
+                .floatingPlayerStyle(user.getFloatingPlayerStyle())
                 .build();
     }
 }

@@ -9,6 +9,7 @@ import { NotificationService } from './services/notification.service';
 import { MaintenanceService, MaintenanceState } from './services/maintenance.service';
 import { PwaUpdateService } from './services/pwa-update.service';
 import { ApiBaseService } from './services/api-base.service';
+import { PlayerPreferencesService, floatingPlayerMode, FloatingPlayerMode } from './services/player-preferences.service';
 
 interface InstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -22,7 +23,8 @@ interface InstallPromptEvent extends Event {
 })
 export class AppComponent implements OnInit, OnDestroy {
   title = 'everload-front';
-  playerMode: 'full' | 'mini' | 'hidden' = 'mini';
+  get playerMode(): FloatingPlayerMode { return floatingPlayerMode(this.currentUrl, this.playerPreferences.style$.value); }
+  get hasPlayerHeader(): boolean { return /^\/(chat|profile)(?:[?#/]|$)/.test(this.currentUrl); }
   maintenanceState: MaintenanceState = { active: false, message: '' };
   currentUrl = '/';
   installAvailable = false;
@@ -47,23 +49,13 @@ export class AppComponent implements OnInit, OnDestroy {
     private pwaUpdate: PwaUpdateService,
     private apiBase: ApiBaseService,
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    public playerPreferences: PlayerPreferencesService
   ) {
     this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         const url = event.urlAfterRedirects || event.url;
         this.currentUrl = url;
-        if (url.startsWith('/modern')) {
-          this.playerMode = 'hidden';
-        } else if (url.includes('/nas-music')) {
-          if (url.includes('mode=deck')) {
-            this.playerMode = 'hidden';
-          } else {
-            this.playerMode = 'full';
-          }
-        } else {
-          this.playerMode = 'mini';
-        }
       }
     });
   }

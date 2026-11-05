@@ -7,6 +7,8 @@
 }
 
 .at-container {
+  border-top: var(--floating-player-clearance, 0px) solid transparent;
+  background-origin: border-box;
   box-sizing: border-box;
   min-height: 100vh;
   padding: 0 28px 56px;

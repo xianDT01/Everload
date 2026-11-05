@@ -46,6 +46,9 @@ public class User {
     /** Whether other users can see this user's "last seen" timestamp. Null treated as true. */
     private Boolean showLastSeen;
 
+    @Column(length = 12)
+    private String floatingPlayerStyle;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

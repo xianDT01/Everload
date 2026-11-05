@@ -1,33 +1,54 @@
-<div class="chat-container" [ngClass]="'theme-' + currentTheme">
+<div class="chat-page" [class.chat-standalone]="!embedded" [class.has-playback]="!!musicService.mainPlayer.state.currentTrack && !musicService.globalPlayerHidden && playerPreferences.style$.value !== 'bar'">
+  <header class="chat-app-header" *ngIf="!embedded">
+    <a class="chat-brand" routerLink="/">Everload<span></span></a>
+    <nav [attr.aria-label]="'CHAT.NAVIGATION' | translate">
+      <a routerLink="/modern">{{ 'CHAT.MUSIC' | translate }}</a>
+      <a routerLink="/chat" class="selected" aria-current="page">Chat</a>
+      <a routerLink="/youtube-downloads">{{ 'CHAT.DOWNLOADS' | translate }}</a>
+    </nav>
+    <a class="chat-profile" routerLink="/profile" [title]="'PROFILE.SETTINGS' | translate" [attr.aria-label]="'PROFILE.SETTINGS' | translate">
+      <img *ngIf="authService.getAvatarUrl() as avatar; else profileInitial" [src]="avatar" [alt]="currentUsername" />
+      <ng-template #profileInitial><span>{{ getInitials(currentUsername) }}</span></ng-template>
+      <mat-icon aria-hidden="true">expand_more</mat-icon>
+    </a>
+  </header>
+<div class="chat-container" [class.chat-modern]="!embedded" [ngClass]="'theme-' + currentTheme">
 
   <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════ -->
   <aside class="chat-sidebar" [class.hidden]="!sidebarVisible">
     <div class="sidebar-header">
-      <button class="back-btn" (click)="goHome()" [title]="'CHAT.BACK_TO_HOME' | translate">←</button>
-      <span class="sidebar-title">💬 Chat</span>
+      <button *ngIf="embedded" class="back-btn" (click)="goHome()" [title]="'CHAT.BACK_TO_HOME' | translate"><mat-icon>arrow_back</mat-icon></button>
+      <span class="sidebar-title">{{ 'CHAT.MESSAGES_TITLE' | translate }}</span>
+      <button *ngIf="!embedded" class="chat-icon-btn compose-chat" (click)="openPrivateChatModal()" [title]="'CHAT.PRIVATE_CHAT' | translate" [attr.aria-label]="'CHAT.PRIVATE_CHAT' | translate"><mat-icon>edit_square</mat-icon></button>
       <div class="theme-picker-wrap">
-        <button class="theme-toggle-btn" (click)="toggleThemePicker()" title="Cambiar tema">🎨</button>
+        <button class="theme-toggle-btn" (click)="toggleThemePicker()" [title]="'CHAT.APPEARANCE' | translate" [attr.aria-label]="'CHAT.APPEARANCE' | translate" [attr.aria-expanded]="showThemePicker"><mat-icon>palette</mat-icon></button>
         <div class="theme-picker-panel" *ngIf="showThemePicker">
-          <div *ngFor="let t of themes"
+          <button type="button" *ngFor="let t of themes"
                class="theme-dot"
                [class.active]="currentTheme === t.id"
                [style.background]="t.color"
                (click)="applyTheme(t.id)"
-               [title]="t.label">
-          </div>
+               [title]="t.label" [attr.aria-label]="t.label" [attr.aria-pressed]="currentTheme === t.id">
+          </button>
         </div>
       </div>
     </div>
 
     <div class="sidebar-search">
-      <input type="text" [(ngModel)]="groupSearch" [placeholder]="'CHAT.SEARCH_CONVERSATIONS' | translate" />
+      <mat-icon *ngIf="!embedded" aria-hidden="true">search</mat-icon>
+      <input type="search" [(ngModel)]="groupSearch" [placeholder]="'CHAT.SEARCH_CONVERSATIONS' | translate" [attr.aria-label]="'CHAT.SEARCH_CONVERSATIONS' | translate" />
+    </div>
+    <div class="conversation-filters" *ngIf="!embedded" role="group" [attr.aria-label]="'CHAT.FILTER_CONVERSATIONS' | translate">
+      <button type="button" [class.selected]="conversationFilter === 'all'" [attr.aria-pressed]="conversationFilter === 'all'" (click)="conversationFilter = 'all'">{{ 'CHAT.FILTER_ALL' | translate }}</button>
+      <button type="button" [class.selected]="conversationFilter === 'online'" [attr.aria-pressed]="conversationFilter === 'online'" (click)="conversationFilter = 'online'"><span class="filter-online-dot"></span>{{ 'CHAT.ONLINE' | translate }}</button>
+      <button type="button" [class.selected]="conversationFilter === 'unread'" [attr.aria-pressed]="conversationFilter === 'unread'" (click)="conversationFilter = 'unread'">{{ 'CHAT.UNREAD' | translate }}</button>
     </div>
 
     <div class="group-list">
       <div *ngIf="filteredGroups.length === 0" class="no-groups">
         <span>💬</span>
-        <p>{{ 'CHAT.NO_CONVERSATIONS' | translate }}</p>
-        <small>{{ 'CHAT.NO_CONVERSATIONS_HINT' | translate }}</small>
+        <p>{{ (groups.length ? 'CHAT.NO_FILTER_RESULTS' : 'CHAT.NO_CONVERSATIONS') | translate }}</p>
+        <small *ngIf="!groups.length">{{ 'CHAT.NO_CONVERSATIONS_HINT' | translate }}</small>
       </div>
 
       <div
@@ -35,18 +56,21 @@
         class="group-item"
         [class.active]="selectedGroup?.id === group.id"
         [class.announcement]="isAnnouncementGroup(group)"
+        role="button" tabindex="0"
+        [attr.aria-pressed]="selectedGroup?.id === group.id"
+        (keydown.enter)="selectGroup(group)" (keydown.space)="$event.preventDefault(); selectGroup(group)"
         (click)="selectGroup(group)">
         <div class="group-avatar-wrap">
           <div class="group-avatar" [class.announcement-avatar]="isAnnouncementGroup(group)">
             <img *ngIf="getGroupAvatarUrl(group)" [src]="getGroupAvatarUrl(group)!" class="group-avatar-img" [alt]="getGroupDisplayName(group)" />
-            <span *ngIf="!getGroupAvatarUrl(group)">{{ getGroupIcon(group) }}</span>
+            <span *ngIf="!getGroupAvatarUrl(group)">{{ group.type === 'PRIVATE' ? getInitials(getGroupDisplayName(group)) : getGroupIcon(group) }}</span>
           </div>
           <!-- Online dot for private chats -->
           <span *ngIf="group.type === 'PRIVATE'"
                 class="presence-dot"
                 [class.presence-dot--online]="isPartnerOnline(group)"
                 [class.presence-dot--offline]="!isPartnerOnline(group)"
-                [title]="isPartnerOnline(group) ? 'En línea' : 'Desconectado'">
+                [title]="(isPartnerOnline(group) ? 'CHAT.ONLINE' : 'CHAT.OFFLINE') | translate">
           </span>
         </div>
         <div class="group-info">
@@ -67,12 +91,17 @@
 
     <div class="sidebar-actions">
       <button class="btn-new-group" (click)="openCreateGroup()">
-        ➕ {{ 'CHAT.NEW_GROUP' | translate }}
+        <mat-icon aria-hidden="true">group_add</mat-icon> {{ 'CHAT.NEW_GROUP' | translate }}
       </button>
       <button class="btn-new-private" (click)="openPrivateChatModal()">
-        💬 {{ 'CHAT.PRIVATE_CHAT' | translate }}
+        <mat-icon aria-hidden="true">chat_bubble_outline</mat-icon> {{ 'CHAT.PRIVATE_CHAT' | translate }}
       </button>
     </div>
+    <a class="sidebar-account" routerLink="/profile" *ngIf="!embedded" [title]="'PROFILE.SETTINGS' | translate">
+      <span class="account-avatar"><img *ngIf="authService.getAvatarUrl() as avatar; else accountInitial" [src]="avatar" [alt]="currentUsername" /><ng-template #accountInitial>{{ getInitials(currentUsername) }}</ng-template><i></i></span>
+      <span class="account-copy"><strong>{{ currentUsername }}</strong><small>{{ 'CHAT.ONLINE' | translate }}</small></span>
+      <mat-icon aria-hidden="true">settings</mat-icon>
+    </a>
   </aside>
 
   <!-- ═══ CONVERSATION AREA ═════════════════════════════════════════════ -->
@@ -89,11 +118,11 @@
     <ng-container *ngIf="selectedGroup">
       <!-- Header -->
       <div class="chat-header">
-        <button class="mobile-back" (click)="backToSidebar()">←</button>
+        <button class="mobile-back" (click)="backToSidebar()" [attr.aria-label]="'CHAT.MESSAGES_TITLE' | translate"><mat-icon>arrow_back</mat-icon></button>
         <div class="chat-header-avatar-wrap">
           <div class="chat-header-avatar" [class.announcement-avatar]="isAnnouncementGroup(selectedGroup)">
             <img *ngIf="getGroupAvatarUrl(selectedGroup)" [src]="getGroupAvatarUrl(selectedGroup)!" class="header-avatar-img" [alt]="getGroupDisplayName(selectedGroup)" />
-            <span *ngIf="!getGroupAvatarUrl(selectedGroup)">{{ getGroupIcon(selectedGroup) }}</span>
+            <span *ngIf="!getGroupAvatarUrl(selectedGroup)">{{ selectedGroup.type === 'PRIVATE' ? getInitials(getGroupDisplayName(selectedGroup)) : getGroupIcon(selectedGroup) }}</span>
           </div>
           <!-- Online dot in header for private chats -->
           <span *ngIf="selectedGroup.type === 'PRIVATE'"
@@ -114,7 +143,7 @@
                   (click)="toggleMutePicker()"
                   [class.muted]="selectedGroup && isGroupMuted(selectedGroup)"
                   [title]="selectedGroup && isGroupMuted(selectedGroup) ? ('CHAT.UNMUTE' | translate) : ('CHAT.MUTE_TITLE' | translate)">
-            {{ selectedGroup && isGroupMuted(selectedGroup) ? '🔕' : '🔔' }}
+            <mat-icon>{{ selectedGroup && isGroupMuted(selectedGroup) ? 'notifications_off' : 'notifications_none' }}</mat-icon>
           </button>
           <div class="mute-picker" *ngIf="showMutePicker">
             <div class="mute-option" *ngIf="selectedGroup && isGroupMuted(selectedGroup)" (click)="unmuteGroup()">
@@ -129,14 +158,14 @@
         <button class="chat-search-toggle-btn"
                 (click)="toggleSearch()"
                 [class.active]="searchMode"
-                [title]="'CHAT.SEARCH_TOGGLE' | translate">🔍</button>
+                [title]="'CHAT.SEARCH_TOGGLE' | translate" [attr.aria-label]="'CHAT.SEARCH_TOGGLE' | translate"><mat-icon>search</mat-icon></button>
 
         <!-- Chat options menu -->
         <div class="chat-options-wrap" *ngIf="canManageChat()">
           <button class="chat-options-btn"
                   #chatOptionsBtnRef
                   (click)="toggleChatOptions()"
-                  [title]="'CHAT.OPTIONS' | translate">⋮</button>
+                  [title]="'CHAT.OPTIONS' | translate" [attr.aria-label]="'CHAT.OPTIONS' | translate"><mat-icon>more_vert</mat-icon></button>
           <div class="chat-options-panel" *ngIf="showChatOptions" #chatOptionsPanelRef>
             <button class="chat-option-item" (click)="confirmClear()">
               🗑 {{ 'CHAT.CLEAR_MESSAGES' | translate }}
@@ -312,7 +341,7 @@
               type="button"
               #emojiBtnRef
               (click)="toggleEmojiPicker()"
-              [title]="'CHAT.EMOJI' | translate">😊</button>
+              [title]="'CHAT.EMOJI' | translate" [attr.aria-label]="'CHAT.EMOJI' | translate"><mat-icon>sentiment_satisfied_alt</mat-icon></button>
             <textarea
               #messageTextarea
               [(ngModel)]="messageInput"
@@ -320,6 +349,7 @@
               (input)="onInput($event)"
               (blur)="onTextareaBlur()"
               [placeholder]="'CHAT.MESSAGE_PLACEHOLDER' | translate"
+              [attr.aria-label]="'CHAT.MESSAGE_PLACEHOLDER' | translate"
               rows="1"
               class="message-input"
               maxlength="4000">
@@ -328,8 +358,8 @@
               class="send-btn"
               (click)="sendMessage()"
               [disabled]="!messageInput.trim()"
-              [title]="'CHAT.SEND' | translate">
-              ➤
+              [title]="'CHAT.SEND' | translate" [attr.aria-label]="'CHAT.SEND' | translate">
+              <mat-icon>arrow_upward</mat-icon>
             </button>
           </div>
         </div>
@@ -395,7 +425,7 @@
             <div class="private-user-info">
               <span class="private-user-name">{{ user.username }}</span>
               <span class="private-user-status" [class.status-online]="user.online">
-                {{ user.online ? 'En línea' : (user.lastSeen ? 'Visto ' + formatLastSeen(user.lastSeen) : 'Desconectado') }}
+                {{ user.online ? ('CHAT.ONLINE' | translate) : (user.lastSeen ? ('CHAT.LAST_SEEN' | translate:{ time: formatLastSeen(user.lastSeen) }) : ('CHAT.OFFLINE' | translate)) }}
               </span>
             </div>
             <span class="start-chat-icon">→</span>
@@ -413,4 +443,5 @@
     (groupUpdated)="onGroupInfoUpdated()">
   </app-group-info-modal>
 
+</div>
 </div>

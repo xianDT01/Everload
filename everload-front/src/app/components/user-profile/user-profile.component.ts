@@ -1,9 +1,12 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { ApiBaseService } from '../../services/api-base.service';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import { Subscription } from 'rxjs';
+import { FloatingPlayerStyle, PlayerPreferencesService } from '../../services/player-preferences.service';
+import { MusicService, PlayerState } from '../../services/music.service';
 
 interface ProfileData {
   id: number;
@@ -14,6 +17,7 @@ interface ProfileData {
   avatarUrl?: string;
   showLastSeen?: boolean;
   lastSeen?: string;
+  floatingPlayerStyle?: FloatingPlayerStyle | null;
 }
 
 interface UpdateProfileResponse {
@@ -26,7 +30,7 @@ interface UpdateProfileResponse {
   templateUrl: './user-profile.component.html',
   styleUrls: ['./user-profile.component.css']
 })
-export class UserProfileComponent implements OnInit {
+export class UserProfileComponent implements OnInit, OnDestroy {
 
   @ViewChild('avatarInput') avatarInput!: ElementRef<HTMLInputElement>;
 
@@ -61,30 +65,59 @@ export class UserProfileComponent implements OnInit {
   avatarError = '';
 
   // Navegación lateral
-  activeSection: 'datos' | 'privacidad' | 'seguridad' = 'datos';
+  activeSection: 'datos' | 'reproduccion' | 'privacidad' | 'seguridad' = 'reproduccion';
+  playerStyle: FloatingPlayerStyle = 'island';
+  savingPlayback = false;
+  playbackMessage = '';
+  playbackError = '';
+  privacyError = '';
+  state: PlayerState | null = null;
+  coverFailed = false;
+  previewLiked = false;
+  liking = false;
+  private readonly subscriptions = new Subscription();
 
   constructor(
     private http: HttpClient,
     public authService: AuthService,
     private apiBase: ApiBaseService,
     private router: Router,
-    private translate: TranslateService
+    private translate: TranslateService,
+    public playerPreferences: PlayerPreferencesService,
+    public musicService: MusicService
   ) {}
 
   ngOnInit(): void {
     this.loadProfile();
+    this.subscriptions.add(this.musicService.mainPlayer.state$.subscribe(state => {
+      const changed = state.currentTrack?.path !== this.state?.currentTrack?.path || state.pathId !== this.state?.pathId;
+      this.state = state;
+      if (changed) {
+        this.coverFailed = false;
+        this.previewLiked = false;
+        const track = state.currentTrack;
+        if (track && state.pathId != null) this.subscriptions.add(this.musicService.checkFavorite(track.path, state.pathId).subscribe({
+          next: response => { if (this.state?.currentTrack?.path === track.path && this.state?.pathId === state.pathId) this.previewLiked = !!response.isFavorite; },
+          error: () => {}
+        }));
+      }
+    }));
   }
 
+  ngOnDestroy(): void { this.subscriptions.unsubscribe(); }
+
   loadProfile(): void {
-    this.http.get<ProfileData>(`${this.BASE}/api/user/profile`).subscribe({
+    this.subscriptions.add(this.http.get<ProfileData>(`${this.BASE}/api/user/profile`).subscribe({
       next: data => {
         this.profile = data;
         this.editUsername = data.username;
         this.editEmail = data.email;
         this.showLastSeen = data.showLastSeen !== false; // default true
+        this.playerPreferences.accept(data.floatingPlayerStyle);
+        this.playerStyle = this.playerPreferences.style$.value || 'island';
       },
       error: () => this.profileError = this.translate.instant('PROFILE.ERROR_LOAD')
-    });
+    }));
   }
 
   /** Iniciales para el avatar cuando no hay foto. */
@@ -96,9 +129,61 @@ export class UserProfileComponent implements OnInit {
     return chars.toUpperCase();
   }
 
-  scrollTo(id: 'datos' | 'privacidad' | 'seguridad'): void {
+  scrollTo(id: 'datos' | 'reproduccion' | 'privacidad' | 'seguridad'): void {
     this.activeSection = id;
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  savePlayback(): void {
+    if (this.savingPlayback) return;
+    this.savingPlayback = true;
+    this.playbackMessage = '';
+    this.playbackError = '';
+    this.subscriptions.add(this.playerPreferences.save(this.playerStyle).subscribe({
+      next: response => {
+        if (this.profile) this.profile.floatingPlayerStyle = response.user.floatingPlayerStyle as FloatingPlayerStyle;
+        this.playbackMessage = this.translate.instant('PROFILE.PLAYBACK_SAVED');
+        this.savingPlayback = false;
+      },
+      error: () => {
+        this.playbackError = this.translate.instant('PROFILE.PLAYBACK_ERROR');
+        this.savingPlayback = false;
+      }
+    }));
+  }
+
+  cancelPlayback(): void {
+    this.playerStyle = this.playerPreferences.style$.value || 'island';
+    this.playbackMessage = '';
+    this.playbackError = '';
+  }
+
+  get coverUrl(): string | null {
+    const track = this.state?.currentTrack;
+    if (!track || this.coverFailed || !this.musicService.hasCoverToShow(track)) return null;
+    return this.musicService.getCoverUrlWithCache(this.state?.pathId ?? 0, track.path);
+  }
+
+  get trackTitle(): string { return this.state?.currentTrack?.title || this.state?.currentTrack?.name || 'Everload'; }
+  get trackArtist(): string { return this.state?.currentTrack?.artist || this.translate.instant(this.state?.currentTrack ? 'MUSIC.UNKNOWN_ARTIST' : 'PROFILE.NO_PLAYBACK'); }
+  previewTime(seconds: number): string {
+    const value = Math.max(0, Math.floor(seconds || 0));
+    return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`;
+  }
+  seekPreview(event: Event): void { this.musicService.mainPlayer.seek(Number((event.target as HTMLInputElement).value)); }
+  volumePreview(event: Event): void { this.musicService.mainPlayer.setVolume(Number((event.target as HTMLInputElement).value)); }
+
+  likePreview(): void {
+    const track = this.state?.currentTrack;
+    const pathId = this.state?.pathId;
+    if (!track || pathId == null || this.liking) return;
+    this.liking = true;
+    this.subscriptions.add(this.musicService.toggleFavorite(track.path, track.title || track.name, track.artist || '', track.album || '', pathId).subscribe({
+      next: response => {
+        if (this.state?.currentTrack?.path === track.path && this.state?.pathId === pathId) this.previewLiked = !!response.isFavorite;
+        this.liking = false;
+      },
+      error: () => { this.liking = false; this.playbackError = this.translate.instant('PROFILE.PLAYBACK_ERROR'); }
+    }));
   }
 
   get avatarUrl(): string | null {
@@ -212,8 +297,10 @@ export class UserProfileComponent implements OnInit {
   }
 
   savePrivacy(): void {
+    if (this.savingPrivacy) return;
     this.savingPrivacy = true;
     this.privacyMsg = '';
+    this.privacyError = '';
     this.http.put<any>(`${this.BASE}/api/user/profile`, {
       showLastSeen: this.showLastSeen
     }).subscribe({
@@ -223,7 +310,7 @@ export class UserProfileComponent implements OnInit {
         if (this.profile) this.profile.showLastSeen = this.showLastSeen;
       },
       error: () => {
-        this.privacyMsg = this.translate.instant('PROFILE.ERROR_PRIVACY_UPDATE');
+        this.privacyError = this.translate.instant('PROFILE.ERROR_PRIVACY_UPDATE');
         this.savingPrivacy = false;
       }
     });
