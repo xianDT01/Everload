@@ -11,7 +11,7 @@ import { PlayerPreferencesService } from '../../services/player-preferences.serv
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.component.html',
-  styleUrls: ['./chat.component.css', './chat-modern.css']
+  styleUrls: ['./chat.component.css', './chat-modern.css', './chat-dialog.css']
 })
 export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   @Input() embedded = false;
@@ -478,6 +478,7 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   openPrivateChatModal(): void {
+    this.userSearch = '';
     this.chatService.getActiveUsers().subscribe({
       next: users => {
         this.activeUsers = users;
@@ -489,6 +490,15 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
         this.translate.instant('CHAT.ERROR_LOAD_USERS')
       )
     });
+  }
+
+  @HostListener('document:keydown.escape')
+  closeChatDialogs(): void {
+    this.showPrivateChatModal = false;
+    this.showClearConfirm = false;
+    this.showDeleteConfirm = false;
+    this.showChatOptions = false;
+    this.showMutePicker = false;
   }
 
   get filteredActiveUsers(): ActiveUser[] {

@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, Input, HostListener } from '@angular/core';
 import { ChatService, ChatGroupDto, ActiveUser } from '../../../services/chat.service';
 import { NotificationService } from '../../../services/notification.service';
 import { AuthService } from '../../../services/auth.service';
@@ -7,9 +7,10 @@ import { TranslateService } from '@ngx-translate/core';
 @Component({
   selector: 'app-create-group-modal',
   templateUrl: './create-group-modal.component.html',
-  styleUrls: ['./create-group-modal.component.css']
+  styleUrls: ['./create-group-modal.component.css', '../chat-dialog.css']
 })
 export class CreateGroupModalComponent implements OnInit {
+  @Input() modern = false;
   @Output() created = new EventEmitter<ChatGroupDto>();
   @Output() cancelled = new EventEmitter<void>();
 
@@ -54,6 +55,7 @@ export class CreateGroupModalComponent implements OnInit {
   }
 
   submit(): void {
+    if (this.isLoading) return;
     if (!this.name.trim()) {
       this.notificationService.showToast(
         'warning',
@@ -90,6 +92,7 @@ export class CreateGroupModalComponent implements OnInit {
     });
   }
 
+  @HostListener('document:keydown.escape')
   cancel(): void {
     this.cancelled.emit();
   }

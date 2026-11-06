@@ -3,6 +3,19 @@ import { BehaviorSubject, of, Subject } from 'rxjs';
 import { ModernLibraryComponent } from './modern-library.component';
 
 describe('ModernLibraryComponent indexing', () => {
+  it('blocks direct access to bulk metadata editing without NAS permissions', () => {
+    const nas = jasmine.createSpyObj('NasService', ['updateMetadata']);
+    const component = new ModernLibraryComponent({} as any, {} as any, nas, { canManageNas: () => false } as any);
+    component.pathId = 1;
+    component.selectedPaths.add('song.mp3');
+    (component as any).allTracks = [{ path: 'song.mp3' }];
+    component.bulkFields.artist = true;
+    component.bulkValues.artist = 'Artist';
+    component.openMetadataEditor();
+    component.saveBulkMetadata();
+    expect(component.metadataEditorOpen).toBeFalse();
+    expect(nas.updateMetadata).not.toHaveBeenCalled();
+  });
   it('preserves the visible list, search and sorting while an index refresh is pending', fakeAsync(() => {
     const refresh = new Subject<any>();
     const state: any = {
@@ -11,7 +24,7 @@ describe('ModernLibraryComponent indexing', () => {
         of({ tracks: [{ path: 'first.mp3', title: 'First' }], indexing: true }), refresh
       )
     };
-    const component = new ModernLibraryComponent({ getPlaylists: () => of([]) } as any, state, {} as any);
+    const component = new ModernLibraryComponent({ getPlaylists: () => of([]) } as any, state, {} as any, {} as any);
     component.ngOnInit();
     component.query = 'First';
     component.sortCol = 'title';
@@ -35,7 +48,7 @@ describe('ModernLibraryComponent indexing', () => {
         of({ tracks: [{ path: 'first.mp3' }, { path: 'second.mp3' }], indexing: false })
       )
     };
-    const component = new ModernLibraryComponent({ getPlaylists: () => of([]) } as any, state, {} as any);
+    const component = new ModernLibraryComponent({ getPlaylists: () => of([]) } as any, state, {} as any, {} as any);
     component.ngOnInit();
     expect(component.tracks.length).toBe(1);
     tick(6000);
@@ -50,7 +63,7 @@ describe('ModernLibraryComponent indexing', () => {
     const second = new Subject<any>();
     const paths = new BehaviorSubject<number | null>(1);
     const state: any = { pathId$: paths, getOverview: jasmine.createSpy().and.returnValues(first, second) };
-    const component = new ModernLibraryComponent({ getPlaylists: () => of([]) } as any, state, {} as any);
+    const component = new ModernLibraryComponent({ getPlaylists: () => of([]) } as any, state, {} as any, {} as any);
     component.ngOnInit();
     paths.next(2);
     first.next({ tracks: [{ path: 'old.mp3' }], indexing: true });

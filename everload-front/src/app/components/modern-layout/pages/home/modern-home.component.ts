@@ -4,6 +4,7 @@ import { catchError, combineLatest, concat, forkJoin, map, of, Subscription } fr
 import { ArtistProfileDto, CommunityDiscoverDto, MusicService, MusicMetadataDto, YtMusicDiscoverItemDto } from '../../../../services/music.service';
 import { ModernStateService } from '../../modern-state.service';
 import { AuthService } from '../../../../services/auth.service';
+import { homeArtistNames, homePersonalization, rankHomeArtists } from '../../../../services/home-artist-ranking';
 
 interface AlbumCard {
   album: string;
@@ -245,11 +246,8 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
         const items = (history || []).filter((item: any) => item.available !== false);
         const availableFavorites = (favorites || []).filter((item: any) => item.available !== false);
         const tracks = overview.tracks || [];
-        const allTimePlays = (topArtists || []).reduce((total, entry) => total + (entry.playCount || 0), 0);
-        const personalSignals = Math.max(items.length, allTimePlays) + availableFavorites.length * 2;
         const accountCreatedAt = this.auth.getCurrentUser()?.createdAt;
-        const existingAccount = !accountCreatedAt || accountCreatedAt < '2026-09-25T00:00:00';
-        const personalWeight = existingAccount ? 1 : Math.min(1, personalSignals / 15);
+        const { existingAccount, personalWeight } = homePersonalization(accountCreatedAt, items.length, topArtists || [], availableFavorites.length);
         if (this.indexPoll) clearTimeout(this.indexPoll);
         if (overview.indexing) {
           this.indexPoll = setTimeout(() => this.load(pathId, true), 6000);
@@ -408,41 +406,10 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
             card.imageUrl = this.profileImage(profile);
           }
         });
-        const playCountMap = new Map<string, number>();
-        (topArtists as { artist: string; playCount: number }[]).forEach(entry => {
-          playCountMap.set(this.key(entry.artist), entry.playCount);
-        });
-        if (!existingAccount) {
-          items.forEach((item: any) => this.artistDisplayParts(item.artist || '').forEach(name => {
-            const key = this.key(name);
-            if (key && !playCountMap.has(key)) playCountMap.set(key, 1);
-          }));
-          availableFavorites.forEach((favorite: any) => this.artistDisplayParts(favorite.artist || '').forEach(name => {
-            const key = this.key(name);
-            if (key) playCountMap.set(key, (playCountMap.get(key) || 0) + 2);
-          }));
-        }
-        const globalArtistCounts = new Map<string, number>();
-        community.topArtists.forEach(entry => this.artistDisplayParts(entry.artist).forEach(name => {
-          const key = this.key(name);
-          if (key) globalArtistCounts.set(key, (globalArtistCounts.get(key) || 0) + entry.playCount);
-        }));
-        const maxOwnArtist = this.maxCount(Array.from(playCountMap.values()));
-        const maxGlobalArtist = this.maxCount(Array.from(globalArtistCounts.values()));
-        this.topArtists = Array.from(artistMap.values())
-          .sort((a, b) => {
-            const pa = playCountMap.get(this.key(a.artist)) ?? 0;
-            const pb = playCountMap.get(this.key(b.artist)) ?? 0;
-            if (!existingAccount) {
-              const score = this.blendedScore(pb, globalArtistCounts.get(this.key(b.artist)) || 0, personalWeight, maxOwnArtist, maxGlobalArtist)
-                - this.blendedScore(pa, globalArtistCounts.get(this.key(a.artist)) || 0, personalWeight, maxOwnArtist, maxGlobalArtist);
-              if (score !== 0) return score;
-            } else if (pa !== pb) {
-              return pb - pa;
-            }
-            return b.tracks.length - a.tracks.length || a.artist.localeCompare(b.artist);
-          })
-          .slice(0, 14);
+        this.topArtists = rankHomeArtists(Array.from(artistMap.values()), {
+          plays: topArtists, history: items, favorites: availableFavorites,
+          community: community.topArtists, existingAccount, personalWeight
+        }).slice(0, 14);
         this.resolveAutoArtistImages();
 
         // Recently Added = latest albums by lastModified
@@ -597,18 +564,7 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
   }
 
   private artistDisplayParts(value: string): string[] {
-    const raw = (value || '').trim();
-    if (!raw) return [];
-    const parts = raw
-      .split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b|\bcon\b|\band\b| y )\s*/i)
-      .map(part => part.trim())
-      .filter(Boolean);
-    const unique = new Map<string, string>();
-    (parts.length ? parts : [raw]).forEach(part => {
-      const key = this.key(part);
-      if (key && !this.isSuspiciousArtistName(part) && !unique.has(key)) unique.set(key, part);
-    });
-    return Array.from(unique.values());
+    return homeArtistNames(value);
   }
 
   private isSuspiciousArtistName(value: string): boolean {

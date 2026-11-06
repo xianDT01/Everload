@@ -1,0 +1,61 @@
+<div class="ew-home" [attr.aria-busy]="loading">
+  <header class="ew-heading">
+    <div><h1>{{ 'MUSIC.EW_LIBRARY' | translate }}</h1><p>{{ 'MUSIC.EW_SUBTITLE' | translate }}</p></div>
+    <button class="ew-folder-button" type="button" (click)="foldersOpen.emit()" [title]="'MUSIC.EW_FOLDERS' | translate" [attr.aria-label]="'MUSIC.EW_FOLDERS' | translate"><span class="material-icons" aria-hidden="true">folder_open</span></button>
+  </header>
+  <nav class="ew-filters" [attr.aria-label]="'MUSIC.EW_FILTERS' | translate">
+    <button *ngFor="let item of filters" type="button" [class.active]="filter === item" [attr.aria-pressed]="filter === item" (click)="selectFilter(item)">{{ ('MUSIC.EW_FILTER_' + item) | translate }}</button>
+  </nav>
+
+  <div class="ew-skeleton-grid" *ngIf="loading" role="status" [attr.aria-label]="'LOADING' | translate"><div class="ew-skeleton" *ngFor="let n of [1,2,3,4]"></div></div>
+  <div class="ew-empty" *ngIf="!loading && failed" role="status"><p>{{ 'MUSIC.LIBRARY_LOAD_ERROR' | translate }}</p><button type="button" (click)="retry.emit()">{{ 'MUSIC.LIBRARY_RETRY' | translate }}</button></div>
+
+  <ng-container *ngIf="!loading && !failed">
+    <section *ngIf="filter === 'all' || filter === 'albums'" [attr.aria-label]="(filter === 'all' ? 'MUSIC.EW_CONTINUE' : 'MUSIC.EW_FILTER_albums') | translate">
+      <h2>{{ (filter === 'all' ? 'MUSIC.EW_CONTINUE' : 'MUSIC.EW_FILTER_albums') | translate }}</h2>
+      <div class="ew-albums">
+        <button class="ew-album" type="button" *ngFor="let album of (filter === 'all' ? continueAlbums.slice(0,4) : albums.slice(0,limit)); trackBy: albumKey" (click)="albumPlay.emit(album)" [title]="album.album + ' - ' + album.artist">
+          <span class="ew-artwork"><span class="material-icons ew-placeholder" aria-hidden="true">album</span><img [src]="cover(album.track, album.pathId)" alt="" loading="lazy" (error)="imageFailed($event)" (load)="$any($event.target).hidden = false"/><span class="ew-play material-icons" aria-hidden="true">play_arrow</span></span>
+          <strong>{{ album.album }}</strong><small>{{ album.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</small>
+        </button>
+      </div>
+      <p class="ew-empty" *ngIf="!(filter === 'all' ? continueAlbums.length : albums.length)">{{ 'MUSIC.EW_EMPTY_ALBUMS' | translate }}</p>
+      <button class="ew-more" type="button" *ngIf="filter === 'albums' && albums.length > limit" (click)="limit = limit + 48">{{ 'MUSIC.EW_MORE' | translate }}</button>
+    </section>
+
+    <section *ngIf="filter === 'all' || filter === 'artists'">
+      <h2>{{ (filter === 'all' ? 'MUSIC.EW_YOUR_ARTISTS' : 'MUSIC.EW_FILTER_artists') | translate }}</h2>
+      <div class="ew-artists">
+        <button class="ew-artist" type="button" *ngFor="let artist of artists.slice(0, filter === 'all' ? 5 : limit); trackBy: artistKey" (click)="artistPlay.emit(artist)" [disabled]="!artist.tracks.length" [title]="artist.artist">
+          <span class="ew-portrait"><span class="material-icons ew-placeholder" aria-hidden="true">person</span><img *ngIf="artist.imageUrl || artist.autoImageUrl" [src]="artist.imageUrl || artist.autoImageUrl" alt="" loading="lazy" (error)="imageFailed($event)" (load)="$any($event.target).hidden = false"/></span><strong>{{ artist.artist }}</strong>
+        </button>
+      </div>
+      <p class="ew-empty" *ngIf="!artists.length">{{ 'MUSIC.EW_EMPTY_ARTISTS' | translate }}</p>
+      <button class="ew-more" type="button" *ngIf="filter === 'artists' && artists.length > limit" (click)="limit = limit + 48">{{ 'MUSIC.EW_MORE' | translate }}</button>
+    </section>
+
+    <section *ngIf="filter === 'all'">
+      <h2>{{ 'MUSIC.EW_RECENT' | translate }}</h2>
+      <div class="ew-recent" role="table" [attr.aria-label]="'MUSIC.EW_RECENT' | translate">
+        <div class="ew-table-head" role="row"><span role="columnheader">#</span><span role="columnheader">{{ 'MUSIC.MODERN_COL_TITLE' | translate }}</span><span class="ew-album-column" role="columnheader">{{ 'MUSIC.MODERN_COL_ALBUM' | translate }}</span><span class="material-icons" role="columnheader" [attr.aria-label]="'MUSIC.EW_DURATION' | translate">schedule</span></div>
+        <button class="ew-track" type="button" role="row" *ngFor="let track of recent.slice(0,5); let i = index; trackBy: trackKey" [class.current]="playingPath === track.path" [disabled]="track.available === false" (click)="trackPlay.emit(track)" [title]="track.title || track.name">
+          <span class="ew-track-number" role="cell"><span class="ew-row-number">{{ i + 1 }}</span><span class="material-icons ew-row-play" aria-hidden="true">play_arrow</span></span>
+          <span class="ew-track-info" role="cell"><span class="ew-track-art"><span class="material-icons ew-placeholder" aria-hidden="true">music_note</span><img [src]="cover(track)" alt="" loading="lazy" (error)="imageFailed($event)" (load)="$any($event.target).hidden = false"/></span><span class="ew-track-copy"><strong>{{ track.title || track.name }}</strong><small>{{ track.artist || ('MUSIC.UNKNOWN_ARTIST' | translate) }}</small></span></span>
+          <span class="ew-album-column" role="cell">{{ track.album || '--' }}</span><span class="ew-duration" role="cell">{{ duration(track.duration) }}</span>
+        </button>
+      </div>
+      <p class="ew-empty" *ngIf="!recent.length">{{ 'MUSIC.EW_EMPTY_RECENT' | translate }}</p>
+    </section>
+
+    <section *ngIf="filter === 'playlists'">
+      <h2>{{ 'MUSIC.EW_FILTER_playlists' | translate }}</h2>
+      <div class="ew-albums">
+        <button class="ew-album" type="button" *ngFor="let playlist of playlists.slice(0,limit); trackBy: playlistKey" (click)="playlistOpen.emit(playlist)">
+          <span class="ew-artwork ew-playlist-art"><app-playlist-artwork [playlist]="playlist" [pathId]="pathId" [coverRevision]="coverRevision"></app-playlist-artwork><span class="ew-play material-icons" aria-hidden="true">arrow_forward</span></span><strong>{{ playlist.name }}</strong><small>{{ 'MUSIC.YTMUSIC_TRACK_COUNT' | translate:{count: playlist.tracks?.length || 0} }}</small>
+        </button>
+      </div>
+      <p class="ew-empty" *ngIf="!playlists.length">{{ 'MUSIC.EW_EMPTY_PLAYLISTS' | translate }}</p>
+      <button class="ew-more" type="button" *ngIf="playlists.length > limit" (click)="limit = limit + 48">{{ 'MUSIC.EW_MORE' | translate }}</button>
+    </section>
+  </ng-container>
+</div>

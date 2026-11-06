@@ -131,7 +131,7 @@
                 [class.presence-dot--offline]="!isPartnerOnline(selectedGroup)">
           </span>
         </div>
-        <div class="chat-header-info" (click)="openGroupInfo()" [style.cursor]="selectedGroup.type !== 'PRIVATE' ? 'pointer' : 'default'" [title]="selectedGroup.type !== 'PRIVATE' ? 'Ver info del grupo' : ''">
+        <div class="chat-header-info" (click)="openGroupInfo()" (keydown.enter)="openGroupInfo()" (keydown.space)="$event.preventDefault(); openGroupInfo()" [attr.role]="selectedGroup.type !== 'PRIVATE' ? 'button' : null" [attr.tabindex]="selectedGroup.type !== 'PRIVATE' ? 0 : null" [style.cursor]="selectedGroup.type !== 'PRIVATE' ? 'pointer' : 'default'" [title]="selectedGroup.type !== 'PRIVATE' ? ('CHAT.GROUP_INFO' | translate) : ''">
           <span class="chat-header-name">{{ getGroupDisplayName(selectedGroup) }}</span>
           <span class="chat-header-sub">
             <span class="chat-header-presence">{{ getPresenceSubtitle(selectedGroup) }}</span>
@@ -168,10 +168,10 @@
                   [title]="'CHAT.OPTIONS' | translate" [attr.aria-label]="'CHAT.OPTIONS' | translate"><mat-icon>more_vert</mat-icon></button>
           <div class="chat-options-panel" *ngIf="showChatOptions" #chatOptionsPanelRef>
             <button class="chat-option-item" (click)="confirmClear()">
-              🗑 {{ 'CHAT.CLEAR_MESSAGES' | translate }}
+              <mat-icon aria-hidden="true">delete_sweep</mat-icon>{{ 'CHAT.CLEAR_MESSAGES' | translate }}
             </button>
             <button class="chat-option-item danger" (click)="confirmDelete()" *ngIf="canDeleteChat()">
-              ❌ {{ 'CHAT.DELETE_CHAT' | translate }}
+              <mat-icon aria-hidden="true">delete_outline</mat-icon>{{ 'CHAT.DELETE_CHAT' | translate }}
             </button>
           </div>
         </div>
@@ -368,8 +368,8 @@
   </section>
 
   <!-- ═══ CLEAR MESSAGES CONFIRM ══════════════════════════════════════════ -->
-  <div class="modal-overlay" *ngIf="showClearConfirm" (click)="showClearConfirm = false">
-    <div class="modal-box confirm-modal" (click)="$event.stopPropagation()">
+  <div class="modal-overlay" [class.chat-dialog]="!embedded" *ngIf="showClearConfirm" (click)="showClearConfirm = false">
+    <div class="modal-box confirm-modal" role="dialog" aria-modal="true" [attr.aria-label]="'CHAT.CLEAR_MESSAGES' | translate" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()">
       <div class="confirm-icon">🗑</div>
       <h3 class="confirm-title">{{ 'CHAT.CLEAR_MESSAGES' | translate }}</h3>
       <p class="confirm-body">{{ 'CHAT.CLEAR_CONFIRM_MSG' | translate }}</p>
@@ -381,8 +381,8 @@
   </div>
 
   <!-- ═══ DELETE CHAT CONFIRM ══════════════════════════════════════════════ -->
-  <div class="modal-overlay" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
-    <div class="modal-box confirm-modal" (click)="$event.stopPropagation()">
+  <div class="modal-overlay" [class.chat-dialog]="!embedded" *ngIf="showDeleteConfirm" (click)="showDeleteConfirm = false">
+    <div class="modal-box confirm-modal" role="dialog" aria-modal="true" [attr.aria-label]="'CHAT.DELETE_CHAT' | translate" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()">
       <div class="confirm-icon">❌</div>
       <h3 class="confirm-title">{{ 'CHAT.DELETE_CHAT' | translate }}</h3>
       <p class="confirm-body">{{ 'CHAT.DELETE_CONFIRM_MSG' | translate }}</p>
@@ -396,22 +396,23 @@
   <!-- ═══ CREATE GROUP MODAL ═══════════════════════════════════════════ -->
   <app-create-group-modal
     *ngIf="showCreateGroupModal"
+    [modern]="!embedded"
     (created)="onGroupCreated($event)"
     (cancelled)="showCreateGroupModal = false">
   </app-create-group-modal>
 
   <!-- ═══ PRIVATE CHAT MODAL ═══════════════════════════════════════════ -->
-  <div class="modal-overlay" *ngIf="showPrivateChatModal" (click)="showPrivateChatModal = false">
-    <div class="modal-box private-modal" (click)="$event.stopPropagation()">
+  <div class="modal-overlay" [class.chat-dialog]="!embedded" *ngIf="showPrivateChatModal" (click)="showPrivateChatModal = false">
+    <div class="modal-box private-modal" role="dialog" aria-modal="true" aria-labelledby="private-chat-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <span class="modal-title">💬 {{ 'CHAT.NEW_PRIVATE_CHAT' | translate }}</span>
-        <button class="modal-close" (click)="showPrivateChatModal = false">✕</button>
+        <span class="modal-title" id="private-chat-title"><mat-icon aria-hidden="true">chat_bubble_outline</mat-icon>{{ 'CHAT.NEW_PRIVATE_CHAT' | translate }}</span>
+        <button type="button" class="modal-close" (click)="showPrivateChatModal = false" [attr.aria-label]="'COMMON.CLOSE' | translate" [title]="'COMMON.CLOSE' | translate"><mat-icon>close</mat-icon></button>
       </div>
       <div class="modal-body">
-        <input type="text" [(ngModel)]="userSearch" [placeholder]="'CHAT.SEARCH_USER' | translate" class="user-search-input" />
+        <div class="dialog-search"><mat-icon aria-hidden="true">search</mat-icon><input cdkFocusInitial type="text" [(ngModel)]="userSearch" [attr.aria-label]="'CHAT.SEARCH_USER' | translate" [placeholder]="'CHAT.SEARCH_USER' | translate" class="user-search-input" /></div>
         <div class="private-user-list">
           <div *ngIf="filteredActiveUsers.length === 0" class="no-users-msg">{{ 'CHAT.NO_USERS_AVAILABLE' | translate }}</div>
-          <div *ngFor="let user of filteredActiveUsers" class="private-user-item" (click)="startPrivateChat(user.username)">
+          <button type="button" *ngFor="let user of filteredActiveUsers" class="private-user-item" (click)="startPrivateChat(user.username)">
             <div class="private-user-avatar-wrap">
               <div class="private-user-avatar">
                 <img *ngIf="user.avatarUrl" [src]="resolveAvatarUrl(user.avatarUrl)" [alt]="user.username" />
@@ -428,8 +429,8 @@
                 {{ user.online ? ('CHAT.ONLINE' | translate) : (user.lastSeen ? ('CHAT.LAST_SEEN' | translate:{ time: formatLastSeen(user.lastSeen) }) : ('CHAT.OFFLINE' | translate)) }}
               </span>
             </div>
-            <span class="start-chat-icon">→</span>
-          </div>
+            <mat-icon class="start-chat-icon" aria-hidden="true">arrow_forward</mat-icon>
+          </button>
         </div>
       </div>
     </div>
@@ -438,6 +439,7 @@
   <!-- ═══ GROUP INFO MODAL ═════════════════════════════════════════════ -->
   <app-group-info-modal
     *ngIf="showGroupInfoModal && selectedGroup"
+    [modern]="!embedded"
     [group]="selectedGroup"
     (close)="showGroupInfoModal = false"
     (groupUpdated)="onGroupInfoUpdated()">

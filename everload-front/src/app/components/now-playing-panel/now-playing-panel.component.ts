@@ -134,11 +134,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   browserMaximized = false;
   activeDesktopWindow: DesktopWindowTarget = 'player';
   private desktopWindowZOrder: Record<DesktopWindowTarget, number> = {
-    player: 9500, explorer: 9501, manager: 9499, messenger: 9498, youtube: 9497,
+    player: 9502, explorer: 9501, manager: 9499, messenger: 9498, youtube: 9497,
     browser: 9496, minesweeper: 9495, calculator: 9494, notepad: 9493,
     equalizer: 9492, snake: 9491
   };
-  private desktopWindowZCounter = 9501;
+  private readonly activateDesktopWindow = (event: Event) => this.onDesktopWindowActivate(event);
   desktopPanelPosition = { x: 0, y: 0 };
   desktopPanelSize = { width: 1060, height: 690 };
   explorerWindowPosition = { x: 132, y: 84 };
@@ -439,10 +439,14 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     private cdr: ChangeDetectorRef,
     private apiBase: ApiBaseService,
     private sanitizer: DomSanitizer,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private host: ElementRef<HTMLElement>
   ) {}
 
   ngOnInit(): void {
+    // Capture activation before child controls can stop the event bubbling.
+    this.host.nativeElement.addEventListener('pointerdown', this.activateDesktopWindow, true);
+    this.host.nativeElement.addEventListener('focusin', this.activateDesktopWindow, true);
     this.subs.push(this.musicService.mainPlayer.state$.subscribe(s => {
       this.state = s;
       if (s.currentTrack && s.currentTrack.path !== this.prevTrackPath) {
@@ -500,6 +504,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   ngOnDestroy(): void {
+    this.host.nativeElement.removeEventListener('pointerdown', this.activateDesktopWindow, true);
+    this.host.nativeElement.removeEventListener('focusin', this.activateDesktopWindow, true);
     this.clearCoverPreview();
     this.subs.forEach(s => s.unsubscribe());
     this.stopViz();
@@ -524,7 +530,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const isWinamp = this.playerSkin === 'winamp';
     const size = isWinamp ? this.getWinampWindowSize() : this.desktopPanelSize;
     const position = isWinamp
-      ? this.clampWindowPosition(this.desktopPanelPosition.x, this.desktopPanelPosition.y, size)
+      ? this.clampPlayerWindowPosition(this.desktopPanelPosition.x, this.desktopPanelPosition.y, size)
       : this.desktopPanelPosition;
     return {
       left: `${position.x}px`,
@@ -857,7 +863,10 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
       const nextX = event.clientX - this.dragState.offsetX;
       const nextY = event.clientY - this.dragState.offsetY;
       const size = this.getWindowSize(this.dragState.target);
-      this.setWindowPosition(this.dragState.target, this.clampWindowPosition(nextX, nextY, size));
+      const position = this.dragState.target === 'player'
+        ? this.clampPlayerWindowPosition(nextX, nextY, size)
+        : this.clampWindowPosition(nextX, nextY, size);
+      this.setWindowPosition(this.dragState.target, position);
     }
   }
 
@@ -1150,7 +1159,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   closeMusicManager(): void {
     this.musicManagerOpen = false;
     this.musicManagerMinimized = false;
-    if (this.activeDesktopWindow === 'manager') this.focusWindow('player');
+    this.focusNextVisibleWindow('manager');
   }
 
   loadMusicHistory(): void {
@@ -2081,9 +2090,45 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   focusWindow(target: DesktopWindowTarget): void {
-    this.desktopWindowZOrder[target] = ++this.desktopWindowZCounter;
+    const order = (Object.keys(this.desktopWindowZOrder) as DesktopWindowTarget[])
+      .filter(window => window !== target)
+      .sort((a, b) => this.desktopWindowZOrder[a] - this.desktopWindowZOrder[b]);
+    order.push(target);
+    order.forEach((window, index) => this.desktopWindowZOrder[window] = 9500 + index);
     this.activeDesktopWindow = target;
     this.desktopStartOpen = false;
+  }
+
+  onDesktopWindowActivate(event: Event): void {
+    if (!this.isOpen || !this.isDesktopWmp || this.isFullscreen || !(event.target instanceof Element)) return;
+    const window = event.target.closest<HTMLElement>('[data-desktop-window]');
+    const target = window?.dataset['desktopWindow'];
+    if (!window || !this.host.nativeElement.contains(window) || !target
+      || !Object.prototype.hasOwnProperty.call(this.desktopWindowZOrder, target)
+      || target === this.activeDesktopWindow) return;
+    this.focusWindow(target as DesktopWindowTarget);
+    this.cdr.detectChanges();
+  }
+
+  private focusNextVisibleWindow(hidden: DesktopWindowTarget): void {
+    if (this.activeDesktopWindow !== hidden) return;
+    const visible: Record<DesktopWindowTarget, boolean> = {
+      player: !this.playerMinimized,
+      explorer: this.desktopExplorerOpen && !this.explorerMinimized,
+      manager: this.musicManagerOpen && !this.musicManagerMinimized,
+      messenger: this.messengerOpen && !this.messengerMinimized,
+      youtube: this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized,
+      browser: this.browserOpen && !this.browserMinimized,
+      minesweeper: this.minesweeperOpen && !this.minesweeperMinimized,
+      calculator: this.calculatorOpen && !this.calculatorMinimized,
+      notepad: this.notepadOpen && !this.notepadMinimized,
+      equalizer: this.equalizerOpen && !this.equalizerMinimized,
+      snake: this.snakeOpen && !this.snakeMinimized
+    };
+    const next = (Object.keys(visible) as DesktopWindowTarget[])
+      .filter(target => target !== hidden && visible[target])
+      .sort((a, b) => this.desktopWindowZOrder[b] - this.desktopWindowZOrder[a])[0];
+    if (next) this.focusWindow(next);
   }
 
   private getWindowPosition(target: DesktopWindowTarget): { x: number; y: number } {
@@ -2200,18 +2245,12 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.explorerMinimized = false;
     this.explorerMaximized = false;
     this.desktopStartOpen = false;
+    this.focusNextVisibleWindow('explorer');
   }
 
   closePlayerWindow(): void {
     this.playerMinimized = true;
-    if (this.activeDesktopWindow === 'player') {
-      if (this.desktopExplorerOpen && !this.explorerMinimized) this.focusWindow('explorer');
-      else if (this.musicManagerOpen && !this.musicManagerMinimized) this.focusWindow('manager');
-      else if (this.messengerOpen && !this.messengerMinimized) this.focusWindow('messenger');
-      else if (this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized) this.focusWindow('youtube');
-      else if (this.browserOpen && !this.browserMinimized) this.focusWindow('browser');
-      else if (this.minesweeperOpen && !this.minesweeperMinimized) this.focusWindow('minesweeper');
-    }
+    this.focusNextVisibleWindow('player');
   }
 
   openYoutubeDownloader(): void {
@@ -2225,9 +2264,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.youtubeDownloaderOpen = false;
     this.youtubeDownloaderMinimized = false;
     this.youtubeDownloaderMaximized = false;
-    if (this.activeDesktopWindow === 'youtube') {
-      this.focusWindow(this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player');
-    }
+    this.focusNextVisibleWindow('youtube');
   }
 
   openBrowser(): void {
@@ -2242,9 +2279,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.browserOpen = false;
     this.browserMinimized = false;
     this.browserMaximized = false;
-    if (this.activeDesktopWindow === 'browser') {
-      this.focusWindow(this.youtubeDownloaderOpen ? 'youtube' : this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player');
-    }
+    this.focusNextVisibleWindow('browser');
   }
 
   toggleBrowserMaximize(): void {
@@ -2275,9 +2310,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   closeMinesweeper(): void {
     this.minesweeperOpen = false;
     this.minesweeperMinimized = false;
-    if (this.activeDesktopWindow === 'minesweeper') {
-      this.focusWindow(this.youtubeDownloaderOpen ? 'youtube' : this.messengerOpen ? 'messenger' : this.desktopExplorerOpen ? 'explorer' : 'player');
-    }
+    this.focusNextVisibleWindow('minesweeper');
   }
 
   toggleYoutubeMaximize(): void {
@@ -2409,9 +2442,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.messengerOpen = false;
     this.messengerMinimized = false;
     this.messengerMaximized = false;
-    if (this.activeDesktopWindow === 'messenger') {
-      this.focusWindow(this.desktopExplorerOpen ? 'explorer' : 'player');
-    }
+    this.focusNextVisibleWindow('messenger');
   }
 
   toggleMessengerMaximize(): void {
@@ -2452,21 +2483,14 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     if (target === 'notepad')    this.notepadMinimized = true;
     if (target === 'equalizer')  this.equalizerMinimized = true;
     if (target === 'snake')      this.snakeMinimized = true;
-    if (this.activeDesktopWindow === target) {
-      if (target !== 'player' && !this.playerMinimized) this.focusWindow('player');
-      else if (target !== 'explorer' && this.desktopExplorerOpen && !this.explorerMinimized) this.focusWindow('explorer');
-      else if (target !== 'manager' && this.musicManagerOpen && !this.musicManagerMinimized) this.focusWindow('manager');
-      else if (target !== 'messenger' && this.messengerOpen && !this.messengerMinimized) this.focusWindow('messenger');
-      else if (target !== 'youtube' && this.youtubeDownloaderOpen && !this.youtubeDownloaderMinimized) this.focusWindow('youtube');
-      else if (target !== 'browser' && this.browserOpen && !this.browserMinimized) this.focusWindow('browser');
-      else if (target !== 'minesweeper' && this.minesweeperOpen && !this.minesweeperMinimized) this.focusWindow('minesweeper');
-    }
+    this.focusNextVisibleWindow(target);
   }
 
   toggleTaskWindow(target: DesktopWindowTarget): void {
     if (target === 'player') {
-      this.playerMinimized = !this.playerMinimized;
+      this.playerMinimized = this.activeDesktopWindow === target && !this.playerMinimized;
       if (!this.playerMinimized) this.focusWindow('player');
+      else this.focusNextVisibleWindow('player');
       return;
     }
     if (target === 'explorer') {
@@ -2474,8 +2498,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.openExplorerWindow();
         return;
       }
-      this.explorerMinimized = !this.explorerMinimized;
+      this.explorerMinimized = this.activeDesktopWindow === target && !this.explorerMinimized;
       if (!this.explorerMinimized) this.focusWindow('explorer');
+      else this.focusNextVisibleWindow('explorer');
       return;
     }
     if (target === 'manager') {
@@ -2483,8 +2508,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.openMusicManager();
         return;
       }
-      this.musicManagerMinimized = !this.musicManagerMinimized;
+      this.musicManagerMinimized = this.activeDesktopWindow === target && !this.musicManagerMinimized;
       if (!this.musicManagerMinimized) this.focusWindow('manager');
+      else this.focusNextVisibleWindow('manager');
       return;
     }
     if (target === 'messenger') {
@@ -2492,8 +2518,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.openMessengerWindow();
         return;
       }
-      this.messengerMinimized = !this.messengerMinimized;
+      this.messengerMinimized = this.activeDesktopWindow === target && !this.messengerMinimized;
       if (!this.messengerMinimized) this.focusWindow('messenger');
+      else this.focusNextVisibleWindow('messenger');
       return;
     }
     if (target === 'minesweeper') {
@@ -2501,8 +2528,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.openMinesweeper();
         return;
       }
-      this.minesweeperMinimized = !this.minesweeperMinimized;
+      this.minesweeperMinimized = this.activeDesktopWindow === target && !this.minesweeperMinimized;
       if (!this.minesweeperMinimized) this.focusWindow('minesweeper');
+      else this.focusNextVisibleWindow('minesweeper');
       return;
     }
     if (target === 'browser') {
@@ -2510,40 +2538,46 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
         this.openBrowser();
         return;
       }
-      this.browserMinimized = !this.browserMinimized;
+      this.browserMinimized = this.activeDesktopWindow === target && !this.browserMinimized;
       if (!this.browserMinimized) this.focusWindow('browser');
+      else this.focusNextVisibleWindow('browser');
       return;
     }
     if (target === 'calculator') {
       if (!this.calculatorOpen) { this.openCalculator(); return; }
-      this.calculatorMinimized = !this.calculatorMinimized;
+      this.calculatorMinimized = this.activeDesktopWindow === target && !this.calculatorMinimized;
       if (!this.calculatorMinimized) this.focusWindow('calculator');
+      else this.focusNextVisibleWindow('calculator');
       return;
     }
     if (target === 'notepad') {
       if (!this.notepadOpen) { this.openNotepad(); return; }
-      this.notepadMinimized = !this.notepadMinimized;
+      this.notepadMinimized = this.activeDesktopWindow === target && !this.notepadMinimized;
       if (!this.notepadMinimized) this.focusWindow('notepad');
+      else this.focusNextVisibleWindow('notepad');
       return;
     }
     if (target === 'equalizer') {
       if (!this.equalizerOpen) { this.openEqualizer(); return; }
-      this.equalizerMinimized = !this.equalizerMinimized;
+      this.equalizerMinimized = this.activeDesktopWindow === target && !this.equalizerMinimized;
       if (!this.equalizerMinimized) this.focusWindow('equalizer');
+      else this.focusNextVisibleWindow('equalizer');
       return;
     }
     if (target === 'snake') {
       if (!this.snakeOpen) { this.openSnake(); return; }
-      this.snakeMinimized = !this.snakeMinimized;
+      this.snakeMinimized = this.activeDesktopWindow === target && !this.snakeMinimized;
       if (!this.snakeMinimized) this.focusWindow('snake');
+      else this.focusNextVisibleWindow('snake');
       return;
     }
     if (!this.youtubeDownloaderOpen) {
       this.openYoutubeDownloader();
       return;
     }
-    this.youtubeDownloaderMinimized = !this.youtubeDownloaderMinimized;
+    this.youtubeDownloaderMinimized = this.activeDesktopWindow === target && !this.youtubeDownloaderMinimized;
     if (!this.youtubeDownloaderMinimized) this.focusWindow('youtube');
+    else this.focusNextVisibleWindow('youtube');
   }
 
   startYoutubeDownload(): void {
@@ -3374,7 +3408,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   private clampAllWindows(): void {
     if (typeof window === 'undefined' || !this.isDesktopWmp) return;
-    this.desktopPanelPosition = this.clampWindowPosition(
+    this.desktopPanelPosition = this.clampPlayerWindowPosition(
       this.desktopPanelPosition.x,
       this.desktopPanelPosition.y,
       this.getWindowSize('player')
@@ -3492,6 +3526,19 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     };
   }
 
+  private clampPlayerWindowPosition(x: number, y: number, size: { width: number; height: number }): { x: number; y: number } {
+    if (this.playerSkin !== 'winamp' || typeof window === 'undefined' || this.isFullscreen) {
+      return this.clampWindowPosition(x, y, size);
+    }
+    // Winamp can extend off-screen, but its title bar must remain draggable.
+    const visibleWidth = Math.min(size.width, Math.max(96, Math.ceil(80 * this.effectiveWinampScale)));
+    const titleHeight = Math.max(24, Math.ceil(16 * this.effectiveWinampScale));
+    return {
+      x: Math.min(Math.max(8 + visibleWidth - size.width, x), Math.max(8, window.innerWidth - visibleWidth - 8)),
+      y: Math.min(Math.max(8, y), Math.max(8, window.innerHeight - this.desktopTaskbarHeight - titleHeight - 8))
+    };
+  }
+
   private getDefaultPlayerWindowSize(skin: 'wmp' | 'winamp' | 'macos' | 'foobar' = this.playerSkin): { width: number; height: number } {
     if (skin === 'winamp') {
       return this.getWinampWindowSize();
@@ -3508,7 +3555,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const defaults = this.getDefaultPlayerWindowSize();
     const size = this.playerSkin === 'winamp' ? defaults : this.clampWindowSize('player', defaults.width, defaults.height);
     this.desktopPanelSize = size;
-    this.desktopPanelPosition = this.clampWindowPosition(this.desktopPanelPosition.x, this.desktopPanelPosition.y, size);
+    this.desktopPanelPosition = this.clampPlayerWindowPosition(this.desktopPanelPosition.x, this.desktopPanelPosition.y, size);
   }
 
   private getDefaultExplorerWindowSize(): { width: number; height: number } {
@@ -3612,7 +3659,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   // ── Calculator ─────────────────────────────────────────────────────────────
   openCalculator(): void { this.calculatorOpen = true; this.calculatorMinimized = false; this.focusWindow('calculator'); this.desktopStartOpen = false; }
-  closeCalculator(): void { this.calculatorOpen = false; this.calculatorMaximized = false; }
+  closeCalculator(): void { this.calculatorOpen = false; this.calculatorMaximized = false; this.focusNextVisibleWindow('calculator'); }
 
   toggleCalculatorMaximize(): void {
     if (typeof window === 'undefined') return;
@@ -3675,7 +3722,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.focusWindow('notepad');
     this.desktopStartOpen = false;
   }
-  closeNotepad(): void { this.saveNotepad(); this.notepadOpen = false; this.notepadMaximized = false; }
+  closeNotepad(): void { this.saveNotepad(); this.notepadOpen = false; this.notepadMaximized = false; this.focusNextVisibleWindow('notepad'); }
 
   createNotepadFile(): void {
     this.saveNotepad();
@@ -3838,7 +3885,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   // ── Equalizer ─────────────────────────────────────────────────────────────
   openEqualizer(): void { this.equalizerOpen = true; this.equalizerMinimized = false; this.focusWindow('equalizer'); this.desktopStartOpen = false; }
-  closeEqualizer(): void { this.equalizerOpen = false; this.equalizerMaximized = false; }
+  closeEqualizer(): void { this.equalizerOpen = false; this.equalizerMaximized = false; this.focusNextVisibleWindow('equalizer'); }
 
   toggleEqualizerMaximize(): void {
     if (typeof window === 'undefined') return;
@@ -3940,7 +3987,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   // ── Snake ──────────────────────────────────────────────────────────────────
   openSnake(): void { this.snakeOpen = true; this.snakeMinimized = false; this.focusWindow('snake'); this.desktopStartOpen = false; }
-  closeSnake(): void { this.snakeOpen = false; if (this.snakeRaf) { cancelAnimationFrame(this.snakeRaf); this.snakeRaf = undefined; } }
+  closeSnake(): void { this.snakeOpen = false; if (this.snakeRaf) { cancelAnimationFrame(this.snakeRaf); this.snakeRaf = undefined; } this.focusNextVisibleWindow('snake'); }
 
   startSnake(): void {
     this.snakeShowLeaderboard = false;

@@ -247,8 +247,9 @@
   </div>
 
   <div class="np-music-manager-window"
+       data-desktop-window="manager"
        *ngIf="musicManagerOpen && canManageNas && !isFullscreen && !musicManagerMinimized"
-       (click)="focusWindow('manager'); $event.stopPropagation()"
+       (click)="$event.stopPropagation()"
        [class.np-win-focused]="activeDesktopWindow === 'manager'"
        [ngStyle]="musicManagerWindowStyle">
     <div class="np-music-manager-titlebar" (mousedown)="beginWindowDrag($event, 'manager')">
@@ -624,7 +625,7 @@
     <span class="np-resize-handle bottom-right" (mousedown)="beginWindowResize($event, 'manager', 'right', 'bottom')"></span>
   </div>
 
-  <div class="np-explorer-window" *ngIf="desktopExplorerOpen && !isFullscreen && !explorerMinimized" (click)="focusWindow('explorer'); closeExplorerCtxMenu(); $event.stopPropagation()" [ngStyle]="explorerWindowStyle">
+  <div class="np-explorer-window" data-desktop-window="explorer" *ngIf="desktopExplorerOpen && !isFullscreen && !explorerMinimized" (click)="closeExplorerCtxMenu(); $event.stopPropagation()" [ngStyle]="explorerWindowStyle">
     <div class="np-explorer-titlebar" (mousedown)="beginWindowDrag($event, 'explorer')" (dblclick)="toggleExplorerMaximize()">
       <div class="np-explorer-titlecopy">
         <span class="np-start-item-icon folder np-explorer-title-icon" aria-hidden="true"></span>
@@ -825,7 +826,7 @@
     </ng-container>
   </div>
 
-  <div class="np-messenger-window" *ngIf="messengerOpen && !isFullscreen && !messengerMinimized" (click)="focusWindow('messenger'); $event.stopPropagation()" [class.is-buzzing]="messengerBuzzing" [ngStyle]="messengerWindowStyle">
+  <div class="np-messenger-window" data-desktop-window="messenger" *ngIf="messengerOpen && !isFullscreen && !messengerMinimized" (click)="$event.stopPropagation()" [class.is-buzzing]="messengerBuzzing" [ngStyle]="messengerWindowStyle">
     <div class="np-msn-titlebar" (mousedown)="beginWindowDrag($event, 'messenger')">
       <div class="np-msn-titlecopy">
         <span class="np-msn-logo"></span>
@@ -886,7 +887,7 @@
     </ng-container>
   </div>
 
-  <div class="np-youtube-window" *ngIf="youtubeDownloaderOpen && !isFullscreen && !youtubeDownloaderMinimized" (click)="focusWindow('youtube'); $event.stopPropagation()" [ngStyle]="youtubeWindowStyle">
+  <div class="np-youtube-window" data-desktop-window="youtube" *ngIf="youtubeDownloaderOpen && !isFullscreen && !youtubeDownloaderMinimized" (click)="$event.stopPropagation()" [ngStyle]="youtubeWindowStyle">
     <div class="np-youtube-titlebar" (mousedown)="beginWindowDrag($event, 'youtube')">
       <div class="np-youtube-titlecopy">
         <span class="np-start-item-icon youtube"></span>
@@ -963,7 +964,7 @@
     </ng-container>
   </div>
 
-  <div class="np-browser-window" *ngIf="browserOpen && !isFullscreen && !browserMinimized" (click)="focusWindow('browser'); $event.stopPropagation()" [ngStyle]="browserWindowStyle">
+  <div class="np-browser-window" data-desktop-window="browser" [class.np-win-focused]="activeDesktopWindow === 'browser'" *ngIf="browserOpen && !isFullscreen && !browserMinimized" (click)="$event.stopPropagation()" [ngStyle]="browserWindowStyle">
     <div class="np-browser-titlebar" (mousedown)="beginWindowDrag($event, 'browser')">
       <div class="np-browser-titlecopy">
         <span class="np-start-item-icon browser"></span>
@@ -1018,7 +1019,7 @@
       </button>
     </div>
     <div class="np-browser-content">
-      <iframe *ngIf="browserFrameUrl" [src]="browserFrameUrl" (load)="onBrowserFrameLoad()" referrerpolicy="no-referrer"></iframe>
+      <iframe *ngIf="browserFrameUrl" [src]="browserFrameUrl" [style.pointer-events]="activeDesktopWindow === 'browser' ? 'auto' : 'none'" (load)="onBrowserFrameLoad()" referrerpolicy="no-referrer"></iframe>
       <div class="np-browser-block-note">
         {{ 'WINDOWS.BROWSER_BLOCK_NOTE' | translate }}
       </div>
@@ -1032,7 +1033,7 @@
     </ng-container>
   </div>
 
-  <div class="np-mines-window" *ngIf="minesweeperOpen && !isFullscreen && !minesweeperMinimized" (click)="focusWindow('minesweeper'); $event.stopPropagation()" [ngStyle]="minesweeperWindowStyle">
+  <div class="np-mines-window" data-desktop-window="minesweeper" *ngIf="minesweeperOpen && !isFullscreen && !minesweeperMinimized" (click)="$event.stopPropagation()" [ngStyle]="minesweeperWindowStyle">
     <div class="np-mines-titlebar" (mousedown)="beginWindowDrag($event, 'minesweeper')">
       <div class="np-mines-titlecopy">
         <span class="np-start-item-icon minesweeper"></span>
@@ -1077,7 +1078,7 @@
 
   <!-- ═══ CALCULATOR ═══ -->
   <div class="np-calc-window" *ngIf="calculatorOpen && !isFullscreen && !calculatorMinimized"
-       (click)="focusWindow('calculator'); $event.stopPropagation()"
+       data-desktop-window="calculator" (click)="$event.stopPropagation()"
        [class.np-win-focused]="activeDesktopWindow === 'calculator'"
        [class.np-win-maximized]="calculatorMaximized"
        [ngStyle]="calculatorMaximized ? {left:'0',top:'0',width:'100%',height:'100%',zIndex:getWindowZIndex('calculator')} : {left: calculatorWindowPosition.x + 'px', top: calculatorWindowPosition.y + 'px', width: calculatorWindowSize.width + 'px', height: calculatorWindowSize.height + 'px', zIndex:getWindowZIndex('calculator')}">
@@ -1130,7 +1131,7 @@
 
   <!-- ═══ NOTEPAD ═══ -->
   <div class="np-notepad-window" *ngIf="notepadOpen && !isFullscreen && !notepadMinimized"
-       (click)="focusWindow('notepad'); $event.stopPropagation()"
+       data-desktop-window="notepad" (click)="$event.stopPropagation()"
        [class.np-win-focused]="activeDesktopWindow === 'notepad'"
        [class.np-win-maximized]="notepadMaximized"
        [ngStyle]="notepadMaximized ? {left:'0',top:'0',width:'100%',height:'100%',zIndex:getWindowZIndex('notepad')} : {left: notepadWindowPosition.x + 'px', top: notepadWindowPosition.y + 'px', width: notepadWindowSize.width + 'px', height: notepadWindowSize.height + 'px', zIndex:getWindowZIndex('notepad')}">
@@ -1192,7 +1193,7 @@
 
   <!-- ═══ EQUALIZER ═══ -->
   <div class="np-eq-window" *ngIf="equalizerOpen && !isFullscreen && !equalizerMinimized"
-       (click)="focusWindow('equalizer'); $event.stopPropagation()"
+       data-desktop-window="equalizer" (click)="$event.stopPropagation()"
        [class.np-win-focused]="activeDesktopWindow === 'equalizer'"
        [class.np-win-maximized]="equalizerMaximized"
        [ngStyle]="equalizerMaximized ? {left:'0',top:'0',width:'100%',height:'100%',zIndex:getWindowZIndex('equalizer')} : {left: equalizerWindowPosition.x + 'px', top: equalizerWindowPosition.y + 'px', width: equalizerWindowSize.width + 'px', height: equalizerWindowSize.height + 'px', zIndex:getWindowZIndex('equalizer')}">
@@ -1235,7 +1236,7 @@
 
   <!-- ═══ SNAKE ═══ -->
   <div class="np-snake-window" *ngIf="snakeOpen && !isFullscreen && !snakeMinimized"
-       (click)="focusWindow('snake'); $event.stopPropagation()"
+       data-desktop-window="snake" (click)="$event.stopPropagation()"
        [class.np-win-focused]="activeDesktopWindow === 'snake'"
        [ngStyle]="{left: snakeWindowPosition.x + 'px', top: snakeWindowPosition.y + 'px', zIndex:getWindowZIndex('snake')}">
     <div class="np-snake-titlebar" (mousedown)="beginWindowDrag($event, 'snake')">
@@ -1527,7 +1528,7 @@
   </div>
 </div>
 
-<div class="np-panel" *ngIf="isOpen && !playerMinimized" (click)="focusWindow('player'); $event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" [class.np-panel-winamp]="isDesktopWmp && playerSkin === 'winamp'" [class.np-panel-foobar]="isDesktopWmp && playerSkin === 'foobar'" [ngStyle]="desktopPanelStyle" #desktopPanel>
+<div class="np-panel" data-desktop-window="player" *ngIf="isOpen && !playerMinimized" (click)="$event.stopPropagation()" [class.np-panel-desktop]="isDesktopWmp" [class.np-panel-fullscreen]="isFullscreen" [class.np-panel-winamp]="isDesktopWmp && playerSkin === 'winamp'" [class.np-panel-foobar]="isDesktopWmp && playerSkin === 'foobar'" [ngStyle]="desktopPanelStyle" #desktopPanel>
   <ng-container *ngIf="isDesktopWmp; else mobilePanel">
     <ng-container [ngSwitch]="playerSkin">
 

@@ -126,6 +126,15 @@
 .chat-modern .theme-dot { padding: 0; box-shadow: none; }
 .chat-modern .modal-box { background: #24282b; border-radius: 8px; }
 .chat-modern .modal-header, .chat-modern .modal-footer { background: #282d30; }
+.chat-modern .chat-options-panel, .chat-modern .mute-picker, .chat-modern .emoji-picker, .chat-modern .mention-dropdown, .chat-modern .msg-actions { background: #282e32; border: 1px solid #454e54; border-radius: 8px; box-shadow: 0 8px 24px #0005; }
+.chat-modern .chat-search-input { background: var(--cc-input-bg); border-color: var(--cc-input-border); border-radius: 6px; color: #eef2f3; }
+.chat-modern .chat-search-input:focus { border-color: var(--cc-accent); }
+.chat-modern .chat-search-toggle-btn.active, .chat-modern .reply-preview-label { color: var(--cc-accent); }
+.chat-modern .msg-action-btn:hover, .chat-modern .mention-item:hover { background: var(--cc-active-bg); border-color: var(--cc-accent); color: #e4f7f4; }
+.chat-modern .mute-option, .chat-modern .chat-option-item { color: #d3dce0; }
+.chat-modern .chat-option-item.danger { color: #f399a2; }
+.chat-modern .chat-option-item mat-icon { width: 18px; height: 18px; font-size: 18px; }
+.chat-modern .search-match { background: #335b57; color: #fff; }
 .chat-modern button { font-family: inherit; letter-spacing: 0; }
 .chat-standalone :is(button, a, input, textarea, [tabindex]):focus-visible { outline: 2px solid #8de6db; outline-offset: 3px; }
 @media (max-width: 1200px) {

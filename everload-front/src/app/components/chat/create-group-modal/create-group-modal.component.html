@@ -1,39 +1,38 @@
-<div class="modal-overlay" (click)="cancel()">
-  <div class="modal-box" (click)="$event.stopPropagation()">
+<div class="modal-overlay" [class.chat-dialog]="modern" (click)="cancel()">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="create-group-title" cdkTrapFocus [cdkTrapFocusAutoCapture]="true" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <span class="modal-title">👥 {{ 'CHAT.NEW_GROUP' | translate }}</span>
-      <button class="modal-close" (click)="cancel()">✕</button>
+      <span class="modal-title" id="create-group-title"><mat-icon aria-hidden="true">group_add</mat-icon>{{ 'CHAT.NEW_GROUP' | translate }}</span>
+      <button type="button" class="modal-close" (click)="cancel()" [attr.aria-label]="'COMMON.CLOSE' | translate" [title]="'COMMON.CLOSE' | translate"><mat-icon>close</mat-icon></button>
     </div>
 
     <div class="modal-body">
       <div class="form-group">
-        <label>{{ 'CHAT.GROUP_NAME' | translate }}</label>
-        <input type="text" [(ngModel)]="name" [placeholder]="'CHAT.GROUP_NAME_PLACEHOLDER' | translate" maxlength="60" />
+        <label for="chat-group-name">{{ 'CHAT.GROUP_NAME' | translate }}</label>
+        <input id="chat-group-name" cdkFocusInitial type="text" [(ngModel)]="name" [placeholder]="'CHAT.GROUP_NAME_PLACEHOLDER' | translate" maxlength="60" />
       </div>
 
       <div class="form-group">
-        <label>{{ 'CHAT.GROUP_DESCRIPTION' | translate }}</label>
-        <input type="text" [(ngModel)]="description" [placeholder]="'CHAT.GROUP_DESCRIPTION_PLACEHOLDER' | translate" maxlength="200" />
+        <label for="chat-group-description">{{ 'CHAT.GROUP_DESCRIPTION' | translate }}</label>
+        <input id="chat-group-description" type="text" [(ngModel)]="description" [placeholder]="'CHAT.GROUP_DESCRIPTION_PLACEHOLDER' | translate" maxlength="200" />
       </div>
 
       <div class="form-group">
-        <label>{{ 'CHAT.ADD_MEMBERS' | translate:{count: selectedUsernames.size} }}</label>
-        <input type="text" [(ngModel)]="userSearch" [placeholder]="'CHAT.SEARCH_USERS' | translate" />
+        <label for="chat-group-search">{{ 'CHAT.ADD_MEMBERS' | translate:{count: selectedUsernames.size} }}</label>
+        <div class="dialog-search"><mat-icon aria-hidden="true">search</mat-icon><input id="chat-group-search" type="text" [(ngModel)]="userSearch" [placeholder]="'CHAT.SEARCH_USERS' | translate" /></div>
         <div class="user-list">
           <div *ngIf="filteredUsers.length === 0" class="no-users">
             {{ 'CHAT.NO_USERS_AVAILABLE' | translate }}
           </div>
-          <div *ngFor="let user of filteredUsers"
+          <label *ngFor="let user of filteredUsers"
                class="user-item"
-               [class.selected]="selectedUsernames.has(user.username)"
-               (click)="toggleUser(user.username)">
+               [class.selected]="selectedUsernames.has(user.username)">
             <div class="user-avatar">
               <img *ngIf="user.avatarUrl" [src]="resolveAvatarUrl(user.avatarUrl)" [alt]="user.username" />
               <span *ngIf="!user.avatarUrl" class="avatar-initial">{{ getInitials(user.username) }}</span>
             </div>
             <span class="user-name">{{ user.username }}</span>
-            <span class="check-icon" *ngIf="selectedUsernames.has(user.username)">✓</span>
-          </div>
+            <input type="checkbox" [checked]="selectedUsernames.has(user.username)" (change)="toggleUser(user.username)" [attr.aria-label]="user.username" />
+          </label>
         </div>
       </div>
     </div>

@@ -78,9 +78,8 @@
 }
 
 .np-desktop-shell {
-  position: fixed;
-  inset: 0;
-  z-index: 9490;
+  /* The desktop windows and player must share one stacking context. */
+  display: contents;
 }
 
 .np-desktop-icons {
@@ -330,7 +329,7 @@
   position: fixed;
   left: 0;
   bottom: 40px;
-  z-index: 9496;
+  z-index: 9521;
   width: 500px;
   border-radius: 8px 8px 0 0;
   overflow: hidden;
@@ -589,7 +588,7 @@
   position: fixed;
   left: 50%;
   top: 50%;
-  z-index: 9504;
+  z-index: 9522;
   width: min(540px, calc(100vw - 48px));
   max-height: min(620px, calc(100vh - 72px));
   transform: translate(-50%, -50%);
@@ -2179,7 +2178,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9491;
+  z-index: 9520;
   height: 40px;
   display: flex;
   align-items: center;

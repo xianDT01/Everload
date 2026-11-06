@@ -98,7 +98,7 @@
     </div>
 
     <!-- Edit metadata (NAS tracks only) -->
-    <button class="mb-btn mb-icon-btn" *ngIf="isNasTrack"
+    <button class="mb-btn mb-icon-btn" *ngIf="canEditMetadata"
             (click)="openMetadataEditor()" [title]="'COMMON.EDIT_METADATA' | translate">
       <svg viewBox="0 0 24 24"><path d="M4 17.5V20h2.5L17.8 8.7l-2.5-2.5L4 17.5ZM20.7 5.8a1 1 0 0 0 0-1.4l-1.1-1.1a1 1 0 0 0-1.4 0l-1.2 1.2 2.5 2.5 1.2-1.2Z"/></svg>
     </button>
@@ -233,7 +233,7 @@
 </div>
 
 <!-- Metadata editor for the active NAS track -->
-<div class="mb-modal-backdrop" *ngIf="showMetadataEditor" (click)="closeMetadataEditor()">
+<div class="mb-modal-backdrop" *ngIf="showMetadataEditor && canEditMetadata" (click)="closeMetadataEditor()">
   <section class="mb-metadata-modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
     <div class="mb-metadata-head">
       <div>

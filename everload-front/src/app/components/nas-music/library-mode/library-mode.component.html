@@ -116,10 +116,11 @@
       <ul class="collections-list">
         <li *ngFor="let pl of playlists"
             class="collection-item"
+            [title]="pl.name"
             [class.active]="currentView === 'playlist' && selectedPlaylist?.id === pl.id"
             (click)="openPlaylistView(pl)">
           <div class="collection-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h12v2H3v-2z"/></svg>
+            <app-playlist-artwork [playlist]="pl" [pathId]="selectedPathId ?? 0" [coverRevision]="lmCoverRevision"></app-playlist-artwork>
           </div>
           <span class="collection-name-only">{{ pl.name }}</span>
           <span class="pl-track-count">{{ pl.tracks?.length ?? 0 }}</span>
@@ -243,6 +244,17 @@
 
     <!-- Scrollable content -->
     <div class="content-scroll" #contentScroll>
+      <app-library-home *ngIf="showHomeDashboard"
+        [pathId]="selectedPathId ?? 0"
+        [albums]="lmAlbums" [continueAlbums]="lmListenNow" [artists]="lmTopArtists"
+        [recent]="lmRecent" [playlists]="playlists" [loading]="lmMusicLoading" [failed]="lmHomeError"
+        [coverRevision]="lmCoverRevision"
+        [playingPath]="state?.currentTrack?.path || ''"
+        (albumPlay)="lmPlayAlbum($event)" (artistPlay)="lmOpenArtist($event)"
+        (trackPlay)="lmPlayRecent($event)" (playlistOpen)="openPlaylistView($event)"
+        (foldersOpen)="lmBrowseFolders()" (retry)="lmLoadMusicSections(paths)">
+      </app-library-home>
+      <ng-container *ngIf="!showHomeDashboard">
 
       <!-- ══ BANNERS SECTION (home + folder root) ════════════════════════ -->
       <div class="banners-section" *ngIf="uiPrefs.showBanners && (currentView === 'home' || (currentView === 'folder' && !currentSubPath))">
@@ -782,6 +794,7 @@
         <p class="empty-title">{{ 'MUSIC.SEARCH_NO_RESULTS_FOR' | translate }} "{{ searchQuery }}"</p>
       </div>
 
+      </ng-container>
     </div><!-- /content-scroll -->
   </div><!-- /lib-main -->
 

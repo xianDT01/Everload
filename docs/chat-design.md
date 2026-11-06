@@ -4,6 +4,12 @@ The standalone `/chat` page uses a graphite layout with conversation filters,
 profile navigation and a low-contrast music background. The Windows XP Messenger
 embeds the same chat with `embedded=true` and retains its existing appearance.
 
+Standalone private-chat, group-creation, group-information and confirmation
+dialogs share `chat-dialog.css`. Child dialogs opt in with `modern=true`, so
+the embedded Messenger keeps its previous palette. Dialogs trap and restore
+keyboard focus, support Escape and keep long forms/member lists scrollable
+without losing the header or footer on small screens.
+
 The floating player is another view of `MusicService.mainPlayer`, not a separate
 playback engine. Clicking its summary expands controls; Escape or an outside
 click collapses them. It appears only when a track exists. Other routes retain

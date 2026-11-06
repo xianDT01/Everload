@@ -5,6 +5,7 @@ import { MusicService, PlayerState, MusicMetadataDto } from '../../../services/m
 import { ModernStateService } from '../modern-state.service';
 import { NotificationService } from '../../../services/notification.service';
 import { NasService } from '../../../services/nas.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-modern-bottombar',
@@ -83,7 +84,8 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     public modState: ModernStateService,
     private router: Router,
     private notify: NotificationService,
-    private nas: NasService
+    private nas: NasService,
+    private auth: AuthService
   ) {}
 
   ngOnInit() {
@@ -275,9 +277,13 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
     return !!this.track && pathId > 0 && (!source || source === 'nas');
   }
 
+  get canEditMetadata(): boolean {
+    return this.auth.canManageNas() && this.isNasTrack;
+  }
+
   openMetadataEditor() {
     const t = this.track;
-    if (!t || !this.isNasTrack) return;
+    if (!t || !this.canEditMetadata) return;
     this.clearCoverPreview();
     this.metadataForm = {
       title: t.title || t.name || '',
@@ -297,6 +303,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   }
 
   onCoverFileSelected(event: Event) {
+    if (!this.canEditMetadata) return;
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -316,7 +323,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   uploadTrackCover() {
     const t = this.track;
     const pathId = t?.nasPathId ?? this.state?.pathId ?? 0;
-    if (!t || !pathId || !this.coverFile || !this.isNasTrack || this.coverUploading) return;
+    if (!t || !pathId || !this.coverFile || !this.canEditMetadata || this.coverUploading) return;
     this.coverUploading = true;
     this.metadataError = '';
     this.nas.uploadTrackCover(pathId, t.path, this.coverFile).subscribe({
@@ -348,7 +355,7 @@ export class ModernBottombarComponent implements OnInit, OnDestroy {
   saveMetadata() {
     const t = this.track;
     const pathId = t?.nasPathId ?? this.state?.pathId ?? 0;
-    if (!t || !pathId || this.metadataSaving) return;
+    if (!t || !pathId || !this.canEditMetadata || this.metadataSaving || this.coverUploading) return;
 
     this.metadataSaving = true;
     this.metadataError = '';

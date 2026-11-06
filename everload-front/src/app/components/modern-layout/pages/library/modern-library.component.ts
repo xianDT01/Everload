@@ -4,6 +4,7 @@ import { catchError, concatMap, finalize, tap } from 'rxjs/operators';
 import { MusicService, MusicMetadataDto } from '../../../../services/music.service';
 import { NasService } from '../../../../services/nas.service';
 import { ModernStateService } from '../../modern-state.service';
+import { AuthService } from '../../../../services/auth.service';
 
 type SortCol = 'title' | 'artist' | 'album' | 'duration';
 
@@ -36,7 +37,7 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   private librarySub?: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
 
-  constructor(public music: MusicService, private state: ModernStateService, private nas: NasService) {}
+  constructor(public music: MusicService, private state: ModernStateService, private nas: NasService, private auth: AuthService) {}
 
   ngOnInit() {
     this.sub = this.state.pathId$.subscribe(pid => {
@@ -105,7 +106,7 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   }
 
   openMetadataEditor() {
-    if (!this.selectedPaths.size || this.selectedPaths.size > 100) return;
+    if (!this.auth.canManageNas() || !this.selectedPaths.size || this.selectedPaths.size > 100) return;
     this.bulkFields = { title: false, artist: false, album: false };
     this.bulkValues = { title: '', artist: '', album: '' };
     this.metadataError = '';
@@ -114,6 +115,7 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   }
 
   saveBulkMetadata() {
+    if (!this.auth.canManageNas() || this.metadataSaving || !this.selectedPaths.size || this.selectedPaths.size > 100) return;
     const fields = (Object.keys(this.bulkFields) as Array<keyof typeof this.bulkFields>)
       .filter(field => this.bulkFields[field]);
     if (!fields.length || fields.some(field => !this.bulkValues[field].trim()) || this.pathId == null) return;

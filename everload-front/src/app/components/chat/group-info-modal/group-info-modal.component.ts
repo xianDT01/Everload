@@ -6,9 +6,10 @@ import { NotificationService } from '../../../services/notification.service';
 @Component({
   selector: 'app-group-info-modal',
   templateUrl: './group-info-modal.component.html',
-  styleUrls: ['./group-info-modal.component.css']
+  styleUrls: ['./group-info-modal.component.css', '../chat-dialog.css']
 })
 export class GroupInfoModalComponent implements OnInit, OnChanges {
+  @Input() modern = false;
   @Input() group!: ChatGroupDto;
   @Output() close = new EventEmitter<void>();
   @Output() groupUpdated = new EventEmitter<void>();

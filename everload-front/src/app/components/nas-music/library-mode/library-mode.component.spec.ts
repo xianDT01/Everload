@@ -11,11 +11,74 @@ describe('LibraryModeComponent unavailable NAS tracks', () => {
       setQueue: jasmine.createSpy('setQueue'),
       browse: jasmine.createSpy('browse').and.returnValue(of({ items: [], totalTracks: 0 })),
       getHistory: jasmine.createSpy('getHistory').and.returnValue(of([])),
+      getTopArtists: jasmine.createSpy('getTopArtists').and.returnValue(of([])),
+      getCommunityDiscover: jasmine.createSpy('getCommunityDiscover').and.returnValue(of({ topArtists: [], topTracks: [] })),
       getFavorites: jasmine.createSpy('getFavorites').and.returnValue(of([])),
       fetchCoverIfNeeded: jasmine.createSpy('fetchCoverIfNeeded')
     };
     nas = { getPaths: jasmine.createSpy('getPaths').and.returnValue(of([])) };
     component = new LibraryModeComponent(music, nas, {} as any, { instant: (key: string) => key } as any, { markForCheck: () => {} } as any);
+  });
+
+  it('keeps the new overview separate from search, edit mode and folder browsing', () => {
+    component.currentView = 'folder';
+    component.currentSubPath = '';
+    expect(component.showHomeDashboard).toBeTrue();
+    component.searchQuery = 'Song';
+    expect(component.showHomeDashboard).toBeFalse();
+    component.searchQuery = '';
+    component.editMode = true;
+    expect(component.showHomeDashboard).toBeFalse();
+    component.editMode = false;
+    component.lmBrowseFolders();
+    expect(component.showHomeDashboard).toBeFalse();
+  });
+
+  it('loads full albums without merging different artists or including unavailable tracks', () => {
+    const first = { path: 'a.mp3', album: 'Same album', artist: 'Artist A', title: 'A', available: true };
+    const second = { path: 'b.mp3', album: 'Same album', artist: 'Artist B', title: 'B', available: true };
+    music.getFullLibraryOverview = jasmine.createSpy().and.returnValue(of({ tracks: [first, second, { ...first, path: 'gone.mp3', available: false }] }));
+    music.getArtistProfiles = () => of([]);
+    music.getRecentTracks = () => of([second]);
+    music.getArtistImage = () => of({ found: false });
+    component.lmLoadMusicSections([{ id: 8, readable: true } as any]);
+    expect(music.getFullLibraryOverview).toHaveBeenCalledWith(8);
+    expect(component.lmAlbums.length).toBe(2);
+    expect(component.lmAlbums[0].tracks!.length).toBe(1);
+    expect(component.lmRecent[0].nasPathId).toBe(8);
+    component.lmPlayAlbum(component.lmAlbums[0]);
+    expect(music.setQueue).toHaveBeenCalledWith(8, component.lmAlbums[0].tracks, 0);
+  });
+
+  it('keeps loading albums when optional recent tracks and profiles are unavailable', () => {
+    music.getFullLibraryOverview = () => of({ tracks: [] });
+    music.getArtistProfiles = () => throwError(() => new Error('profiles unavailable'));
+    music.getRecentTracks = () => throwError(() => new Error('recent unavailable'));
+    component.lmLoadMusicSections([{ id: 8, readable: true } as any]);
+    expect(component.lmHomeError).toBeFalse();
+    expect(component.lmMusicLoading).toBeFalse();
+  });
+
+  it('prioritizes listened artists over NAS collection size and merges profile aliases', () => {
+    music.getFullLibraryOverview = () => of({ tracks: [
+      { path: 'favorite.mp3', artist: 'Favorite alias', title: 'Favorite' },
+      ...['one', 'two', 'three'].map(path => ({ path, artist: 'Collection', title: path }))
+    ] });
+    music.getArtistProfiles = () => of([{ name: 'Favorite', aliases: 'Favorite alias' }]);
+    music.getRecentTracks = () => of([]);
+    music.getArtistImage = () => of({ found: false });
+    music.getTopArtists.and.returnValue(of([{ artist: 'Favorite', playCount: 30 }]));
+    music.getCommunityDiscover.and.returnValue(of({ topArtists: [{ artist: 'Collection', playCount: 1000 }], topTracks: [] }));
+    component.lmLoadMusicSections([{ id: 8, readable: true } as any]);
+    expect(component.lmTopArtists.map(artist => artist.artist)).toEqual(['Favorite', 'Collection']);
+    expect(component.lmTopArtists[0].tracks.length).toBe(1);
+  });
+
+  it('does not queue an unavailable recent track', () => {
+    const gone: any = { path: 'gone.mp3', nasPathId: 8, available: false };
+    component.lmRecent = [gone];
+    component.lmPlayRecent(gone);
+    expect(music.setQueue).not.toHaveBeenCalled();
   });
 
   it('filters unavailable tracks and plays from the track NAS in the queue', () => {

@@ -63,6 +63,13 @@ describe('ChatComponent conversations', () => {
     expect(chat.getDateLabel(new Date().toISOString())).toBe('CHAT.TODAY');
   });
 
+  it('closes standalone dialogs and popup menus with Escape', () => {
+    chat.showPrivateChatModal = chat.showClearConfirm = chat.showDeleteConfirm = true;
+    chat.showChatOptions = chat.showMutePicker = true;
+    chat.closeChatDialogs();
+    expect(chat.showPrivateChatModal || chat.showClearConfirm || chat.showDeleteConfirm || chat.showChatOptions || chat.showMutePicker).toBeFalse();
+  });
+
   it('cancels a previous message load when changing conversations', () => {
     const delayed = new Subject<any[]>();
     service.getMessages.and.returnValue(delayed);

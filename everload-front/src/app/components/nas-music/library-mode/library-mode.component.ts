@@ -1,10 +1,12 @@
 import { ChangeDetectorRef, Component, OnInit, OnDestroy, AfterViewInit, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { HttpEventType } from '@angular/common/http';
-import { forkJoin, Subscription } from 'rxjs';
+import { catchError, forkJoin, of, Subscription } from 'rxjs';
 import { NasPath, NasService } from '../../../services/nas.service';
 import { ArtistProfileDto, MusicMetadataDto, MusicService, PagedMusicResult, PlayerState } from '../../../services/music.service';
 import { AuthService } from '../../../services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
+import { LibraryHomeAlbum } from '../library-home/library-home.component';
+import { homeArtistNames, homeArtistKey, homePersonalization, rankHomeArtists } from '../../../services/home-artist-ranking';
 
 interface NasBanner {
   id: number;
@@ -22,6 +24,7 @@ interface NavEntry {
   view: 'home' | 'liked' | 'history' | 'folder' | 'playlist';
   pathId: number | null;
   subPath: string;
+  dashboard?: boolean;
 }
 
 type PlayerSkin = 'xp' | 'neon' | 'sunset' | 'spotify' | 'aqua' | 'midnight' | 'aurora' | 'ruby' | 'mono' | 'vista';
@@ -867,13 +870,40 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   loadingPage = false; // dedup guard, también usado en template
   private loadingAllPages = false;
   private intersectionObserver?: IntersectionObserver;
-  @ViewChild('tracksEndSentinel') tracksEndSentinel?: ElementRef;
+  private tracksSentinel?: ElementRef;
+  @ViewChild('tracksEndSentinel') set tracksEndSentinel(value: ElementRef | undefined) {
+    if (this.tracksSentinel) this.intersectionObserver?.unobserve(this.tracksSentinel.nativeElement);
+    this.tracksSentinel = value;
+    if (value) this.intersectionObserver?.observe(value.nativeElement);
+  }
+  get tracksEndSentinel(): ElementRef | undefined { return this.tracksSentinel; }
   @ViewChild('lmArtistsRow') lmArtistsRowRef?: ElementRef<HTMLElement>;
 
   // ── Listen Now / Top Artists ──────────────────────────────────────────────
   lmListenNow: { album: string; artist: string; track: MusicMetadataDto; pathId: number }[] = [];
   lmTopArtists: { artist: string; pathId: number; imageUrl?: string; autoImageUrl?: string; profile?: ArtistProfileDto; tracks: MusicMetadataDto[] }[] = [];
   lmMusicLoading = false;
+  lmHomeError = false;
+  lmAlbums: LibraryHomeAlbum[] = [];
+  lmRecent: MusicMetadataDto[] = [];
+  homeDashboardActive = true;
+  lmCoverRevision = 0;
+
+  get showHomeDashboard(): boolean {
+    return this.homeDashboardActive && !this.searchQuery.trim() && !this.editMode
+      && (this.currentView === 'home' || (this.currentView === 'folder' && !this.currentSubPath));
+  }
+
+  lmBrowseFolders(): void {
+    this.pushNav();
+    this.homeDashboardActive = false;
+  }
+
+  lmPlayRecent(track: MusicMetadataDto): void {
+    const tracks = this.lmRecent.filter(item => item.available !== false && !!item.nasPathId);
+    const index = tracks.indexOf(track);
+    if (index >= 0) this.musicService.setQueue(track.nasPathId!, tracks, index);
+  }
 
   private uploadSub?: Subscription;
   private subs: Subscription[] = [];
@@ -901,7 +931,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
       next: paths => {
         this.paths = paths;
         const readablePath = paths.find(path => path.readable);
-        if (readablePath) this.selectPath(readablePath.id);
+        if (readablePath) this.selectPath(readablePath.id, true);
         else {
           this.setView('home');
           this.loadError = paths.length > 0;
@@ -929,6 +959,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Cuando llega una portada de iTunes, forzar re-render si afecta a un banner
     this.subs.push(this.musicService.coverReady$.subscribe(trackPath => {
+      this.lmCoverRevision++;
       const affectsBanner = this.banners.some(b => b.track?.path === trackPath);
       if (affectsBanner) this.cdr.detectChanges();
     }));
@@ -974,6 +1005,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   startBannerRotation(): void {
     clearInterval(this.bannerInterval);
     this.bannerInterval = setInterval(() => {
+      if (this.showHomeDashboard) return;
       this.activeBannerIndex = (this.activeBannerIndex + 1) % this.banners.length;
       this.preloadActiveBanner();
     }, 5000);
@@ -1105,7 +1137,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   // ── Navigation ────────────────────────────────────────────────────────────
 
   private pushNav() {
-    this.navHistory.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath });
+    this.navHistory.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath, dashboard: this.homeDashboardActive });
     this.navFuture = [];
   }
 
@@ -1113,6 +1145,7 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     this.currentView    = entry.view;
     this.selectedPathId = entry.pathId;
     this.currentSubPath = entry.subPath;
+    this.homeDashboardActive = entry.dashboard ?? false;
     this.searchQuery    = '';
     this.searchResults  = null;
     this.applyUiPrefsForCurrentContext();
@@ -1122,19 +1155,20 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   navBack() {
     if (!this.canGoBack) return;
-    this.navFuture.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath });
+    this.navFuture.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath, dashboard: this.homeDashboardActive });
     this.restoreNav(this.navHistory.pop()!);
   }
 
   navForward() {
     if (!this.canGoForward) return;
-    this.navHistory.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath });
+    this.navHistory.push({ view: this.currentView, pathId: this.selectedPathId, subPath: this.currentSubPath, dashboard: this.homeDashboardActive });
     this.restoreNav(this.navFuture.pop()!);
   }
 
   setView(view: 'home' | 'liked' | 'history') {
     this.pushNav();
     this.currentView = view;
+    this.homeDashboardActive = view === 'home';
     this.selectedPathId = null;
     this.currentSubPath = '';
     this.searchQuery = '';
@@ -1148,15 +1182,16 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
   goHome(): void {
     this.closeMobileMenu();
     if (this.paths.length > 0) {
-      this.selectPath(this.paths[0].id);
+      this.selectPath((this.paths.find(path => path.readable) ?? this.paths[0]).id, true);
     } else {
       this.setView('home');
     }
   }
 
-  selectPath(id: number) {
+  selectPath(id: number, dashboard = false) {
     this.pushNav();
     this.currentView = 'folder';
+    this.homeDashboardActive = dashboard;
     this.selectedPathId = id;
     this.currentSubPath = '';
     this.searchQuery = '';
@@ -2250,64 +2285,86 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!path) return;
     const pathId = path.id;
     this.lmMusicLoading = true;
-    forkJoin({
-      history: this.musicService.getHistory(24),
-      overview: this.musicService.getLibraryOverview(pathId, 3000),
-      profiles: this.musicService.getArtistProfiles(),
+    this.lmHomeError = false;
+    this.subs.push(forkJoin({
+      history: this.musicService.getHistory(24).pipe(catchError(() => of([]))),
+      overview: this.musicService.getFullLibraryOverview(pathId),
+      profiles: this.musicService.getArtistProfiles().pipe(catchError(() => of([]))),
+      recent: this.musicService.getRecentTracks(pathId, 12).pipe(catchError(() => of([]))),
+      plays: this.musicService.getTopArtists(50).pipe(catchError(() => of([]))),
+      favorites: this.musicService.getFavorites().pipe(catchError(() => of([]))),
+      community: this.musicService.getCommunityDiscover(60).pipe(catchError(() => of({ topArtists: [], topTracks: [] }))),
     }).subscribe({
-      next: ({ history, overview, profiles }) => {
-        const tracks = overview.tracks || [];
+      next: ({ history, overview, profiles, recent, plays, favorites, community }) => {
+        const tracks = (overview.tracks || []).filter(track => !track.directory && track.available !== false)
+          .map(track => ({ ...track, nasPathId: track.nasPathId ?? pathId }));
+        this.lmRecent = recent.filter(track => !track.directory && track.available !== false)
+          .map(track => ({ ...track, nasPathId: track.nasPathId ?? pathId }));
+        const albums = new Map<string, LibraryHomeAlbum>();
+        tracks.forEach(track => {
+          const album = track.album?.trim() || track.title || track.name;
+          const key = `${track.nasPathId}:${album.toLocaleLowerCase()}:${(track.artist || '').toLocaleLowerCase()}`;
+          const existing = albums.get(key);
+          if (existing) existing.tracks!.push(track);
+          else albums.set(key, { album, artist: track.artist, track, pathId: track.nasPathId!, tracks: [track] });
+        });
+        this.lmAlbums = Array.from(albums.values());
         const albumMap = new Map<string, any>();
         (history || []).forEach((h: any) => {
-          const key = (h.album || h.title || '').trim();
+          const label = (h.album || h.title || '').trim();
+          if (h.available === false || !label || !h.trackPath) return;
+          const key = `${h.nasPathId ?? pathId}:${label.toLocaleLowerCase()}:${(h.artist || '').toLocaleLowerCase()}`;
           if (key && !albumMap.has(key)) {
-            const t: MusicMetadataDto = { name: h.title, path: h.trackPath, directory: false, size: 0, lastModified: '', title: h.title, artist: h.artist, album: h.album, duration: 0, format: '', hasCover: false, bpm: 0, source: 'nas', nasPathId: h.nasPathId ?? pathId };
-            albumMap.set(key, { album: h.album || h.title, artist: h.artist, track: t, pathId: h.nasPathId ?? pathId });
+            const t: MusicMetadataDto = { name: h.title, path: h.trackPath, directory: false, size: 0, lastModified: '', title: h.title, artist: h.artist, album: h.album, duration: 0, format: '', hasCover: false, bpm: 0, source: 'nas', nasPathId: h.nasPathId ?? pathId, available: h.available };
+            albumMap.set(key, albums.get(key) ?? { album: h.album || h.title, artist: h.artist, track: t, pathId: h.nasPathId ?? pathId });
           }
         });
-        tracks.forEach(t => {
-          const key = (t.album || t.title || '').trim();
-          if (key && !albumMap.has(key)) albumMap.set(key, { album: t.album || t.title, artist: t.artist, track: t, pathId: t.nasPathId ?? pathId });
-        });
+        albums.forEach((album, key) => { if (!albumMap.has(key)) albumMap.set(key, album); });
         this.lmListenNow = Array.from(albumMap.values()).slice(0, 8);
 
         const profileByKey = new Map<string, ArtistProfileDto>();
         profiles.forEach(p => {
           [p.name, ...(p.aliases || '').split(/[\n,]+/).map((a: string) => a.trim()).filter(Boolean)]
-            .forEach(n => profileByKey.set(this.lmNormalizeKey(n), p));
+            .forEach(n => profileByKey.set(homeArtistKey(n), p));
         });
         const artistMap = new Map<string, any>();
         tracks.forEach(t => {
-          const parts = (t.artist || '').split(/\s*(?:,|;|&|\+|\/|\bfeat\.?\b|\bft\.?\b)\s*/i).map((s: string) => s.trim()).filter(Boolean);
-          (parts.length ? parts : [t.artist || '']).forEach(name => {
-            if (!name) return;
-            const key = this.lmNormalizeKey(name);
-            const profile = profileByKey.get(key);
+          homeArtistNames(t.artist || '').forEach(name => {
+            const profile = profileByKey.get(homeArtistKey(name));
+            const key = homeArtistKey(profile?.name || name);
             if (!artistMap.has(key)) {
               artistMap.set(key, { artist: profile?.name || name, pathId: t.nasPathId ?? pathId, tracks: [t], profile, imageUrl: profile?.imageUrl ? (profile.imageUrl.startsWith('http') ? profile.imageUrl : `${this.musicService.BASE}${profile.imageUrl}`) : undefined });
             } else {
-              artistMap.get(key).tracks.push(t);
+              if (!artistMap.get(key).tracks.some((track: MusicMetadataDto) => track.path === t.path)) artistMap.get(key).tracks.push(t);
             }
           });
         });
         profiles.forEach(p => {
-          const key = this.lmNormalizeKey(p.name);
+          const key = homeArtistKey(p.name);
           if (!artistMap.has(key)) artistMap.set(key, { artist: p.name, pathId, tracks: [], profile: p, imageUrl: p.imageUrl ? (p.imageUrl.startsWith('http') ? p.imageUrl : `${this.musicService.BASE}${p.imageUrl}`) : undefined });
         });
-        this.lmTopArtists = Array.from(artistMap.values()).sort((a, b) => b.tracks.length - a.tracks.length).slice(0, 14);
+        const personalization = homePersonalization(this.authService.getCurrentUser?.()?.createdAt, history.length, plays, favorites.filter(track => track.available !== false).length);
+        this.lmTopArtists = rankHomeArtists(Array.from(artistMap.values()), {
+          plays, history, favorites, community: community.topArtists, ...personalization
+        });
         this.lmMusicLoading = false;
         this.lmResolveAutoImages();
       },
-      error: () => { this.lmMusicLoading = false; }
-    });
+      error: () => { this.lmMusicLoading = false; this.lmHomeError = true; }
+    }));
   }
 
   private lmResolveAutoImages() {
-    this.lmTopArtists.filter(a => !a.imageUrl && a.tracks.length).forEach(a => {
-      this.musicService.getArtistImage(a.artist).subscribe({
-        next: (r: any) => { if (r.found && r.imageUrl && !a.imageUrl) a.autoImageUrl = r.imageUrl; },
+    this.lmTopArtists.slice(0,14).filter(a => !a.imageUrl && a.tracks.length).forEach(a => {
+      this.subs.push(this.musicService.getArtistImage(a.artist).subscribe({
+        next: (r: any) => {
+          if (r.found && r.imageUrl && !a.imageUrl) {
+            a.autoImageUrl = r.imageUrl;
+            this.lmTopArtists = [...this.lmTopArtists];
+          }
+        },
         error: () => {}
-      });
+      }));
     });
   }
 
@@ -2319,8 +2376,9 @@ export class LibraryModeComponent implements OnInit, AfterViewInit, OnDestroy {
     return this.musicService.getCoverUrlWithCache(pathId, t.path, t.source);
   }
 
-  lmPlayAlbum(card: { track: MusicMetadataDto; pathId: number }) {
-    this.musicService.mainPlayer.load(card.track, card.pathId).then(() => this.musicService.mainPlayer.play());
+  lmPlayAlbum(card: { track: MusicMetadataDto; pathId: number; tracks?: MusicMetadataDto[] }) {
+    const tracks = (card.tracks?.length ? card.tracks : [card.track]).filter(track => track.available !== false);
+    if (tracks.length) this.musicService.setQueue(card.pathId, tracks, 0);
   }
 
   lmOpenArtist(artist: { artist: string; pathId: number; tracks: MusicMetadataDto[] }) {
