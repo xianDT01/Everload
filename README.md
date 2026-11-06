@@ -45,6 +45,7 @@ El proyecto comenzó como un descargador de vídeo y ha crecido hasta convertirs
 | Área | Capacidades |
 | --- | --- |
 | **Modern y Flow** | Reproductor musical con dos vistas de inicio, artistas, álbumes, favoritos, historial, cola, letras LRC, crossfade, ecualizador y más de 20 temas claros y oscuros. |
+| **EverWave** | Interfaz musical alternativa con filtros de biblioteca, álbumes, artistas y playlists con mosaicos de carátulas; comparte las preferencias musicales de Modern. |
 | **Playlists** | Creación, importación desde YouTube o Spotify, duplicación, orden aleatorio inteligente, enlaces compartidos y colaboración entre usuarios. |
 | **YouTube Music** | Búsqueda, novedades, charts, álbumes, artistas, mixes, radio automática y streaming bajo demanda. |
 | **Biblioteca NAS** | Exploración, subida, streaming con rangos HTTP, ZIP, copiar, mover, renombrar, borrar y edición de metadatos ID3. |
@@ -69,6 +70,16 @@ Modern organiza la biblioteca, artistas, álbumes, playlists, favoritos y activi
 - Reproducción con cola, favoritos, repetición, mezcla aleatoria, ecualizador, crossfade y letras cuando estén disponibles.
 - Avisos de reproducción con identidad de EverLoad y carátula cuando exista. Al pulsar el aviso se abre el reproductor.
 - Integración con Media Session para mostrar título, artista, álbum, carátula, progreso y controles compatibles en el navegador o sistema operativo.
+
+### EverWave
+
+EverWave es una interfaz alternativa, distinta de Flow, accesible desde Modern. Utiliza la misma biblioteca y el mismo criterio de personalización de artistas, sin reiniciar el historial ni los gustos de la cuenta.
+
+- Inicio con álbumes para continuar escuchando, artistas personales y canciones añadidas recientemente.
+- Filtros para biblioteca, álbumes, artistas y playlists; acceso independiente al explorador de carpetas.
+- Fila de artistas desplazable con acceso a «Ver todos», cuadrícula adaptable al ancho disponible y carga adicional por bloques.
+- Playlists con mosaicos de carátulas y barra lateral contraíble con iconos centrados.
+- Consulta paginada de la biblioteca completa y presentación adaptable a escritorio y móvil.
 
 ### Playlists y descargas al servidor
 
@@ -101,6 +112,8 @@ La disponibilidad de las emisoras depende de sus proveedores. EverLoad no evita 
 ## Escritorio y administración
 
 El modo Windows recrea una experiencia de escritorio inspirada en XP: menú Inicio con usuario y avatar, iconos organizados, ventanas con foco y tamaño ajustables, Winamp, explorador NAS y utilidades. La bandeja incluye volumen y calendario; la información de red es una recreación visual, no un administrador de la conexión del equipo.
+
+Las ventanas se activan al pulsarlas y Winamp puede desplazarse dejando accesible su barra de título. Los permisos del explorador se comprueban también en el backend: `BASIC_USER` puede explorar, escuchar y descargar a su dispositivo, pero no subir ni modificar archivos del NAS; `NAS_USER` y `ADMIN` pueden gestionarlos. Solo `ADMIN` configura las rutas NAS.
 
 El panel de administración incorpora:
 
