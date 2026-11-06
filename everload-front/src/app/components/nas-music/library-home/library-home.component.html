@@ -24,9 +24,9 @@
     </section>
 
     <section *ngIf="filter === 'all' || filter === 'artists'">
-      <h2>{{ (filter === 'all' ? 'MUSIC.EW_YOUR_ARTISTS' : 'MUSIC.EW_FILTER_artists') | translate }}</h2>
-      <div class="ew-artists">
-        <button class="ew-artist" type="button" *ngFor="let artist of artists.slice(0, filter === 'all' ? 5 : limit); trackBy: artistKey" (click)="artistPlay.emit(artist)" [disabled]="!artist.tracks.length" [title]="artist.artist">
+      <div class="ew-section-heading"><h2>{{ (filter === 'all' ? 'MUSIC.EW_YOUR_ARTISTS' : 'MUSIC.EW_FILTER_artists') | translate }}</h2><button class="ew-see-all" type="button" *ngIf="filter === 'all' && artists.length" (click)="selectFilter('artists')">{{ 'MUSIC.EW_ALL_ARTISTS' | translate }}</button></div>
+      <div class="ew-artists" [class.ew-artists-overview]="filter === 'all'" tabindex="0" [attr.aria-label]="(filter === 'all' ? 'MUSIC.EW_YOUR_ARTISTS' : 'MUSIC.EW_FILTER_artists') | translate">
+        <button class="ew-artist" type="button" *ngFor="let artist of artists.slice(0,limit); trackBy: artistKey" (click)="artistPlay.emit(artist)" [disabled]="!artist.tracks.length" [title]="artist.artist">
           <span class="ew-portrait"><span class="material-icons ew-placeholder" aria-hidden="true">person</span><img *ngIf="artist.imageUrl || artist.autoImageUrl" [src]="artist.imageUrl || artist.autoImageUrl" alt="" loading="lazy" (error)="imageFailed($event)" (load)="$any($event.target).hidden = false"/></span><strong>{{ artist.artist }}</strong>
         </button>
       </div>

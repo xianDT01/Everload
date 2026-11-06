@@ -175,6 +175,7 @@ export class DeckPlayer {
   private ytPlayer: any = null;
   private ytContainerId: string;
   private ytReady = false;
+  private ytPlayRequested = false;
   private ytInterval: any = null;
   private activeSource: 'nas' | 'youtube' | 'local' | 'ytmusic' | null = null;
   private loadNonce = 0;
@@ -588,6 +589,7 @@ export class DeckPlayer {
             this.ytReady = true;
             this.ytPlayer.setVolume(this.state.volume * 100);
             this.patch({ loading: false, duration: this.ytPlayer.getDuration() || 0 });
+            if (this.ytPlayRequested) this.ytPlayer.playVideo();
           },
           onStateChange: (event: any) => this.onYtStateChange(event),
           onError: (event: any) => {
@@ -659,15 +661,17 @@ export class DeckPlayer {
   // ── Controls ──────────────────────────────────────────────────────────────
 
   play() {
+    if (this.activeSource === 'youtube') {
+      // The first play request can arrive before the iframe emits onReady.
+      this.ytPlayRequested = true;
+      if (this.ytPlayer && this.ytReady) this.ytPlayer.playVideo();
+      return;
+    }
     const doPlay = () => {
-      if (this.activeSource === 'youtube') {
-        if (this.ytPlayer && this.ytReady) this.ytPlayer.playVideo();
-      } else {
-        if (!this.audio.src) return;
-        this.audio.play().catch(err => {
-          this.patch({ playing: false, error: 'No se pudo reproducir: ' + (err.message || err) });
-        });
-      }
+      if (!this.audio.src) return;
+      this.audio.play().catch(err => {
+        this.patch({ playing: false, error: 'No se pudo reproducir: ' + (err.message || err) });
+      });
     };
 
     if (this.audioCtx && this.audioCtx.state === 'suspended') {
@@ -678,6 +682,7 @@ export class DeckPlayer {
   }
 
   pause() {
+    this.ytPlayRequested = false;
     if (this.activeSource === 'youtube') {
       if (this.ytPlayer && this.ytReady) this.ytPlayer.pauseVideo();
     } else {
@@ -942,6 +947,7 @@ export class DeckPlayer {
   }
 
   private stopAll() {
+    this.ytPlayRequested = false;
     if (this.hlsPollTimer) {
       clearTimeout(this.hlsPollTimer);
       this.hlsPollTimer = undefined;

@@ -77,4 +77,16 @@ describe('EverWave home layout', () => {
     expect(component.duration(NaN)).toBe('--:--');
     expect(component.duration(185)).toBe('3:05');
   });
+  it('does not truncate the overview to five artists and opens the complete artist view', () => {
+    fixture.componentRef.setInput('artists', Array.from({ length: 65 }, (_, i) => ({ artist: `Artist ${i}`, pathId: 1, tracks: [component.albums[0].track] })));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.ew-artists-overview .ew-artist').length).toBe(48);
+    fixture.nativeElement.querySelector('.ew-see-all').click();
+    fixture.detectChanges();
+    expect(component.filter).toBe('artists');
+    expect(fixture.nativeElement.querySelector('.ew-artists-overview')).toBeNull();
+    fixture.nativeElement.querySelector('.ew-more').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.ew-artist').length).toBe(65);
+  });
 });
