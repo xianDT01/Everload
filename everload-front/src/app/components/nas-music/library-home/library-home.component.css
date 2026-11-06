@@ -23,7 +23,7 @@ img[hidden] { display: none; }
 .ew-album small { margin-top: 3px; color: var(--sp-muted); font-size: 12px; line-height: 1.4; }
 .ew-play { display: grid; place-items: center; position: absolute; bottom: 10px; right: 10px; width: 36px; height: 36px; border-radius: 50%; color: var(--sp-bg); background: var(--sp-green); opacity: 0; transition: opacity .15s; }
 .ew-album:hover .ew-play, .ew-album:focus-visible .ew-play { opacity: 1; }
-.ew-artists { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 24px; }
+.ew-artists { display: grid; grid-template-columns: repeat(5,minmax(0,148px)); justify-content: start; gap: 20px; }
 .ew-portrait { border-radius: 50%; max-width: 124px; margin: 0 auto 10px; }
 .ew-artist { text-align: center; }
 .ew-artist strong { font-size: 12px; line-height: 1.4; }
