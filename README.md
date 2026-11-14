@@ -44,7 +44,8 @@ El proyecto comenzó como un descargador de vídeo y ha crecido hasta convertirs
 
 | Área | Capacidades |
 | --- | --- |
-| **Modern y Flow** | Reproductor musical con dos vistas de inicio, artistas, álbumes, favoritos, historial, cola, letras LRC, crossfade, ecualizador y más de 20 temas claros y oscuros. |
+| **Modern** | Interfaz musical principal con artistas, álbumes, favoritos, historial, cola, letras LRC, crossfade, ecualizador y más de 20 temas claros y oscuros. |
+| **Flow** | Vista alternativa del inicio de Modern con tarjetas de recomendaciones; conserva su navegación y reproductor. |
 | **EverWave** | Interfaz musical alternativa con filtros de biblioteca, álbumes, artistas y playlists con mosaicos de carátulas; comparte las preferencias musicales de Modern. |
 | **Playlists** | Creación, importación desde YouTube o Spotify, duplicación, orden aleatorio inteligente, enlaces compartidos y colaboración entre usuarios. |
 | **YouTube Music** | Búsqueda, novedades, charts, álbumes, artistas, mixes, radio automática y streaming bajo demanda. |
@@ -60,7 +61,17 @@ El proyecto comenzó como un descargador de vídeo y ha crecido hasta convertirs
 
 ## Música y biblioteca
 
-### Modern y Flow
+### Nombres de las interfaces
+
+| Nombre en la app | Acceso | Qué es |
+| --- | --- | --- |
+| **Modern** | `/modern` | Interfaz musical principal. |
+| **Flow** | Selector Modern / Flow, en `/modern/flow` | Inicio alternativo dentro de Modern; no es un reproductor independiente. |
+| **EverWave** | Botón EverWave en la barra lateral de Modern, en `/nas-music` | Interfaz alternativa de biblioteca con reproductor lateral. |
+
+El **modo Windows** es la experiencia de escritorio; **Winamp** es uno de los estilos de su reproductor, no otro nombre para Modern, Flow o EverWave.
+
+### Modern (con inicio alternativo Flow)
 
 Modern organiza la biblioteca, artistas, álbumes, playlists, favoritos y actividad en una interfaz musical. Flow ofrece una vista alternativa del inicio con tarjetas de recomendaciones, sin sustituir Modern ni crear una biblioteca independiente.
 
