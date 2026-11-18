@@ -20,6 +20,10 @@ All remaining fixable HIGH/CRITICAL findings block publication.
 
 Verification with the updated dependencies: 497 backend tests (one platform-specific
 skip), 378 frontend tests, production image build and isolated Docker smoke test.
+The final candidate from source revision `a35d71317af7d93cf6807dc306fd49240197c9bf`
+passed the repeated Docker smoke test and Trivy scan: zero unhandled fixable
+HIGH/CRITICAL findings and the two reviewed Spring MVC findings shown as suppressed.
+The scan covers known vulnerabilities, not every possible application defect.
 
 ## Publishing
 

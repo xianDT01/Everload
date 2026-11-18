@@ -58,6 +58,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.35.0
         env:
           TRIVY_SHOW_SUPPRESSED: 'true'
+          TRIVY_TIMEOUT: 20m
         with:
           image-ref: everload:beta-test
           format: table

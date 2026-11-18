@@ -6,6 +6,12 @@ The first image scan found 44 fixable HIGH/CRITICAL findings. The beta dependenc
 update uses Spring Boot 3.5.16, Tomcat 10.1.62 and Jackson 2.21.8; it stays on
 Spring Framework 6.2 rather than introducing a Spring Boot 4 migration.
 
+The final amd64 beta candidate (source revision
+`a35d71317af7d93cf6807dc306fd49240197c9bf`) passed the Trivy 0.69.3 scan on
+2026-11-18 with zero unhandled fixable HIGH/CRITICAL findings. The two findings
+below remain visible as suppressed findings in the JSON report. This scan uses
+`--ignore-unfixed`; it is not a claim of zero vulnerabilities at every severity.
+
 Two Spring MVC findings require application-specific features which are absent:
 
 | Finding | Vendor conditions | EverLoad assessment |
