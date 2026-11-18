@@ -144,7 +144,6 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
 
   // Album art fetched from iTunes API (clave = track.path)
   coverOverrideMap = new Map<string, string>();
-  private lastCoverPath = { A: '', B: '' };
 
   midiActions = [
     { id: 'VOL_A', label: 'MUSIC.DJ_MIDI_VOL', params: { deck: 'A' } },
@@ -215,19 +214,11 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
         this.refreshPerformance('A', s);
         this.stateA = s;
         this.checkQueueAdvance('A', s);
-        if (s.currentTrack?.path !== this.lastCoverPath.A) {
-          this.lastCoverPath.A = s.currentTrack?.path ?? '';
-          this.fetchCoverIfNeeded(s.currentTrack);
-        }
       }),
       this.musicService.deckBPlayer.state$.subscribe(s => {
         this.refreshPerformance('B', s);
         this.stateB = s;
         this.checkQueueAdvance('B', s);
-        if (s.currentTrack?.path !== this.lastCoverPath.B) {
-          this.lastCoverPath.B = s.currentTrack?.path ?? '';
-          this.fetchCoverIfNeeded(s.currentTrack);
-        }
       }),
       this.midiService.devices$.subscribe(devs => {
         this.midiDevices = devs;
@@ -1313,34 +1304,6 @@ export class DeckModeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // ── Album art desde iTunes API ─────────────────────────────────────────────
-
-  private fetchCoverIfNeeded(track: MusicMetadataDto | null) {
-    if (!track || track.source === 'youtube') return; // YT ya tiene miniatura
-    if (track.hasCover) return;                        // el servidor ya la tiene
-    if (this.coverOverrideMap.has(track.path)) return; // ya buscada o en curso
-
-    const query = [track.artist, track.album || track.title].filter(Boolean).join(' ');
-    if (!query.trim()) return;
-
-    // Marcar como "en curso" para no lanzar peticiones duplicadas
-    this.coverOverrideMap.set(track.path, '');
-
-    this.http.get<any>('https://itunes.apple.com/search', {
-      params: { term: query, entity: 'album', limit: '3', media: 'music' }
-    }).subscribe({
-      next: (r) => {
-        const result = r.results?.find((x: any) => x.artworkUrl100);
-        if (result?.artworkUrl100) {
-          // Sustituir resolución 100x100 → 600x600 para mejor calidad
-          const url = result.artworkUrl100.replace('100x100bb', '600x600bb');
-          this.coverOverrideMap.set(track.path, url);
-        } else {
-          this.coverOverrideMap.delete(track.path); // sin resultado, permitir reintento
-        }
-      },
-      error: () => this.coverOverrideMap.delete(track.path)
-    });
-  }
 
   hasCoverToShow(state: PlayerState | null): boolean {
     if (!state?.currentTrack) return false;

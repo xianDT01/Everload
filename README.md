@@ -256,6 +256,21 @@ docker compose logs --tail=100 everload
 
 La aplicación estará disponible en `https://localhost`. Caddy utilizará un certificado local, por lo que el navegador puede mostrar un aviso la primera vez.
 
+### Primera puesta en marcha
+
+Una instancia nueva abre un asistente con idioma, alta del administrador protegida
+por un codigo de un solo uso y configuracion opcional de biblioteca e integraciones.
+No hay credenciales predeterminadas y se puede entrar al Home sin NAS ni claves externas.
+
+```bash
+docker compose exec everload cat /app/data/setup-code
+```
+
+El codigo solo se obtiene desde el servidor y queda invalidado al crear la cuenta.
+Las instalaciones existentes no vuelven a abrir el alta inicial. Para arrancar una
+instancia portable sin carpetas del host, consulta [la guia del asistente](docs/first-run.md)
+y `compose.first-run.yml`. No uses otro proyecto Compose para actualizar una instalacion existente.
+
 ### Producción
 
 Configura un dominio real en `.env` y apunta sus registros DNS al servidor:

@@ -40,6 +40,16 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.BASE}/api/auth/register`, request);
   }
 
+  createAdministrator(request: { code: string; username: string; email: string; password: string; confirmation: string }): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.BASE}/api/setup/admin`, request).pipe(
+      tap(response => {
+        localStorage.setItem('auth_user', JSON.stringify(response));
+        localStorage.setItem('auth_token', response.token);
+        this.currentUserSubject.next(response);
+      })
+    );
+  }
+
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.BASE}/api/auth/login`, request).pipe(
       tap(response => {

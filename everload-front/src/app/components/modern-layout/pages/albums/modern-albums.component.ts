@@ -125,12 +125,14 @@ export class ModernAlbumsComponent implements OnInit, OnDestroy {
   }
 
   cover(g: AlbumGroup): string {
-    return this.music.getCoverUrlWithCache(g.pathId, g.cover.path, g.cover.source);
+    const track = this.music.hasCoverToShow(g.cover) ? g.cover
+      : g.tracks.find(t => this.music.hasCoverToShow(t)) ?? g.cover;
+    return this.music.getCoverUrlWithCache(track.nasPathId ?? g.pathId, track.path, track.source);
   }
 
   trackCover(t: MusicMetadataDto): string {
     if (!this.selected) return '';
-    return this.music.getCoverUrlWithCache(this.selected.pathId, t.path, t.source);
+    return this.music.getCoverUrlWithCache(t.nasPathId ?? this.selected.pathId, t.path, t.source);
   }
 
   fmt(seconds: number | undefined): string {

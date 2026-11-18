@@ -264,3 +264,8 @@
   color: var(--ml-muted);
   text-align: center;
 }
+@media (max-width: 640px) {
+  .mst-page { padding: 24px 16px 48px; }
+  .mst-eq-bands { gap: 8px; }
+  .mst-eq-band { min-width: 0; }
+}

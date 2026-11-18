@@ -12,8 +12,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
+    boolean existsByRole(com.everload.everload.model.Role role);
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
+    boolean existsByEmailIgnoreCase(String email);
 
     // Solo bloquea si el usuario existe con un estado activo (no eliminado)
     boolean existsByUsernameAndStatusIn(String username, Collection<UserStatus> statuses);

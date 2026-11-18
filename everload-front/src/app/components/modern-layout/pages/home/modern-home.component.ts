@@ -91,6 +91,16 @@ export class ModernHomeComponent implements OnInit, OnDestroy {
       this.loadSub?.unsubscribe();
       if (this.indexPoll) clearTimeout(this.indexPoll);
       if (pid != null) this.load(pid);
+      else {
+        this.loading = false;
+        this.featured = null;
+        this.featuredPool = [];
+        this.listenNow = [];
+        this.topArtists = [];
+        this.recentlyAdded = [];
+        this.newReleases = [];
+        this.stopFeaturedRotation();
+      }
     });
     this.sub.add(this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) this.isFlow = event.urlAfterRedirects.startsWith('/modern/flow');

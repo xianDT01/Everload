@@ -71,12 +71,20 @@ describe('AdminConfigComponent', () => {
     expect(component.config.authHeroImages).toBe('img1\nimg2');
   });
 
-  it('falls back to the default hero images when none are configured', () => {
+  it('leaves all six hero slots blank when none are configured', () => {
     httpMock.expectOne(`${BACKEND}/api/admin/config`).flush({
       clientId: '', clientSecret: '', apiKey: '', acoustidApiKey: '', githubToken: '', authHeroImages: ''
     });
 
     expect(component.config.authHeroImages).toBe(component.defaultAuthHeroImages.join('\n'));
+    expect(component.getAuthHeroSlots()).toEqual(Array(6).fill(''));
+  });
+  it('keeps empty slots when selecting one image and clears everything on reset', () => {
+    flushConfigRequest(); component.selectAuthHeroSlot(4); component.setAuthHeroSlot('/own-image.jpg');
+    expect(component.getAuthHeroSlots()).toEqual(['', '', '', '', '/own-image.jpg', '']);
+    component.resetAuthHeroImages();
+    expect(component.getAuthHeroSlots()).toEqual(Array(6).fill(''));
+    expect(component.config.authHeroImages).toBe('');
   });
 
   it('shows a translated error message when loading the config fails', () => {

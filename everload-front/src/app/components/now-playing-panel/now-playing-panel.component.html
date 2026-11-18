@@ -1517,6 +1517,10 @@
           <output>{{ currentVolumePercent }}%</output>
         </div>
         <button type="button" class="np-sound-mute-label" (click)="toggleDesktopMute()">{{ (currentVolumePercent === 0 ? 'WINDOWS.TRAY_UNMUTE' : 'WINDOWS.TRAY_MUTE') | translate }}</button>
+        <label class="np-session-sounds">
+          <input type="checkbox" [checked]="!desktopSessionSoundsEnabled" (change)="setDesktopSessionSounds(!$any($event.target).checked)" />
+          <span>{{ 'WINDOWS.MUTE_SESSION_SOUNDS' | translate }}</span>
+        </label>
       </div>
       <div class="np-tray-popup np-calendar-popup" *ngIf="desktopTrayPopup === 'calendar'">
         <div class="np-calendar-heading"><button type="button" (click)="shiftCalendarMonth(-1)" aria-label="Mes anterior">‹</button><strong>{{ calendarMonthLabel }}</strong><button type="button" (click)="shiftCalendarMonth(1)" aria-label="Mes siguiente">›</button></div>

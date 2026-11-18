@@ -1,5 +1,5 @@
 <!-- Maintenance overlay — shown to non-admin users while maintenance is active -->
-<div class="maintenance-overlay" *ngIf="maintenanceState.active && !authService.isAdmin() && !currentUrl.startsWith('/login')">
+<div class="maintenance-overlay" *ngIf="maintenanceState.active && !authService.isAdmin() && !currentUrl.startsWith('/login') && !isSetupRoute">
   <div class="maintenance-card">
     <div class="maintenance-icon">🔧</div>
     <h1 class="maintenance-title">Mantenimiento</h1>
@@ -11,11 +11,11 @@
   </div>
 </div>
 
-<div class="main-content-layout" [class.player-has-header]="hasPlayerHeader" *ngIf="!maintenanceState.active || authService.isAdmin() || currentUrl.startsWith('/login')" [ngClass]="!isModernRoute && musicService.mainPlayer.state.currentTrack && !musicService.globalPlayerHidden ? 'player-' + playerMode : ''">
+<div class="main-content-layout" [class.player-has-header]="hasPlayerHeader" *ngIf="!maintenanceState.active || authService.isAdmin() || currentUrl.startsWith('/login') || isSetupRoute" [ngClass]="!isModernRoute && !isSetupRoute && musicService.mainPlayer.state.currentTrack && !musicService.globalPlayerHidden ? 'player-' + playerMode : ''">
   <router-outlet></router-outlet>
 </div>
 
-<aside class="pwa-install-banner" *ngIf="installAvailable" role="status">
+<aside class="pwa-install-banner" *ngIf="installAvailable && !isSetupRoute" role="status">
   <span class="pwa-install-icon" aria-hidden="true">
     <svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.3-3.3 1.4 1.4-5.7 5.7-5.7-5.7 1.4-1.4 3.3 3.3V3Z"/><path d="M5 18h14v2H5v-2Z"/></svg>
   </span>
@@ -26,8 +26,8 @@
   <button class="pwa-install-action" type="button" (click)="installApp()">{{ 'PWA.INSTALL_ACTION' | translate }}</button>
   <button class="pwa-install-close" type="button" (click)="dismissInstall()" [attr.aria-label]="'PWA.INSTALL_DISMISS' | translate">&times;</button>
 </aside>
-<app-global-player *ngIf="!isModernRoute && !musicService.globalPlayerHidden" [mode]="playerMode" [headerIsland]="hasPlayerHeader"></app-global-player>
-<app-now-playing-panel *ngIf="!isModernRoute"></app-now-playing-panel>
+<app-global-player *ngIf="!isModernRoute && !isSetupRoute && !musicService.globalPlayerHidden" [mode]="playerMode" [headerIsland]="hasPlayerHeader"></app-global-player>
+<app-now-playing-panel *ngIf="!isModernRoute && !isSetupRoute"></app-now-playing-panel>
 <app-notification-toast></app-notification-toast>
 <app-pwa-update-banner></app-pwa-update-banner>
 <app-offline-banner></app-offline-banner>

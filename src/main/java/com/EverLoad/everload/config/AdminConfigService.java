@@ -18,7 +18,8 @@ public class AdminConfigService {
 
     private static final String ACOUSTID_API_KEY = "acoustidApiKey";
 
-    public static final String DEFAULT_AUTH_HERO_IMAGES = String.join("\n",
+    public static final String DEFAULT_AUTH_HERO_IMAGES = "";
+    private static final String LEGACY_AUTH_HERO_IMAGES = String.join("\n",
             "/api/music/artist-auto-image/david_guetta.jpg",
             "/api/music/artist-auto-image/aitana.jpg",
             "/api/music/artist-auto-image/maluma.jpg",
@@ -56,6 +57,10 @@ public class AdminConfigService {
         cfg.putIfAbsent(ACOUSTID_API_KEY, "");
         cfg.putIfAbsent("githubToken", "");
         cfg.putIfAbsent("authHeroImages", DEFAULT_AUTH_HERO_IMAGES);
+        // Retire the shipped preset without overwriting administrators' custom artwork.
+        if (LEGACY_AUTH_HERO_IMAGES.equals(cfg.get("authHeroImages").replace("\r\n", "\n").trim())) {
+            cfg.put("authHeroImages", "");
+        }
         return cfg;
     }
 
@@ -70,7 +75,7 @@ public class AdminConfigService {
         return cfg;
     }
 
-    public void updateConfig(Map<String, String> newConfig) throws IOException {
+    public synchronized void updateConfig(Map<String, String> newConfig) throws IOException {
         File f = new File(configPath);
         if (f.getParentFile() != null) f.getParentFile().mkdirs();
         mapper.writerWithDefaultPrettyPrinter().writeValue(f, newConfig);
@@ -79,6 +84,12 @@ public class AdminConfigService {
 
     public String getClientId() throws IOException {
         return getConfig().getOrDefault("clientId", "");
+    }
+
+    public synchronized void mergeIntegrationConfig(Map<String, String> values) throws IOException {
+        Map<String, String> current = getConfig();
+        current.putAll(values);
+        updateConfig(current);
     }
 
     public String getClientSecret() throws IOException {

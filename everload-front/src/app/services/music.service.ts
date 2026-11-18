@@ -1053,11 +1053,7 @@ export class MusicService {
     this.deckAPlayer = new DeckPlayer(this, 'deckA');
     this.deckBPlayer = new DeckPlayer(this, 'deckB');
 
-    // Cargar caché de portadas y "no encontradas" de localStorage
-    try {
-      const saved = JSON.parse(localStorage.getItem(MusicService.COVER_CACHE_KEY) || '{}');
-      Object.entries(saved).forEach(([path, url]) => this.coverOverrideMap.set(path, url as string));
-    } catch {}
+    // Keep lookup misses for explicit searches, but do not restore legacy online artwork.
     try {
       const nf = JSON.parse(localStorage.getItem(MusicService.COVER_NOT_FOUND_KEY) || '[]');
       (nf as string[]).forEach(p => this.itunesNotFoundPaths.add(p));
@@ -1514,7 +1510,9 @@ export class MusicService {
     return track.hasCover || this.coverOverrideMap.has(track.path);
   }
 
-  fetchCoverIfNeeded(track: MusicMetadataDto): void {
+  fetchCoverIfNeeded(track: MusicMetadataDto, allowOnline = false): void {
+    // Browsing and playback use existing artwork only; online searches require an explicit action.
+    if (!allowOnline) return;
     if (!track || track.hasCover || this.coverOverrideMap.has(track.path)) return;
     // Saltar canciones que iTunes ya confirmó que no tiene
     if (this.itunesNotFoundPaths.has(track.path)) return;

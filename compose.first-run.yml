@@ -1,0 +1,31 @@
+# Portable first installation: no host NAS directory or external API keys required.
+# Use a dedicated project: docker compose -p everload-new -f compose.first-run.yml up -d --build
+services:
+  everload:
+    build: .
+    image: everload:latest
+    container_name: everload-new
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET in .env}
+      SPRING_DATASOURCE_URL: jdbc:h2:file:/app/data/everload-db;DB_CLOSE_ON_EXIT=FALSE
+      APP_CONFIG_PATH: /app/data/config.json
+      APP_SETUP_CODE_PATH: /app/data/setup-code
+      APP_BACKUP_PATH: /app/backups
+    volumes:
+      - everload-db:/app/data
+      - everload-avatars:/app/avatars
+      - everload-backups:/app/backups
+      - everload-library:/app/nas_storage:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  everload-db:
+  everload-avatars:
+  everload-backups:
+  everload-library:

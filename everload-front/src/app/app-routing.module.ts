@@ -9,15 +9,17 @@ import { AndroidAppComponent } from './components/android-app/android-app.compon
 
 import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
+import { FirstRunGuard } from './guards/first-run.guard';
 
 const routes: Routes = [
+  { path: 'setup', loadComponent: () => import('./components/setup/setup.component').then(m => m.SetupComponent) },
   // ── Public ────────────────────────────────────────────────────────────────
-  { path: 'login',            component: LoginComponent },
-  { path: 'register',         component: RegisterComponent },
+  { path: 'login',            component: LoginComponent, canActivate: [FirstRunGuard] },
+  { path: 'register',         component: RegisterComponent, canActivate: [FirstRunGuard] },
   { path: 'pending-approval', component: PendingApprovalComponent },
 
   // ── Home (always-loaded, shown first after login) ─────────────────────────
-  { path: '', component: HomeComponent, canActivate: [AuthGuard] },
+  { path: '', component: HomeComponent, canActivate: [FirstRunGuard, AuthGuard] },
   { path: 'android-app', component: AndroidAppComponent, canActivate: [AuthGuard] },
 
   // ── Downloads (lazy) ──────────────────────────────────────────────────────

@@ -42,6 +42,27 @@ describe('MusicService', () => {
     localStorage.clear();
   });
 
+  describe('existing artwork only during playback and browsing', () => {
+    it('does not search online for songs without embedded artwork', () => {
+      const fetchSpy = spyOn(window, 'fetch');
+      service.fetchCoverIfNeeded({ path: 'song.mp3', title: 'Song', artist: 'Artist', album: 'Album', hasCover: false } as any);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      httpMock.expectNone(request => request.url.includes('album-cover'));
+      expect(service.coverOverrideMap.size).toBe(0);
+    });
+
+    it('does not restore legacy Internet artwork into the NAS cover cache', () => {
+      localStorage.setItem('ev_covers_v2', JSON.stringify({ 'song.mp3': 'https://example.com/old-cover.jpg' }));
+      const fresh = new MusicService({} as any, authSpy, { backendUrl: BACKEND } as ApiBaseService);
+      expect(fresh.coverOverrideMap.has('song.mp3')).toBeFalse();
+      expect(fresh.getCoverUrlWithCache(7, 'song.mp3', 'nas')).toContain('/api/music/cover?');
+    });
+
+    it('keeps the original YouTube thumbnail URL', () => {
+      expect(service.getCoverUrlWithCache(7, 'video123', 'youtube')).toBe('https://img.youtube.com/vi/video123/hqdefault.jpg');
+    });
+  });
+
   describe('complete library', () => {
     it('loads every page beyond 5000 tracks and retains indexing status from earlier pages', () => {
       let result: any;

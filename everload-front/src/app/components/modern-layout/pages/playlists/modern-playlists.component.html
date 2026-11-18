@@ -127,7 +127,7 @@
   <ng-container *ngIf="view === 'detail' && selectedPlaylist">
 
     <!-- Back -->
-    <button class="mpl-back-btn" (click)="back()">
+    <button #detailStart class="mpl-back-btn" (click)="back()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
       {{ tab === 'community' ? ('MUSIC.MODERN_COMMUNITY' | translate) : tab === 'shared' ? ('MUSIC.MODERN_SHARED_WITH_ME' | translate) : ('MUSIC.MODERN_SIDEBAR_PLAYLISTS' | translate) }}
     </button>

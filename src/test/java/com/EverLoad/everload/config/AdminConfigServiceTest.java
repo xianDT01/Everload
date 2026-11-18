@@ -79,4 +79,16 @@ class AdminConfigServiceTest {
         ReflectionTestUtils.setField(service, "configPath", configPath.toString());
         return service;
     }
+    @Test
+    void retiresTheLegacyShippedPresetButPreservesCustomArtwork() throws IOException {
+        AdminConfigService service = service(tempDir.resolve("config.json"));
+        String legacy = java.util.List.of("david_guetta", "aitana", "maluma", "daddy_yankee", "inna", "sash")
+                .stream().map(name -> "/api/music/artist-auto-image/" + name + ".jpg")
+                .collect(java.util.stream.Collectors.joining("\n"));
+        service.updateConfig(Map.of("authHeroImages", legacy, "clientId", "preserved"));
+        assertEquals("", service.getConfig().get("authHeroImages"));
+        assertEquals("preserved", service.getClientId());
+        service.updateConfig(Map.of("authHeroImages", "/own-image.jpg"));
+        assertEquals("/own-image.jpg", service.getConfig().get("authHeroImages"));
+    }
 }

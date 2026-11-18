@@ -231,6 +231,8 @@
 }
 @media (max-width: 640px) {
   .ms-nav { padding: 8px 4px; }
+  .ms-player-switch { grid-template-columns: minmax(0, 1fr); margin-inline: 0; }
+  .ms-player-switch button { padding: 6px 2px; font-size: 10px; }
   .ms-label, .ms-logo-text, .ms-exit-btn > span:not(.ms-icon) { display: none; }
   .ms-logo, .ms-item, .ms-exit-btn { justify-content: center; padding-left: 8px; padding-right: 8px; }
   .ms-path-select { width: 100%; min-width: 0; }

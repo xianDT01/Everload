@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -9,6 +10,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   padding: 32px 32px 0;
   box-sizing: border-box;
   overflow: hidden;
@@ -397,4 +399,15 @@
   }
   .ml-col-artist { display: none; }
   .ml-header-top { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .ml-header-actions { width: 100%; flex-wrap: wrap; }
+  .ml-header-actions button { flex: 1; min-width: 0; height: auto; min-height: 40px; padding: 6px 10px; font-size: 12px; }
+  .ml-track-header, .ml-track-row { grid-template-columns: 24px minmax(0, 1fr) 64px; gap: 8px; padding-inline: 4px; }
+  .ml-col-dur { display: none; }
+  .ml-track-info { gap: 8px; }
+  .ml-track-cover { width: 28px; height: 28px; }
+  .ml-col-actions { opacity: 1; }
+  .ml-col-num { align-self: stretch; }
+  .ml-num-idle { visibility: hidden; }
+  .ml-num-play { display: flex; }
+  .ml-track-row.playing .ml-num-play { display: none; }
 }

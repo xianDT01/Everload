@@ -327,7 +327,7 @@
 }
 
 .mh-feat-title {
-  font-size: clamp(30px, 4.25vw, 43px);
+  font-size: 43px;
   font-weight: 900;
   color: var(--ml-text);
   line-height: 1.05;
@@ -957,8 +957,12 @@
 
 @media (max-width: 700px) {
   .mh-page { padding: 18px 16px 30px; }
-  .mh-featured { height: 190px; }
-  .mh-feat-title { font-size: 28px; }
+  .mh-header-row { flex-wrap: wrap; gap: 10px; }
+  .mh-featured { height: auto; min-height: 220px; }
+  .mh-feat-overlay { position: relative; min-height: 220px; padding: 20px; }
+  .mh-feat-title { font-size: 24px; overflow-wrap: anywhere; }
+  .mh-feat-artist { overflow-wrap: anywhere; }
+  .mh-feat-btns { flex-wrap: wrap; }
   .mh-listen-grid { grid-template-columns: 1fr; }
 }
 

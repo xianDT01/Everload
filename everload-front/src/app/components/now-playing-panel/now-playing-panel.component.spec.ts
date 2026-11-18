@@ -1,6 +1,77 @@
 import { ElementRef } from '@angular/core';
 import { NowPlayingPanelComponent } from './now-playing-panel.component';
 
+describe('Windows session sounds', () => {
+  const storageKey = 'everload.windows.sessionSounds';
+  let originalPreference: string | null;
+  let component: NowPlayingPanelComponent;
+  let sound: jasmine.Spy;
+
+  beforeEach(() => {
+    originalPreference = localStorage.getItem(storageKey);
+    localStorage.removeItem(storageKey);
+    component = Object.create(NowPlayingPanelComponent.prototype);
+    Object.assign(component, {
+      desktopSessionSoundsKey: storageKey, desktopSessionSoundsEnabled: true,
+      musicService: { nowPlayingPanelOpen: true }, wasOpen: false
+    });
+    sound = spyOn<any>(component, 'playSound');
+    spyOn<any>(component, 'stopViz');
+    spyOn(window, 'requestAnimationFrame').and.returnValue(0);
+    spyOnProperty(window, 'innerWidth', 'get').and.returnValue(1440);
+  });
+
+  afterEach(() => {
+    if (originalPreference === null) localStorage.removeItem(storageKey);
+    else localStorage.setItem(storageKey, originalPreference);
+  });
+
+  it('keeps session sounds enabled by default', () => {
+    (component as any).loadDesktopSoundPreference();
+    expect(component.desktopSessionSoundsEnabled).toBeTrue();
+    component.ngAfterViewChecked();
+    component.ngAfterViewChecked();
+    expect(sound).toHaveBeenCalledOnceWith('assets/Windows%20songs/Voicy_Windows%20XP%20Startup.mp3', 0.7);
+  });
+
+  it('remembers muting and suppresses both startup and shutdown without preventing exit', () => {
+    component.setDesktopSessionSounds(false);
+    component.desktopSessionSoundsEnabled = true;
+    (component as any).loadDesktopSoundPreference();
+    expect(component.desktopSessionSoundsEnabled).toBeFalse();
+    component.ngAfterViewChecked();
+    component.close();
+    expect(sound).not.toHaveBeenCalled();
+    expect((component as any).musicService.nowPlayingPanelOpen).toBeFalse();
+  });
+
+  it('can re-enable shutdown sounds after muting', () => {
+    component.setDesktopSessionSounds(false);
+    component.setDesktopSessionSounds(true);
+    expect(localStorage.getItem(storageKey)).toBe('true');
+    component.close();
+    expect(sound).toHaveBeenCalledOnceWith('assets/Windows%20songs/Voicy_Windows%20XP%20Shutdown.mp3', 0.7);
+  });
+
+  it('does not silence Messenger notifications', () => {
+    component.setDesktopSessionSounds(false);
+    component.playMsnMessageSent();
+    expect(sound).toHaveBeenCalledOnceWith('assets/Windows%20songs/messenger-tono-mensaje-.mp3', 0.5);
+  });
+
+  it('still allows muting when browser storage is unavailable', () => {
+    spyOn(Storage.prototype, 'getItem').and.throwError('Storage blocked');
+    const save = spyOn(Storage.prototype, 'setItem').and.throwError('Storage blocked');
+    (component as any).loadDesktopSoundPreference();
+    expect(component.desktopSessionSoundsEnabled).toBeTrue();
+    expect(() => component.setDesktopSessionSounds(false)).not.toThrow();
+    component.ngAfterViewChecked();
+    component.close();
+    expect(sound).not.toHaveBeenCalled();
+    save.and.callThrough();
+  });
+});
+
 describe('Desktop window activation', () => {
   let component: NowPlayingPanelComponent;
   let host: HTMLElement;

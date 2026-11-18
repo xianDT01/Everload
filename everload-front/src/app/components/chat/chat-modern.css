@@ -171,3 +171,18 @@
 @media (prefers-reduced-motion: reduce) {
   .chat-standalone *, .chat-standalone *::before, .chat-standalone *::after { animation: none !important; transition: none !important; }
 }
+@media (max-height: 500px) and (max-width: 900px) {
+  .chat-standalone .chat-app-header { height: 48px; flex-basis: 48px; }
+  .chat-standalone.has-playback .chat-app-header { height: 116px; flex-basis: 116px; padding-bottom: 68px; }
+  .chat-standalone .chat-app-header nav a { padding-block: 12px; }
+  .chat-standalone .chat-app-header nav a.selected::after { bottom: 4px; }
+  .chat-standalone .sidebar-header { padding: 8px 12px; }
+  .chat-standalone .sidebar-title { font-size: 18px; }
+  .chat-standalone .sidebar-search { padding: 0 12px 8px; }
+  .chat-standalone .sidebar-search input { padding-block: 8px; }
+  .chat-standalone .sidebar-search mat-icon { top: 7px; left: 23px; }
+  .chat-standalone .conversation-filters { padding: 0 12px 8px; }
+  .chat-standalone .sidebar-actions { padding: 6px 12px; }
+  .chat-standalone .sidebar-actions button { padding-block: 6px; }
+  .chat-standalone .sidebar-account { display: none; }
+}

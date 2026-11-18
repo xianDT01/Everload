@@ -1,5 +1,6 @@
 import { ModernPlaylistsComponent } from './modern-playlists.component';
 import { fakeAsync, tick } from '@angular/core/testing';
+import { ElementRef } from '@angular/core';
 import { Subject } from 'rxjs';
 
 describe('ModernPlaylistsComponent playlist playback', () => {
@@ -34,6 +35,15 @@ describe('ModernPlaylistsComponent playlist playback', () => {
   it('ignores a direct play request for a track marked unavailable', () => {
     component.playFrom(0);
 
+    expect(music.setQueue).not.toHaveBeenCalled();
+  });
+  it('opens playlist detail at the top of its own scroll container', () => {
+    const scroller = document.createElement('div'); scroller.className = 'ml-main';
+    const button = document.createElement('button'); scroller.appendChild(button);
+    Object.defineProperty(scroller, 'scrollTop', { value: 250, writable: true });
+    component.detailStart = new ElementRef(button);
+    expect(scroller.scrollTop).toBe(0);
+    component.detailStart = undefined;
     expect(music.setQueue).not.toHaveBeenCalled();
   });
 

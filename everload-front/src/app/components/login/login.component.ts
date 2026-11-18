@@ -11,16 +11,7 @@ import { ApiBaseService } from '../../services/api-base.service';
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent implements OnInit {
-  private readonly fallbackArtistImages = [
-    "/api/music/artist-auto-image/david_guetta.jpg",
-    "/api/music/artist-auto-image/aitana.jpg",
-    "/api/music/artist-auto-image/maluma.jpg",
-    "/api/music/artist-auto-image/daddy_yankee.jpg",
-    "/api/music/artist-auto-image/inna.jpg",
-    "/api/music/artist-auto-image/sash.jpg",
-  ];
-
-  artistHeroImages = this.fallbackArtistImages.map(url => this.toCssUrl(url));
+  artistHeroImages: string[] = Array(6).fill('none');
   username = '';
   password = '';
   error = '';
@@ -47,16 +38,11 @@ export class LoginComponent implements OnInit {
   }
 
   private applyHeroImages(images: string[]): void {
-    const filled = images
-      .filter(url => !!url)
-      .slice(0, 6);
-    while (filled.length < 6) {
-      filled.push(this.fallbackArtistImages[filled.length % this.fallbackArtistImages.length]);
-    }
-    this.artistHeroImages = filled.map(url => this.toCssUrl(url));
+    this.artistHeroImages = Array.from({ length: 6 }, (_, index) => this.toCssUrl(images[index] || ''));
   }
 
   private toCssUrl(url: string): string {
+    if (!url.trim()) return 'none';
     const safe = url.startsWith('http') || url.startsWith('/') ? url : `/${url}`;
     return `url("${safe.replace(/"/g, '%22')}")`;
   }

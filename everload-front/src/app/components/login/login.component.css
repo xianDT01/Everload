@@ -479,12 +479,6 @@
 .auth-artist-layer-2 { animation-delay: 8s; }
 .auth-artist-layer-3 { animation-delay: 16s; }
 
-.auth-circle-artist-a .auth-artist-layer-1 { background-image: url('/api/music/artist-auto-image/david_guetta.jpg'); }
-.auth-circle-artist-a .auth-artist-layer-2 { background-image: url('/api/music/artist-auto-image/aitana.jpg'); }
-.auth-circle-artist-a .auth-artist-layer-3 { background-image: url('/api/music/artist-auto-image/maluma.jpg'); }
-.auth-circle-artist-b .auth-artist-layer-1 { background-image: url('/api/music/artist-auto-image/daddy_yankee.jpg'); }
-.auth-circle-artist-b .auth-artist-layer-2 { background-image: url('/api/music/artist-auto-image/inna.jpg'); }
-.auth-circle-artist-b .auth-artist-layer-3 { background-image: url('/api/music/artist-auto-image/sash.jpg'); }
 
 @keyframes authArtistFade {
   0% { opacity: 0; }
@@ -649,42 +643,6 @@
   border-color: rgba(255, 160, 51, 0.62);
   background: rgba(255, 160, 51, 0.08);
   box-shadow: 0 0 0 3px rgba(255, 160, 51, 0.14);
-}
-
-@keyframes authArtistA {
-  0%, 32% {
-    background-image:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.26)),
-      url("/api/music/artist-auto-image/david_guetta.jpg");
-  }
-  33%, 65% {
-    background-image:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.26)),
-      url("/api/music/artist-auto-image/aitana.jpg");
-  }
-  66%, 100% {
-    background-image:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.26)),
-      url("/api/music/artist-auto-image/maluma.jpg");
-  }
-}
-
-@keyframes authArtistB {
-  0%, 32% {
-    background-image:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.2)),
-      url("/api/music/artist-auto-image/daddy_yankee.jpg");
-  }
-  33%, 65% {
-    background-image:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.2)),
-      url("/api/music/artist-auto-image/inna.jpg");
-  }
-  66%, 100% {
-    background-image:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0.2)),
-      url("/api/music/artist-auto-image/sash.jpg");
-  }
 }
 
 @media (max-width: 1180px) {

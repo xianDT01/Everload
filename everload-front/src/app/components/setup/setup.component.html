@@ -1,0 +1,176 @@
+<main class="setup" [class.entered]="step > 1 || closed" [attr.lang]="language">
+  <div class="photograph" aria-hidden="true"></div>
+  <div class="shade" aria-hidden="true"></div>
+  <header class="masthead">
+    <div class="brand"><img src="assets/EverloadLogo.png" alt=""><span>EverLoad</span></div>
+    <nav class="languages" [attr.aria-label]="t('LANGUAGE')">
+      <button *ngFor="let lang of languages" type="button" [attr.aria-pressed]="language === lang.id"
+        (click)="setLanguage(lang.id)">{{ lang.label }}</button>
+    </nav>
+  </header>
+
+  <section class="welcome" *ngIf="step === 1 && !closed" [attr.aria-busy]="checking">
+    <h1 #stepTitle tabindex="-1">{{ t('WELCOME_TITLE') }}</h1>
+    <p>{{ t('WELCOME_COPY') }}</p>
+    <button type="button" class="primary start" (click)="start()" [disabled]="checking || !!error">
+      {{ t(checking ? 'LOADING' : 'START') }}<mat-icon aria-hidden="true">arrow_forward</mat-icon>
+    </button>
+    <span class="welcome-note"><mat-icon aria-hidden="true">lock_outline</mat-icon>{{ t('NO_REQUIREMENTS') }}</span>
+    <p *ngIf="error" class="welcome-error" role="alert">{{ t(error) }} <button type="button" (click)="retry()">{{ t('RETRY') }}</button></p>
+  </section>
+
+  <article class="setup-card" *ngIf="step > 1 || closed">
+    <ng-container *ngIf="!closed; else closedScreen">
+      <header class="card-heading">
+        <p class="progress-label">{{ t('PROGRESS', { step: step }) }} · {{ t(steps[step - 1]) }}</p>
+        <ol class="progress" [attr.aria-label]="t('PROGRESS', { step: step })">
+          <li *ngFor="let item of steps; let i = index" [class.complete]="i + 1 <= step" [attr.aria-current]="i + 1 === step ? 'step' : null">
+            <span class="sr-only">{{ t(item) }}</span>
+          </li>
+        </ol>
+        <h1 #stepTitle tabindex="-1">{{ t(steps[step - 1]) }}</h1>
+        <p class="optional" *ngIf="step === 3 || step === 4">{{ t('OPTIONAL') }}</p>
+      </header>
+      <p class="error" *ngIf="error" role="alert">{{ t(error) }}</p>
+
+      <form *ngIf="step === 2" [formGroup]="form" (ngSubmit)="createAdmin()" class="step-content admin-form">
+        <p class="intro">{{ t('ADMIN_COPY') }}</p>
+        <div class="field">
+          <div class="label-with-help"><label for="setup-code">{{ t('CODE') }}</label>
+            <button type="button" class="icon-button" (click)="showCodeHelp = !showCodeHelp"
+              [attr.aria-expanded]="showCodeHelp" aria-controls="code-help" [attr.aria-label]="t('CODE_HELP_TITLE')"
+              [attr.title]="t('CODE_HELP_TITLE')"><mat-icon aria-hidden="true">help_outline</mat-icon></button></div>
+          <input id="setup-code" formControlName="code" autocomplete="off" spellcheck="false" maxlength="128"
+            [attr.aria-invalid]="fieldError('code')" [attr.aria-describedby]="showCodeHelp ? 'code-help code-error' : 'code-error'">
+          <div id="code-help" class="code-help" [hidden]="!showCodeHelp" role="region" [attr.aria-label]="t('CODE_HELP_TITLE')">
+            <p>{{ t('CODE_HELP') }}</p><code>{{ codeCommand }}</code><p>{{ t('CODE_HELP_DETAILS') }}</p>
+          </div>
+          <small id="code-error" class="error" *ngIf="fieldError('code')">{{ t('CODE_REQUIRED') }}</small>
+        </div>
+        <div class="field">
+          <label for="setup-username">{{ t('USERNAME') }}</label>
+          <input id="setup-username" formControlName="username" autocomplete="username" maxlength="40"
+            [attr.aria-invalid]="fieldError('username')" aria-describedby="username-error">
+          <small id="username-error" class="error" *ngIf="fieldError('username')">{{ t('USERNAME_RULE') }}</small>
+        </div>
+        <div class="field">
+          <label for="setup-email">{{ t('EMAIL') }}</label>
+          <input id="setup-email" type="email" formControlName="email" autocomplete="email" maxlength="254"
+            [attr.aria-invalid]="fieldError('email')" aria-describedby="email-error">
+          <small id="email-error" class="error" *ngIf="fieldError('email')">{{ t('EMAIL_RULE') }}</small>
+        </div>
+        <div class="field">
+          <label for="setup-password">{{ t('PASSWORD') }}</label>
+          <div class="secret-field"><input id="setup-password" formControlName="password" autocomplete="new-password"
+            [type]="showPassword ? 'text' : 'password'" [attr.aria-invalid]="fieldError('password')" aria-describedby="password-help">
+            <button type="button" class="icon-button" (click)="showPassword = !showPassword" [attr.aria-label]="t(showPassword ? 'HIDE' : 'SHOW')"
+              [attr.title]="t(showPassword ? 'HIDE' : 'SHOW')"><mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon></button></div>
+          <small id="password-help" [class.error]="fieldError('password')">{{ t('PASSWORD_RULE') }}</small>
+        </div>
+        <div class="field">
+          <label for="setup-confirm">{{ t('CONFIRM') }}</label>
+          <div class="secret-field"><input id="setup-confirm" formControlName="confirmation" autocomplete="new-password"
+            [type]="showConfirmation ? 'text' : 'password'" [attr.aria-invalid]="fieldError('confirmation')" aria-describedby="confirmation-error">
+            <button type="button" class="icon-button" (click)="showConfirmation = !showConfirmation" [attr.aria-label]="t(showConfirmation ? 'HIDE' : 'SHOW')"
+              [attr.title]="t(showConfirmation ? 'HIDE' : 'SHOW')"><mat-icon>{{ showConfirmation ? 'visibility_off' : 'visibility' }}</mat-icon></button></div>
+          <small id="confirmation-error" class="error" *ngIf="fieldError('confirmation')">{{ t('PASSWORD_MATCH') }}</small>
+        </div>
+        <p class="security-note"><mat-icon aria-hidden="true">lock_outline</mat-icon>{{ t('CODE_INVALIDATED') }}</p>
+        <footer class="actions"><button type="button" class="secondary" (click)="go(1)" [disabled]="busy">{{ t('BACK') }}</button>
+          <button type="submit" class="primary" [disabled]="busy">{{ t(busy ? 'SAVING' : 'CREATE') }}<mat-icon aria-hidden="true">arrow_forward</mat-icon></button></footer>
+      </form>
+
+      <section class="step-content" *ngIf="step === 3">
+        <p class="intro">{{ t('LIBRARY_COPY') }}</p>
+        <div class="field"><label for="library-name">{{ t('LIBRARY_NAME') }}</label>
+          <input id="library-name" [(ngModel)]="name" maxlength="100" autocomplete="off"></div>
+        <div class="folder-heading"><strong>{{ t('CONTAINER_FOLDER') }}</strong>
+          <button type="button" class="icon-button" (click)="parent()" [disabled]="storageBusy || !storage?.relativePath"
+            [attr.aria-label]="t('PARENT')" [attr.title]="t('PARENT')"><mat-icon>arrow_upward</mat-icon></button></div>
+        <div class="folder-browser" [attr.aria-busy]="storageBusy">
+          <p class="path">{{ storage?.root || '/app/nas_storage' }}<span *ngIf="storage?.relativePath">/{{ storage?.relativePath }}</span></p>
+          <button type="button" class="folder" *ngFor="let folder of storage?.folders" (click)="browse(folder.relativePath)" [disabled]="storageBusy">
+            <mat-icon aria-hidden="true">folder_open</mat-icon><span>{{ folder.name }}</span><mat-icon aria-hidden="true">chevron_right</mat-icon>
+          </button>
+          <p *ngIf="storage?.readable && !storage?.folders?.length" class="empty-folders">{{ t('NO_SUBFOLDERS') }}</p>
+        </div>
+        <button type="button" class="secondary check-access" (click)="browse(storage?.relativePath || '')" [disabled]="storageBusy">
+          <mat-icon aria-hidden="true">refresh</mat-icon>{{ t(storageBusy ? 'CHECKING' : 'CHECK_ACCESS') }}</button>
+        <div class="access-state" role="status" *ngIf="storage && !storageBusy">
+          <p [class.success]="storage.readable" [class.error]="!storage.readable"><mat-icon aria-hidden="true">{{ storage.readable ? 'check_circle' : 'error_outline' }}</mat-icon>
+            {{ t(!storage.readable ? 'INACCESSIBLE' : storage.writable ? 'READ_WRITE' : 'READ_ONLY') }}</p>
+          <small *ngIf="storage.readable && !storage.writable"><mat-icon aria-hidden="true">lock_outline</mat-icon>{{ t('READ_ONLY_LOCKED') }}</small>
+          <small *ngIf="storage.readable && storage.writable">{{ t('READ_ONLY_DOCKER') }}</small>
+        </div>
+        <p class="mount-note">{{ t('MOUNT_HELP') }} <code>/ruta/del/servidor:/app/nas_storage:ro</code></p>
+        <p *ngIf="libraries.length" class="success">{{ t('LIBRARY_ALREADY_SAVED') }}: {{ libraries[0].name }}</p>
+        <footer class="actions"><button type="button" class="secondary" (click)="go(4)" [disabled]="busy">{{ t('LATER') }}</button>
+          <button type="button" class="primary" (click)="saveLibrary()" [disabled]="busy || storageBusy || !storage?.readable || !name.trim()">
+            {{ t(busy ? 'SAVING' : 'CONTINUE') }}<mat-icon aria-hidden="true">arrow_forward</mat-icon></button></footer>
+      </section>
+
+      <section class="step-content" *ngIf="step === 4">
+        <p class="intro">{{ t('SERVICES_COPY') }}</p>
+        <section class="integration" *ngFor="let service of services">
+          <div class="integration-heading"><h2><mat-icon aria-hidden="true">{{ service.icon }}</mat-icon>{{ service.title }}</h2>
+            <button type="button" class="icon-button" (click)="service.helpOpen = !service.helpOpen"
+              [attr.aria-expanded]="!!service.helpOpen" [attr.aria-controls]="'service-help-' + service.id"
+              [attr.aria-label]="t('SERVICE_HELP_TITLE', {service: service.title})"
+              [attr.title]="t('SERVICE_HELP_TITLE', {service: service.title})"><mat-icon aria-hidden="true">help_outline</mat-icon></button></div>
+          <p>{{ t(service.id.toUpperCase() + '_COPY') }}</p>
+          <div class="code-help" [id]="'service-help-' + service.id" [hidden]="!service.helpOpen" role="region"
+            [attr.aria-label]="t('SERVICE_HELP_TITLE', {service: service.title})">
+            <ol><li *ngFor="let n of [1, 2, 3]">{{ t(service.id.toUpperCase() + '_HELP_' + n) }}</li></ol>
+            <p>{{ t(service.id.toUpperCase() + '_HELP_NOTE') }}</p>
+            <div class="help-links"><a [href]="serviceGuides[service.id].portal" target="_blank" rel="noopener noreferrer">{{ t('OPEN_PORTAL') }}<mat-icon aria-hidden="true">open_in_new</mat-icon></a>
+              <a [href]="serviceGuides[service.id].docs" target="_blank" rel="noopener noreferrer">{{ t('OFFICIAL_GUIDE') }}<mat-icon aria-hidden="true">open_in_new</mat-icon></a></div>
+            <p>{{ t('KEEP_KEYS_PRIVATE') }}</p>
+          </div>
+          <div class="field" *ngFor="let field of service.fields">
+            <label [for]="service.id + '-' + field.key">{{ t(field.label) }}</label>
+            <div class="secret-field"><input [id]="service.id + '-' + field.key" [type]="field.visible ? 'text' : 'password'"
+              [(ngModel)]="field.value" (ngModelChange)="dirty(service)" maxlength="512" autocomplete="off" spellcheck="false" [disabled]="service.busy"
+              [placeholder]="t(service.configured ? 'KEEP_EXISTING' : 'KEY_PLACEHOLDER')">
+              <button type="button" class="icon-button" (click)="field.visible = !field.visible" [disabled]="service.busy"
+                [attr.aria-label]="t(field.visible ? 'HIDE' : 'SHOW')" [attr.title]="t(field.visible ? 'HIDE' : 'SHOW')">
+                <mat-icon>{{ field.visible ? 'visibility_off' : 'visibility' }}</mat-icon></button></div>
+          </div>
+          <div class="service-actions">
+            <button type="button" class="secondary" (click)="saveService(service, service.id !== 'acoustid')" [disabled]="service.busy">
+              <mat-icon aria-hidden="true">{{ service.id === 'acoustid' ? 'save' : 'electrical_services' }}</mat-icon>
+              {{ t(service.busy ? 'CHECKING' : service.id === 'acoustid' ? 'SAVE' : 'TEST_CONNECTION') }}</button>
+            <span role="status" [class.success]="service.state === 'verified'" [class.error]="['failed', 'FIELDS', 'SAVE_FAILED'].includes(service.state)">
+              {{ t(service.state || (service.configured ? 'saved' : 'NOT_CONFIGURED')) }}</span>
+          </div>
+          <small *ngIf="service.id === 'acoustid'">{{ t('ACOUSTID_UNVERIFIED') }}</small>
+        </section>
+        <p class="integration-note">{{ t('SERVICES_OPTIONAL') }}</p>
+        <footer class="actions"><button type="button" class="secondary" (click)="go(3); browse()" [disabled]="serviceBusy">{{ t('BACK') }}</button>
+          <button type="button" class="secondary" (click)="summary()" [disabled]="serviceBusy">{{ t('LATER') }}</button>
+          <button type="button" class="primary" (click)="finishServices()" [disabled]="serviceBusy">{{ t('CONTINUE') }}<mat-icon aria-hidden="true">arrow_forward</mat-icon></button></footer>
+      </section>
+
+      <section class="step-content" *ngIf="step === 5">
+        <p class="intro">{{ t('SUMMARY_COPY') }}</p>
+        <dl class="summary">
+          <div><dt><mat-icon aria-hidden="true">person_outline</mat-icon>{{ t('USERNAME') }}</dt><dd>{{ auth.getCurrentUser()?.username }}</dd></div>
+          <div><dt><mat-icon aria-hidden="true">language</mat-icon>{{ t('LANGUAGE') }}</dt><dd>{{ language === 'es' ? 'Español' : language === 'gl' ? 'Galego' : 'English' }}</dd></div>
+          <div><dt><mat-icon aria-hidden="true">library_music</mat-icon>{{ t('LIBRARY_SHORT') }}</dt><dd>
+            <ng-container *ngIf="libraries.length; else noLibrary"><span *ngFor="let library of libraries" class="summary-library">{{ library.name }} · {{ t(!library.readable ? 'INACCESSIBLE' : library.writable ? 'READ_WRITE' : 'READ_ONLY') }}</span></ng-container>
+            <ng-template #noLibrary>{{ t('OMITTED') }}</ng-template></dd></div>
+          <div *ngFor="let service of services"><dt><mat-icon aria-hidden="true">{{ service.icon }}</mat-icon>{{ service.title }}</dt>
+            <dd>{{ t(!service.configured ? 'OMITTED' : service.state === 'verified' ? 'verified' : service.state === 'failed' ? 'SAVED_FAILED' : 'saved') }}</dd></div>
+        </dl>
+        <p class="summary-note">{{ t('COMPLETE_LATER') }}</p>
+        <footer class="actions"><button type="button" class="secondary" (click)="go(4)">{{ t('REVIEW') }}</button>
+          <button type="button" class="primary" (click)="enter()">{{ t('ENTER') }}<mat-icon aria-hidden="true">arrow_forward</mat-icon></button></footer>
+        <p class="security-note"><mat-icon aria-hidden="true">lock_outline</mat-icon>{{ t('SETUP_LOCKED') }}</p>
+      </section>
+    </ng-container>
+    <ng-template #closedScreen>
+      <h1 #stepTitle tabindex="-1">{{ t('ALREADY_CONFIGURED') }}</h1>
+      <p>{{ t('LOGIN_TO_CONTINUE') }}</p>
+      <button type="button" class="primary" (click)="enter()">{{ t(auth.isLoggedIn() ? 'ENTER' : 'LOGIN') }}<mat-icon aria-hidden="true">arrow_forward</mat-icon></button>
+    </ng-template>
+  </article>
+</main>

@@ -133,14 +133,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
     return this.apiBase.backendUrl;
   }
 
-  readonly defaultAuthHeroImages = [
-    '/api/music/artist-auto-image/david_guetta.jpg',
-    '/api/music/artist-auto-image/aitana.jpg',
-    '/api/music/artist-auto-image/maluma.jpg',
-    '/api/music/artist-auto-image/daddy_yankee.jpg',
-    '/api/music/artist-auto-image/inna.jpg',
-    '/api/music/artist-auto-image/sash.jpg'
-  ];
+  readonly defaultAuthHeroImages: string[] = [];
 
   config: AdminConfig = {
     clientId: '',
@@ -321,7 +314,7 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
   getAuthHeroSlots(): string[] {
     const selected = this.getAuthHeroImageList();
     const base = selected.length ? selected : this.defaultAuthHeroImages;
-    return Array.from({ length: 6 }, (_, index) => base[index] || this.defaultAuthHeroImages[index]);
+    return Array.from({ length: 6 }, (_, index) => base[index] || '');
   }
 
   resetAuthHeroImages(): void {
@@ -352,9 +345,8 @@ export class AdminConfigComponent implements OnInit, OnDestroy {
 
   getAuthHeroImageList(): string[] {
     return (this.config.authHeroImages || '')
-      .split(/[\r\n,]+/)
-      .map(url => url.trim())
-      .filter(url => url.length > 0);
+      .split(/\r?\n|\r|,/)
+      .map(url => url.trim());
   }
 
   isAuthHeroImageSelected(image: string): boolean {

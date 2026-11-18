@@ -41,6 +41,8 @@ build/
 
 # Config de admin con API keys (Spotify, Google, AcoustID) — NUNCA comitear
 config.json
+/data/
+setup-code
 
 # Logs locales
 *.log

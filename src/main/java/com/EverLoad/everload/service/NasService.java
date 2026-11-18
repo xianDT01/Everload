@@ -518,6 +518,44 @@ public class NasService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    public record StorageFolder(String name, String relativePath) {}
+    public record StorageAccess(String root, String relativePath, boolean readable, boolean writable,
+                                List<StorageFolder> folders) {}
+
+    public StorageAccess inspectStorage(String relativePath) {
+        Path relative = Path.of(relativePath == null ? "" : relativePath);
+        if (relative.isAbsolute() || relative.normalize().startsWith("..")) {
+            throw new SecurityException("SETUP_PATH");
+        }
+        Path base = Path.of(nasStorageBase).toAbsolutePath().normalize();
+        String normalized = relative.normalize().toString().replace('\\', '/');
+        try {
+            Path realBase = base.toRealPath();
+            Path target = realBase.resolve(relative).normalize().toRealPath();
+            if (!target.startsWith(realBase)) throw new SecurityException("SETUP_PATH");
+            if (!Files.isDirectory(target) || !Files.isReadable(target) || !Files.isExecutable(target)) {
+                return new StorageAccess(base.toString(), normalized, false, false, List.of());
+            }
+            List<StorageFolder> folders;
+            try (var children = Files.list(target)) {
+                folders = children.filter(p -> Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS))
+                        .limit(200).map(p -> new StorageFolder(p.getFileName().toString(),
+                                realBase.relativize(p).toString().replace('\\', '/')))
+                        .sorted(Comparator.comparing(StorageFolder::name, String.CASE_INSENSITIVE_ORDER)).toList();
+            }
+            return new StorageAccess(base.toString(), normalized, true,
+                    !Files.getFileStore(target).isReadOnly() && Files.isWritable(target), folders);
+        } catch (IOException e) {
+            return new StorageAccess(base.toString(), normalized, false, false, List.of());
+        }
+    }
+
+    public NasPathDto createSetupLibrary(String name, String relativePath) {
+        StorageAccess access = inspectStorage(relativePath);
+        if (!access.readable()) throw new IllegalArgumentException("SETUP_LIBRARY_UNAVAILABLE");
+        return createPath(NasPathDto.builder().name(name.trim()).path(access.relativePath()).build());
+    }
+
     private NasPathDto toDto(NasPath nasPath) {
         File dir = new File(nasPath.getPath());
         return NasPathDto.builder()

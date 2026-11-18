@@ -64,6 +64,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> {
                 auth
                     .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/setup/status").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/setup/admin").permitAll()
+                    .requestMatchers("/api/setup/**").hasRole("ADMIN")
                     .requestMatchers("/api/maintenance/status").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/public/auth-hero-images").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/app-release/android", "/api/app-release/android/download").permitAll()

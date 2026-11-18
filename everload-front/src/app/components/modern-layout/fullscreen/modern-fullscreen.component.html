@@ -10,7 +10,7 @@
     </div>
 
     <!-- Close -->
-    <button class="mfs-close" (click)="state$.closeFullscreen()">✕</button>
+    <button type="button" class="mfs-close" (click)="state$.closeFullscreen()" [attr.aria-label]="'COMMON.CLOSE' | translate" [title]="'COMMON.CLOSE' | translate"><mat-icon aria-hidden="true">close</mat-icon></button>
 
     <!-- Left: cover + track info + controls -->
     <div class="mfs-left">

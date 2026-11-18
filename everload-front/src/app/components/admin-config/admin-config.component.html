@@ -229,7 +229,7 @@
             [class.active]="selectedAuthHeroSlot === i"
             (click)="selectAuthHeroSlot(i)">
             <span class="auth-hero-slot-index">{{ i + 1 }}</span>
-            <span class="auth-hero-slot-image" [style.backgroundImage]="'url(' + image + ')'"></span>
+            <span class="auth-hero-slot-image" [style.backgroundImage]="image ? 'url(' + image + ')' : 'none'"></span>
           </button>
         </aside>
 

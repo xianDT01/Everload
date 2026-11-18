@@ -33,6 +33,8 @@ export class AppComponent implements OnInit, OnDestroy {
     return this.currentUrl.startsWith('/modern');
   }
 
+  get isSetupRoute(): boolean { return this.currentUrl.startsWith('/setup'); }
+
   private authSub?: Subscription;
   private alertSub?: Subscription;
   private maintenanceSub?: Subscription;

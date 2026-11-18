@@ -1,8 +1,20 @@
-import { of, Subject } from 'rxjs';
+import { BehaviorSubject, of, Subject } from 'rxjs';
 import { fakeAsync, tick } from '@angular/core/testing';
 import { ModernHomeComponent } from './modern-home.component';
 
 describe('ModernHomeComponent recommendations', () => {
+  it('does not keep loading when there is no accessible library', () => {
+    const pathId$ = new BehaviorSubject<number | null>(null);
+    const component = new ModernHomeComponent(
+      { coverReady$: of() } as any, { pathId$ } as any,
+      { url: '/modern/home', events: of() } as any, {} as any);
+    spyOn<any>(component, 'loadYtPlaylists').and.stub();
+    component.ngOnInit();
+    expect(component.loading).toBeFalse();
+    expect(component.featured).toBeNull();
+    expect(component.listenNow).toEqual([]);
+    component.ngOnDestroy();
+  });
   function createComponent(data: {
     history?: any[];
     tracks?: any[];

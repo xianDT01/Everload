@@ -53,7 +53,8 @@ public class MaintenanceFilter extends OncePerRequestFilter {
         if (!path.startsWith("/api/")
                 || path.equals("/api/auth/login") || path.equals("/api/auth/logout")
                 || path.equals("/api/auth/refresh") || path.equals("/api/auth/session/refresh")
-                || path.equals("/api/maintenance/status")) {
+                || path.equals("/api/maintenance/status")
+                || path.equals("/api/setup/status") || path.equals("/api/setup/admin")) {
             filterChain.doFilter(request, response);
             return;
         }

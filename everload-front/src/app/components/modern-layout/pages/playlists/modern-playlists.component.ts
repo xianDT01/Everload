@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { smartShuffle } from '../../../../services/smart-shuffle';
 import { Subscription } from 'rxjs';
@@ -13,6 +13,10 @@ import { AuthService } from '../../../../services/auth.service';
   styleUrls: ['./modern-playlists.component.css']
 })
 export class ModernPlaylistsComponent implements OnInit, OnDestroy {
+  @ViewChild('detailStart') set detailStart(element: ElementRef<HTMLElement> | undefined) {
+    const scroller = element?.nativeElement.closest<HTMLElement>('.ml-main');
+    if (scroller) scroller.scrollTop = 0;
+  }
   playlists: any[] = [];
   publicPlaylists: any[] = [];
   sharedPlaylists: any[] = [];

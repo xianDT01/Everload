@@ -24,18 +24,15 @@ public class PublicConfigController {
         try {
             String raw = configService.getConfig()
                     .getOrDefault("authHeroImages", AdminConfigService.DEFAULT_AUTH_HERO_IMAGES);
-            List<String> images = Arrays.stream(raw.split("[\\r\\n,]+"))
+            List<String> images = raw.isBlank() ? List.of() : Arrays.stream(raw.split("\\r?\\n|\\r|,", -1))
                     .map(String::trim)
-                    .filter(url -> !url.isEmpty())
-                    .filter(url -> url.startsWith("/") || url.startsWith("http://") || url.startsWith("https://"))
+                    .map(url -> url.startsWith("/") || url.startsWith("http://") || url.startsWith("https://") ? url : "")
                     .limit(12)
                     .toList();
             return ResponseEntity.ok(Map.of("images", images));
         } catch (Exception e) {
             log.warn("Could not read configured authentication hero images; using defaults", e);
-            List<String> fallback = Arrays.stream(AdminConfigService.DEFAULT_AUTH_HERO_IMAGES.split("\\R"))
-                    .toList();
-            return ResponseEntity.ok(Map.of("images", fallback));
+            return ResponseEntity.ok(Map.of("images", List.of()));
         }
     }
 }

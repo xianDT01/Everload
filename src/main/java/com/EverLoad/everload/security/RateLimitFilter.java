@@ -114,7 +114,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private Tier classifyTier(HttpServletRequest request) {
         String path = request.getServletPath();
-        if (path.startsWith("/api/auth/")) return Tier.AUTH;
+        if (path.startsWith("/api/auth/") || path.equals("/api/setup/admin")) return Tier.AUTH;
         // Music download clients poll every 2.5 seconds while yt-dlp prepares the
         // file. Keep status reads out of the 8/minute heavy-download bucket.
         if ("GET".equalsIgnoreCase(request.getMethod())

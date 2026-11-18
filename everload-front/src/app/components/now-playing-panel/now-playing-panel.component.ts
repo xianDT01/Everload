@@ -86,6 +86,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   readonly Math = Math;
   taskbarClock = '';
   desktopTrayPopup: 'network' | 'sound' | 'calendar' | null = null;
+  desktopSessionSoundsEnabled = true;
+  private readonly desktopSessionSoundsKey = 'everload.windows.sessionSounds';
   private desktopVolumeBeforeMute = 70;
   calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   readonly calendarWeekdays = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -468,6 +470,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     this.loadExplorerPaths();
     this.loadWallpaperPreference();
     this.loadDesktopSizing();
+    this.loadDesktopSoundPreference();
     this.loadDesktopIconPositions();
     this.loadSkinPreference();
     this.loadNotepad();
@@ -495,7 +498,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     const open = this.musicService.nowPlayingPanelOpen;
     if (open && !this.wasOpen) {
       this.wasOpen = true;
-      this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Startup.mp3', 0.7);
+      if (this.desktopSessionSoundsEnabled) {
+        this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Startup.mp3', 0.7);
+      }
       requestAnimationFrame(() => this.startViz());
     } else if (!open && this.wasOpen) {
       this.wasOpen = false;
@@ -564,6 +569,18 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
   toggleTrayPopup(popup: 'network' | 'sound' | 'calendar'): void {
     this.desktopTrayPopup = this.desktopTrayPopup === popup ? null : popup;
+  }
+  setDesktopSessionSounds(enabled: boolean): void {
+    this.desktopSessionSoundsEnabled = enabled;
+    try { localStorage.setItem(this.desktopSessionSoundsKey, String(enabled)); }
+    catch { /* Keep the setting for this session when storage is unavailable. */ }
+  }
+  private loadDesktopSoundPreference(): void {
+    try {
+      this.desktopSessionSoundsEnabled = localStorage.getItem(this.desktopSessionSoundsKey) !== 'false';
+    } catch {
+      this.desktopSessionSoundsEnabled = true;
+    }
   }
   shiftCalendarMonth(amount: number): void {
     this.calendarMonth = new Date(this.calendarMonth.getFullYear(), this.calendarMonth.getMonth() + amount, 1);
@@ -700,7 +717,9 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   close(): void {
-    this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Shutdown.mp3', 0.7);
+    if (this.desktopSessionSoundsEnabled) {
+      this.playSound('assets/Windows%20songs/Voicy_Windows%20XP%20Shutdown.mp3', 0.7);
+    }
     this.musicService.nowPlayingPanelOpen = false;
     this.desktopStartOpen = false;
     this.playerMinimized = false;
@@ -1720,7 +1739,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   refreshCoverForCurrentTrack(): void {
     if (!this.state?.currentTrack) return;
-    this.musicService.fetchCoverIfNeeded(this.state.currentTrack);
+    this.musicService.fetchCoverIfNeeded(this.state.currentTrack, true);
     this.musicManagerStatus = 'WINDOWS.MANAGER_STATUS_METADATA_REQUESTED';
   }
 

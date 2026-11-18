@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { Subscription, from, of } from 'rxjs';
 import { catchError, concatMap, finalize, tap } from 'rxjs/operators';
 import { MusicService, MusicMetadataDto } from '../../../../services/music.service';
@@ -36,6 +37,27 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   private searchTimer?: ReturnType<typeof setTimeout>;
   private librarySub?: Subscription;
   private indexPoll?: ReturnType<typeof setTimeout>;
+  private viewportResize?: ResizeObserver;
+  private viewportFrame?: number;
+
+  @ViewChild(CdkVirtualScrollViewport)
+  set libraryViewport(viewport: CdkVirtualScrollViewport | undefined) {
+    this.viewportResize?.disconnect();
+    if (this.viewportFrame != null) cancelAnimationFrame(this.viewportFrame);
+    this.viewportFrame = undefined;
+    if (!viewport) return;
+
+    const element = viewport.elementRef.nativeElement;
+    // Reused routes can be measured while detached, leaving only the buffer visible.
+    this.viewportResize = new ResizeObserver(() => {
+      if (this.viewportFrame != null) cancelAnimationFrame(this.viewportFrame);
+      this.viewportFrame = requestAnimationFrame(() => {
+        this.viewportFrame = undefined;
+        if (element.isConnected && element.clientHeight > 0) viewport.checkViewportSize();
+      });
+    });
+    this.viewportResize.observe(element);
+  }
 
   constructor(public music: MusicService, private state: ModernStateService, private nas: NasService, private auth: AuthService) {}
 
@@ -58,6 +80,8 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.viewportResize?.disconnect();
+    if (this.viewportFrame != null) cancelAnimationFrame(this.viewportFrame);
     this.sub?.unsubscribe();
     this.librarySub?.unsubscribe();
     if (this.indexPoll) clearTimeout(this.indexPoll);
@@ -248,7 +272,7 @@ export class ModernLibraryComponent implements OnInit, OnDestroy {
   }
 
   cover(t: MusicMetadataDto): string {
-    return this.music.getCoverUrlWithCache(this.pathId ?? 0, t.path, t.source);
+    return this.music.getCoverUrlWithCache(t.nasPathId ?? this.pathId ?? 0, t.path, t.source);
   }
 
   isPlaying(t: MusicMetadataDto): boolean {

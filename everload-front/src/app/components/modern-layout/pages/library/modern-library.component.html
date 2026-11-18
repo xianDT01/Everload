@@ -90,7 +90,7 @@
         <!-- Portada + título -->
         <div class="ml-col-title ml-track-info">
           <div class="ml-track-cover">
-            <img [src]="cover(t)" (error)="$any($event.target).style.display='none'" loading="lazy" />
+            <img [src]="cover(t)" (error)="$any($event.target).style.opacity='0'" (load)="$any($event.target).style.opacity='1'" loading="lazy" alt="" />
           </div>
           <span class="ml-track-name" [class.active]="isPlaying(t)">{{ t.title || t.name }}</span>
         </div>

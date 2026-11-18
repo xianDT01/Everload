@@ -23,8 +23,21 @@ class PublicConfigControllerTest {
 
         ResponseEntity<Map<String, List<String>>> response = controller.getAuthHeroImages();
 
-        List<String> expected = List.of(AdminConfigService.DEFAULT_AUTH_HERO_IMAGES.split("\\R"));
+        List<String> expected = List.of();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(expected, response.getBody().get("images"));
+    }
+    @Test
+    void emptyConfigurationReturnsNoImages() throws IOException {
+        AdminConfigService config = mock(AdminConfigService.class);
+        when(config.getConfig()).thenReturn(Map.of("authHeroImages", ""));
+        assertEquals(List.of(), new PublicConfigController(config).getAuthHeroImages().getBody().get("images"));
+    }
+    @Test
+    void partialConfigurationKeepsBlankSlotsWithoutFillingThem() throws IOException {
+        AdminConfigService config = mock(AdminConfigService.class);
+        when(config.getConfig()).thenReturn(Map.of("authHeroImages", "\n\n/own-image.jpg\n"));
+        assertEquals(List.of("", "", "/own-image.jpg", ""),
+                new PublicConfigController(config).getAuthHeroImages().getBody().get("images"));
     }
 }
