@@ -38,6 +38,8 @@ build/
 
 # Variables de entorno — contienen secretos, NUNCA comitear
 .env
+.env.*
+!.env.example
 
 # Config de admin con API keys (Spotify, Google, AcoustID) — NUNCA comitear
 config.json

@@ -1,0 +1,82 @@
+name: Docker Hub beta
+
+on:
+  push:
+    tags: ['v*-beta.*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Beta version (for example 1.0.0-beta.1)
+        required: true
+        default: 1.0.0-beta.1
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-beta-publish
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    uses: ./.github/workflows/ci.yml
+  publish:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ inputs.version || github.ref_name }}
+      IMAGE: ${{ vars.DOCKERHUB_IMAGE || 'xiandt/everload' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release configuration
+        shell: bash
+        run: |
+          VERSION="${VERSION#v}"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]] || { echo 'Expected a beta version'; exit 1; }
+          [[ "$IMAGE" =~ ^[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9._-]*$ ]] || { echo 'Set DOCKERHUB_IMAGE repository variable (username/everload)'; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - name: Build candidate without publishing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: everload:beta-test
+          build-args: |
+            APP_VERSION=${{ env.VERSION }}
+            GIT_COMMIT=${{ github.sha }}
+            GIT_BRANCH=${{ github.ref_name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Verify first run and persistence in the built image
+        run: python3 scripts/docker-beta-smoke.py everload:beta-test
+      - name: Scan image for high and critical fixable vulnerabilities
+        uses: aquasecurity/trivy-action@0.35.0
+        env:
+          TRIVY_SHOW_SUPPRESSED: 'true'
+        with:
+          image-ref: everload:beta-test
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          trivyignores: .trivyignore.yaml
+      - name: Sign in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || 'xiandt' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Publish tested candidate (never latest)
+        shell: bash
+        run: |
+          if docker manifest inspect "$IMAGE:$VERSION" >/dev/null 2>&1; then
+            echo 'Version already published; increment the beta number.'; exit 1
+          fi
+          docker tag everload:beta-test "$IMAGE:$VERSION"
+          docker push "$IMAGE:$VERSION"
+          printf 'Published `%s:%s` for linux/amd64.\n' "$IMAGE" "$VERSION" >> "$GITHUB_STEP_SUMMARY"

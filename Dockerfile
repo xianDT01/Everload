@@ -42,18 +42,28 @@ RUN ./mvnw clean package -DskipTests || mvn clean package -DskipTests
 # =========================
 # 🚀 Etapa 3: Imagen final ligera (runtime)
 # =========================
-FROM eclipse-temurin:21-jdk
+FROM eclipse-temurin:21-jdk-noble
 WORKDIR /app
+ARG APP_VERSION=1.0.0
+ARG GIT_COMMIT=unknown
+LABEL org.opencontainers.image.title="EverLoad" \
+      org.opencontainers.image.source="https://github.com/xianDT01/Everload" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}"
+ENV APP_VERSION=${APP_VERSION}
 
 # Versión del binario rustypipe-botguard a instalar (ver releases en Codeberg).
 ARG BOTGUARD_VERSION=v0.1.2
+ARG YTDLP_VERSION=2026.10.26
+ARG TARGETARCH=amd64
 
 # Instala yt-dlp + ffmpeg + python3 + node.js (runtime JS para yt-dlp) + chromaprint
 # + rustypipe-botguard: genera los tokens PO que permiten resolver streams sin
 # pasar por el fallback yt-dlp (mucho más lento, ~7s por canción al arrancar).
-RUN apt-get update && \
+RUN test "$TARGETARCH" = "amd64" && \
+    apt-get update && \
     apt-get install -y wget xz-utils ffmpeg python3 nodejs libchromaprint-tools && \
-    wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp && \
+    wget "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/yt-dlp" -O /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     ln -s /usr/local/bin/yt-dlp /usr/bin/yt-dlp && \
     wget -q "https://codeberg.org/ThetaDev/rustypipe-botguard/releases/download/${BOTGUARD_VERSION}/rustypipe-botguard-${BOTGUARD_VERSION}-x86_64-unknown-linux-gnu.tar.xz" -O /tmp/botguard.tar.xz && \
@@ -72,6 +82,14 @@ ENV YTMUSIC_BOTGUARD_PATH=/usr/local/bin/rustypipe-botguard
 
 # Copia el .jar compilado desde la etapa anterior
 COPY --from=backend-build /app/target/*.jar app.jar
+COPY LICENSE /app/LICENSE
+
+RUN groupadd --gid 10001 everload && \
+    useradd --uid 10001 --gid everload --home-dir /app --no-create-home everload && \
+    mkdir -p /app/data /app/avatars /app/backups /app/downloads /app/hls-cache /app/android-release /app/nas_storage && \
+    chown -R everload:everload /app
+ENV HOME=/app
+USER 10001:10001
 
 EXPOSE 8080
 

@@ -1,0 +1,34 @@
+# Requires .env.beta; pulls the published image, never builds source locally.
+# docker compose --env-file .env.beta -p everload-beta -f compose.beta.yml up -d
+services:
+  everload:
+    image: ${EVERLOAD_IMAGE:-xiandt/everload:1.0.0-beta.1}
+    platform: linux/amd64
+    ports:
+      - "${EVERLOAD_BIND_ADDRESS:-127.0.0.1}:${EVERLOAD_PORT:-8080}:8080"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:?Generate a unique JWT_SECRET before starting}
+      SPRING_DATASOURCE_URL: jdbc:h2:file:/app/data/everload-db;DB_CLOSE_ON_EXIT=FALSE
+      APP_CONFIG_PATH: /app/data/config.json
+      APP_SETUP_CODE_PATH: /app/data/setup-code
+      APP_BACKUP_PATH: /app/backups
+      APP_MAINTENANCE_FLAG: /app/data/maintenance.flag
+      APP_ANDROID_RELEASE_PATH: /app/data/android-release
+      MUSIC_HLS_CACHE_DIR: /app/data/hls-cache
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+    volumes:
+      - beta-data:/app/data
+      - beta-avatars:/app/avatars
+      - beta-backups:/app/backups
+      - beta-library:/app/nas_storage:ro
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  beta-data:
+  beta-avatars:
+  beta-backups:
+  beta-library:

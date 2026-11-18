@@ -271,6 +271,10 @@ Las instalaciones existentes no vuelven a abrir el alta inicial. Para arrancar u
 instancia portable sin carpetas del host, consulta [la guia del asistente](docs/first-run.md)
 y `compose.first-run.yml`. No uses otro proyecto Compose para actualizar una instalacion existente.
 
+Para la beta distribuida como imagen, consulta [Docker beta](docs/docker-beta.md).
+`compose.beta.yml` usa una imagen versionada de Docker Hub y volumenes independientes;
+la publicacion queda condicionada a pruebas y comprobaciones de seguridad.
+
 ### Producción
 
 Configura un dominio real en `.env` y apunta sus registros DNS al servidor:
