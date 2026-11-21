@@ -1,3 +1,4 @@
+<app-winamp-visualizer *ngIf="isOpen && isDesktopWmp && playerSkin === 'winamp' && waVisualizerVisible && !playerMinimized" data-desktop-window="player" [style.position]="'relative'" [style.z-index]="getWindowZIndex('player') + (waVisualizerFocused ? 1 : -1)" (pointerdown)="waVisualizerFocused = true" (closed)="waVisualizerVisible = false"></app-winamp-visualizer>
 <div class="np-desktop-shell" *ngIf="isOpen && isDesktopWmp">
   <div class="np-desktop-backdrop" (click)="onDesktopBackdropClick(); closeCtxMenu()">
     <div class="np-desktop-wallpaper" [ngClass]="desktopWallpaperClass" [ngStyle]="desktopWallpaperStyle" (mousedown)="beginDesktopSelection($event)" (click)="onDesktopWallpaperClick($event)" (contextmenu)="openCtxMenu($event)">
@@ -1482,13 +1483,16 @@
       <button class="np-task-chip" *ngIf="snakeOpen" [class.active]="activeDesktopWindow === 'snake' && !snakeMinimized" [class.minimized]="snakeMinimized" (click)="toggleTaskWindow('snake')" title="Snake">
         <span class="np-task-icon snake"></span><span>Snake</span>
       </button>
-      <button class="np-task-chip"
+      <button class="np-task-chip np-task-player"
               [class.active]="activeDesktopWindow === 'player' && !playerMinimized"
               [class.minimized]="playerMinimized"
+              [ngClass]="'np-task-player-' + playerSkin"
               (click)="toggleTaskWindow('player')"
-              [title]="'WINDOWS.MEDIA_PLAYER' | translate">
-        <span class="np-task-icon player"></span>
-        <span>{{ 'WINDOWS.MEDIA_PLAYER' | translate }}</span>
+              [title]="currentSkinName"
+              [attr.aria-label]="currentSkinName"
+              [attr.aria-pressed]="activeDesktopWindow === 'player' && !playerMinimized">
+        <span class="np-task-icon np-task-player-icon" aria-hidden="true"><mat-icon>{{ currentSkinIcon }}</mat-icon></span>
+        <span>{{ currentSkinName }}</span>
       </button>
     </div>
     <div class="np-taskbar-tray" (click)="$event.stopPropagation()">
@@ -1682,15 +1686,17 @@
     </div>
 
     <!-- ═══════════════ WINAMP SKIN ═══════════════ -->
-    <div *ngSwitchCase="'winamp'" class="wa-shell" [style.transform]="'scale(' + effectiveWinampScale + ')'" (mousedown)="beginWindowDrag($event, 'player')">
+    <div *ngSwitchCase="'winamp'" class="wa-shell" [class.wa-shaded]="waShaded" [style.transform]="'scale(' + effectiveWinampScale + ')'" (mousedown)="beginWindowDrag($event, 'player')">
 
       <!-- ── MAIN PLAYER ── -->
       <div class="wa-main">
-        <div class="wa-titlebar">
+        <div class="wa-titlebar" (dblclick)="toggleWaShade(); $event.stopPropagation()">
           <div class="wa-titlebar-left">
             <span class="wa-logo">WINAMP</span>
+            <span class="wa-shade-track" *ngIf="waShaded">{{ state?.currentTrack?.title || state?.currentTrack?.name || 'EverLoad' }}</span>
           </div>
           <div class="wa-titlebar-right" (mousedown)="$event.stopPropagation()">
+            <button class="wa-wbtn" (click)="toggleWaShade(); $event.stopPropagation()" [title]="'WINAMP.COMPACT' | translate" [attr.aria-label]="'WINAMP.COMPACT' | translate" [attr.aria-pressed]="waShaded"><mat-icon>{{ waShaded ? 'expand_more' : 'expand_less' }}</mat-icon></button>
             <button class="wa-wbtn" (click)="cycleSkin(); $event.stopPropagation()" [title]="'WINDOWS.CHANGE_SKIN' | translate">◈</button>
             <button class="wa-wbtn" (click)="minimizeWindow('player'); $event.stopPropagation()">_</button>
             <button class="wa-wbtn wa-wbtn-close" (click)="closePlayerWindow(); $event.stopPropagation()">×</button>
@@ -1709,7 +1715,7 @@
               <span *ngIf="state?.loading">⏳</span>
               <span *ngIf="!state?.playing && !state?.loading">⏸</span>
             </div>
-            <div class="wa-digital-time">{{ fmt(state?.currentTime || 0) }}</div>
+            <button class="wa-digital-time" (mousedown)="$event.stopPropagation()" (click)="waRemainingTime = !waRemainingTime; $event.stopPropagation()" [title]="'WINAMP.TIME' | translate">{{ waTimeLabel }}</button>
             <div class="wa-bitrate-row">
               <span class="wa-kbps">{{ state?.currentTrack?.format || 'AUDIO' }}</span>
               <span class="wa-khz">{{ state?.pathId != null ? 'NAS' : 'LOCAL' }}</span>
@@ -1736,37 +1742,35 @@
           </div>
           <div class="wa-bal-group">
             <span class="wa-slider-lbl">BAL</span>
-            <input type="range" class="wa-hslider wa-bal-slider" min="-50" max="50" value="0" (click)="$event.stopPropagation()" />
+            <input type="range" class="wa-hslider wa-bal-slider" min="-100" max="100" [value]="waBalance" [disabled]="!musicService.mainPlayer.supportsAudioEffects" (input)="setWaBalance($any($event.target).value)" (dblclick)="setWaBalance(0)" [attr.aria-label]="'WINAMP.BALANCE' | translate" [title]="('WINAMP.BALANCE' | translate) + ': ' + waBalance" (click)="$event.stopPropagation()" />
           </div>
         </div>
 
         <!-- Position seek bar -->
-        <div class="wa-posbar" (click)="onSeek($event); $event.stopPropagation()" (mousedown)="$event.stopPropagation()">
-          <div class="wa-posbar-fill" [style.width.%]="(state?.currentTime||0)/(state?.duration||1)*100"></div>
-          <div class="wa-posbar-thumb" [style.left.%]="(state?.currentTime||0)/(state?.duration||1)*100"></div>
-        </div>
+        <input type="range" class="wa-seek" min="0" [max]="state?.duration || 1" step="0.1" [value]="state?.currentTime || 0" [disabled]="!state?.duration" [attr.aria-label]="'CHAT.PLAYBACK_POSITION' | translate" (input)="seekWa($any($event.target).value)" (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()" />
 
         <!-- Transport buttons -->
         <div class="wa-transport" (mousedown)="$event.stopPropagation()">
-          <button class="wa-tbtn wa-prev" (click)="musicService.playPrevMain(); $event.stopPropagation()" title="Anterior">
-            <span class="wa-tbtn-icon">⏮</span>
+          <button class="wa-tbtn wa-prev" (click)="musicService.playPrevMain(); $event.stopPropagation()" [title]="'COMMON.PREVIOUS' | translate" [attr.aria-label]="'COMMON.PREVIOUS' | translate">
+            <mat-icon>skip_previous</mat-icon>
           </button>
-          <button class="wa-tbtn wa-play" (click)="musicService.mainPlayer.togglePlay(); $event.stopPropagation()" title="Play">
-            <span class="wa-tbtn-icon">▶</span>
+          <button class="wa-tbtn wa-play" (click)="musicService.mainPlayer.play(); $event.stopPropagation()" [class.wa-engaged]="state?.playing" [title]="'COMMON.PLAY' | translate" [attr.aria-label]="'COMMON.PLAY' | translate">
+            <mat-icon>play_arrow</mat-icon>
           </button>
-          <button class="wa-tbtn wa-pause" (click)="musicService.mainPlayer.togglePlay(); $event.stopPropagation()" title="Pause">
-            <span class="wa-tbtn-icon">⏸</span>
+          <button class="wa-tbtn wa-pause" (click)="musicService.mainPlayer.pause(); $event.stopPropagation()" [class.wa-engaged]="!state?.playing && (state?.currentTime || 0) > 0" [title]="'WINAMP.PAUSE' | translate" [attr.aria-label]="'WINAMP.PAUSE' | translate">
+            <mat-icon>pause</mat-icon>
           </button>
-          <button class="wa-tbtn wa-stop" (click)="musicService.mainPlayer.seek(0); $event.stopPropagation()" title="Stop">
-            <span class="wa-tbtn-icon">⏹</span>
+          <button class="wa-tbtn wa-stop" (click)="musicService.mainPlayer.cue(); $event.stopPropagation()" [title]="'WINAMP.STOP' | translate" [attr.aria-label]="'WINAMP.STOP' | translate">
+            <mat-icon>stop</mat-icon>
           </button>
-          <button class="wa-tbtn wa-next" (click)="musicService.playNextMain(); $event.stopPropagation()" title="Siguiente">
-            <span class="wa-tbtn-icon">⏭</span>
+          <button class="wa-tbtn wa-next" (click)="musicService.playNextMain(); $event.stopPropagation()" [title]="'COMMON.NEXT' | translate" [attr.aria-label]="'COMMON.NEXT' | translate">
+            <mat-icon>skip_next</mat-icon>
           </button>
-          <button class="wa-tbtn wa-eject" (click)="openExplorerWindow(); $event.stopPropagation()" title="Abrir">
-            <span class="wa-tbtn-icon">⏏</span>
+          <button class="wa-tbtn wa-eject" (click)="openExplorerWindow(); $event.stopPropagation()" [title]="'WINDOWS.MY_MUSIC' | translate" [attr.aria-label]="'WINDOWS.MY_MUSIC' | translate">
+            <mat-icon>eject</mat-icon>
           </button>
           <div class="wa-transport-spacer"></div>
+          <button type="button" class="wa-text-btn wa-visuals-toggle" [class.active]="waVisualizerVisible" (click)="waVisualizerVisible = !waVisualizerVisible; waVisualizerFocused = true; $event.stopPropagation()" [title]="'WINAMP.VISUALS' | translate" [attr.aria-label]="'WINAMP.VISUALS' | translate" [attr.aria-pressed]="waVisualizerVisible"><mat-icon>auto_awesome</mat-icon></button>
           <button class="wa-text-btn" [class.active]="shuffle" (click)="musicService.toggleShuffle(); $event.stopPropagation()">SHUFFLE</button>
           <button class="wa-text-btn" [class.active]="repeat !== 'none'" (click)="musicService.toggleRepeat(); $event.stopPropagation()">⟳</button>
           <button *ngIf="state?.currentTrack" class="wa-text-btn wa-like-btn" [class.active]="isLiked(state!.currentTrack!)" (click)="toggleLike($event, state!.currentTrack!)">♥</button>
@@ -1780,12 +1784,21 @@
           <div class="wa-eq-header-btns" (mousedown)="$event.stopPropagation()">
             <button class="wa-eq-hbtn" [class.on]="waEqOn" (click)="toggleWaEq()">ON</button>
             <button class="wa-eq-hbtn" [class.on]="waEqPreset !== 'custom'" (click)="resetWaEq()">AUTO</button>
-            <select class="wa-eq-presets" [value]="waEqPreset" (change)="applyWaEqPreset($any($event.target).value)" aria-label="Ecualizador predefinido">
+            <select class="wa-eq-presets" [value]="waEqPreset" (change)="applyWaEqPreset($any($event.target).value)" [attr.aria-label]="'WINAMP.PRESETS' | translate">
+              <option value="custom" disabled>{{ 'WINAMP.CUSTOM' | translate }}</option>
               <option *ngFor="let preset of waEqPresets" [value]="preset.id">{{ preset.label }}</option>
+              <option *ngFor="let preset of waImportedPresets; let i = index" [value]="'import-' + i">{{ preset.name }}</option>
             </select>
+            <details #waPresetMenu class="wa-preset-menu" (keydown.escape)="$event.stopPropagation(); waPresetMenu.open = false" (focusout)="!waPresetMenu.contains($any($event.relatedTarget)) && (waPresetMenu.open = false)">
+              <summary [title]="'WINAMP.PRESET_MENU' | translate" [attr.aria-label]="'WINAMP.PRESET_MENU' | translate"><mat-icon>more_horiz</mat-icon></summary>
+              <div class="wa-preset-actions">
+                <button type="button" (click)="waPresetMenu.open = false; waPresetFile.click()"><mat-icon>file_upload</mat-icon>{{ 'WINAMP.IMPORT' | translate }}</button>
+                <button type="button" (click)="waPresetMenu.open = false; exportWaPreset()"><mat-icon>file_download</mat-icon>{{ 'WINAMP.EXPORT' | translate }}</button>
+              </div>
+            </details>
           </div>
         </div>
-        <div class="wa-eq-body" (mousedown)="$event.stopPropagation()">
+        <fieldset class="wa-eq-body" [disabled]="!musicService.mainPlayer.supportsAudioEffects" (mousedown)="$event.stopPropagation()" [attr.aria-label]="'WINAMP.PRESETS' | translate">
           <div class="wa-eq-db-col">
             <span>+12db</span>
             <span>0db</span>
@@ -1793,17 +1806,19 @@
           </div>
           <!-- Preamp -->
           <div class="wa-eq-band-col">
-            <input type="range" orient="vertical" class="wa-eq-vslider" min="-12" max="12" value="0" (click)="$event.stopPropagation()" />
+            <input type="range" orient="vertical" class="wa-eq-vslider" min="-12" max="12" step="0.1" [value]="waPreamp" (input)="setWaPreamp($any($event.target).value)" (dblclick)="setWaPreamp(0)" [attr.aria-label]="'WINAMP.PREAMP' | translate" [title]="('WINAMP.PREAMP' | translate) + ': ' + waPreamp + ' dB'" (click)="$event.stopPropagation()" />
             <span class="wa-eq-band-lbl">PREAMP</span>
           </div>
           <div class="wa-eq-vsep"></div>
           <!-- 10 bands -->
           <div class="wa-eq-band-col" *ngFor="let b of waEqBands; let i = index">
-            <input type="range" orient="vertical" class="wa-eq-vslider" min="-12" max="12" [value]="b"
+            <input type="range" orient="vertical" class="wa-eq-vslider" min="-12" max="12" step="0.1" [value]="b" [attr.aria-label]="waEqBandNames[i] + ' Hz'" [title]="waEqBandNames[i] + ': ' + b + ' dB'" (dblclick)="setWaEqBand(i, 0)"
                    (input)="setWaEqBand(i, $any($event.target).value)" (mousedown)="$event.stopPropagation()" />
             <span class="wa-eq-band-lbl">{{ waEqBandNames[i] }}</span>
           </div>
-        </div>
+        </fieldset>
+        <input #waPresetFile type="file" accept=".eqf,.q1" hidden (change)="importWaPreset($event)" />
+        <div class="wa-preset-error" role="alert" *ngIf="waPresetError">{{ 'WINAMP.INVALID_PRESET' | translate }}</div>
       </div><!-- /wa-eq-window -->
 
       <!-- ── PLAYLIST ── -->
@@ -1817,7 +1832,7 @@
                *ngFor="let track of winampQueue.tracks; let i = index"
                [class.wa-pl-active]="i === winampQueue.index"
                [class.wa-pl-selected]="waQueueSelection.has(i)"
-               (click)="musicService.setQueue(winampQueue.pathId, winampQueue.tracks, i); $event.stopPropagation()">
+               (click)="toggleWaQueueSelection(i, $event)" (dblclick)="playQueueTrack(i); $event.stopPropagation()" tabindex="0" (keydown.enter)="playQueueTrack(i)" (keydown.space)="toggleWaQueueSelection(i, $event); $event.preventDefault()">
             <input class="wa-pl-check" type="checkbox" [checked]="waQueueSelection.has(i)" (change)="toggleWaQueueSelection(i, $event)" (click)="$event.stopPropagation()" [attr.aria-label]="'Seleccionar pista ' + (i + 1)" />
             <span class="wa-pl-num">{{ i + 1 }}.</span>
             <span class="wa-pl-name">{{ track.artist ? track.artist + ' - ' : '' }}{{ track.title || track.name }}</span>

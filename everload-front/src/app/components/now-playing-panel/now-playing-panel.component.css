@@ -92,24 +92,28 @@
 .np-desktop-icon {
   position: absolute;
   width: 92px;
-  min-height: 68px;
+  height: 74px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 6px;
+  gap: 2px;
+  padding: 3px 6px;
   border: none;
   background: transparent;
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.7);
-  font-size: 12px;
+  font-size: 11px;
   cursor: default;
   user-select: none;
   pointer-events: auto;
 }
 
 .np-desktop-icon span:last-child {
-  line-height: 1.2;
+  line-height: 1.15;
+  box-sizing: border-box;
+  max-height: 30px;
+  overflow: hidden;
   max-width: 82px;
   padding: 1px 3px;
   border: 1px solid transparent;
@@ -2393,6 +2397,17 @@
 .np-task-chip.active { background: linear-gradient(180deg,#0749b7 0%,#0b58cf 100%); box-shadow: inset 2px 2px 4px rgba(0,0,0,.4), inset -1px -1px 0 rgba(255,255,255,.18); }
 .np-task-chip.minimized { background: linear-gradient(180deg,#3c84da 0%,#1c61bf 100%); }
 .np-task-icon { width: 20px; height: 20px; }
+.np-task-player { border-bottom: 2px solid var(--task-player-accent, #bde6ff); }
+.np-task-player-wmp { --task-player-accent: #bde6ff; }
+.np-task-player-winamp { --task-player-accent: #ffd04a; }
+.np-task-player-macos { --task-player-accent: #ff91ad; }
+.np-task-player-foobar { --task-player-accent: #e7e7e7; }
+.np-task-player-icon { display: inline-grid; place-items: center; border-radius: 4px; overflow: hidden; text-shadow: none; }
+.np-task-player-icon .mat-icon { width: 18px; height: 18px; font-size: 18px; line-height: 18px; }
+.np-task-player-wmp .np-task-player-icon { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #e8faff, #237ddd 75%); color: #fff; }
+.np-task-player-winamp .np-task-player-icon { background: #25262a; color: #ffd04a; border: 1px solid #91969b; box-sizing: border-box; }
+.np-task-player-macos .np-task-player-icon { background: linear-gradient(#ff607d, #d61f50); color: #fff; }
+.np-task-player-foobar .np-task-player-icon { background: #eeeeef; color: #242427; }
 .np-taskbar-tray { position: relative; display: flex; align-items: center; justify-content: flex-end; align-self: stretch; min-width: 184px; margin-left: auto; padding: 0 7px; gap: 2px; border-left: 2px solid #0a48ac; background: linear-gradient(180deg,#43a2ee 0%,#1685d6 50%,#0874c7 100%); box-shadow: inset 1px 0 0 rgba(255,255,255,.38); }
 .np-tray-icons { display: flex; align-items: center; justify-content: center; height: 100%; gap: 2px; }
 .np-tray-icon { position: relative; display: grid; place-items: center; width: 25px; height: 27px; flex: none; padding: 0; border: 0; border-radius: 2px; background: transparent; cursor: pointer; }
@@ -3464,6 +3479,31 @@
 
 .np-panel-desktop.np-panel-winamp .wa-shell { position: relative; }
 
+.wa-shell .mat-icon { font-family: 'Material Icons'; font-weight: normal; font-style: normal; letter-spacing: 0; text-transform: none; font-feature-settings: 'liga'; width: 12px; height: 12px; font-size: 12px; line-height: 12px; }
+.wa-shell .wa-wbtn .mat-icon { width: 8px; height: 8px; font-size: 8px; line-height: 8px; }
+.wa-shell button:focus-visible, .wa-shell input:focus-visible, .wa-pl-entry:focus-visible { outline: 1px solid #f2d15c; outline-offset: 1px; }
+.wa-shell .wa-digital-time { background: none; border: 0; padding: 0; cursor: pointer; letter-spacing: 0; }
+.wa-titlebar-left { min-width: 0; }
+.wa-shade-track { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; color: #dce2e8; }
+.wa-shaded .wa-main { height: 26px; border-bottom: 2px solid #858b96; }
+.wa-shaded .wa-titlebar { height: 22px; }
+.wa-shaded .wa-titlebar-left { justify-content: flex-start; padding-left: 4px; gap: 8px; }
+.wa-shaded .wa-main > :not(.wa-titlebar), .wa-shaded .wa-eq-window, .wa-shaded .wa-pl-window { display: none; }
+.wa-seek { display: block; width: calc(100% - 12px); height: 12px; margin: 3px 6px; appearance: none; background: #151719; border: 1px solid #101114; box-shadow: inset 1px 1px #000, 1px 1px #636a75; cursor: pointer; }
+.wa-seek::-webkit-slider-thumb { appearance: none; width: 22px; height: 10px; background: linear-gradient(#faf2b3, #b79b42 50%, #66551e); border: 1px solid #171717; box-shadow: inset 1px 1px #fff9c9; }
+.wa-seek::-moz-range-thumb { width: 22px; height: 8px; border-radius: 0; background: #c9b163; border: 1px solid #171717; }
+.wa-seek:disabled { opacity: .4; cursor: default; }
+.wa-shell .wa-tbtn.wa-engaged { background: linear-gradient(#525a5d, #272b2c); color: #a5ef65; box-shadow: inset 1px 1px #111; }
+.wa-preset-menu { position: relative; flex: none; z-index: 2; }
+.wa-preset-menu summary { display: grid; place-items: center; width: 15px; height: 14px; list-style: none; border: 1px solid #5a5a5a; background: #292c31; color: #c5cad2; cursor: pointer; box-sizing: border-box; }
+.wa-preset-menu summary::-webkit-details-marker { display: none; }
+.wa-preset-menu summary:focus-visible { outline: 1px solid #f3df6a; }
+.wa-preset-actions { position: absolute; right: 0; top: 16px; width: 116px; padding: 3px; border: 1px solid #858b96; background: #24272e; box-shadow: 2px 3px 8px #0009; }
+.wa-preset-actions button { display: flex; align-items: center; gap: 5px; width: 100%; height: 24px; padding: 0 5px; border: none; border-radius: 0; background: transparent; color: #e0e4ec; font-size: 9px; cursor: pointer; text-align: left; }
+.wa-preset-actions button:hover, .wa-preset-actions button:focus-visible { background: #3b4352; outline: none; }
+.wa-preset-error { padding: 3px 6px; font-size: 9px; color: #ffd0c8; background: #512a2a; }
+@media (prefers-reduced-motion: reduce) { .wa-track-marquee { animation: none; } }
+
 /* ── MAIN PLAYER WINDOW ── */
 .wa-main {
   width: 300px;
@@ -3646,9 +3686,13 @@
   flex: 1 1 auto;
   min-width: 0;
   height: 3px;
-  accent-color: #c9cdd3;
+  appearance: none;
+  background: #080909;
+  border: 1px solid #555;
   cursor: pointer;
 }
+.wa-hslider::-webkit-slider-thumb { appearance: none; width: 11px; height: 9px; border: 1px solid #101010; background: linear-gradient(#eee, #92979a); box-shadow: inset 1px 1px #fff; }
+.wa-hslider::-moz-range-thumb { width: 11px; height: 9px; border-radius: 0; border: 1px solid #101010; background: linear-gradient(#eee, #92979a); }
 
 /* Position seek bar */
 .wa-posbar {
@@ -3730,7 +3774,7 @@
   padding: 0 4px;
   cursor: move;
 }
-.wa-eq-title-text { font-size: 8px; font-weight: 700; color: #fff; letter-spacing: 1px; flex: 1; }
+.wa-eq-title-text { font-size: 8px; font-weight: 700; color: #fff; letter-spacing: 0; flex: 1; min-width: 0; white-space: nowrap; }
 .wa-eq-header-btns { display: flex; gap: 2px; }
 .wa-eq-hbtn {
   background: linear-gradient(180deg, #3c3c3c 0%, #222 100%);
@@ -3757,6 +3801,9 @@
 .wa-eq-presets { max-width: 82px; height: 15px; border: 1px solid #5a5a5a; background: #242424; color: #aaa; font-size: 7px; padding: 0 2px; }
 
 .wa-eq-body {
+  margin: 0;
+  border: 0;
+  min-width: 0;
   display: flex;
   align-items: flex-end;
   gap: 2px;
@@ -3784,11 +3831,13 @@
   direction: rtl;
   height: 82px;
   width: 14px;
-  accent-color: #d4a800;
+  background: #0c100a;
+  border: 1px solid #45483c;
   cursor: pointer;
-  appearance: slider-vertical;
-  -webkit-appearance: slider-vertical;
+  appearance: none;
 }
+.wa-eq-vslider::-webkit-slider-thumb { appearance: none; width: 14px; height: 7px; border: 1px solid #17170c; background: linear-gradient(#fff4a0, #b49b25); }
+.wa-eq-vslider::-moz-range-thumb { width: 14px; height: 7px; border-radius: 0; border: 1px solid #17170c; background: linear-gradient(#fff4a0, #b49b25); }
 .wa-eq-band-lbl { font-size: 6px; color: #888; white-space: nowrap; text-align: center; }
 .wa-eq-vsep {
   width: 1px;

@@ -190,6 +190,9 @@ export class DeckPlayer {
 
   // EQ Filters (5-band: 60Hz, 250Hz, 1kHz, 4kHz, 16kHz)
   private filterBands: BiquadFilterNode[] = [];
+  private winampBands: BiquadFilterNode[] = [];
+  private winampPreamp: GainNode | null = null;
+  private balance = 0;
 
   // Channel Mode
   private channelSplitter: ChannelSplitterNode | null = null;
@@ -289,6 +292,12 @@ export class DeckPlayer {
   }
 
   get state(): PlayerState { return this.stateSubj.value; }
+  get supportsAudioEffects(): boolean { return this.activeSource !== 'youtube' && this.audioCtx !== null; }
+
+  get visualizationAudio(): { context: AudioContext; source: AudioNode } | null {
+    return this.audioCtx && this.analyserNode
+      ? { context: this.audioCtx, source: this.analyserNode } : null;
+  }
 
   private setupAudioNodes() {
     if (typeof window === 'undefined') return;
@@ -339,7 +348,21 @@ export class DeckPlayer {
       for (let i = 0; i < this.filterBands.length - 1; i++) {
         this.filterBands[i].connect(this.filterBands[i + 1]);
       }
-      this.filterBands[this.filterBands.length - 1].connect(this.comboFilter);
+      if (this.deckId === 'main') {
+        this.winampPreamp = this.audioCtx.createGain();
+        this.winampBands = [60, 170, 310, 600, 1000, 3000, 6000, 12000, 14000, 16000].map(frequency => {
+          const filter = this.audioCtx!.createBiquadFilter();
+          filter.type = 'peaking';
+          filter.frequency.value = frequency;
+          filter.Q.value = 1.4;
+          return filter;
+        });
+        this.filterBands[this.filterBands.length - 1].connect(this.winampPreamp);
+        this.winampPreamp.connect(this.winampBands[0]);
+        this.winampBands.forEach((filter, i) => filter.connect(this.winampBands[i + 1] ?? this.comboFilter!));
+      } else {
+        this.filterBands[this.filterBands.length - 1].connect(this.comboFilter);
+      }
       
       // FX Routing
       this.comboFilter.connect(this.dryGain);
@@ -751,6 +774,20 @@ export class DeckPlayer {
     if (f) f.gain.value = dB;
   }
 
+  setWinampEq(bands: number[], preamp: number, enabled: boolean): void {
+    if (bands.length !== 10 || !bands.every(Number.isFinite) || !Number.isFinite(preamp)) return;
+    const time = this.audioCtx?.currentTime ?? 0;
+    this.winampBands.forEach((filter, i) =>
+      filter.gain.setTargetAtTime(enabled ? Math.max(-12, Math.min(12, bands[i])) : 0, time, 0.02));
+    this.winampPreamp?.gain.setTargetAtTime(enabled ? Math.pow(10, Math.max(-12, Math.min(12, preamp)) / 20) : 1, time, 0.02);
+  }
+
+  setBalance(value: number): void {
+    if (!Number.isFinite(value)) return;
+    this.balance = Math.max(-1, Math.min(1, value));
+    this.setChannelMode(this.channelMode);
+  }
+
   setEq(band: 'low' | 'mid' | 'high', dB: number) {
     const map: Record<string, number> = { low: 0, mid: 2, high: 4 };
     this.setEqBand(map[band], dB);
@@ -772,7 +809,10 @@ export class DeckPlayer {
       swap:   [0, 1, 1, 0],
     };
     const m = matrices[mode] ?? matrices['stereo'];
-    m.forEach((v, i) => g[i].gain.setTargetAtTime(v, t, 0.02));
+    m.forEach((v, i) => {
+      const attenuation = i < 2 ? 1 - Math.max(0, this.balance) : 1 + Math.min(0, this.balance);
+      g[i].gain.setTargetAtTime(v * attenuation, t, 0.02);
+    });
   }
 
   // ── Normalización de volumen ──────────────────────────────────────────────

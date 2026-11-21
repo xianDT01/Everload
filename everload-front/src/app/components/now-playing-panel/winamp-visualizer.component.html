@@ -1,0 +1,17 @@
+<section #window class="visual-window" cdkDrag cdkDragBoundary="body" role="region" [attr.aria-label]="'WINAMP.VISUALS' | translate">
+  <header cdkDragHandle>
+    <mat-icon>auto_awesome</mat-icon><strong>EVERLOAD VISUALS</strong><span class="header-line"></span>
+    <button type="button" (click)="fullscreen()" [title]="'WINAMP.FULLSCREEN' | translate" [attr.aria-label]="'WINAMP.FULLSCREEN' | translate"><mat-icon>fullscreen</mat-icon></button>
+    <button type="button" (click)="closed.emit()" [title]="'COMMON.CLOSE' | translate" [attr.aria-label]="'COMMON.CLOSE' | translate"><mat-icon>close</mat-icon></button>
+  </header>
+  <div #surface class="visual-surface">
+    <canvas #canvas [attr.aria-label]="'WINAMP.VISUALS' | translate"></canvas>
+    <div class="visual-status" *ngIf="loading || failed || !music.mainPlayer.supportsAudioEffects || !music.mainPlayer.state.playing" role="status">
+      {{ (loading ? 'WINAMP.VIS_LOADING' : failed ? 'WINAMP.VIS_ERROR' : !music.mainPlayer.supportsAudioEffects ? 'WINAMP.VIS_UNAVAILABLE' : 'WINAMP.VIS_IDLE') | translate }}
+    </div>
+  </div>
+  <footer>
+    <select [(ngModel)]="selected" (change)="changePreset()" [disabled]="loading || failed || !names.length" [attr.aria-label]="'WINAMP.VIS_PRESET' | translate"><optgroup *ngFor="let group of groups" [label]="group.label | translate"><option *ngFor="let name of group.names" [value]="name">{{ name }}</option></optgroup></select>
+    <button type="button" (click)="nextPreset()" [disabled]="!names.length" [title]="'COMMON.NEXT' | translate" [attr.aria-label]="'COMMON.NEXT' | translate"><mat-icon>skip_next</mat-icon></button>
+  </footer>
+</section>

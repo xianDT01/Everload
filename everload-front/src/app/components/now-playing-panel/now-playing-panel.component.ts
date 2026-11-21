@@ -10,6 +10,7 @@ import { ChatComponent } from '../chat/chat.component';
 import { AuthService } from '../../services/auth.service';
 import { ApiBaseService } from '../../services/api-base.service';
 import { TranslateService } from '@ngx-translate/core';
+import { readWinampPresets, writeWinampPreset, WinampPreset } from './winamp-presets';
 
 type DesktopWindowTarget = 'player' | 'explorer' | 'manager' | 'messenger' | 'youtube' | 'browser' | 'minesweeper' | 'calculator' | 'notepad' | 'equalizer' | 'snake';
 type DesktopIconId = 'explorer' | 'music' | 'manager' | 'player' | 'calculator' | 'notepad' | 'equalizer' | 'snake' | 'xp' | 'messenger' | 'youtube' | 'browser' | 'minesweeper' | 'wallpaper';
@@ -79,6 +80,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   @ViewChild('panelCanvas') panelCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('snakeCanvas') snakeCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('desktopPanel') desktopPanel?: ElementRef<HTMLElement>;
+  @ViewChild('waPresetMenu') waPresetMenu?: ElementRef<HTMLDetailsElement>;
   private panelRaf?: number;
   private panelPeaks: number[] = [];
 
@@ -275,6 +277,19 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   // ── Winamp 10-band EQ + playlist ─────────────────────────────────────────
   waEqBands: number[] = new Array(10).fill(0);
+  waPreamp = 0;
+  waVisualizerVisible = false;
+  waVisualizerFocused = true;
+  waBalance = 0;
+  waShaded = false;
+  waRemainingTime = false;
+  waImportedPresets: WinampPreset[] = [];
+  waPresetError = false;
+  get waTimeLabel(): string {
+    const value = this.waRemainingTime ? (this.state?.duration || 0) - (this.state?.currentTime || 0) : this.state?.currentTime || 0;
+    const seconds = Number.isFinite(value) ? Math.floor(Math.max(0, value)) : 0;
+    return (this.waRemainingTime ? '-' : '') + Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+  }
   readonly waEqBandNames = ['60','170','310','600','1K','3K','6K','12K','14K','16K'];
   readonly waEqPresets: Array<{ id: string; label: string; bands: number[] }> = [
     { id: 'flat', label: 'Flat', bands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
@@ -700,6 +715,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   get currentSkinName(): string {
     return this.skinOptions.find(s => s.id === this.playerSkin)?.name ?? '';
   }
+
+  get currentSkinIcon(): string {
+    return { wmp: 'play_arrow', winamp: 'bolt', macos: 'music_note', foobar: 'graphic_eq' }[this.playerSkin];
+  }
+
   get notepadDiskLabel(): string {
     return `${this.getNotepadUserName()} (C:)`;
   }
@@ -844,11 +864,21 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   @HostListener('document:keydown.escape')
-  onEscape(): void { if (this.isOpen) this.close(); }
+  onEscape(): void {
+    if (document.fullscreenElement?.classList.contains('visual-window')) return;
+    if (this.isOpen) this.close();
+  }
+
+  @HostListener('document:click', ['$event'])
+  closeWaPresetMenuOutside(event: Event): void {
+    const menu = this.waPresetMenu?.nativeElement;
+    if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+  }
 
   @HostListener('window:resize')
   onWindowResize(): void {
     this.clampAllWindows();
+    this.desktopIconPositions = this.fitDesktopIconPositions(this.desktopIconPositions);
   }
 
   @HostListener('document:mousemove', ['$event'])
@@ -990,47 +1020,53 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
     movingIds: DesktopIconId[]
   ): boolean {
     const moving = new Set(movingIds);
-    const occupied = new Set<string>();
+    const occupied: { x: number; y: number }[] = [];
     for (const id of Object.keys(positions) as DesktopIconId[]) {
       if (moving.has(id)) continue;
       const pos = positions[id];
-      occupied.add(`${pos.x}:${pos.y}`);
+      occupied.push(pos);
     }
     for (const id of movingIds) {
       const pos = positions[id];
-      const cell = `${pos.x}:${pos.y}`;
-      if (occupied.has(cell)) return false;
-      occupied.add(cell);
+      if (occupied.some(other => Math.abs(other.x - pos.x) < 92 && Math.abs(other.y - pos.y) < 74)) return false;
+      occupied.push(pos);
     }
     return true;
   }
 
   private loadDesktopIconPositions(): void {
+    let saved: Partial<Record<DesktopIconId, { x: number; y: number }>> = {};
     try {
-      const saved = JSON.parse(localStorage.getItem('everload.windows.desktopIcons') || '{}');
-      const positions = { ...this.desktopIconPositions };
-      for (const id of Object.keys(positions) as DesktopIconId[]) {
-        const candidate = saved[id];
-        if (Number.isFinite(candidate?.x) && Number.isFinite(candidate?.y)) {
-          positions[id] = this.clampDesktopIconPosition(candidate.x, candidate.y);
+      saved = JSON.parse(localStorage.getItem('everload.windows.desktopIcons') || '{}') || {};
+    } catch { /* Arrange the default icons even when browser storage is unavailable. */ }
+    const positions = { ...this.desktopIconPositions };
+    for (const id of Object.keys(positions) as DesktopIconId[]) {
+      const candidate = saved[id];
+      if (Number.isFinite(candidate?.x) && Number.isFinite(candidate?.y)) {
+        positions[id] = candidate!;
+      }
+    }
+    this.desktopIconPositions = this.fitDesktopIconPositions(positions);
+  }
+
+  private fitDesktopIconPositions(positions: Record<DesktopIconId, { x: number; y: number }>): Record<DesktopIconId, { x: number; y: number }> {
+    const next = { ...positions };
+    const occupied: { x: number; y: number }[] = [];
+    const cols = Math.max(1, Math.floor((window.innerWidth - 92 - 18) / 100) + 1);
+    const rows = Math.max(1, Math.floor((window.innerHeight - this.desktopTaskbarHeight - 74 - 24) / 78) + 1);
+    const isFree = (pos: { x: number; y: number }) => !occupied.some(other => Math.abs(other.x - pos.x) < 92 && Math.abs(other.y - pos.y) < 74);
+    for (const id of Object.keys(next) as DesktopIconId[]) {
+      let pos = this.clampDesktopIconPosition(next[id].x, next[id].y);
+      if (!isFree(pos)) {
+        for (let cell = 0; cell < cols * rows; cell++) {
+          const candidate = { x: 18 + (cell % cols) * 100, y: 24 + Math.floor(cell / cols) * 78 };
+          if (isFree(candidate)) { pos = candidate; break; }
         }
       }
-      const placed: DesktopIconId[] = [];
-      for (const id of Object.keys(positions) as DesktopIconId[]) {
-        if (this.desktopIconMoveIsFree(positions, [...placed, id])) placed.push(id);
-        else {
-          const cols = Math.max(1, Math.floor((window.innerWidth - 92 - 18) / 100) + 1);
-          const rows = Math.max(1, Math.floor((window.innerHeight - this.desktopTaskbarHeight - 74 - 24) / 78) + 1);
-          let found = false;
-          for (let cell = 0; cell < cols * rows && !found; cell++) {
-            positions[id] = { x: 18 + (cell % cols) * 100, y: 24 + Math.floor(cell / cols) * 78 };
-            if (this.desktopIconMoveIsFree(positions, [...placed, id])) found = true;
-          }
-          placed.push(id);
-        }
-      }
-      this.desktopIconPositions = positions;
-    } catch { /* Keep the default desktop layout when storage is unavailable. */ }
+      next[id] = pos;
+      occupied.push(pos);
+    }
+    return next;
   }
 
   private saveDesktopIconPositions(): void {
@@ -1039,6 +1075,7 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   private getWinampContentHeight(): number {
+    if (this.waShaded) return 26;
     return 145 + (this.waEqVisible ? 132 : 0) + (this.waPlVisible ? 172 : 0);
   }
 
@@ -1100,7 +1137,8 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   onSeek(e: MouseEvent): void {
     const bar = e.currentTarget as HTMLElement;
-    const pct = e.offsetX / bar.offsetWidth;
+    const rect = bar.getBoundingClientRect();
+    const pct = rect.width > 0 ? Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) : 0;
     const duration = this.state?.duration ?? 0;
     if (duration > 0) this.musicService.mainPlayer.seek(pct * duration);
   }
@@ -2119,9 +2157,11 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   onDesktopWindowActivate(event: Event): void {
+    this.closeWaPresetMenuOutside(event);
     if (!this.isOpen || !this.isDesktopWmp || this.isFullscreen || !(event.target instanceof Element)) return;
     const window = event.target.closest<HTMLElement>('[data-desktop-window]');
     const target = window?.dataset['desktopWindow'];
+    if (target === 'player') this.waVisualizerFocused = window?.tagName.toLowerCase() === 'app-winamp-visualizer';
     if (!window || !this.host.nativeElement.contains(window) || !target
       || !Object.prototype.hasOwnProperty.call(this.desktopWindowZOrder, target)
       || target === this.activeDesktopWindow) return;
@@ -3934,27 +3974,17 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
 
   resetEq(): void { this.applyEqPreset([0, 0, 0, 0, 0]); }
 
-  // Winamp 10-band maps pairs to 5 EQ bands: [0+1]→0, [2+3]→1, [4+5]→2, [6+7]→3, [8+9]→4
   setWaEqBand(index: number, value: string | number): void {
-    this.waEqBands[index] = parseFloat(value as string);
+    const db = Number(value);
+    if (!Number.isInteger(index) || index < 0 || index >= 10 || !Number.isFinite(db)) return;
+    this.waEqBands[index] = Math.max(-12, Math.min(12, db));
     this.waEqPreset = 'custom';
-    if (!this.waEqOn) return;
-    const group = Math.floor(index / 2);
-    const avg = (this.waEqBands[group * 2] + this.waEqBands[group * 2 + 1]) / 2;
-    this.eqBands[group] = avg;
-    this.musicService.mainPlayer.setEqBand(group, avg);
+    this.syncWaEq();
   }
 
   toggleWaEq(): void {
     this.waEqOn = !this.waEqOn;
-    if (!this.waEqOn) {
-      [0, 1, 2, 3, 4].forEach(i => this.musicService.mainPlayer.setEqBand(i, 0));
-    } else {
-      for (let g = 0; g < 5; g++) {
-        const avg = (this.waEqBands[g * 2] + this.waEqBands[g * 2 + 1]) / 2;
-        this.musicService.mainPlayer.setEqBand(g, avg);
-      }
-    }
+    this.syncWaEq();
   }
 
   resetWaEq(): void {
@@ -3962,15 +3992,60 @@ export class NowPlayingPanelComponent implements OnInit, AfterViewChecked, OnDes
   }
 
   applyWaEqPreset(id: string): void {
+    if (id.startsWith('import-')) {
+      const imported = this.waImportedPresets[Number(id.slice(7))];
+      if (!imported) return;
+      this.waEqPreset = id; this.waEqBands = [...imported.bands]; this.waPreamp = imported.preamp;
+      this.waEqOn = true; this.syncWaEq(); return;
+    }
     const preset = this.waEqPresets.find(item => item.id === id) ?? this.waEqPresets[0];
     this.waEqPreset = preset.id;
     this.waEqBands = [...preset.bands];
     if (!this.waEqOn) this.waEqOn = true;
-    for (let group = 0; group < 5; group++) {
-      const gain = (this.waEqBands[group * 2] + this.waEqBands[group * 2 + 1]) / 2;
-      this.eqBands[group] = gain;
-      this.musicService.mainPlayer.setEqBand(group, gain);
-    }
+    this.waPreamp = 0;
+    this.syncWaEq();
+  }
+
+  private syncWaEq(): void {
+    this.musicService.mainPlayer.setWinampEq(this.waEqBands, this.waPreamp, this.waEqOn);
+  }
+
+  setWaPreamp(value: string | number): void {
+    if (!Number.isFinite(Number(value))) return;
+    this.waPreamp = Math.max(-12, Math.min(12, Number(value)));
+    this.waEqPreset = 'custom'; this.syncWaEq();
+  }
+
+  setWaBalance(value: string | number): void {
+    if (!Number.isFinite(Number(value))) return;
+    this.waBalance = Math.max(-100, Math.min(100, Number(value)));
+    this.musicService.mainPlayer.setBalance(this.waBalance / 100);
+  }
+
+  toggleWaShade(): void { this.waShaded = !this.waShaded; this.fitPlayerWindowToSkin(); }
+
+  seekWa(value: string | number): void {
+    const duration = this.state?.duration ?? 0;
+    if (duration > 0 && Number.isFinite(Number(value))) this.musicService.mainPlayer.seek(Math.max(0, Math.min(duration, Number(value))));
+  }
+
+  async importWaPreset(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; this.waPresetError = false;
+    if (!file) return;
+    try {
+      if (file.size > 65536) throw new Error('EQF too large');
+      const presets = readWinampPresets(await file.arrayBuffer());
+      this.waImportedPresets = presets; this.applyWaEqPreset('import-0');
+    } catch { this.waPresetError = true; }
+  }
+
+  exportWaPreset(): void {
+    const data = writeWinampPreset({ name: 'EverLoad ' + this.waEqPreset, bands: this.waEqBands, preamp: this.waPreamp });
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' }));
+    const link = document.createElement('a'); link.href = url; link.download = 'everload.eqf'; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   toggleWaQueueSelection(index: number, event: Event): void {

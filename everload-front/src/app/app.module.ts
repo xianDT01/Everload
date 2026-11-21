@@ -28,6 +28,7 @@ import { GlobalPlayerComponent } from './components/global-player/global-player.
 import { PwaUpdateBannerComponent } from './components/pwa-update-banner/pwa-update-banner.component';
 import { OfflineBannerComponent } from './components/offline-banner/offline-banner.component';
 import { NowPlayingPanelComponent } from './components/now-playing-panel/now-playing-panel.component';
+import { WinampVisualizerComponent } from './components/now-playing-panel/winamp-visualizer.component';
 import { ChatModule } from './components/chat/chat.module';
 // Interceptors
 import { AuthInterceptor } from './interceptors/auth.interceptor';
@@ -73,6 +74,7 @@ export function initRuntimeConfig(apiBase: ApiBaseService): () => Promise<void> 
   ],
   imports: [
     BrowserModule,
+    WinampVisualizerComponent,
     AppRoutingModule,
     FormsModule,
     MatIconModule,
